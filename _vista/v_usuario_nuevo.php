@@ -1,0 +1,83 @@
+<!-- page content -->
+<div class="right_col" role="main">
+    <div class="">
+        <div class="page-title">
+            <div class="title_left">
+                <h3>Nuevo Usuario</h3>
+            </div>
+        </div>
+
+        <div class="clearfix"></div>
+
+        <div class="row">
+            <div class="col-md-12 ">
+                <div class="x_panel">
+                    <div class="x_title">
+                        <h2>Datos de Usuario <small></small></h2>
+                        <div class="clearfix"></div>
+                    </div>
+                    <div class="x_content">
+                        <br>
+                        <form class="form-horizontal form-label-left" action="usuario_nuevo.php" method="post">
+                            <div class="form-group row ">
+                                <label class="control-label col-md-3 col-sm-3 ">Personal <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9 ">
+                                    <input type="text" name="nom" class="form-control" placeholder="Seleccione personal" required="required">
+                                </div>
+                            </div>
+                            <div class="form-group row ">
+                                <label class="control-label col-md-3 col-sm-3 ">Usuario <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9 ">
+                                    <input type="text" name="user" class="form-control" placeholder="Usuario" required="required">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group row ">
+                                <label class="control-label col-md-3 col-sm-3 ">Contraseña <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9 ">
+                                    <input type="text" name="pass" class="form-control" placeholder="Contraseña" required="required">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group row ">
+                                <label class="control-label col-md-3 col-sm-3 ">Tipo de Usuario <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9 ">
+                                    <input type="text" name="tipo_usuario" class="form-control" placeholder="Seleccione tipo de usuario" required="required">
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3 ">Estado:</label>
+                                <div class="col-md-9 col-sm-9 ">
+                                    <div class="">
+                                        <label>
+                                            <input type="checkbox" name="est" class="js-switch" checked> Activo
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="ln_solid"></div>
+
+                            <div class="form-group">
+                                <div class="col-md-2 col-sm-2  offset-md-8">
+                                    <button type="reset" class="btn btn-outline-danger btn-block">Limpiar</button>
+                                </div>
+                                <div class="col-md-2 col-sm-2">
+                                    <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">Registrar</button>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="col-md-12 col-sm-12">
+                                    <p><span class="text-danger">*</span> Los campos con (<span class="text-danger">*</span>) son obligatorios.</p>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- /page content -->
