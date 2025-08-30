@@ -1,20 +1,18 @@
-<?php
-
-require_once("../_modelo/m_usuario.php");
-require_once("../_modelo/m_rol.php");
-
+<?php 
+//=======================================================================
+// CONTROLADOR: rol_usuario_nuevo.php
+//=======================================================================
 ?>
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <title>Nuevo Usuario</title>
-
+    
+    <title>Nuevo Rol</title>
+    
     <?php require_once("../_vista/v_estilo.php"); ?>
 </head>
 
@@ -24,53 +22,48 @@ require_once("../_modelo/m_rol.php");
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
+            
+            require_once("../_modelo/m_rol.php");
 
+            //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
-                $id_personal = $_REQUEST['id_personal'];
-                $usu = trim($_REQUEST['user']);
-                $pass = $_REQUEST['pass'];
+                $nom_rol = strtoupper(trim($_REQUEST['nom_rol']));
                 $est = isset($_REQUEST['est']) ? 1 : 0;
                 
-                // Obtener roles seleccionados
-                $roles = array();
-                if (isset($_REQUEST['roles']) && is_array($_REQUEST['roles'])) {
-                    $roles = $_REQUEST['roles'];
+                // Obtener permisos seleccionados
+                $permisos = array();
+                if (isset($_REQUEST['permisos']) && is_array($_REQUEST['permisos'])) {
+                    $permisos = $_REQUEST['permisos'];
                 }
-
-                $rpta = GrabarUsuario($id_personal, $usu, $pass, $est, $roles);
-
+                
+                $rpta = GrabarRol($nom_rol, $permisos, $est);
+                
                 if ($rpta == "SI") {
             ?>
                     <script Language="JavaScript">
-                        location.href = 'usuario_mostrar.php?registrado=true';
+                        location.href = 'rol_usuario_mostrar.php?registrado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
                 ?>
                     <script Language="JavaScript">
-                        location.href = 'usuario_mostrar.php?existe=true';
+                        location.href = 'rol_usuario_mostrar.php?existe=true';
                     </script>
-                <?php
-                } else if ($rpta == "PERSONAL_YA_ASIGNADO") {
-                ?>
-                    <script Language="JavaScript">
-                        location.href = 'usuario_mostrar.php?personal_asignado=true';
-                    </script>
-                <?php
+            <?php
                 } else {
                 ?>
                     <script Language="JavaScript">
-                        location.href = 'usuario_mostrar.php?error=true';
+                        location.href = 'rol_usuario_mostrar.php?error=true';
                     </script>
             <?php
                 }
             }
-
-            // Obtener datos para los selectores
-            $personal_sin_usuario = ObtenerPersonalSinUsuario();
-            $roles_activos = MostrarRolesActivos();
-
-            require_once("../_vista/v_usuario_nuevo.php");
+            //-------------------------------------------
+            
+            // Obtener módulos y acciones para los permisos
+            $modulos_acciones = MostrarModulosAcciones();
+            
+            require_once("../_vista/v_rol_usuario_nuevo.php");
             require_once("../_vista/v_footer.php");
             ?>
         </div>

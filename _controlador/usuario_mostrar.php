@@ -2,10 +2,7 @@
 
 require_once("../_modelo/m_usuario.php");
 
-
-
 ?>
-
 
 <!DOCTYPE html>
 <html lang="es">
@@ -26,10 +23,10 @@ require_once("../_modelo/m_usuario.php");
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
 
-            require_once("../_modelo/m_usuario.php");
-           // $usuario = MostrarUsuario();
+            // Obtener la lista de usuarios
+            $usuarios = MostrarUsuario();
+            
             require_once("../_vista/v_usuario_mostrar.php");
-
             require_once("../_vista/v_footer.php");
             ?>
         </div>
@@ -40,5 +37,4 @@ require_once("../_modelo/m_usuario.php");
     require_once("../_vista/v_alertas.php");
     ?>
 </body>
-
 </html>

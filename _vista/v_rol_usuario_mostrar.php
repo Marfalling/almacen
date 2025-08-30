@@ -3,7 +3,7 @@
     <div class="">
         <div class="page-title">
             <div class="title_left">
-                <h3>Usuario<small></small></h3>
+                <h3>Roles de Usuario<small></small></h3>
             </div>
         </div>
 
@@ -16,11 +16,11 @@
                     <div class="x_title">
                         <div class="row">
                             <div class="col-sm-10">
-                                <h2>Listado de Usuario<small></small></h2>
+                                <h2>Listado de Roles de Usuario<small></small></h2>
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="usuario_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nuevo usuario</a>
+                                <a href="rol_usuario_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nuevo rol de usuario</a> 
                             </div>
                         </div>
                     </div>
@@ -33,11 +33,9 @@
                                         <thead>
                                             <tr>
                                                 <th>#</th>
-                                                <th>Personal</th>
-                                                <th>Usuario</th>
-                                                <th>Área</th>
-                                                <th>Cargo</th>
-                                                <th>Roles</th>
+                                                <th>Nombre del Rol</th>
+                                                <th>Total Permisos</th>
+                                                <th>Usuarios Asignados</th>
                                                 <th>Estado</th>
                                                 <th>Editar</th>
                                             </tr>
@@ -46,37 +44,31 @@
                                         <tbody>
                                             <?php
                                             $c = 0;
-                                            foreach ($usuarios as $value) {
+                                            foreach ($roles as $value) {
                                                 $c++;
-                                                $id_usuario = $value['id_usuario'];
-                                                $nombre_completo = $value['nom_personal'] . ' ' . $value['ape_personal'];
-                                                $dni = $value['dni_personal'];
-                                                $usu_usuario = $value['usu_usuario'];
-                                                $nom_area = $value['nom_area'];
-                                                $nom_cargo = $value['nom_cargo'];
-                                                $roles = !empty($value['roles']) ? $value['roles'] : 'Sin roles';
-                                                $est_usuario = $value['est_usuario'];
-                                                $estado = ($est_usuario == 1) ? "ACTIVO" : "INACTIVO";
-                                                $estado_class = ($est_usuario == 1) ? "badge badge-success" : "badge badge-danger";
+                                                $id_rol = $value['id_rol'];
+                                                $nom_rol = $value['nom_rol'];
+                                                $total_permisos = $value['total_permisos'];
+                                                $total_usuarios = $value['total_usuarios'];
+                                                $est_rol = $value['est_rol'];
+                                                $estado = ($est_rol == 1) ? "ACTIVO" : "INACTIVO";
+                                                
                                             ?>
                                                 <tr>
                                                     <td><?php echo $c; ?></td>
+                                                    <td><?php echo $nom_rol; ?></td>
                                                     <td>
-                                                        <strong><?php echo $nombre_completo; ?></strong><br>
-                                                        <small>DNI: <?php echo $dni; ?></small>
-                                                    </td>
-                                                    <td><?php echo $usu_usuario; ?></td>
-                                                    <td><?php echo $nom_area; ?></td>
-                                                    <td><?php echo $nom_cargo; ?></td>
-                                                    <td>
-                                                        <small><?php echo $roles; ?></small>
+                                                        <center><?php echo $total_permisos; ?></center>
                                                     </td>
                                                     <td>
-                                                        <span class="<?php echo $estado_class; ?>"><?php echo $estado; ?></span>
+                                                        <center><?php echo $total_usuarios; ?></center>
+                                                    </td>
+                                                    <td>
+                                                        <center><?php echo $estado; ?></center>
                                                     </td>
                                                     <td>
                                                         <center>
-                                                            <a class="btn btn-warning btn-sm" href="usuario_editar.php?id=<?php echo $id_usuario; ?>" title="Editar usuario">
+                                                            <a class="btn btn-warning btn-sm" href="rol_usuario_editar.php?id=<?php echo $id_rol; ?>">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
                                                         </center>

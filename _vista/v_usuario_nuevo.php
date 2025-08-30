@@ -18,31 +18,59 @@
                     </div>
                     <div class="x_content">
                         <br>
-                        <form class="form-horizontal form-label-left" action="usuario_nuevo.php" method="post">
+                        <form class="form-horizontal form-label-left" action="usuario_nuevo.php" method="post" id="formUsuario">
                             <div class="form-group row ">
                                 <label class="control-label col-md-3 col-sm-3 ">Personal <span class="text-danger">*</span> :</label>
                                 <div class="col-md-9 col-sm-9 ">
-                                    <input type="text" name="nom" class="form-control" placeholder="Seleccione personal" required="required">
+                                    <select name="id_personal" class="form-control" required="required">
+                                        <option value="">Seleccione personal</option>
+                                        <?php if(isset($personal_sin_usuario) && !empty($personal_sin_usuario)) { ?>
+                                            <?php foreach($personal_sin_usuario as $personal) { ?>
+                                                <option value="<?php echo $personal['id_personal']; ?>">
+                                                    <?php echo $personal['nom_personal'] . ' ' . $personal['ape_personal'] . ' - ' . $personal['dni_personal'] . ' (' . $personal['nom_area'] . ' - ' . $personal['nom_cargo'] . ')'; ?>
+                                                </option>
+                                            <?php } ?>
+                                        <?php } else { ?>
+                                            <option value="">No hay personal disponible sin usuario asignado</option>
+                                        <?php } ?>
+                                    </select>
                                 </div>
                             </div>
+                            
                             <div class="form-group row ">
                                 <label class="control-label col-md-3 col-sm-3 ">Usuario <span class="text-danger">*</span> :</label>
                                 <div class="col-md-9 col-sm-9 ">
-                                    <input type="text" name="user" class="form-control" placeholder="Usuario" required="required">
+                                    <input type="text" name="user" class="form-control" placeholder="Nombre de usuario" required="required" maxlength="50" id="inputUsuario">
+                                    <small class="form-text text-muted">Máximo 50 caracteres, sin espacios</small>
                                 </div>
                             </div>
                             
                             <div class="form-group row ">
                                 <label class="control-label col-md-3 col-sm-3 ">Contraseña <span class="text-danger">*</span> :</label>
                                 <div class="col-md-9 col-sm-9 ">
-                                    <input type="text" name="pass" class="form-control" placeholder="Contraseña" required="required">
+                                    <input type="password" name="pass" class="form-control" placeholder="Contraseña" required="required" maxlength="255" id="inputPassword">
+                                    <small class="form-text text-muted">Mínimo 6 caracteres recomendado</small>
                                 </div>
                             </div>
                             
                             <div class="form-group row ">
-                                <label class="control-label col-md-3 col-sm-3 ">Tipo de Usuario <span class="text-danger">*</span> :</label>
+                                <label class="control-label col-md-3 col-sm-3 ">Roles <span class="text-danger">*</span> :</label>
                                 <div class="col-md-9 col-sm-9 ">
-                                    <input type="text" name="tipo_usuario" class="form-control" placeholder="Seleccione tipo de usuario" required="required">
+                                    <?php if(isset($roles_activos) && !empty($roles_activos)) { ?>
+                                        <div class="checkbox-list">
+                                            <?php foreach($roles_activos as $rol) { ?>
+                                                <div class="checkbox">
+                                                    <label>
+                                                        <input type="checkbox" name="roles[]" value="<?php echo $rol['id_rol']; ?>" class="flat">
+                                                        <?php echo $rol['nom_rol']; ?>
+                                                    </label>
+                                                </div>
+                                            <?php } ?>
+                                        </div>
+                                        <small class="form-text text-muted">Seleccione al menos un rol para el usuario</small>
+                                    <?php } else { ?>
+                                        <p class="text-danger">No hay roles activos disponibles. Debe crear al menos un rol primero.</p>
+                                    <?php } ?>
                                 </div>
                             </div>
 
@@ -81,3 +109,4 @@
     </div>
 </div>
 <!-- /page content -->
+

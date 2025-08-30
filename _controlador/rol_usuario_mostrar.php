@@ -1,11 +1,8 @@
 <?php
 
-require_once("../_modelo/m_tipo_usuario.php");
-
-
+require_once("../_modelo/m_rol.php");
 
 ?>
-
 
 <!DOCTYPE html>
 <html lang="es">
@@ -15,7 +12,7 @@ require_once("../_modelo/m_tipo_usuario.php");
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
-    <title>Tipo Usuario Mostrar</title>
+    <title>Roles Mostrar</title>
     
     <?php require_once("../_vista/v_estilo.php"); ?>
 </head>
@@ -26,9 +23,9 @@ require_once("../_modelo/m_tipo_usuario.php");
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
 
-            require_once("../_modelo/m_tipo_usuario.php");
-            //$usuario_tipo = MostrarUsuarioTipo();
-            require_once("../_vista/v_tipo_usuario_mostrar.php");
+            require_once("../_modelo/m_rol.php");
+            $roles = MostrarRoles();
+            require_once("../_vista/v_rol_usuario_mostrar.php");
 
             require_once("../_vista/v_footer.php");
             ?>
@@ -40,5 +37,4 @@ require_once("../_modelo/m_tipo_usuario.php");
     require_once("../_vista/v_alertas.php");
     ?>
 </body>
-
 </html>

@@ -130,7 +130,7 @@
               <li>
                 <a>Personal<span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
-                  <li><a href="tipo_usuario_mostrar.php">Tipo de Usuario</a></li>
+                  <li><a href="rol_usuario_mostrar.php">Rol de Usuario</a></li>
                   <li><a href="area_mostrar.php">Área</a></li>
                   <li><a href="cargo_mostrar.php">Cargo</a></li>
                 </ul>
