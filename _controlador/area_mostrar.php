@@ -27,7 +27,7 @@ require_once("../_modelo/m_area.php");
             require_once("../_vista/v_menu_user.php");
 
             require_once("../_modelo/m_area.php");
-            //$area = MostrarArea();
+            $area = MostrarAreas();
             require_once("../_vista/v_area_mostrar.php");
 
             require_once("../_vista/v_footer.php");

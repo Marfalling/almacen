@@ -34,16 +34,32 @@
                                             <tr>
                                                 <th>#</th>
                                                 <th>Nombre</th>
-                                                <th>-----</th>
-                                                <th>>-----</</th>
-                                                <th>>-----</</th>
                                                 <th>Estado</th>
-                                                <!-- <th>Editar</th> -->
+                                                <th>Editar</th>
                                             </tr>
                                         </thead>
 
                                         <tbody>
-                                            <!-- Aquí irán los datos del almacén cuando implementes la lógica PHP -->
+                                            <?php
+                                            $c = 0;
+                                            foreach ($cargo as  $value) {
+                                                $c++;
+                                                $id_cargo = $value['id_cargo'];
+                                                $nom_cargo = $value['nom_cargo'];
+                                                $est_cargo = $value['est_cargo'];
+                                                $estado = ($est_cargo == 1) ? "ACTIVO" : "INACTIVO";
+                                            ?>
+                                                <tr>
+                                                    <td><?php echo $c; ?></td>
+                                                    <td><?php echo $nom_cargo; ?></td>
+                                                    <td><?php echo $estado; ?></td>
+                                                    <td>
+                                                        <center><a class="btn btn-warning" href=""><i class="fa fa-edit"></i></a></center>
+                                                    </td>
+                                                </tr>
+                                            <?php
+                                            }
+                                            ?>
                                         </tbody>
                                     </table>
                                 </div>

@@ -27,7 +27,7 @@ require_once("../_modelo/m_cargo.php");
             require_once("../_vista/v_menu_user.php");
 
             require_once("../_modelo/m_cargo.php");
-            //$cargo = MostrarCargo();
+            $cargo = MostrarCargos();
             require_once("../_vista/v_cargo_mostrar.php");
 
             require_once("../_vista/v_footer.php");

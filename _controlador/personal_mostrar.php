@@ -27,7 +27,7 @@ require_once("../_modelo/m_personal.php");
             require_once("../_vista/v_menu_user.php");
 
             require_once("../_modelo/m_personal.php");
-            //$personal = MostrarPersonal();
+            $personal = MostrarPersonal();
             require_once("../_vista/v_personal_mostrar.php");
 
             require_once("../_vista/v_footer.php");

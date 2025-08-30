@@ -1,7 +1,6 @@
 <?php
 // Vista para registrar nuevo almacén - v_almacen_nuevo.php
 
-// Incluir modelos necesarios para obtener listas de clientes y obras
 require_once("../_modelo/m_clientes.php");
 require_once("../_modelo/m_obras.php");
 
