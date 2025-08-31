@@ -53,7 +53,7 @@
                                                     <td><?php echo $nom_area; ?></td>
                                                     <td><?php echo $estado; ?></td>
                                                     <td>
-                                                        <center><a class="btn btn-warning" href=""><i class="fa fa-edit"></i></a></center>
+                                                        <center><a class="btn btn-warning" href="area_editar.php?id_area=<?php echo $id_area; ?>"><i class="fa fa-edit"></i></a></center>
                                                     </td>
                                                 </tr>
                                             <?php
