@@ -54,7 +54,7 @@
                                                     <td><?php echo $nom_moneda; ?></td>
                                                     <td><?php echo $estado; ?></td>
                                                     <td>
-                                                        <center><a class="btn btn-warning" href=""><i class="fa fa-edit"></i></a></center>
+                                                        <center><a class="btn btn-warning"  href="moneda_editar.php?id_moneda=<?php echo $id_moneda; ?>"><i class="fa fa-edit"></i></a></center>
                                                     </td>
                                                 </tr>
                                             <?php
