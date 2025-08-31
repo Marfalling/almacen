@@ -76,7 +76,7 @@
                                                     </td>
                                                     <td>
                                                         <center>
-                                                            <a class="btn btn-warning btn-sm" href="usuario_editar.php?id=<?php echo $id_usuario; ?>" title="Editar usuario">
+                                                            <a class="btn btn-warning btn-sm" href="usuario_editar.php?id_usuario=<?php echo $id_usuario; ?>"><i  title="Editar usuario">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
                                                         </center>
