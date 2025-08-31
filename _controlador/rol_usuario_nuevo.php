@@ -36,6 +36,16 @@
                     $permisos = $_REQUEST['permisos'];
                 }
                 
+                // Validar que se hayan seleccionado permisos
+                if (empty($permisos)) {
+                ?>
+                    <script Language="JavaScript">
+                        location.href = 'rol_usuario_nuevo.php?sin_permisos=true';
+                    </script>
+                <?php
+                    exit();
+                }
+                
                 $rpta = GrabarRol($nom_rol, $permisos, $est);
                 
                 if ($rpta == "SI") {
