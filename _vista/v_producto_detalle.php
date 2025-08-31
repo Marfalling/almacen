@@ -265,9 +265,6 @@
                                     <a href="producto_mostrar.php" class="btn btn-secondary">
                                         <i class="fa fa-arrow-left"></i> Volver al Listado
                                     </a>
-                                    <a href="producto_editar.php?id=<?php echo $producto['id_producto']; ?>" class="btn btn-warning">
-                                        <i class="fa fa-edit"></i> Editar Producto
-                                    </a>
                                 </div>
                             </div>
                         </div>

@@ -122,7 +122,7 @@
                                                             <a class="btn btn-info btn-xs" href="producto_detalle.php?id=<?php echo $id_producto; ?>" title="Ver Detalle">
                                                                 <i class="fa fa-eye"></i>
                                                             </a>
-                                                            <a class="btn btn-warning btn-xs" href="producto_editar.php?id=<?php echo $id_producto; ?>" title="Editar">
+                                                            <a class="btn btn-warning btn-xs" href="producto_editar.php?id_producto=<?php echo $id_producto; ?>" title="Editar">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
                                                         </center>
