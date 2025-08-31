@@ -65,7 +65,7 @@
                                                     </td>
                                                     <td>
                                                         <center>
-                                                            <a class="btn btn-warning btn-sm" href="modulo_editar.php?id=<?php echo $id_modulo; ?>" title="Editar módulo">
+                                                            <a class="btn btn-warning btn-sm" href="modulo_editar.php?id_modulo=<?php echo $id_modulo; ?>" title="Editar">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
                                                         </center>
