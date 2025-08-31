@@ -15,7 +15,7 @@ require_once("../_modelo/m_clientes.php");
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
-    <title>Obras Mostrar</title>
+    <title>Clientes Mostrar</title>
     
     <?php require_once("../_vista/v_estilo.php"); ?>
 </head>

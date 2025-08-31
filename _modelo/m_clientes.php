@@ -65,4 +65,50 @@ function MostrarClientesActivos()
     return $resultado;
 }
 
+// Función para obtener un cliente específico por ID
+function ObtenerCliente($id_cliente)
+{
+    include("../_conexion/conexion.php");
+
+    $sql = "SELECT * FROM cliente WHERE id_cliente = '$id_cliente'";
+    $resultado = mysqli_query($con, $sql);
+
+    if ($resultado && mysqli_num_rows($resultado) > 0) {
+        $cliente = mysqli_fetch_assoc($resultado);
+        mysqli_close($con);
+        return $cliente;
+    } else {
+        mysqli_close($con);
+        return false;
+    }
+}
+
+//-----------------------------------------------------------------------
+// Función para editar un cliente
+function EditarCliente($id_cliente, $nom, $est) 
+{
+    include("../_conexion/conexion.php");
+    
+    // Verificar si ya existe otro cliente con el mismo nombre (excluyendo el actual)
+    $sql_verificar = "SELECT COUNT(*) as total FROM cliente WHERE nom_cliente = '$nom' AND id_cliente != '$id_cliente'";
+    $resultado_verificar = mysqli_query($con, $sql_verificar);
+    $fila = mysqli_fetch_assoc($resultado_verificar);
+    
+    if ($fila['total'] > 0) {
+        mysqli_close($con);
+        return "NO"; // Ya existe otro cliente con ese nombre
+    }
+    
+    // Actualizar cliente
+    $sql = "UPDATE cliente SET nom_cliente = '$nom', est_cliente = $est WHERE id_cliente = '$id_cliente'";
+    
+    if (mysqli_query($con, $sql)) {
+        mysqli_close($con);
+        return "SI";
+    } else {
+        mysqli_close($con);
+        return "ERROR";
+    }
+}
+
 ?>
