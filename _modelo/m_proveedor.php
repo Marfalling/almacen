@@ -66,4 +66,54 @@ function MostrarProveedoresActivos()
     return $resultado;
 }
 
+function ObtenerProveedor($id)
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT * FROM proveedor WHERE id_proveedor = $id";
+    $resultado = mysqli_query($con, $sql);
+    
+    if ($resultado && mysqli_num_rows($resultado) > 0) {
+        $fila = mysqli_fetch_assoc($resultado);
+        mysqli_close($con);
+        return $fila;
+    } else {
+        mysqli_close($con);
+        return false;
+    }
+}
+
+//-----------------------------------------------------------------------
+function ActualizarProveedor($id, $nom, $ruc, $dir, $tel, $cont, $est)
+{
+    include("../_conexion/conexion.php");
+    
+    // Verificar si ya existe otro proveedor con el mismo nombre o RUC
+    $sql_verificar = "SELECT COUNT(*) as total FROM proveedor WHERE (nom_proveedor = '$nom' OR ruc_proveedor = '$ruc') AND id_proveedor != $id";
+    $resultado_verificar = mysqli_query($con, $sql_verificar);
+    $fila = mysqli_fetch_assoc($resultado_verificar);
+    
+    if ($fila['total'] > 0) {
+        mysqli_close($con);
+        return "NO"; // Ya existe otro con el mismo nombre o RUC
+    }
+    
+    // Actualizar proveedor
+    $sql = "UPDATE proveedor SET 
+            nom_proveedor = '$nom', 
+            ruc_proveedor = '$ruc',
+            dir_proveedor = '$dir',
+            tel_proveedor = '$tel',
+            cont_proveedor = '$cont',
+            est_proveedor = $est 
+            WHERE id_proveedor = $id";
+    
+    if (mysqli_query($con, $sql)) {
+        mysqli_close($con);
+        return "SI";
+    } else {
+        mysqli_close($con);
+        return "ERROR";
+    }
+}
 ?>
