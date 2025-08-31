@@ -54,7 +54,7 @@
                                                     <td><?php echo $nom_cargo; ?></td>
                                                     <td><?php echo $estado; ?></td>
                                                     <td>
-                                                        <center><a class="btn btn-warning" href=""><i class="fa fa-edit"></i></a></center>
+                                                        <center><a class="btn btn-warning" href="cargo_editar.php?id_cargo=<?php echo $id_cargo; ?>"><i class="fa fa-edit"></i></a></center>
                                                     </td>
                                                 </tr>
                                             <?php
