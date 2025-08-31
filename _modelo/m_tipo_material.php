@@ -98,4 +98,22 @@ function ActualizarMaterialTipo($id, $nom, $est)
         return "ERROR";
     }
 }
+
+//-----------------------------------------------------------------------
+function ObtenerMaterialTipo($id)
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT * FROM material_tipo WHERE id_material_tipo = $id";
+    $resultado = mysqli_query($con, $sql);
+    
+    if ($resultado && mysqli_num_rows($resultado) > 0) {
+        $fila = mysqli_fetch_assoc($resultado);
+        mysqli_close($con);
+        return $fila;
+    } else {
+        mysqli_close($con);
+        return false;
+    }
+}
 ?>

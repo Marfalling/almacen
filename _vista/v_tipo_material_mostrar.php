@@ -34,17 +34,31 @@
                                             <tr>
                                                 <th>#</th>
                                                 <th>Nombre</th>
-                                                <th>-----</th>
-                                                <th>>-----</</th>
-                                                <th>>-----</</th>
                                                 <th>Estado</th>
-                                                <!-- <th>Editar</th> -->
+                                                <th>Editar</th> 
                                             </tr>
                                         </thead>
 
-                                        <tbody>
-                                            <!-- Aquí irán los datos del almacén cuando implementes la lógica PHP -->
-                                        </tbody>
+                                            <?php
+                                            $c = 0;
+                                            foreach ($material_tipo as  $value) {
+                                                $c++;
+                                                $id_material_tipo = $value['id_material_tipo'];
+                                                $nom_material_tipo = $value['nom_material_tipo'];
+                                                $est_material_tipo = $value['est_material_tipo'];
+                                                $estado = ($est_material_tipo == 1) ? "ACTIVO" : "INACTIVO";
+                                            ?>
+                                                <tr>
+                                                    <td><?php echo $c; ?></td>
+                                                    <td><?php echo $nom_material_tipo; ?></td>
+                                                    <td><?php echo $estado; ?></td>
+                                                    <td>
+                                                        <center><a class="btn btn-warning" href="tipo_material_editar.php?id_material_tipo=<?php echo $id_material_tipo; ?>"><i class="fa fa-edit"></i></a></center>
+                                                    </td>
+                                                </tr>
+                                            <?php
+                                            }
+                                            ?>
                                     </table>
                                 </div>
                             </div>
