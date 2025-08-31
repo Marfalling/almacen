@@ -128,6 +128,13 @@
             <ul class="nav child_menu">
 
               <li>
+                <a>Modulos<span class="fa fa-chevron-down"></span></a>
+                <ul class="nav child_menu">
+                  <li><a href="modulo_mostrar.php">Modulo</a></li>
+                </ul>
+              </li>
+
+              <li>
                 <a>Personal<span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
                   <li><a href="rol_usuario_mostrar.php">Rol de Usuario</a></li>
