@@ -54,4 +54,50 @@ function GrabarProductoTipo($nom, $est) {
         return "ERROR";
     }
 }
+
+// Función para obtener un tipo de producto específico por ID
+function ObtenerProductoTipo($id_producto_tipo)
+{
+    include("../_conexion/conexion.php");
+
+    $sql = "SELECT * FROM producto_tipo WHERE id_producto_tipo = '$id_producto_tipo'";
+    $resultado = mysqli_query($con, $sql);
+
+    if ($resultado && mysqli_num_rows($resultado) > 0) {
+        $tipo_producto = mysqli_fetch_assoc($resultado);
+        mysqli_close($con);
+        return $tipo_producto;
+    } else {
+        mysqli_close($con);
+        return false;
+    }
+}
+
+//-----------------------------------------------------------------------
+// Función para editar un tipo de producto
+function EditarProductoTipo($id_producto_tipo, $nom, $est) 
+{
+    include("../_conexion/conexion.php");
+    
+    // Verificar si ya existe otro tipo de producto con el mismo nombre (excluyendo el actual)
+    $sql_verificar = "SELECT COUNT(*) as total FROM producto_tipo WHERE nom_producto_tipo = '$nom' AND id_producto_tipo != '$id_producto_tipo'";
+    $resultado_verificar = mysqli_query($con, $sql_verificar);
+    $fila = mysqli_fetch_assoc($resultado_verificar);
+    
+    if ($fila['total'] > 0) {
+        mysqli_close($con);
+        return "NO"; // Ya existe otro tipo de producto con ese nombre
+    }
+    
+    // Actualizar tipo de producto
+    $sql = "UPDATE producto_tipo SET nom_producto_tipo = '$nom', est_producto_tipo = $est WHERE id_producto_tipo = '$id_producto_tipo'";
+    
+    if (mysqli_query($con, $sql)) {
+        mysqli_close($con);
+        return "SI";
+    } else {
+        mysqli_close($con);
+        return "ERROR";
+    }
+}
 ?>

@@ -55,7 +55,7 @@
                                                     <td><?php echo $nom_producto_tipo; ?></td>
                                                     <td><?php echo $estado; ?></td>
                                                     <td>
-                                                        <center><a class="btn btn-warning" href=""><i class="fa fa-edit"></i></a></center>
+                                                        <center><a class="btn btn-warning" href="tipo_producto_editar.php?id_producto_tipo=<?php echo $id_producto_tipo; ?>"><i class="fa fa-edit"></i></a></center>
                                                     </td>
                                                 </tr>
                                             <?php
