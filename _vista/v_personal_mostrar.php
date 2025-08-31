@@ -3,7 +3,6 @@
 // VISTA: v_personal_mostrar.php
 //=======================================================================
 
-$personal = MostrarPersonal();
 ?>
 <!-- page content -->
 <div class="right_col" role="main">
@@ -88,7 +87,7 @@ $personal = MostrarPersonal();
                                                     </td>
                                                     <td>
                                                         <center>
-                                                            <a class="btn btn-warning btn-xs" href="personal_editar.php?id=<?php echo $id_personal; ?>" title="Editar">
+                                                            <a class="btn btn-warning btn-xs"href="personal_editar.php?id_personal=<?php echo $id_personal; ?>" ><i title="Editar">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
                                                         </center>
