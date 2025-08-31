@@ -54,4 +54,51 @@ function MostrarUnidadMedidaActiva() {
     return $resultado;
 }
 
+//-----------------------------------------------------------------------
+function ObtenerUnidadMedida($id)
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT * FROM unidad_medida WHERE id_unidad_medida = $id";
+    $resultado = mysqli_query($con, $sql);
+    
+    if ($resultado && mysqli_num_rows($resultado) > 0) {
+        $fila = mysqli_fetch_assoc($resultado);
+        mysqli_close($con);
+        return $fila;
+    } else {
+        mysqli_close($con);
+        return false;
+    }
+}
+
+//-----------------------------------------------------------------------
+function ActualizarUnidadMedida($id, $nom, $est)
+{
+    include("../_conexion/conexion.php");
+    
+    // Verificar si ya existe otra unidad de medida con el mismo nombre
+    $sql_verificar = "SELECT COUNT(*) as total FROM unidad_medida WHERE nom_unidad_medida = '$nom' AND id_unidad_medida != $id";
+    $resultado_verificar = mysqli_query($con, $sql_verificar);
+    $fila = mysqli_fetch_assoc($resultado_verificar);
+    
+    if ($fila['total'] > 0) {
+        mysqli_close($con);
+        return "NO"; // Ya existe otra con el mismo nombre
+    }
+    
+    // Actualizar unidad de medida
+    $sql = "UPDATE unidad_medida SET 
+            nom_unidad_medida = '$nom', 
+            est_unidad_medida = $est 
+            WHERE id_unidad_medida = $id";
+    
+    if (mysqli_query($con, $sql)) {
+        mysqli_close($con);
+        return "SI";
+    } else {
+        mysqli_close($con);
+        return "ERROR";
+    }
+}
 ?>

@@ -54,7 +54,7 @@
                                                     <td><?php echo $nom_unidad_medida; ?></td>
                                                     <td><?php echo $estado; ?></td>
                                                     <td>
-                                                        <center><a class="btn btn-warning" href=""><i class="fa fa-edit"></i></a></center>
+                                                        <center><a class="btn btn-warning" href="unidad_medida_editar.php?id_unidad_medida=<?php echo $id_unidad_medida; ?>"><i class="fa fa-edit" ></i></a></center>
                                                     </td>
                                                 </tr>
                                             <?php
