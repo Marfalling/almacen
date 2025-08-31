@@ -54,7 +54,7 @@
                                                     <td><?php echo $nom_ubicacion; ?></td>
                                                     <td><?php echo $estado; ?></td>
                                                     <td>
-                                                        <center><a class="btn btn-warning" href=""><i class="fa fa-edit"></i></a></center>
+                                                        <center><a class="btn btn-warning" href="ubicacion_editar.php?id_ubicacion=<?php echo $id_ubicacion; ?>"><i class="fa fa-edit"></i></a></center>
                                                     </td>
                                                 </tr>
                                             <?php

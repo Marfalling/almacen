@@ -42,4 +42,51 @@ function GrabarUbicacion($nom, $est) {
     }
 }
 
+//-----------------------------------------------------------------------
+function ObtenerUbicacion($id)
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT * FROM ubicacion WHERE id_ubicacion = $id";
+    $resultado = mysqli_query($con, $sql);
+    
+    if ($resultado && mysqli_num_rows($resultado) > 0) {
+        $fila = mysqli_fetch_assoc($resultado);
+        mysqli_close($con);
+        return $fila;
+    } else {
+        mysqli_close($con);
+        return false;
+    }
+}
+
+//-----------------------------------------------------------------------
+function ActualizarUbicacion($id, $nom, $est)
+{
+    include("../_conexion/conexion.php");
+    
+    // Verificar si ya existe otra ubicación con el mismo nombre
+    $sql_verificar = "SELECT COUNT(*) as total FROM ubicacion WHERE nom_ubicacion = '$nom' AND id_ubicacion != $id";
+    $resultado_verificar = mysqli_query($con, $sql_verificar);
+    $fila = mysqli_fetch_assoc($resultado_verificar);
+    
+    if ($fila['total'] > 0) {
+        mysqli_close($con);
+        return "NO"; // Ya existe otra con el mismo nombre
+    }
+    
+    // Actualizar ubicación
+    $sql = "UPDATE ubicacion SET 
+            nom_ubicacion = '$nom', 
+            est_ubicacion = $est 
+            WHERE id_ubicacion = $id";
+    
+    if (mysqli_query($con, $sql)) {
+        mysqli_close($con);
+        return "SI";
+    } else {
+        mysqli_close($con);
+        return "ERROR";
+    }
+}
 ?>
