@@ -54,7 +54,7 @@
                                                     <td><?php echo $nom_obra; ?></td>
                                                     <td><?php echo $estado; ?></td>
                                                     <td>
-                                                        <center><a class="btn btn-warning" href=""><i class="fa fa-edit"></i></a></center>
+                                                        <center><a class="btn btn-warning" href="obras_editar.php?id_obra=<?php echo $id_obra; ?>"><i class="fa fa-edit"></i></a></center>
                                                     </td>
                                                 </tr>
                                             <?php
