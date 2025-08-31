@@ -65,7 +65,7 @@
                                                         <td><?php echo $estado; ?></td>
                                                         <td>
                                                             <center>
-                                                                <a class="btn btn-warning btn-sm" href="almacen_editar.php?id=<?php echo $id_almacen; ?>" title="Editar almacén">
+                                                                <a class="btn btn-warning btn-sm" href="almacen_editar.php?id_almacen=<?php echo $id_almacen; ?>" title="Editar almacén">
                                                                     <i class="fa fa-edit"></i>
                                                                 </a>
                                                             </center>
