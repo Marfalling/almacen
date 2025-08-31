@@ -68,7 +68,7 @@
                                                     </td>
                                                     <td>
                                                         <center>
-                                                            <a class="btn btn-warning btn-sm" href="rol_usuario_editar.php?id=<?php echo $id_rol; ?>">
+                                                            <a class="btn btn-warning btn-sm" href="rol_usuario_editar.php?id_rol=<?php echo $id_rol; ?>">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
                                                         </center>

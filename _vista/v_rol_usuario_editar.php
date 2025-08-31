@@ -1,4 +1,8 @@
 <?php
+//=======================================================================
+// VISTA: v_rol_usuario_editar.php
+//=======================================================================
+
 // Preparar datos para la vista
 $matriz_permisos = array();
 $acciones_disponibles = array();
@@ -13,24 +17,9 @@ foreach ($modulos_acciones as $ma) {
 // Ordenar las acciones para tener un orden consistente
 sort($acciones_disponibles);
 
-// Crear array de permisos actuales para facilitar la verificación
-$permisos_actuales = array();
-if (isset($rol['permisos'])) {
-    foreach ($rol['permisos'] as $permiso) {
-        $permisos_actuales[] = $permiso['id_modulo_accion'];
-    }
-}
-
 // Mostrar mensaje de error si viene sin permisos
 if (isset($_GET['sin_permisos'])) {
-    echo '<script>
-        Swal.fire({
-            icon: "warning",
-            title: "Permisos requeridos",
-            text: "Debe seleccionar al menos un permiso para el rol",
-            confirmButtonText: "Entendido"
-        });
-    </script>';
+    echo '<script>alert("Debe seleccionar al menos un permiso para el rol");</script>';
 }
 ?>
 
@@ -48,12 +37,11 @@ if (isset($_GET['sin_permisos'])) {
             <div class="col-md-12">
                 <div class="x_panel">
                     <div class="x_title">
-                        <h2><i class="fa fa-user-edit"></i> Información del Rol</h2>
+                        <h2><i class="fa fa-edit"></i> Información del Rol</h2>
                         <div class="clearfix"></div>
                     </div>
                     <div class="x_content">
                         <form class="form-horizontal form-label-left" method="POST" id="rolForm">
-                            <input type="hidden" name="id_rol" value="<?php echo $rol['id_rol']; ?>">
                             
                             <!-- Datos básicos del rol -->
                             <div class="row">
@@ -61,8 +49,8 @@ if (isset($_GET['sin_permisos'])) {
                                     <div class="form-group">
                                         <label class="control-label">Nombre del Rol <span class="required">*</span></label>
                                         <input type="text" name="nom_rol" class="form-control" 
-                                               placeholder="Ejemplo: SUPERVISOR DE ALMACÉN" 
-                                               value="<?php echo htmlspecialchars($rol['nom_rol']); ?>" required>
+                                               value="<?php echo $nom_rol; ?>"
+                                               placeholder="Ejemplo: SUPERVISOR DE ALMACÉN" required>
                                         <small class="form-text text-muted">Ingrese un nombre descriptivo para el rol</small>
                                     </div>
                                 </div>
@@ -71,7 +59,7 @@ if (isset($_GET['sin_permisos'])) {
                                         <label class="control-label">Estado</label>
                                         <div class="checkbox">
                                             <label>
-                                                <input type="checkbox" name="est" <?php echo ($rol['est_rol'] == 1) ? 'checked' : ''; ?>> 
+                                                <input type="checkbox" name="est" <?php echo $est; ?>> 
                                                 <strong>Activo</strong>
                                             </label>
                                         </div>
@@ -124,7 +112,7 @@ if (isset($_GET['sin_permisos'])) {
                                                 <td style="text-align: center; vertical-align: middle;">
                                                     <?php if (isset($acciones[$accion_std])) { 
                                                         $permiso = $acciones[$accion_std];
-                                                        $checked = in_array($permiso['id_modulo_accion'], $permisos_actuales) ? 'checked' : '';
+                                                        $checked = in_array($permiso['id_modulo_accion'], $permisos_asignados) ? 'checked' : '';
                                                     ?>
                                                         <div class="form-check">
                                                             <input type="checkbox" 
@@ -159,10 +147,6 @@ if (isset($_GET['sin_permisos'])) {
                                     </table>
                                 </div>
                                 
-                                <div class="alert alert-info mt-3">
-                                    <i class="fa fa-info-circle"></i> 
-                                    <strong>Ayuda:</strong> Use los botones "Todo" para seleccionar columnas completas o "Fila" para seleccionar todos los permisos de un módulo.
-                                </div>
                             </div>
 
                             <div class="ln_solid"></div>
@@ -170,7 +154,7 @@ if (isset($_GET['sin_permisos'])) {
                             <!-- Botones de acción -->
                             <div class="form-group">
                                 <div class="row">
-                                    <div class="col-md-6">
+                                    <div class="col-md-8">
                                         <button type="button" class="btn btn-info" onclick="seleccionarTodo()">
                                             <i class="fa fa-check-double"></i> Seleccionar Todo
                                         </button>
@@ -178,19 +162,19 @@ if (isset($_GET['sin_permisos'])) {
                                             <i class="fa fa-times"></i> Limpiar Selección
                                         </button>
                                     </div>
-                                    <div class="col-md-6 text-right">
-                                        <a href="rol_usuario_mostrar.php" class="btn btn-secondary">
-                                            <i class="fa fa-arrow-left"></i> Cancelar
-                                        </a>
-                                        <button type="reset" class="btn btn-outline-secondary" onclick="restaurarOriginal()">
+                                    <div class="col-md-4 text-right">
+                                        <button type="reset" class="btn btn-secondary" onclick="restaurarSeleccion()">
                                             <i class="fa fa-undo"></i> Restaurar
                                         </button>
-                                        <button type="submit" name="editar" value="1" class="btn btn-warning">
+                                        <button type="submit" name="registrar" value="1" class="btn btn-success">
                                             <i class="fa fa-save"></i> Actualizar Rol
                                         </button>
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Campos ocultos -->
+                            <input type="hidden" name="id_rol" value="<?php echo $id_rol; ?>">
 
                         </form>
                     </div>
@@ -240,8 +224,20 @@ if (isset($_GET['sin_permisos'])) {
 </style>
 
 <script>
-// Guardar estado original para restaurar
-let estadoOriginal = {};
+// Guardar estado inicial de los permisos para poder restaurar
+let permisosIniciales = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Guardar estado inicial
+    const checkboxes = document.querySelectorAll('.permission-checkbox');
+    checkboxes.forEach(checkbox => {
+        if (checkbox.checked) {
+            permisosIniciales.push(checkbox.value);
+        }
+    });
+    
+    actualizarResumen();
+});
 
 // Función para alternar permisos de una columna
 function toggleColumna(accion) {
@@ -251,6 +247,8 @@ function toggleColumna(accion) {
     checkboxes.forEach(checkbox => {
         checkbox.checked = !todosSeleccionados;
     });
+    
+    actualizarResumen();
 }
 
 // Función para alternar permisos de una fila
@@ -261,6 +259,8 @@ function toggleFila(modulo) {
     checkboxes.forEach(checkbox => {
         checkbox.checked = !todosSeleccionados;
     });
+    
+    actualizarResumen();
 }
 
 // Función para seleccionar todos los permisos
@@ -269,6 +269,7 @@ function seleccionarTodo() {
     checkboxes.forEach(checkbox => {
         checkbox.checked = true;
     });
+    actualizarResumen();
 }
 
 // Función para limpiar selección
@@ -277,75 +278,36 @@ function limpiarSeleccion() {
     checkboxes.forEach(checkbox => {
         checkbox.checked = false;
     });
+    actualizarResumen();
 }
 
-// Función para restaurar al estado original
-function restaurarOriginal() {
+// Función para restaurar selección inicial
+function restaurarSeleccion() {
     const checkboxes = document.querySelectorAll('.permission-checkbox');
     checkboxes.forEach(checkbox => {
-        const id = checkbox.value;
-        checkbox.checked = estadoOriginal[id] || false;
+        checkbox.checked = permisosIniciales.includes(checkbox.value);
     });
     
-    // Restaurar nombre del rol
-    document.querySelector('input[name="nom_rol"]').value = "<?php echo addslashes($rol['nom_rol']); ?>";
-    document.querySelector('input[name="est"]').checked = <?php echo $rol['est_rol'] == 1 ? 'true' : 'false'; ?>;
+    // Restaurar también el nombre del rol
+    document.querySelector('input[name="nom_rol"]').value = '<?php echo $nom_rol; ?>';
+    document.querySelector('input[name="est"]').checked = <?php echo $est ? 'true' : 'false'; ?>;
+    
+    actualizarResumen();
 }
 
-// Event listeners
-document.addEventListener('DOMContentLoaded', function() {
-    // Guardar estado original
-    const checkboxes = document.querySelectorAll('.permission-checkbox');
-    checkboxes.forEach(checkbox => {
-        estadoOriginal[checkbox.value] = checkbox.checked;
-    });
-    
-    // Validación del formulario
-    document.getElementById('rolForm').addEventListener('submit', function(e) {
-        const nombreRol = document.querySelector('input[name="nom_rol"]').value.trim();
-        const permisosSeleccionados = document.querySelectorAll('.permission-checkbox:checked');
+// Función para actualizar resumen (puedes implementarla según necesites)
+function actualizarResumen() {
+    const checkboxes = document.querySelectorAll('.permission-checkbox:checked');
+    console.log(`Permisos seleccionados: ${checkboxes.length}`);
+}
 
-        if (nombreRol === '') {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'error',
-                title: 'Campo requerido',
-                text: 'Por favor ingrese el nombre del rol',
-                confirmButtonText: 'Entendido'
-            }).then(() => {
-                document.querySelector('input[name="nom_rol"]').focus();
-            });
-            return;
-        }
-
-        if (permisosSeleccionados.length === 0) {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'warning',
-                title: 'Permisos requeridos',
-                text: 'Debe seleccionar al menos un permiso para el rol',
-                confirmButtonText: 'Entendido'
-            });
-            return;
-        }
-
-        // Confirmación antes de guardar
+// Validación antes de enviar
+document.getElementById('rolForm').addEventListener('submit', function(e) {
+    const checkboxes = document.querySelectorAll('.permission-checkbox:checked');
+    if (checkboxes.length === 0) {
         e.preventDefault();
-        Swal.fire({
-            title: 'Confirmar actualización',
-            text: `¿Está seguro de actualizar el rol "${nombreRol}" con ${permisosSeleccionados.length} permisos?`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#ffc107',
-            cancelButtonColor: '#dc3545',
-            confirmButtonText: 'Sí, actualizar rol',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Enviar el formulario
-                document.getElementById('rolForm').submit();
-            }
-        });
-    });
+        alert('Debe seleccionar al menos un permiso para el rol');
+        return false;
+    }
 });
 </script>
