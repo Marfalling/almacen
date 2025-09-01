@@ -35,7 +35,6 @@
                                                 <th>#</th>
                                                 <th>Nombre del Rol</th>
                                                 <th>Total Permisos</th>
-                                                <th>Usuarios Asignados</th>
                                                 <th>Estado</th>
                                                 <th>Editar</th>
                                             </tr>
@@ -49,7 +48,6 @@
                                                 $id_rol = $value['id_rol'];
                                                 $nom_rol = $value['nom_rol'];
                                                 $total_permisos = $value['total_permisos'];
-                                                $total_usuarios = $value['total_usuarios'];
                                                 $est_rol = $value['est_rol'];
                                                 $estado = ($est_rol == 1) ? "ACTIVO" : "INACTIVO";
                                                 
@@ -59,9 +57,6 @@
                                                     <td><?php echo $nom_rol; ?></td>
                                                     <td>
                                                         <center><?php echo $total_permisos; ?></center>
-                                                    </td>
-                                                    <td>
-                                                        <center><?php echo $total_usuarios; ?></center>
                                                     </td>
                                                     <td>
                                                         <center><?php echo $estado; ?></center>
