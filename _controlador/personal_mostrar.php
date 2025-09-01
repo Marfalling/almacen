@@ -2,6 +2,7 @@
 
 require_once("../_modelo/m_personal.php");
 
+require_once("../_conexion/sesion.php");
 
 
 ?>

@@ -1,6 +1,7 @@
 <?php
 
 require_once("../_modelo/m_unidad_medida.php");
+require_once("../_conexion/sesion.php");
 
 
 

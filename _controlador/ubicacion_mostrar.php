@@ -2,6 +2,7 @@
 
 require_once("../_modelo/m_ubicacion.php");
 
+require_once("../_conexion/sesion.php");
 
 
 ?>

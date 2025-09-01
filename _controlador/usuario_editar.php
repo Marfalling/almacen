@@ -2,6 +2,8 @@
 
 require_once("../_modelo/m_usuario.php");
 require_once("../_modelo/m_rol.php");
+require_once("../_conexion/sesion.php");
+
 
 ?>
 <!DOCTYPE html>

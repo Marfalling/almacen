@@ -1,6 +1,7 @@
 <?php
 
 require_once("../_modelo/m_obras.php");
+require_once("../_conexion/sesion.php");
 
 
 

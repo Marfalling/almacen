@@ -1,7 +1,15 @@
 <?php
 
 require_once("../_modelo/m_usuario.php");
+require_once("../_conexion/sesion.php");
 
+// Verificar permiso para mostrar usuarios
+if (!verificarPermisoEspecifico('reg_usuario')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'USUARIO', 'MOSTRAR');
+    header("location: dashboard.php?permisos=true");
+    exit;
+}
 ?>
 
 <!DOCTYPE html>

@@ -3,6 +3,7 @@
 require_once("../_modelo/m_moneda.php");
 
 
+require_once("../_conexion/sesion.php");
 
 ?>
 

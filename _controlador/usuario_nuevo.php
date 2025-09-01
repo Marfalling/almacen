@@ -2,7 +2,15 @@
 
 require_once("../_modelo/m_usuario.php");
 require_once("../_modelo/m_rol.php");
+require_once("../_conexion/sesion.php");
 
+// Verificar permiso para crear usuarios
+if (!verificarPermisoEspecifico('reg_usuario')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'USUARIO', 'NUEVO');
+    header("location: dashboard.php?permisos=true");
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">

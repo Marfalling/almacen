@@ -1,4 +1,5 @@
 <?php
+require_once("../_conexion/sesion.php");
 
 require_once("../_modelo/m_tipo_material.php");
 

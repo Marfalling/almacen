@@ -5,7 +5,7 @@
         <div class="animate form login_form">
 
            <center>
-                <img src="../_complemento/images/logo.png" id="img-login" class="img-circle profile_img" alt="img login">
+                <img src="../_complemento/images/logoarcee.png" id="img-login" class="img-circle profile_img" alt="img login">
               </center>
           
           <section class="login_content">
