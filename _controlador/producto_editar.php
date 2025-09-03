@@ -1,14 +1,12 @@
 <?php
 require_once("../_conexion/sesion.php");
 
-// Verificar permiso específico para editar productos
-if (!verificarPermiso('producto', 'editar')) {
+if (!verificarPermisoEspecifico('editar_producto')) {
     require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PRODUCTO', 'EDITAR');
     header("location: dashboard.php?permisos=true");
     exit;
 }
-
 //=======================================================================
 // CONTROLADOR: producto_editar.php
 //=======================================================================

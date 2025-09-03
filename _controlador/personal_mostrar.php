@@ -1,8 +1,14 @@
 <?php
+require_once("../_conexion/sesion.php");
 
+if (!verificarPermisoEspecifico('ver_personal')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PERSONAL', 'VER');
+    header("location: dashboard.php?permisos=true");
+    exit;
+}
 require_once("../_modelo/m_personal.php");
 
-require_once("../_conexion/sesion.php");
 
 
 ?>

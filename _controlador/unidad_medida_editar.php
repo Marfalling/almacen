@@ -1,6 +1,12 @@
 <?php
 require_once("../_conexion/sesion.php");
 
+if (!verificarPermisoEspecifico('editar_unidad de medida')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'UNIDAD DE MEDIDA', 'EDITAR');
+    header("location: dashboard.php?permisos=true");
+    exit;
+}
 //=======================================================================
 // CONTROLADOR: unidad_medida_editar.php
 //=======================================================================

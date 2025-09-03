@@ -1,7 +1,14 @@
 <?php
+require_once("../_conexion/sesion.php");
+
+if (!verificarPermisoEspecifico('ver_producto')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PRODUCTO', 'VER');
+    header("location: dashboard.php?permisos=true");
+    exit;
+}
 
 require_once("../_modelo/m_producto.php");
-require_once("../_conexion/sesion.php");
 
 
 

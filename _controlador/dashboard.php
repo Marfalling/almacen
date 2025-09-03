@@ -1,6 +1,13 @@
 <?php
 require_once("../_conexion/sesion.php");
 
+if (!verificarPermisoEspecifico('ver_dashboard')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'DASHBOARD', 'VER');
+    header("location: dashboard.php?permisos=true");
+    exit;
+}
+
 function generarColor()
 {
   return sprintf('#%06X', mt_rand(0, 0xFFFFFF));
@@ -29,7 +36,6 @@ function generarColor()
 
       require_once("../_modelo/m_dashboard.php");
      
-
       require_once("../_vista/v_dashboard.php");
 
       require_once("../_vista/v_footer.php");
@@ -39,7 +45,6 @@ function generarColor()
   </div>
 
   <script>
-
   </script>
 
   <?php

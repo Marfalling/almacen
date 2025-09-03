@@ -193,11 +193,40 @@ function ObtenerRol($id_rol)
 }
 
 //-----------------------------------------------------------------------
+/**
+ * Función para obtener solo los IDs de roles de un usuario
+ * (para mantener compatibilidad con código existente)
+ */
+function ObtenerRolesUsuarioIDs($id_usuario)
+{
+    include("../_conexion/conexion.php");
+
+    $sql = "SELECT r.id_rol 
+            FROM usuario_rol ur 
+            INNER JOIN rol r ON ur.id_rol = r.id_rol 
+            WHERE ur.id_usuario = ? AND ur.est_usuario_rol = 1 AND r.est_rol = 1";
+    $stmt = mysqli_prepare($con, $sql);
+    mysqli_stmt_bind_param($stmt, "i", $id_usuario);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+
+    $roles = array();
+
+    while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
+        $roles[] = $row['id_rol'];
+    }
+
+    mysqli_close($con);
+    
+    return $roles;
+}
+
+//-----------------------------------------------------------------------
 function MostrarModulosAcciones()
 {
     include("../_conexion/conexion.php");
 
-    $sql = "SELECT ma.id_modulo_accion, m.nom_modulo, a.nom_accion 
+    $sql = "SELECT ma.id_modulo_accion, m.nom_modulo, a.nom_accion, a.id_accion
             FROM modulo_accion ma 
             INNER JOIN modulo m ON ma.id_modulo = m.id_modulo 
             INNER JOIN accion a ON ma.id_accion = a.id_accion 

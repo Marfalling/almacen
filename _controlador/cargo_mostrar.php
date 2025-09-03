@@ -1,7 +1,13 @@
 <?php
-
-require_once("../_modelo/m_cargo.php");
 require_once("../_conexion/sesion.php");
+
+if (!verificarPermisoEspecifico('ver_cargo')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'CARGO', 'VER');
+    header("location: dashboard.php?permisos=true");
+    exit;
+}
+require_once("../_modelo/m_cargo.php");
 
 
 

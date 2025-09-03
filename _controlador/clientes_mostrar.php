@@ -1,16 +1,15 @@
 <?php
-
-require_once("../_modelo/m_clientes.php");
-
 require_once("../_conexion/sesion.php");
 
-// Verificar acceso al módulo cliente
-if (!tieneAccesoModulo('cliente')) {
+if (!verificarPermisoEspecifico('ver_cliente')) {
     require_once("../_modelo/m_auditoria.php");
-    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'CLIENTE', 'ACCESO');
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'CLIENTE', 'VER');
     header("location: dashboard.php?permisos=true");
     exit;
 }
+
+require_once("../_modelo/m_clientes.php");
+
 
 ?>
 

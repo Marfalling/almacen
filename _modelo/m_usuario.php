@@ -311,30 +311,6 @@ function ObtenerPersonalSinUsuario()
     return $resultado;
 }
 
-//-----------------------------------------------------------------------
-function ObtenerRolesUsuario($id_usuario)
-{
-    include("../_conexion/conexion.php");
-
-    $sql = "SELECT r.id_rol 
-            FROM usuario_rol ur 
-            INNER JOIN rol r ON ur.id_rol = r.id_rol 
-            WHERE ur.id_usuario = ? AND ur.est_usuario_rol = 1 AND r.est_rol = 1";
-    $stmt = mysqli_prepare($con, $sql);
-    mysqli_stmt_bind_param($stmt, "i", $id_usuario);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
-
-    $roles = array();
-
-    while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
-        $roles[] = $row['id_rol'];
-    }
-
-    mysqli_close($con);
-    
-    return $roles;
-}
 
 //-----------------------------------------------------------------------
 /**
@@ -606,5 +582,28 @@ function obtenerEstadisticasPermisos($id_usuario) {
     mysqli_close($con);
     return $estadisticas;
 }
+//-----------------------------------------------------------------------
+function ObtenerRolesUsuario($id_usuario)
+{
+    include("../_conexion/conexion.php");
 
+    $sql = "SELECT r.id_rol, r.nom_rol 
+            FROM usuario_rol ur 
+            INNER JOIN rol r ON ur.id_rol = r.id_rol 
+            WHERE ur.id_usuario = ? AND ur.est_usuario_rol = 1 AND r.est_rol = 1";
+    $stmt = mysqli_prepare($con, $sql);
+    mysqli_stmt_bind_param($stmt, "i", $id_usuario);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+
+    $roles = array();
+
+    while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
+        $roles[] = $row;
+    }
+
+    mysqli_close($con);
+    
+    return $roles;
+}
 ?>

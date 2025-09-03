@@ -1,6 +1,13 @@
 <?php
 require_once("../_conexion/sesion.php");
 
+if (!verificarPermisoEspecifico('crear_ubicacion')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'UBICACION', 'CREAR');
+    header("location: dashboard.php?permisos=true");
+    exit;
+}
+
 //=======================================================================
 // CONTROLADOR: ubicacion_nuevo.php
 //=======================================================================

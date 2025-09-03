@@ -54,20 +54,23 @@
                             </div>
                             
                             <div class="form-group row ">
-                                <label class="control-label col-md-3 col-sm-3 ">Roles <span class="text-danger">*</span> :</label>
+                                <label class="control-label col-md-3 col-sm-3 ">Rol <span class="text-danger">*</span> :</label>
                                 <div class="col-md-9 col-sm-9 ">
                                     <?php if(isset($roles_activos) && !empty($roles_activos)) { ?>
-                                        <div class="checkbox-list">
-                                            <?php foreach($roles_activos as $rol) { ?>
-                                                <div class="checkbox">
+                                        <div class="radio-list" id="rolesContainer">
+                                            <?php foreach($roles_activos as $index => $rol) { ?>
+                                                <div class="radio">
                                                     <label>
-                                                        <input type="checkbox" name="roles[]" value="<?php echo $rol['id_rol']; ?>" class="flat">
+                                                        <input type="radio" name="rol_seleccionado" value="<?php echo $rol['id_rol']; ?>" class="flat" <?php echo ($index === 0) ? 'checked' : ''; ?> required>
                                                         <?php echo $rol['nom_rol']; ?>
                                                     </label>
                                                 </div>
                                             <?php } ?>
                                         </div>
-                                        <small class="form-text text-muted">Seleccione al menos un rol para el usuario</small>
+                                        <small class="form-text text-muted">Seleccione un rol para el usuario</small>
+                                        <div id="rol-error" class="text-danger" style="display: none;">
+                                            Debe seleccionar un rol para el usuario.
+                                        </div>
                                     <?php } else { ?>
                                         <p class="text-danger">No hay roles activos disponibles. Debe crear al menos un rol primero.</p>
                                     <?php } ?>
@@ -110,3 +113,95 @@
 </div>
 <!-- /page content -->
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('formUsuario');
+    const btnRegistrar = document.getElementById('btn_registrar');
+    const rolError = document.getElementById('rol-error');
+    
+    // Validación del formulario al enviar
+    form.addEventListener('submit', function(e) {
+        const rolSeleccionado = document.querySelector('input[name="rol_seleccionado"]:checked');
+        
+        if (!rolSeleccionado) {
+            e.preventDefault();
+            rolError.style.display = 'block';
+            
+            // Scroll hasta el error
+            document.getElementById('rolesContainer').scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+            
+            return false;
+        } else {
+            rolError.style.display = 'none';
+        }
+    });
+    
+    // Ocultar mensaje de error cuando se selecciona un rol
+    const radioButtons = document.querySelectorAll('input[name="rol_seleccionado"]');
+    radioButtons.forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            if (this.checked) {
+                rolError.style.display = 'none';
+            }
+        });
+    });
+    
+    // Validación en tiempo real del nombre de usuario (sin espacios)
+    const inputUsuario = document.getElementById('inputUsuario');
+    if (inputUsuario) {
+        inputUsuario.addEventListener('input', function() {
+            // Remover espacios automáticamente
+            this.value = this.value.replace(/\s/g, '');
+        });
+        
+        inputUsuario.addEventListener('keypress', function(e) {
+            // Prevenir espacios
+            if (e.key === ' ') {
+                e.preventDefault();
+            }
+        });
+    }
+    
+    // Validación de contraseña mínima
+    const inputPassword = document.getElementById('inputPassword');
+    if (inputPassword) {
+        inputPassword.addEventListener('blur', function() {
+            if (this.value.length > 0 && this.value.length < 6) {
+                this.setCustomValidity('La contraseña debe tener al menos 6 caracteres');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+    }
+});
+</script>
+
+<style>
+.radio-list .radio {
+    margin-bottom: 10px;
+}
+
+.radio-list .radio label {
+    font-weight: normal;
+    cursor: pointer;
+    padding-left: 25px;
+}
+
+.radio-list .radio input[type="radio"] {
+    margin-right: 8px;
+}
+
+#rol-error {
+    margin-top: 5px;
+    font-size: 12px;
+}
+
+/* Destacar rol seleccionado */
+.radio input[type="radio"]:checked + label {
+    color: #26B99A;
+    font-weight: 500;
+}
+</style>

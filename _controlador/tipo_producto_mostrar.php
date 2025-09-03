@@ -1,8 +1,15 @@
 <?php
+require_once("../_conexion/sesion.php");
+
+// Usa el nombre CORRECTO con ESPACIOS
+if (!verificarPermisoEspecifico('ver_tipo de producto')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'TIPO DE PRODUCTO', 'VER');
+    header("location: dashboard.php?permisos=true");
+    exit;
+}
 
 require_once("../_modelo/m_tipo_producto.php");
-
-require_once("../_conexion/sesion.php");
 
 
 ?>

@@ -1,6 +1,13 @@
 <?php
 require_once("../_conexion/sesion.php");
 
+if (!verificarPermisoEspecifico('ver_tipo de material')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'TIPO_MATERIAL', 'VER');
+    header("location: dashboard.php?permisos=true");
+    exit;
+}
+
 require_once("../_modelo/m_tipo_material.php");
 
 

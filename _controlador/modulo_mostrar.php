@@ -1,9 +1,15 @@
 <?php
+require_once("../_conexion/sesion.php");
+
+if (!verificarPermisoEspecifico('ver_modulos')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'MODULOS', 'VER');
+    header("location: dashboard.php?permisos=true");
+    exit;
+}
 
 require_once("../_modelo/m_modulo.php");
 
-
-require_once("../_conexion/sesion.php");
 
 ?>
 

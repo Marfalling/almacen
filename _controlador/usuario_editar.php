@@ -1,9 +1,15 @@
 <?php
 
-require_once("../_modelo/m_usuario.php");
-require_once("../_modelo/m_rol.php");
 require_once("../_conexion/sesion.php");
 
+if (!verificarPermisoEspecifico('editar_usuarios')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'USUARIOS', 'EDITAR');
+    header("location: dashboard.php?permisos=true");
+    exit;
+}
+require_once("../_modelo/m_usuario.php");
+require_once("../_modelo/m_rol.php");
 
 ?>
 <!DOCTYPE html>
@@ -34,11 +40,55 @@ require_once("../_conexion/sesion.php");
                 $pass = $_REQUEST['pass']; // Puede estar vacío si no se cambia
                 $est = isset($_REQUEST['est']) ? 1 : 0;
                 
-                // Obtener roles seleccionados
-                $roles = array();
-                if (isset($_REQUEST['roles']) && is_array($_REQUEST['roles'])) {
-                    $roles = $_REQUEST['roles'];
+                // Obtener rol seleccionado (ahora es solo uno)
+                $rol_seleccionado = isset($_REQUEST['rol_seleccionado']) ? $_REQUEST['rol_seleccionado'] : null;
+                
+                // Validar que se haya seleccionado un rol
+                if (empty($rol_seleccionado)) {
+                ?>
+                    <script Language="JavaScript">
+                        alert('Error: Debe seleccionar un rol para el usuario.');
+                        history.back();
+                    </script>
+                <?php
+                    exit;
                 }
+
+                // Validaciones adicionales del lado del servidor
+                if (empty($usu)) {
+                ?>
+                    <script Language="JavaScript">
+                        alert('Error: El nombre de usuario es obligatorio.');
+                        history.back();
+                    </script>
+                <?php
+                    exit;
+                }
+
+                // Validar que el usuario no contenga espacios
+                if (preg_match('/\s/', $usu)) {
+                ?>
+                    <script Language="JavaScript">
+                        alert('Error: El nombre de usuario no puede contener espacios.');
+                        history.back();
+                    </script>
+                <?php
+                    exit;
+                }
+
+                // Si se está cambiando la contraseña, validar longitud mínima
+                if (!empty($pass) && strlen($pass) < 6) {
+                ?>
+                    <script Language="JavaScript">
+                        alert('Error: La contraseña debe tener al menos 6 caracteres.');
+                        history.back();
+                    </script>
+                <?php
+                    exit;
+                }
+
+                // Convertir el rol único en un array para mantener compatibilidad con la función existente
+                $roles = array($rol_seleccionado);
 
                 $rpta = EditarUsuario($id_usuario, $usu, $pass, $est, $roles);
 

@@ -1,6 +1,13 @@
 <?php
 require_once("../_conexion/sesion.php");
 
+if (!verificarPermisoEspecifico('editar_rol de usuario')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'ROL_USUARIO', 'EDITAR');
+    header("location: dashboard.php?permisos=true");
+    exit;
+}
+
 //=======================================================================
 // CONTROLADOR: rol_usuario_editar.php
 //=======================================================================

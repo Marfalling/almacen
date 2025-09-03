@@ -1,6 +1,12 @@
 <?php
 require_once("../_conexion/sesion.php");
 
+if (!verificarPermisoEspecifico('editar_tipo de material')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'TIPO_MATERIAL', 'EDITAR');
+    header("location: dashboard.php?permisos=true");
+    exit;
+}
 //=======================================================================
 // CONTROLADOR: tipo_material_editar.php
 //=======================================================================
