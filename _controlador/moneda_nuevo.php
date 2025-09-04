@@ -4,7 +4,7 @@ require_once("../_conexion/sesion.php");
 if (!verificarPermisoEspecifico('crear_modulos')) {
     require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'MODULOS', 'CREAR');
-    header("location: dashboard.php?permisos=true");
+    header("location: bienvenido.php?permisos=true");
     exit;
 }
 //=======================================================================

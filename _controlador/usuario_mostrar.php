@@ -5,7 +5,7 @@ require_once("../_conexion/sesion.php");
 if (!verificarPermisoEspecifico('ver_usuarios')) {
     require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'USUARIOS', 'VER');
-    header("location: dashboard.php?permisos=true");
+    header("location: bienvenido.php?permisos=true");
     exit;
 }
 

@@ -38,7 +38,7 @@ function verificarYRedireccionar($permiso_key, $modulo_nombre = '', $accion_nomb
         $accion = !empty($accion_nombre) ? $accion_nombre : strtoupper($permiso_key);
         
         GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', $modulo, $accion);
-        header("location: dashboard.php?permisos=true");
+        header("location: bienvenido.php?permisos=true");
         exit;
     }
 }

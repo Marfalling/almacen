@@ -130,7 +130,7 @@ require_once("../_conexion/sesion.php");
           <!-- SECCIÓN ALMACÉN -->
           <?php if (tieneAccesoModulo('almacen arce') || tieneAccesoModulo('almacen clientes')): ?>
           <li>
-            <a><i class="fa fa-warehouse"></i> Almacén <span class="fa fa-chevron-down"></span></a>
+            <a><i class="fa fa-cubes"></i> Almacén <span class="fa fa-chevron-down"></span></a>
             <ul class="nav child_menu">
               
               <!-- Almacén Arce -->
@@ -326,7 +326,7 @@ require_once("../_conexion/sesion.php");
           <!-- AUDITORÍA -->
           <?php if (verificarPermisoEspecifico('ver_auditoria')): ?>
           <li>
-            <a href="auditoria_mostrar.php"><i class="fa fa-clipboard-list"></i> Auditoría</a>
+            <a href="auditoria_mostrar.php"><i class="fa fa-search"></i> Auditoría</a>
           </li>
           <?php endif; ?>
 

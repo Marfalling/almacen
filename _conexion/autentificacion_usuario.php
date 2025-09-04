@@ -44,6 +44,7 @@ if ($row != null) {
     $_SESSION['tiempo_login'] = time();
 
     // Actualizar último acceso
+    date_default_timezone_set('America/Lima');
     $fecha_actual = date('Y-m-d H:i:s');
     $sql_update = "UPDATE usuario SET fec_ultimo_acceso = ? WHERE id_usuario = ?";
     $stmt_update = mysqli_prepare($con, $sql_update);
