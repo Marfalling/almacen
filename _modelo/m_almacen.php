@@ -132,4 +132,53 @@ function ConsultarAlmacen($id_almacen)
     
     return $resultado;
 }
+//-----------------------------------------------------------------------
+function ConsultarAlmacenTotal()
+{
+    include("../_conexion/conexion.php");
+
+    $sqlc = "SELECT 
+        pro.nom_producto       AS Producto,
+        cli.nom_cliente        AS Cliente,
+        obr.nom_obra           AS Obra,
+        alm.nom_almacen        AS Almacen,
+        ubi.nom_ubicacion      AS Ubicacion,
+        SUM(CASE 
+                WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
+                WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
+                ELSE 0 
+            END) AS Cantidad
+    FROM movimiento mov
+    INNER JOIN producto   pro ON mov.id_producto   = pro.id_producto
+    INNER JOIN personal   per ON mov.id_personal   = per.id_personal
+    INNER JOIN almacen    alm ON mov.id_almacen    = alm.id_almacen
+    INNER JOIN cliente    cli ON alm.id_cliente    = cli.id_cliente
+    INNER JOIN obra       obr ON alm.id_obra       = obr.id_obra
+    INNER JOIN ubicacion  ubi ON mov.id_ubicacion  = ubi.id_ubicacion
+    WHERE mov.est_movimiento = 1
+    GROUP BY 
+        pro.nom_producto,
+        cli.nom_cliente,
+        obr.nom_obra,
+        alm.nom_almacen,
+        ubi.nom_ubicacion
+    ORDER BY 
+        pro.nom_producto,
+        cli.nom_cliente,
+        obr.nom_obra,
+        alm.nom_almacen,
+        ubi.nom_ubicacion;
+    ";
+    $resc = mysqli_query($con, $sqlc);
+
+    $resultado = array();
+
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $resultado[] = $rowc;
+    }
+
+    mysqli_close($con);
+    
+    return $resultado;
+}
 ?>
