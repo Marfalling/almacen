@@ -331,11 +331,7 @@ require_once("../_conexion/sesion.php");
           <!-- AUDITORÍA -->
           <?php if (verificarPermisoEspecifico('ver_auditoria')): ?>
           <li>
-<<<<<<< HEAD
             <a href="auditoria_mostrar.php"><i class="fa fa-search"></i> Auditoría</a>
-=======
-            <a href="auditoria_mostrar.php"><i class="fa fa-eye"></i> Auditoría</a>
->>>>>>> f15b73888f27fcf56d0f31248dd894a2ef84be55
           </li>
           <?php endif; ?>
 
