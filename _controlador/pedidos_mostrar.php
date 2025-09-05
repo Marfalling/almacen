@@ -1,7 +1,5 @@
 <?php
 require_once("../_conexion/sesion.php");
-
-
 require_once("../_modelo/m_pedidos.php");
 ?>
 
@@ -24,7 +22,10 @@ require_once("../_modelo/m_pedidos.php");
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
 
+            // Obtener lista de pedidos
             $pedidos = MostrarPedidos();
+            
+            // Incluir la vista
             require_once("../_vista/v_pedidos_mostrar.php");
 
             require_once("../_vista/v_footer.php");
