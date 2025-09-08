@@ -25,7 +25,14 @@ require_once("../_conexion/sesion.php");
             require_once("../_vista/v_menu_user.php");
 
             require_once("../_modelo/m_pedidos.php");
-            require_once("../_modelo/m_obras.php");
+            require_once("../_modelo/m_almacen.php");
+            require_once("../_modelo/m_tipo_producto.php");
+            require_once("../_modelo/m_unidad_medida.php");
+
+            // Cargar almacenes activos para el formulario
+            $almacenes = MostrarAlmacenesActivos();
+            $producto_tipos = MostrarProductoTipoActivos();
+            $unidades_medida = MostrarUnidadMedidaActiva();
 
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/pedidos/")) {
@@ -90,8 +97,7 @@ require_once("../_conexion/sesion.php");
             }
             //-------------------------------------------
 
-            // Cargar obras activas para el formulario
-            $obras = MostrarObrasActivas();
+            
             require_once("../_vista/v_pedidos_nuevo.php");
             require_once("../_vista/v_footer.php");
             ?>

@@ -30,21 +30,24 @@
                                 <label class="control-label col-md-3 col-sm-3">Tipo de Pedido <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <select name="tipo_pedido" class="form-control" required>
-                                        <option value="">Seleccionar tipo</option>
-                                        <option value="MATERIAL">Pedido de Material</option>
-                                        <option value="SERVICIO">Pedido de Servicio</option>
+                                       <option value="">Seleccionar</option>
+                                        <?php foreach ($producto_tipos as $producto_tipo) { ?>
+                                            <option value="<?php echo $producto_tipo['id_producto_tipo']; ?>">
+                                                <?php echo $producto_tipo['nom_producto_tipo']; ?>
+                                            </option>
+                                        <?php } ?>
                                     </select>
                                 </div>
                             </div>
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Obra <span class="text-danger">*</span>:</label>
+                                <label class="control-label col-md-3 col-sm-3">Almacen <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <select name="id_obra" class="form-control" required>
-                                        <option value="">Seleccionar obra</option>
-                                        <?php foreach ($obras as $obra) { ?>
-                                            <option value="<?php echo $obra['id_obra']; ?>">
-                                                <?php echo $obra['nom_obra']; ?>
+                                        <option value="">Seleccionar</option>
+                                        <?php foreach ($almacenes as $almacen) { ?>
+                                            <option value="<?php echo $almacen['id_almacen']; ?>">
+                                                <?php echo $almacen['nom_almacen']; ?>
                                             </option>
                                         <?php } ?>
                                     </select>
@@ -54,7 +57,7 @@
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Nombre del Pedido <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="nom_pedido" class="form-control" placeholder="Ingrese nombre del pedido" required>
+                                    <input type="text" name="nom_pedido" class="form-control" placeholder="Nombre del Pedido" required>
                                 </div>
                             </div>
 
@@ -73,14 +76,14 @@
                             </div>
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Nº OT/LCL/LCA (Opcional):</label>
+                                <label class="control-label col-md-3 col-sm-3">Nº OT/LCL/LCA:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="num_ot" class="form-control">
+                                    <input type="text" name="num_ot" class="form-control" placeholder="Nº OT/LCL/LCA">
                                 </div>
                             </div>
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Contacto <span class="text-danger">*</span>:</label>
+                                <label class="control-label col-md-3 col-sm-3">Número de contacto <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <input type="text" name="contacto" class="form-control" placeholder="Número de contacto" required>
                                 </div>
@@ -89,7 +92,7 @@
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Lugar de Entrega <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="lugar_entrega" class="form-control" placeholder="Dirección o lugar de entrega" required>
+                                    <input type="text" name="lugar_entrega" class="form-control" placeholder="Lugar de Entrega" required>
                                 </div>
                             </div>
 
@@ -104,43 +107,47 @@
                             <div id="contenedor-materiales">
                                 <div class="material-item border p-3 mb-3">
                                     <div class="row">
-                                        <div class="col-md-4">
-                                            <label>Descripción/Material <span class="text-danger">*</span>:</label>
-                                            <input type="text" name="descripcion[]" class="form-control" placeholder="Descripción del material o servicio" required>
+                                        <div class="col-md-6">
+                                            <label>Material/Servicio <span class="text-danger">*</span>:</label>
+                                            <div class="input-group">
+                                                <input type="text" name="descripcion[]" class="form-control" placeholder="Material o Servicio" required>
+                                                <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
+                                                    <i class="fa fa-search"></i>
+                                                </button>
+                                            </div>
+                                            <input type="hidden" name="id_material[]" value="">
                                         </div>
-                                        <div class="col-md-2">
+
+                                         <div class="col-md-3">
+                                            <label>Unidad de Medida <span class="text-danger">*</span>:</label>
+                                            <select name="unidad[]" class="form-control" required>
+                                                <option value="">Seleccionar</option>
+                                                <?php foreach ($unidades_medida as $unidad) { ?>
+                                                    <option value="<?php echo $unidad['id_unidad_medida']; ?>">
+                                                        <?php echo $unidad['nom_unidad_medida']; ?>
+                                                    </option>
+                                                <?php } ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
                                             <label>Cantidad <span class="text-danger">*</span>:</label>
                                             <input type="number" name="cantidad[]" class="form-control" step="0.01" min="0" required>
-                                        </div>
-                                        <div class="col-md-2">
-                                            <label>Unidad <span class="text-danger">*</span>:</label>
-                                            <input type="text" name="unidad[]" class="form-control" placeholder="Ej: kg, m, und" required>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label>Observaciones:</label>
-                                            <textarea name="observaciones[]" class="form-control" rows="1" placeholder="Observaciones o comentarios"></textarea>
-                                        </div>
-                                    </div>
-                                    <div class="row mt-2">
-                                        <div class="col-md-4">
-                                            <label>SST <span class="text-danger">*</span>:</label>
-                                            <input type="text" name="sst[]" class="form-control" placeholder="Requisitos SST o 'No aplica'" required>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label>MA <span class="text-danger">*</span>:</label>
-                                            <input type="text" name="ma[]" class="form-control" placeholder="Requisitos MA o 'No aplica'" required>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <label>CA <span class="text-danger">*</span>:</label>
-                                            <input type="text" name="ca[]" class="form-control" placeholder="Requisitos CA o 'No aplica'" required>
                                         </div>
                                     </div>
                                     <div class="row mt-2">
                                         <div class="col-md-6">
-                                            <label>Adjuntar Archivos:</label>
-                                            <input type="file" name="archivos_0[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png">
-                                            
+                                            <label>Observaciones:</label>
+                                            <textarea name="observaciones[]" class="form-control" rows="1" placeholder="Observaciones o comentarios"></textarea>
                                         </div>
+                                   
+                                    
+                                        <div class="col-md-6">
+                                            <label>SST/MA/CA <span class="text-danger">*</span>:</label>
+                                            <input type="text" name="sst[]" class="form-control" placeholder="SST/MA/CA" required>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        
                                         <div class="col-md-6 d-flex align-items-end">
                                             <button type="button" class="btn btn-danger btn-sm eliminar-material" style="display: none;">
                                                 <i class="fa fa-trash"></i> Eliminar
@@ -201,15 +208,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const nuevoMaterial = document.querySelector('.material-item').cloneNode(true);
         
         // Limpiar los valores del nuevo elemento
-        const inputs = nuevoMaterial.querySelectorAll('input, textarea');
+        const inputs = nuevoMaterial.querySelectorAll('input, textarea, select');
         inputs.forEach(input => {
-            input.value = '';
+            if (input.type === 'hidden') {
+                input.value = ''; // limpiar id_material oculto
+            } else {
+                input.value = '';
+            }
         });
-        
-        // Actualizar el name del input file
-        const fileInput = nuevoMaterial.querySelector('input[type="file"]');
-        fileInput.name = `archivos_${contadorMateriales}[]`;
-        
+
         // Mostrar el botón eliminar
         const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
         btnEliminar.style.display = 'block';
@@ -235,4 +242,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Inicializar eventos
     actualizarEventosEliminar();
 });
+
 </script>
+
