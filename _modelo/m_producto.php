@@ -266,13 +266,14 @@ function MostrarProductoMejoradoModal($limit, $offset, $search, $orderColumn, $o
     $counter = $startIndex;
     
     while ($fila = mysqli_fetch_assoc($resultado)) {
-        $boton = '<button type="button" class="btn btn-primary btn-sm" 
-                    onclick="seleccionarProducto(' . $fila['id_producto'] . ', \'' . 
-                    htmlspecialchars($fila['nom_producto'], ENT_QUOTES) . '\', ' . 
-                    $fila['id_unidad_medida'] . ', \'' . 
-                    htmlspecialchars($fila['nom_unidad_medida'], ENT_QUOTES) . '\')">
-                    <i class="fa fa-check"></i> Seleccionar
-                 </button>';
+    $boton = '<button type="button" class="btn btn-success btn-select-producto" 
+                onclick="seleccionarProducto(' . $fila['id_producto'] . ', \'' . 
+                htmlspecialchars($fila['nom_producto'], ENT_QUOTES) . '\', ' . 
+                $fila['id_unidad_medida'] . ', \'' . 
+                htmlspecialchars($fila['nom_unidad_medida'], ENT_QUOTES) . '\')" 
+                title="Seleccionar producto">
+                <i class="fa fa-check"></i>
+             </button>';
         
         $data[] = [
             $fila['cod_material'] ?: 'N/A',
