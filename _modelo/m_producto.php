@@ -163,4 +163,130 @@ function ObtenerProductoPorId($id) {
     mysqli_close($con);
     return $resultado;
 }
+
+
+//-----------------------------------------------------------------------09/09/2025
+function NumeroRegistrosTotalProductos() {
+    include("../_conexion/conexion.php");
+    
+    
+    $sql = "SELECT COUNT(*) as total 
+            FROM producto p
+            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
+            INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+            WHERE p.est_producto = 1";
+    
+    $resultado = mysqli_query($con, $sql);
+    $row = mysqli_fetch_assoc($resultado);
+    mysqli_close($con);
+    
+    return $row['total'];
+}
+
+function NumeroRegistrosFiltradosModalProductos($search) {
+    include("../_conexion/conexion.php");
+    mysqli_set_charset($con, "utf8");
+    
+    $whereClause = "WHERE p.est_producto = 1";
+    
+    if (!empty($search)) {
+        $searchTerm = mysqli_real_escape_string($conexion, $search);
+        $whereClause .= " AND (
+            p.cod_material LIKE '%$searchTerm%' OR
+            p.nom_producto LIKE '%$searchTerm%' OR
+            pt.nom_producto_tipo LIKE '%$searchTerm%' OR
+            um.nom_unidad_medida LIKE '%$searchTerm%' OR
+            p.mar_producto LIKE '%$searchTerm%' OR
+            p.mod_producto LIKE '%$searchTerm%'
+        )";
+    }
+    
+    $sql = "SELECT COUNT(*) as total 
+            FROM producto p
+            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
+            INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+            $whereClause";
+    
+    $resultado = mysqli_query($con, $sql);
+    $row = mysqli_fetch_assoc($resultado);
+    mysqli_close($con);
+    
+    return $row['total'];
+}
+
+function MostrarProductoMejoradoModal($limit, $offset, $search, $orderColumn, $orderDirection, $startIndex) {
+    include("../_conexion/conexion.php");
+    
+    $whereClause = "WHERE p.est_producto = 1";
+    
+    if (!empty($search)) {
+        $searchTerm = mysqli_real_escape_string($conexion, $search);
+        $whereClause .= " AND (
+            p.cod_material LIKE '%$searchTerm%' OR
+            p.nom_producto LIKE '%$searchTerm%' OR
+            pt.nom_producto_tipo LIKE '%$searchTerm%' OR
+            um.nom_unidad_medida LIKE '%$searchTerm%' OR
+            p.mar_producto LIKE '%$searchTerm%' OR
+            p.mod_producto LIKE '%$searchTerm%'
+        )";
+    }
+    
+    
+    $columnMap = [
+        'cod_material' => 'p.cod_material',
+        'nom_producto' => 'p.nom_producto',
+        'nom_producto_tipo' => 'pt.nom_producto_tipo',
+        'nom_unidad_medida' => 'um.nom_unidad_medida',
+        'mar_producto' => 'p.mar_producto',
+        'mod_producto' => 'p.mod_producto'
+    ];
+    
+    $orderBy = isset($columnMap[$orderColumn]) ? $columnMap[$orderColumn] : 'p.cod_material';
+    $orderDirection = ($orderDirection === 'desc') ? 'DESC' : 'ASC';
+    
+    $sql = "SELECT 
+                p.id_producto,
+                p.cod_material,
+                p.nom_producto,
+                pt.nom_producto_tipo,
+                um.nom_unidad_medida,
+                um.id_unidad_medida,
+                p.mar_producto,
+                p.mod_producto,
+                p.det_producto
+            FROM producto p
+            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
+            INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+            $whereClause
+            ORDER BY $orderBy $orderDirection
+            LIMIT $limit OFFSET $offset";
+    
+    $resultado = mysqli_query($con, $sql);
+    $data = [];
+    $counter = $startIndex;
+    
+    while ($fila = mysqli_fetch_assoc($resultado)) {
+        $boton = '<button type="button" class="btn btn-primary btn-sm" 
+                    onclick="seleccionarProducto(' . $fila['id_producto'] . ', \'' . 
+                    htmlspecialchars($fila['nom_producto'], ENT_QUOTES) . '\', ' . 
+                    $fila['id_unidad_medida'] . ', \'' . 
+                    htmlspecialchars($fila['nom_unidad_medida'], ENT_QUOTES) . '\')">
+                    <i class="fa fa-check"></i> Seleccionar
+                 </button>';
+        
+        $data[] = [
+            $fila['cod_material'] ?: 'N/A',
+            $fila['nom_producto'] ?: 'N/A',
+            $fila['nom_producto_tipo'] ?: 'N/A',
+            $fila['nom_unidad_medida'] ?: 'N/A',
+            $fila['mar_producto'] ?: 'N/A',
+            $fila['mod_producto'] ?: 'N/A',
+            $boton
+        ];
+        $counter++;
+    }
+    
+    mysqli_close($con);
+    return $data;
+}
 ?>

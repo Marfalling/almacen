@@ -38,11 +38,14 @@ require_once("../_conexion/sesion.php");
             if (!file_exists("../_archivos/pedidos/")) {
                 mkdir("../_archivos/pedidos/", 0777, true);
             }
-
-            //-------------------------------------------
+            //=======================================================================
+            // CONTROLADOR CORREGIDO
+            //=======================================================================
             if (isset($_REQUEST['registrar'])) {
-                $tipo_pedido = strtoupper($_REQUEST['tipo_pedido']);
-                $id_obra = intval($_REQUEST['id_obra']);
+                // CORREGIDO: Recibir id_producto_tipo en lugar de tipo_pedido
+                $id_producto_tipo = intval($_REQUEST['tipo_pedido']); // El select envía el ID
+                // CORREGIDO: Recibir id_almacen en lugar de id_obra
+                $id_almacen = intval($_REQUEST['id_obra']); // El select envía el ID del almacén
                 $nom_pedido = strtoupper($_REQUEST['nom_pedido']);
                 $solicitante = strtoupper($_REQUEST['solicitante']);
                 $fecha_necesidad = $_REQUEST['fecha_necesidad'];
@@ -58,11 +61,11 @@ require_once("../_conexion/sesion.php");
                         $materiales[] = array(
                             'descripcion' => $_REQUEST['descripcion'][$i],
                             'cantidad' => $_REQUEST['cantidad'][$i],
-                            'unidad' => $_REQUEST['unidad'][$i],
+                            'unidad' => $_REQUEST['unidad'][$i], // Este es el ID de la unidad
                             'observaciones' => $_REQUEST['observaciones'][$i],
                             'sst' => $_REQUEST['sst'][$i],
-                            'ma' => $_REQUEST['ma'][$i],
-                            'ca' => $_REQUEST['ca'][$i]
+                            'ma' => isset($_REQUEST['ma'][$i]) ? $_REQUEST['ma'][$i] : '',
+                            'ca' => isset($_REQUEST['ca'][$i]) ? $_REQUEST['ca'][$i] : ''
                         );
                     }
                 }
@@ -76,9 +79,10 @@ require_once("../_conexion/sesion.php");
                     }
                 }
 
-                $rpta = GrabarPedido($tipo_pedido, $id_obra, $nom_pedido, $solicitante, 
-                                   $fecha_necesidad, $num_ot, $contacto, $lugar_entrega, 
-                                   $aclaraciones, $id, $materiales, $archivos_subidos);
+                // LLAMADA CORREGIDA con los parámetros correctos
+                $rpta = GrabarPedido($id_producto_tipo, $id_almacen, $nom_pedido, $solicitante, 
+                                $fecha_necesidad, $num_ot, $contacto, $lugar_entrega, 
+                                $aclaraciones, $id, $materiales, $archivos_subidos);
 
                 if ($rpta == "SI") {
             ?>

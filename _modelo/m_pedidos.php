@@ -1,32 +1,36 @@
 <?php
-//-----------------------------------------------------------------------
-function GrabarPedido($tipo_pedido, $id_obra, $nom_pedido, $solicitante, $fecha_necesidad, 
+function GrabarPedido($id_producto_tipo, $id_almacen, $nom_pedido, $solicitante, $fecha_necesidad, 
                      $num_ot, $contacto, $lugar_entrega, $aclaraciones, $id_personal, 
                      $materiales, $archivos_subidos) 
 {
     include("../_conexion/conexion.php");
 
-    // Generar código de pedido
-    $sql_obra = "SELECT nom_obra FROM obra WHERE id_obra = $id_obra";
+    // Obtener información de la obra desde el almacén seleccionado
+    $sql_obra = "SELECT id_obra FROM almacen WHERE id_almacen = $id_almacen";
     $resultado_obra = mysqli_query($con, $sql_obra);
-    $obra = mysqli_fetch_assoc($resultado_obra);
+    $almacen_data = mysqli_fetch_assoc($resultado_obra);
+    $id_obra = $almacen_data['id_obra'];
     
-    // Obtener el siguiente número de pedido para esta obra
+    // Obtener nombre de la obra para generar el código
+    $sql_obra_nom = "SELECT nom_obra FROM obra WHERE id_obra = $id_obra";
+    $resultado_obra_nom = mysqli_query($con, $sql_obra_nom);
+    $obra = mysqli_fetch_assoc($resultado_obra_nom);
+    
+    // Obtener el siguiente número de pedido para este almacén
     $sql_num = "SELECT COUNT(*) + 1 as siguiente FROM pedido p 
-                INNER JOIN obra o ON SUBSTRING_INDEX(p.cod_pedido, ' ', -1) 
-                WHERE o.id_obra = $id_obra";
+                WHERE p.id_almacen = $id_almacen";
     $resultado_num = mysqli_query($con, $sql_num);
     $num_pedido = mysqli_fetch_assoc($resultado_num)['siguiente'];
     
     $cod_pedido = $obra['nom_obra'] . " " . $num_pedido;
 
-    // Insertar pedido principal - necesitamos valores por defecto para campos requeridos
+    // Insertar pedido principal - USA EL ID_PRODUCTO_TIPO CORRECTO
     $sql = "INSERT INTO pedido (
                 id_producto_tipo, id_almacen, id_ubicacion, id_personal, 
                 cod_pedido, nom_pedido, ot_pedido, cel_pedido, lug_pedido, 
                 acl_pedido, fec_req_pedido, fec_pedido, est_pedido
             ) VALUES (
-                1, 1, 1, $id_personal, 
+                $id_producto_tipo, $id_almacen, 1, $id_personal, 
                 '$cod_pedido', '$nom_pedido', '$num_ot', '$contacto', '$lugar_entrega', 
                 '$aclaraciones', '$fecha_necesidad', NOW(), 1
             )";
@@ -38,13 +42,22 @@ function GrabarPedido($tipo_pedido, $id_obra, $nom_pedido, $solicitante, $fecha_
         foreach ($materiales as $index => $material) {
             $descripcion = mysqli_real_escape_string($con, $material['descripcion']);
             $cantidad = floatval($material['cantidad']);
-            $unidad = mysqli_real_escape_string($con, $material['unidad']);
+            $id_unidad = intval($material['unidad']); // Este es el ID de la unidad
             $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
             $sst = mysqli_real_escape_string($con, $material['sst']);
             $ma = mysqli_real_escape_string($con, $material['ma']);
             $ca = mysqli_real_escape_string($con, $material['ca']);
             
+            // OBTENER EL NOMBRE DE LA UNIDAD POR SU ID
+            $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
+            $resultado_unidad = mysqli_query($con, $sql_unidad);
+            $unidad_data = mysqli_fetch_assoc($resultado_unidad);
+            $nombre_unidad = $unidad_data ? $unidad_data['nom_unidad_medida'] : '';
+            
             $requisitos = "SST: $sst | MA: $ma | CA: $ca";
+            
+            // GUARDAR TANTO EL ID COMO EL NOMBRE PARA FACILITAR LA EDICIÓN
+            $comentario_detalle = "Unidad: $nombre_unidad | Unidad ID: $id_unidad | Obs: $observaciones";
             
             $sql_detalle = "INSERT INTO pedido_detalle (
                                 id_pedido, id_producto, prod_pedido_detalle, 
@@ -53,7 +66,7 @@ function GrabarPedido($tipo_pedido, $id_obra, $nom_pedido, $solicitante, $fecha_
                             ) VALUES (
                                 $id_pedido, 1, '$descripcion', 
                                 $cantidad, $cantidad, 
-                                'Unidad: $unidad | Obs: $observaciones', '$requisitos', 1
+                                '$comentario_detalle', '$requisitos', 1
                             )";
             
             if (mysqli_query($con, $sql_detalle)) {

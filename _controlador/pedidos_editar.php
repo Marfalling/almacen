@@ -1,7 +1,6 @@
 <?php
 require_once("../_conexion/sesion.php");
 
-
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -26,6 +25,10 @@ require_once("../_conexion/sesion.php");
 
             require_once("../_modelo/m_pedidos.php");
             require_once("../_modelo/m_obras.php");
+            require_once("../_modelo/m_unidad_medida.php");
+
+            // Cargar datos necesarios para el formulario
+            $unidades_medida = MostrarUnidadMedidaActiva();
 
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/pedidos/")) {
@@ -43,18 +46,44 @@ require_once("../_conexion/sesion.php");
                 $lugar_entrega = strtoupper($_REQUEST['lugar_entrega']);
                 $aclaraciones = strtoupper($_REQUEST['aclaraciones']);
 
-                // Procesar materiales
+                // Procesar materiales - CORREGIDO para manejar el campo SST combinado
                 $materiales = array();
                 if (isset($_REQUEST['descripcion']) && is_array($_REQUEST['descripcion'])) {
                     for ($i = 0; $i < count($_REQUEST['descripcion']); $i++) {
+                        // MANEJO CORRECTO del campo SST combinado (igual que en nuevo)
+                        $sst_combinado = $_REQUEST['sst'][$i];
+                        $sst = $ma = $ca = '';
+                        
+                        // Parsear SST/MA/CA del campo combinado
+                        if (strpos($sst_combinado, 'SST:') !== false) {
+                            if (preg_match('/SST:\s*([^|]*)\s*(\||$)/', $sst_combinado, $matches)) {
+                                $sst = trim($matches[1]);
+                            }
+                        }
+                        if (strpos($sst_combinado, 'MA:') !== false) {
+                            if (preg_match('/MA:\s*([^|]*)\s*(\||$)/', $sst_combinado, $matches)) {
+                                $ma = trim($matches[1]);
+                            }
+                        }
+                        if (strpos($sst_combinado, 'CA:') !== false) {
+                            if (preg_match('/CA:\s*(.*)$/', $sst_combinado, $matches)) {
+                                $ca = trim($matches[1]);
+                            }
+                        }
+                        
+                        // Si no hay separadores, asumir que todo es SST
+                        if (empty($sst) && empty($ma) && empty($ca)) {
+                            $sst = $sst_combinado;
+                        }
+                        
                         $materiales[] = array(
                             'descripcion' => $_REQUEST['descripcion'][$i],
                             'cantidad' => $_REQUEST['cantidad'][$i],
-                            'unidad' => $_REQUEST['unidad'][$i],
+                            'unidad' => $_REQUEST['unidad'][$i], // Este es el ID de la unidad
                             'observaciones' => $_REQUEST['observaciones'][$i],
-                            'sst' => $_REQUEST['sst'][$i],
-                            'ma' => $_REQUEST['ma'][$i],
-                            'ca' => $_REQUEST['ca'][$i]
+                            'sst' => $sst,
+                            'ma' => $ma,
+                            'ca' => $ca
                         );
                     }
                 }
@@ -92,7 +121,6 @@ require_once("../_conexion/sesion.php");
                 // Cargar datos del pedido
                 $pedido_data = ConsultarPedido($id_pedido);
                 $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
-                $obras = MostrarObrasActivas();
                 
                 if (!empty($pedido_data)) {
                     require_once("../_vista/v_pedidos_editar.php");
