@@ -41,7 +41,7 @@
                             </div>
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Almacen <span class="text-danger">*</span>:</label>
+                                <label class="control-label col-md-3 col-sm-3">Almacén <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <select name="id_obra" class="form-control" required>
                                         <option value="">Seleccionar</option>

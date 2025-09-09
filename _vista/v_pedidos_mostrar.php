@@ -43,6 +43,8 @@
                                                 <th>Solicitante</th>
                                                 <th>Fecha Pedido</th>
                                                 <th>Fecha Necesidad</th>
+                                                <th>Almacén</th>
+                                                <th>Ubicación</th>
                                                 <th>Estado</th>
                                                 <th>Acciones</th>
                                             </tr>
@@ -60,6 +62,8 @@
                                                     <td><?php echo $pedido['nom_personal'] . ' ' . $pedido['ape_personal']; ?></td>
                                                     <td><?php echo date('d/m/Y H:i', strtotime($pedido['fec_pedido'])); ?></td>
                                                     <td><?php echo date('d/m/Y', strtotime($pedido['fec_req_pedido'])); ?></td>
+                                                    <td><?php echo $pedido['nom_almacen']; ?></td>
+                                                    <td><?php echo $pedido['nom_ubicacion']; ?></td>
                                                     <td>
                                                         <?php if($pedido['est_pedido'] == 1) { ?>
                                                             <span class="badge badge-success">Activo</span>
@@ -68,15 +72,31 @@
                                                         <?php } ?>
                                                     </td>
                                                     <td>
-                                                        <div class="btn-group" role="group">
-                                                            <button type="button" class="btn btn-info btn-sm" 
+                                                        <div class="d-flex flex-wrap gap-2">
+                                                            <button type="button" 
+                                                                    class="btn btn-info btn-sm" 
                                                                     data-toggle="modal" 
                                                                     data-target="#modalDetallePedido<?php echo $pedido['id_pedido']; ?>" 
                                                                     title="Ver Detalle">
                                                                 <i class="fa fa-eye"></i>
                                                             </button>
-                                                            <a href="pedidos_editar.php?id=<?php echo $pedido['id_pedido']; ?>" class="btn btn-warning btn-sm" title="Editar">
+
+                                                            <a href="pedidos_editar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+                                                            class="btn btn-warning btn-sm" 
+                                                            title="Editar">
                                                                 <i class="fa fa-edit"></i>
+                                                            </a>
+
+                                                            <a href="#" 
+                                                            class="btn btn-success btn-sm" 
+                                                            title="Verificar">
+                                                                <i class="fa fa-check"></i>
+                                                            </a>
+
+                                                            <a href="#" 
+                                                            class="btn btn-secondary btn-sm" 
+                                                            title="Imprimir">
+                                                                <i class="fa fa-print"></i>
                                                             </a>
                                                         </div>
                                                     </td>

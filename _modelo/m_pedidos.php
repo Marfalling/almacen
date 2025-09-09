@@ -94,10 +94,13 @@ function MostrarPedidos()
 {
     include("../_conexion/conexion.php");
 
-    $sqlc = "SELECT p.*, o.nom_obra, pr.nom_personal, pr.ape_personal 
+    $sqlc = "SELECT p.*, ob.nom_obra, c.nom_cliente, pr.nom_personal, pr.ape_personal, a.nom_almacen, u.nom_ubicacion
              FROM pedido p 
-             LEFT JOIN obra o ON SUBSTRING_INDEX(p.cod_pedido, ' ', 1) = o.nom_obra
-             LEFT JOIN personal pr ON p.id_personal = pr.id_personal
+             INNER JOIN almacen a ON p.id_almacen = a.id_almacen
+                INNER JOIN obra ob ON a.id_obra = ob.id_obra
+                INNER JOIN cliente c ON a.id_cliente = c.id_cliente
+             INNER JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion
+             INNER JOIN personal pr ON p.id_personal = pr.id_personal
              ORDER BY p.fec_pedido DESC";
     $resc = mysqli_query($con, $sqlc);
 
@@ -116,10 +119,14 @@ function ConsultarPedido($id_pedido)
 {
     include("../_conexion/conexion.php");
 
-    $sqlc = "SELECT p.*, o.nom_obra 
+    $sqlc = "SELECT p.*, ob.nom_obra, c.nom_cliente, u.nom_ubicacion, a.nom_almacen, pr.nom_personal, pr.ape_personal
              FROM pedido p 
-             LEFT JOIN obra o ON SUBSTRING_INDEX(p.cod_pedido, ' ', 1) = o.nom_obra
-             WHERE p.id_pedido = $id_pedido";
+             INNER JOIN almacen a ON p.id_almacen = a.id_almacen
+                INNER JOIN obra ob ON a.id_obra = ob.id_obra
+                INNER JOIN cliente c ON a.id_cliente = c.id_cliente
+             INNER JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion
+             INNER JOIN personal pr ON p.id_personal = pr.id_personal
+             WHERE p.id_pedido = '$id_pedido'";
     $resc = mysqli_query($con, $sqlc);
 
     $resultado = array();
