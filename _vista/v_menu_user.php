@@ -19,7 +19,7 @@
                         </a>
                       <a class="dropdown-item"  href="javascript:;">Help</a>
                       -->
-                      <a class="dropdown-item"  href="reset_password.php?id=<"><i class="fa fa-key pull-right"></i> Cambiar Contraseña</a>
+                      <a class="dropdown-item" href="reset_password.php?id=<?php echo $id; ?>"><i class="fa fa-sign-out pull-right"></i> Cambiar Contraseña</a>
                       <a class="dropdown-item"  href="../_conexion/cerrarsesion.php"><i class="fa fa-sign-out pull-right"></i> Cerrar Sesión</a>
                     </div>
                   </li>
