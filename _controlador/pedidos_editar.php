@@ -46,44 +46,21 @@ require_once("../_conexion/sesion.php");
                 $lugar_entrega = strtoupper($_REQUEST['lugar_entrega']);
                 $aclaraciones = strtoupper($_REQUEST['aclaraciones']);
 
-                // Procesar materiales - CORREGIDO para manejar el campo SST combinado
+                // En pedidos_editar.php, modifica la creación del array de materiales:
                 $materiales = array();
                 if (isset($_REQUEST['descripcion']) && is_array($_REQUEST['descripcion'])) {
                     for ($i = 0; $i < count($_REQUEST['descripcion']); $i++) {
-                        // MANEJO CORRECTO del campo SST combinado (igual que en nuevo)
-                        $sst_combinado = $_REQUEST['sst'][$i];
-                        $sst = $ma = $ca = '';
-                        
-                        // Parsear SST/MA/CA del campo combinado
-                        if (strpos($sst_combinado, 'SST:') !== false) {
-                            if (preg_match('/SST:\s*([^|]*)\s*(\||$)/', $sst_combinado, $matches)) {
-                                $sst = trim($matches[1]);
-                            }
-                        }
-                        if (strpos($sst_combinado, 'MA:') !== false) {
-                            if (preg_match('/MA:\s*([^|]*)\s*(\||$)/', $sst_combinado, $matches)) {
-                                $ma = trim($matches[1]);
-                            }
-                        }
-                        if (strpos($sst_combinado, 'CA:') !== false) {
-                            if (preg_match('/CA:\s*(.*)$/', $sst_combinado, $matches)) {
-                                $ca = trim($matches[1]);
-                            }
-                        }
-                        
-                        // Si no hay separadores, asumir que todo es SST
-                        if (empty($sst) && empty($ma) && empty($ca)) {
-                            $sst = $sst_combinado;
-                        }
+                        $valores_sst = explode('/', $_REQUEST['sst'][$i]);
                         
                         $materiales[] = array(
                             'descripcion' => $_REQUEST['descripcion'][$i],
                             'cantidad' => $_REQUEST['cantidad'][$i],
-                            'unidad' => $_REQUEST['unidad'][$i], // Este es el ID de la unidad
+                            'unidad' => $_REQUEST['unidad'][$i],
                             'observaciones' => $_REQUEST['observaciones'][$i],
-                            'sst' => $sst,
-                            'ma' => $ma,
-                            'ca' => $ca
+                            'sst' => trim($valores_sst[0] ?? ''),
+                            'ma' => trim($valores_sst[1] ?? ''),
+                            'ca' => trim($valores_sst[2] ?? ''),
+                            'id_detalle' => $_REQUEST['id_detalle'][$i] // ← ESTO ES IMPORTANTE
                         );
                     }
                 }

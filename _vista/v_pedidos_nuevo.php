@@ -143,7 +143,12 @@
                                     
                                         <div class="col-md-6">
                                             <label>SST/MA/CA <span class="text-danger">*</span>:</label>
-                                            <input type="text" name="sst[]" class="form-control" placeholder="SST/MA/CA" required>
+                                            <input type="text" name="sst[]" class="form-control" 
+                                                placeholder="SST / MA / CA (ej: aa / bb / cc)" 
+                                                pattern="[^/]+/[^/]+/[^/]+" 
+                                                title="Por favor ingresa los tres valores separados por barras (ej: valor1 / valor2 / valor3)" 
+                                                required>
+                                            <small class="form-text text-muted">Ingresa los tres valores separados por barras (/)</small>
                                         </div>
                                     </div>
                                     <div class="row mt-2">

@@ -58,14 +58,17 @@ require_once("../_conexion/sesion.php");
                 $materiales = array();
                 if (isset($_REQUEST['descripcion']) && is_array($_REQUEST['descripcion'])) {
                     for ($i = 0; $i < count($_REQUEST['descripcion']); $i++) {
+                        // SEPARAR los valores de SST/MA/CA
+                        $valores_sst = explode('/', $_REQUEST['sst'][$i]);
+                        
                         $materiales[] = array(
                             'descripcion' => $_REQUEST['descripcion'][$i],
                             'cantidad' => $_REQUEST['cantidad'][$i],
-                            'unidad' => $_REQUEST['unidad'][$i], // Este es el ID de la unidad
+                            'unidad' => $_REQUEST['unidad'][$i],
                             'observaciones' => $_REQUEST['observaciones'][$i],
-                            'sst' => $_REQUEST['sst'][$i],
-                            'ma' => isset($_REQUEST['ma'][$i]) ? $_REQUEST['ma'][$i] : '',
-                            'ca' => isset($_REQUEST['ca'][$i]) ? $_REQUEST['ca'][$i] : ''
+                            'sst' => trim($valores_sst[0] ?? ''),        // Primer valor: SST
+                            'ma' => trim($valores_sst[1] ?? ''),         // Segundo valor: MA
+                            'ca' => trim($valores_sst[2] ?? '')          // Tercer valor: CA
                         );
                     }
                 }

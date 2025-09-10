@@ -59,13 +59,14 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $nom_pedido, $solicitante,
             // GUARDAR TANTO EL ID COMO EL NOMBRE PARA FACILITAR LA EDICIÓN
             $comentario_detalle = "Unidad: $nombre_unidad | Unidad ID: $id_unidad | Obs: $observaciones";
             
+            // MODIFICACIÓN: cant_fin_pedido_detalle ahora es NULL
             $sql_detalle = "INSERT INTO pedido_detalle (
                                 id_pedido, id_producto, prod_pedido_detalle, 
                                 cant_pedido_detalle, cant_fin_pedido_detalle, 
                                 com_pedido_detalle, req_pedido, est_pedido_detalle
                             ) VALUES (
                                 $id_pedido, 1, '$descripcion', 
-                                $cantidad, $cantidad, 
+                                $cantidad, NULL, 
                                 '$comentario_detalle', '$requisitos', 1
                             )";
             
@@ -176,7 +177,6 @@ function ConsultarPedidoDetalle($id_pedido)
     return $resultado;
 }
 
-//-----------------------------------------------------------------------
 function ActualizarPedido($id_pedido, $nom_pedido, $fecha_necesidad, $num_ot, 
                          $contacto, $lugar_entrega, $aclaraciones, $materiales, $archivos_subidos) 
 {
@@ -193,54 +193,104 @@ function ActualizarPedido($id_pedido, $nom_pedido, $fecha_necesidad, $num_ot,
             WHERE id_pedido = $id_pedido";
 
     if (mysqli_query($con, $sql)) {
-        // Marcar detalles existentes como inactivos
-        $sql_inactivos = "UPDATE pedido_detalle SET est_pedido_detalle = 0 WHERE id_pedido = $id_pedido";
-        mysqli_query($con, $sql_inactivos);
         
-        // Insertar nuevos detalles
+        // Obtener todos los detalles existentes para este pedido
+        $detalles_existentes = array();
+        $sql_existentes = "SELECT id_pedido_detalle FROM pedido_detalle 
+                          WHERE id_pedido = $id_pedido AND est_pedido_detalle = 1";
+        $result = mysqli_query($con, $sql_existentes);
+        while ($row = mysqli_fetch_assoc($result)) {
+            $detalles_existentes[] = $row['id_pedido_detalle'];
+        }
+        
+        // Array para trackear qué detalles se están usando
+        $detalles_utilizados = array();
+        
+        // Procesar cada material
         foreach ($materiales as $index => $material) {
             $descripcion = mysqli_real_escape_string($con, $material['descripcion']);
             $cantidad = floatval($material['cantidad']);
-            $unidad = mysqli_real_escape_string($con, $material['unidad']);
+            $id_unidad = intval($material['unidad']);
             $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
             $sst = mysqli_real_escape_string($con, $material['sst']);
             $ma = mysqli_real_escape_string($con, $material['ma']);
             $ca = mysqli_real_escape_string($con, $material['ca']);
+            $id_detalle = isset($material['id_detalle']) ? intval($material['id_detalle']) : 0;
+            
+            // OBTENER EL NOMBRE DE LA UNIDAD
+            $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
+            $resultado_unidad = mysqli_query($con, $sql_unidad);
+            $unidad_data = mysqli_fetch_assoc($resultado_unidad);
+            $nombre_unidad = $unidad_data ? $unidad_data['nom_unidad_medida'] : '';
             
             $requisitos = "SST: $sst | MA: $ma | CA: $ca";
+            $comentario_detalle = "Unidad: $nombre_unidad | Unidad ID: $id_unidad | Obs: $observaciones";
             
-            $sql_detalle = "INSERT INTO pedido_detalle (
-                                id_pedido, id_producto, prod_pedido_detalle, 
-                                cant_pedido_detalle, cant_fin_pedido_detalle, 
-                                com_pedido_detalle, req_pedido, est_pedido_detalle
-                            ) VALUES (
-                                $id_pedido, 1, '$descripcion', 
-                                $cantidad, $cantidad, 
-                                'Unidad: $unidad | Obs: $observaciones', '$requisitos', 1
-                            )";
-            
-            if (mysqli_query($con, $sql_detalle)) {
-                $id_detalle = mysqli_insert_id($con);
+            if ($id_detalle > 0 && in_array($id_detalle, $detalles_existentes)) {
+                // ACTUALIZAR DETALLE EXISTENTE - CORREGIDO: UPDATE no INSERT
+                $sql_detalle = "UPDATE pedido_detalle SET 
+                                prod_pedido_detalle = '$descripcion',
+                                cant_pedido_detalle = $cantidad,
+                                com_pedido_detalle = '$comentario_detalle',
+                                req_pedido = '$requisitos',
+                                est_pedido_detalle = 1
+                                WHERE id_pedido_detalle = $id_detalle";
                 
-                // Guardar archivos si existen
-                if (isset($archivos_subidos[$index]) && !empty($archivos_subidos[$index]['name'][0])) {
-                    foreach ($archivos_subidos[$index]['name'] as $key => $archivo_nombre) {
-                        if (!empty($archivo_nombre)) {
-                            $extension = pathinfo($archivo_nombre, PATHINFO_EXTENSION);
-                            $nuevo_nombre = "pedido_" . $id_pedido . "_detalle_" . $id_detalle . "_" . $key . "_" . uniqid() . "." . $extension;
-                            
-                            $ruta_destino = "../_archivos/pedidos/" . $nuevo_nombre;
-                            
-                            if (move_uploaded_file($archivos_subidos[$index]['tmp_name'][$key], $ruta_destino)) {
-                                $sql_doc = "INSERT INTO pedido_detalle_documento (
-                                                id_pedido_detalle, nom_pedido_detalle_documento, 
-                                                est_pedido_detalle_documento
-                                            ) VALUES ($id_detalle, '$nuevo_nombre', 1)";
-                                mysqli_query($con, $sql_doc);
-                            }
+                if (mysqli_query($con, $sql_detalle)) {
+                    $id_detalle_actual = $id_detalle;
+                    $detalles_utilizados[] = $id_detalle;
+                }
+            } else {
+                // INSERTAR NUEVO DETALLE (solo para materiales completamente nuevos)
+                $sql_detalle = "INSERT INTO pedido_detalle (
+                                    id_pedido, id_producto, prod_pedido_detalle, 
+                                    cant_pedido_detalle, cant_fin_pedido_detalle, 
+                                    com_pedido_detalle, req_pedido, est_pedido_detalle
+                                ) VALUES (
+                                    $id_pedido, 1, '$descripcion', 
+                                    $cantidad, NULL, 
+                                    '$comentario_detalle', '$requisitos', 1
+                                )";
+                
+                if (mysqli_query($con, $sql_detalle)) {
+                    $id_detalle_actual = mysqli_insert_id($con);
+                }
+            }
+            
+            // Guardar archivos si existen - SOLO SI SE SUBIERON NUEVOS ARCHIVOS
+            if (isset($archivos_subidos[$index]) && !empty($archivos_subidos[$index]['name'][0])) {
+                foreach ($archivos_subidos[$index]['name'] as $key => $archivo_nombre) {
+                    if (!empty($archivo_nombre)) {
+                        $extension = pathinfo($archivo_nombre, PATHINFO_EXTENSION);
+                        $nuevo_nombre = "pedido_" . $id_pedido . "_detalle_" . $id_detalle_actual . "_" . $key . "_" . uniqid() . "." . $extension;
+                        
+                        $ruta_destino = "../_archivos/pedidos/" . $nuevo_nombre;
+                        
+                        if (move_uploaded_file($archivos_subidos[$index]['tmp_name'][$key], $ruta_destino)) {
+                            $sql_doc = "INSERT INTO pedido_detalle_documento (
+                                            id_pedido_detalle, nom_pedido_detalle_documento, 
+                                            est_pedido_detalle_documento
+                                        ) VALUES ($id_detalle_actual, '$nuevo_nombre', 1)";
+                            mysqli_query($con, $sql_doc);
                         }
                     }
                 }
+            }
+        }
+        
+        // Marcar como inactivos los detalles que ya no existen (fueron eliminados en la edición)
+        if (!empty($detalles_existentes)) {
+            $detalles_a_eliminar = array_diff($detalles_existentes, $detalles_utilizados);
+            if (!empty($detalles_a_eliminar)) {
+                $ids_eliminar = implode(',', $detalles_a_eliminar);
+                $sql_eliminar = "UPDATE pedido_detalle SET est_pedido_detalle = 0 
+                                WHERE id_pedido_detalle IN ($ids_eliminar)";
+                mysqli_query($con, $sql_eliminar);
+                
+                // Opcional: también marcar como inactivos los documentos de esos detalles
+                $sql_eliminar_docs = "UPDATE pedido_detalle_documento SET est_pedido_detalle_documento = 0 
+                                     WHERE id_pedido_detalle IN ($ids_eliminar)";
+                mysqli_query($con, $sql_eliminar_docs);
             }
         }
         

@@ -177,12 +177,36 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                    
                                         <div class="col-md-6">
                                             <label>SST/MA/CA <span class="text-danger">*</span>:</label>
-                                            <input type="text" name="sst[]" class="form-control" value="<?php echo $sst; ?>" placeholder="SST/MA/CA" required>
+                                            <?php
+                                            // Reconstruir el valor en formato "valor1/valor2/valor3" para edición
+                                            $sst_valor = '';
+                                            if (preg_match('/SST:\s*([^|]*)\s*\|/', $requisitos, $matches)) {
+                                                $sst_valor .= trim($matches[1]);
+                                            }
+                                            if (preg_match('/MA:\s*([^|]*)\s*\|/', $requisitos, $matches)) {
+                                                $sst_valor .= '/' . trim($matches[1]);
+                                            } else {
+                                                $sst_valor .= '/';
+                                            }
+                                            if (preg_match('/CA:\s*(.*)$/', $requisitos, $matches)) {
+                                                $sst_valor .= '/' . trim($matches[1]);
+                                            } else {
+                                                $sst_valor .= '/';
+                                            }
+                                            ?>
+                                            <input type="text" name="sst[]" class="form-control" 
+                                                value="<?php echo $sst_valor; ?>" 
+                                                placeholder="SST / MA / CA (ej: aa / bb / cc)" 
+                                                pattern="[^/]+/[^/]+/[^/]+" 
+                                                title="Por favor ingresa los tres valores separados por barras (ej: valor1 / valor2 / valor3)" 
+                                                required>
+                                            <small class="form-text text-muted">Ingresa los tres valores separados por barras (/)</small>
                                         </div>
                                     </div>
                                     <div class="row mt-2">
                                         <div class="col-md-6">
                                             <label>Adjuntar Archivos:</label>
+                                            <input type="hidden" name="id_detalle[]" value="<?php echo $detalle['id_pedido_detalle']; ?>">
                                             <input type="file" name="archivos_<?php echo $contador_material; ?>[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
                                             <small class="form-text text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, XLS. Máximo 5MB por archivo.</small>
                                             <?php if (!empty($detalle['archivos'])) { ?>
