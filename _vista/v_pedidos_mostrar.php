@@ -93,10 +93,11 @@
                                                                 <i class="fa fa-check"></i>
                                                             </a>
 
-                                                            <a href="#" 
+                                                            <a href="pedido_pdf.php?id=<?php echo $pedido['id_pedido']; ?>" 
                                                             class="btn btn-secondary btn-sm" 
-                                                            title="Imprimir">
-                                                                <i class="fa fa-print"></i>
+                                                            title="Generar PDF"
+                                                            target="_blank">
+                                                                <i class="fa fa-file-pdf-o"></i> PDF
                                                             </a>
                                                         </div>
                                                     </td>
