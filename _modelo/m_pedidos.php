@@ -330,4 +330,59 @@ function verificarItem($id_pedido_detalle, $new_cant_fin){
         return "ERROR: Item no encontrado";
     }
 }
+
+function ConsultarCompra($id_pedido){
+    include("../_conexion/conexion.php");
+
+    $sql = "SELECT 
+                c.*,
+                p.nom_proveedor
+            FROM compra c
+            LEFT JOIN proveedor p ON c.id_proveedor = p.id_proveedor 
+            WHERE id_pedido = $id_pedido";
+    $resc = mysqli_query($con, $sql);
+
+    $resultado = array();
+
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $resultado[] = $rowc;
+    }
+
+    mysqli_close($con);
+    return $resultado;
+}
+
+function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items) 
+{
+    include("../_conexion/conexion.php");
+
+    $sql = "INSERT INTO compra (
+                id_pedido, id_proveedor, id_moneda, id_personal, id_personal_aprueba, obs_compra, denv_compra, plaz_compra, port_compra, fec_compra, est_compra
+            ) VALUES (
+                $id_pedido, $proveedor, $moneda, $id_personal, NULL, '$observacion', '$direccion', '$plazo_entrega', '$porte', '$fecha_orden', 1
+            )";
+
+    if (mysqli_query($con, $sql)) {
+        $id_compra = mysqli_insert_id($con);
+        
+        foreach ($items as $item) {
+            $cantidad = floatval($item['cantidad']);
+            $id_producto = intval($item['id_producto']);
+            
+            $sql_detalle = "INSERT INTO compra_detalle (
+                                id_compra, id_producto, cant_compra_detalle, est_compra_detalle
+                            ) VALUES (
+                                $id_compra, $id_producto, $cantidad, 1
+                            )";
+            
+            mysqli_query($con, $sql_detalle);
+        }
+        
+        mysqli_close($con);
+        return "SI";
+    } else {
+        mysqli_close($con);
+        return "ERROR: " . mysqli_error($con);
+    }
+}
 ?>

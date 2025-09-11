@@ -5,6 +5,7 @@ date_default_timezone_set('America/Lima');
 include("seguridad.php");
 
 $id = $_SESSION['id'];
+$id_personal = $_SESSION['id_personal'];
 $usuario_sesion = $_SESSION['usuario_sesion'];
 $cargo_sesion = $_SESSION['cargo_sesion'];
 $area_sesion = $_SESSION['area_sesion'] ?? '';

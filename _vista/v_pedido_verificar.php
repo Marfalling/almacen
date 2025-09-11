@@ -96,9 +96,16 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                             Verificar
                                         </button>
                                     <?php } else { ?>
-                                        <button type="button" class="btn btn-primary btn-xs btn-agregarOrden" data-item="<?php echo $contador_detalle; ?>" title="Verificar Item" style="padding: 2px 8px; font-size: 11px;">
-                                        <i class="fa fa-check"></i> Agregar a Orden
-                                    </button>
+                                        <button type="button" 
+                                                class="btn btn-primary btn-xs btn-agregarOrden" 
+                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                                                data-cantidad-verificada="<?php echo htmlspecialchars($detalle['cant_fin_pedido_detalle']); ?>"
+                                                title="Agregar a Orden" 
+                                                style="padding: 2px 8px; font-size: 11px;">
+                                            <i class="fa fa-check"></i> Agregar a Orden
+                                        </button>
                                     <?php } ?>
 
                                 </div>
@@ -159,43 +166,41 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                             <th style="width: 15%;">N° Orden</th>
                                             <th style="width: 20%;">Proveedor</th>
                                             <th style="width: 15%;">Fecha</th>
-                                            <th style="width: 15%;">Total</th>
                                             <th style="width: 15%;">Estado</th>
                                             <th style="width: 20%;">Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tbody-ordenes">
-                                        <!-- Órdenes existentes (ejemplo) -->
-                                        <tr>
-                                            <td><strong>ORD-001</strong></td>
-                                            <td>Proveedor ABC S.A.C.</td>
-                                            <td>10/09/2025</td>
-                                            <td>S/ 1,250.00</td>
-                                            <td><span class="badge badge-success">Aprobada</span></td>
-                                            <td>
-                                                <button class="btn btn-info btn-xs" title="Ver Detalles">
-                                                    <i class="fa fa-eye"></i>
-                                                </button>
-                                                <button class="btn btn-warning btn-xs ml-1" title="Editar">
-                                                    <i class="fa fa-edit"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td><strong>ORD-002</strong></td>
-                                            <td>Distribuidora XYZ E.I.R.L.</td>
-                                            <td>09/09/2025</td>
-                                            <td>S/ 890.50</td>
-                                            <td><span class="badge badge-warning">Pendiente</span></td>
-                                            <td>
-                                                <button class="btn btn-info btn-xs" title="Ver Detalles">
-                                                    <i class="fa fa-eye"></i>
-                                                </button>
-                                                <button class="btn btn-warning btn-xs ml-1" title="Editar">
-                                                    <i class="fa fa-edit"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
+                                        <?php if (!empty($pedido_compra)) { ?>
+                                            <?php foreach ($pedido_compra as $compra) {
+                                                $estado_texto = ($compra['est_compra'] == 2) ? 'Aprobada' : 'Pendiente';
+                                                $estado_clase = ($compra['est_compra'] == 2) ? 'success' : 'warning';
+                                                $fecha_formateada = date('d/m/Y', strtotime($compra['fec_compra']));
+                                            ?>
+                                                <tr>
+                                                    <td><strong>ORD-<?php echo $compra['id_compra']; ?></strong></td>
+                                                    <td><?php echo htmlspecialchars($compra['nom_proveedor']); ?></td>
+                                                    <td><?php echo $fecha_formateada; ?></td>
+                                                    <td><span class="badge badge-<?php echo $estado_clase; ?>"><?php echo $estado_texto; ?></span></td>
+                                                    <td>
+                                                        <button class="btn btn-info btn-xs" title="Ver Detalles">
+                                                            <i class="fa fa-eye"></i>
+                                                        </button>
+                                                        <button class="btn btn-warning btn-xs ml-1" title="Editar">
+                                                            <i class="fa fa-edit"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            <?php } ?>
+                                        <?php } else { ?>
+                                            <tr>
+                                                <td colspan="6" class="text-center p-3">
+                                                    <i class="fa fa-file-text-o fa-2x text-info mb-2"></i>
+                                                    <h5 class="text-info">Sin órdenes de compra</h5>
+                                                    <p class="text-muted" style="font-size: 12px;">Las órdenes de compra aparecerán aquí.</p>
+                                                </td>
+                                            </tr>
+                                        <?php } ?>
                                     </tbody>
                                 </table>
                             </div>
@@ -208,67 +213,84 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                             </div>
                         </div>
 
-                        <!-- Formulario para Nueva Orden (inicialmente oculto) -->
                         <div id="contenedor-nueva-orden" style="display: none;">
-                            <form id="form-nueva-orden">
+                            <form id="form-nueva-orden" method="POST" action="">
+                                <!-- Agregar campo hidden para identificar la acción -->
+                                <input type="hidden" name="crear_orden" value="1">
+                                <input type="hidden" name="id" value="<?php echo $id_pedido; ?>">
+                                
                                 <div class="card">
                                     <div class="card-header" style="padding: 8px 12px; background-color: #e3f2fd;">
                                         <h6 class="mb-0">
-                                            <i class="fa fa-plus-circle text-primary"></i> 
+                                            <i class="fa fa-plus-circle text-primary"></i>
                                             Nueva Orden de Compra
                                         </h6>
                                     </div>
                                     <div class="card-body" style="padding: 12px;">
-                                        <!-- Información básica -->
                                         <div class="row mb-2">
                                             <div class="col-md-6">
-                                                <label style="font-size: 11px; font-weight: bold;">N° Orden:</label>
-                                                <input type="text" class="form-control form-control-sm" id="num_orden" 
-                                                    placeholder="ORD-003" style="font-size: 12px;">
+                                                <label style="font-size: 11px; font-weight: bold;">Fecha: <span class="text-danger">*</span></label>
+                                                <input type="date" class="form-control form-control-sm" id="fecha_orden" name="fecha_orden" 
+                                                    style="font-size: 12px;" required>
                                             </div>
                                             <div class="col-md-6">
-                                                <label style="font-size: 11px; font-weight: bold;">Fecha:</label>
-                                                <input type="date" class="form-control form-control-sm" id="fecha_orden" 
-                                                    style="font-size: 12px;">
+                                                <label style="font-size: 11px; font-weight: bold;">Proveedor: <span class="text-danger">*</span></label>
+                                                <select class="form-control form-control-sm" id="proveedor_orden" name="proveedor_orden" 
+                                                        style="font-size: 12px;" required>
+                                                    <option value="">Seleccionar proveedor...</option>
+                                                    <?php
+                                                    foreach ($proveedor as $prov) {
+                                                        echo '<option value="' . htmlspecialchars($prov['id_proveedor']) . '">' . htmlspecialchars($prov['nom_proveedor']) . '</option>';
+                                                    }
+                                                    ?>
+                                                </select>
                                             </div>
                                         </div>
-                                        
+                                        <div class="row mb-2">
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">Moneda: <span class="text-danger">*</span></label>
+                                                <select class="form-control form-control-sm" id="moneda_orden" name="moneda_orden" 
+                                                        style="font-size: 12px;" required>
+                                                    <option value="">Seleccionar moneda...</option>
+                                                    <?php
+                                                    foreach ($moneda as $mon) {
+                                                        echo '<option value="' . htmlspecialchars($mon['id_moneda']) . '">' . htmlspecialchars($mon['nom_moneda']) . '</option>';
+                                                    }
+                                                    ?>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">Plazo de Entrega:</label>
+                                                <input type="text" class="form-control form-control-sm" id="plazo_entrega" name="plazo_entrega"
+                                                    placeholder="Ej. 15 días hábiles" style="font-size: 12px;">
+                                            </div>
+                                        </div>
                                         <div class="row mb-2">
                                             <div class="col-md-12">
-                                                <label style="font-size: 11px; font-weight: bold;">Proveedor:</label>
-                                                <select class="form-control form-control-sm" id="proveedor_orden" style="font-size: 12px;">
-                                                    <option value="">Seleccionar proveedor...</option>
-                                                    <option value="1">Proveedor ABC S.A.C.</option>
-                                                    <option value="2">Distribuidora XYZ E.I.R.L.</option>
-                                                    <option value="3">Comercial 123 S.R.L.</option>
-                                                </select>
+                                                <label style="font-size: 11px; font-weight: bold;">Dirección de Envío:</label>
+                                                <textarea class="form-control form-control-sm" id="direccion_envio" name="direccion_envio"
+                                                        rows="2" placeholder="Ingrese la dirección de envío..." 
+                                                        style="font-size: 12px; resize: none;"></textarea>
                                             </div>
                                         </div>
-                                        
-                                        <div class="row mb-2">
-                                            <div class="col-md-6">
-                                                <label style="font-size: 11px; font-weight: bold;">Moneda:</label>
-                                                <select class="form-control form-control-sm" id="moneda_orden" style="font-size: 12px;">
-                                                    <option value="PEN">Soles (S/)</option>
-                                                    <option value="USD">Dólares ($)</option>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label style="font-size: 11px; font-weight: bold;">Total Estimado:</label>
-                                                <input type="number" class="form-control form-control-sm" id="total_orden" 
-                                                    placeholder="0.00" step="0.01" style="font-size: 12px;">
-                                            </div>
-                                        </div>
-                                        
                                         <div class="row mb-2">
                                             <div class="col-md-12">
                                                 <label style="font-size: 11px; font-weight: bold;">Observaciones:</label>
-                                                <textarea class="form-control form-control-sm" id="observaciones_orden" 
+                                                <textarea class="form-control form-control-sm" id="observaciones_orden" name="observaciones_orden"
                                                         rows="2" placeholder="Observaciones adicionales..." 
                                                         style="font-size: 12px; resize: none;"></textarea>
                                             </div>
                                         </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <label style="font-size: 11px; font-weight: bold;">Tipo de Porte:</label>
+                                                <input type="text" class="form-control form-control-sm" id="tipo_porte" name="tipo_porte"
+                                                    placeholder="Ej. Marítimo, Terrestre, Aéreo" style="font-size: 12px;">
+                                            </div>
+                                        </div>
                                     </div>
+                                </div>
+                                <div id="contenedor-items-orden" class="mb-3">
                                 </div>
                                 
                                 <!-- Botones de acción -->
@@ -460,112 +482,96 @@ document.addEventListener('DOMContentLoaded', function() {
     
     actualizarContadores();
 });
-</script><script>
-document.addEventListener('DOMContentLoaded', function() {
-    const btnNuevaOrden = document.getElementById('btn-nueva-orden');
-    const btnCancelarOrden = document.getElementById('btn-cancelar-orden');
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
     const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
     const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
-    const formNuevaOrden = document.getElementById('form-nueva-orden');
+    const btnNuevaOrden = document.getElementById('btn-nueva-orden');
+    const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
+
+    // Manejador para el botón "Agregar a Orden"
+    document.body.addEventListener('click', function(event) {
+        const targetBtn = event.target.closest('.btn-agregarOrden');
+        if (targetBtn) {
+            const idDetalle = targetBtn.dataset.idDetalle;
+            const idProducto = targetBtn.dataset.idProducto;
+            const descripcion = targetBtn.dataset.descripcion;
+            const cantidadVerificada = targetBtn.dataset.cantidadVerificada;
+
+            // 1. Oculta la tabla de órdenes y muestra el formulario de nueva orden.
+            if (contenedorTabla.style.display !== 'none') {
+                mostrarFormularioNuevaOrden();
+            }
+
+            // 2. Verifica si el ítem ya fue agregado para evitar duplicados.
+            if (document.getElementById(`item-orden-${idDetalle}`)) {
+                alert('Este ítem ya ha sido agregado a la orden.');
+                return;
+            }
+
+            // 3. Crea la estructura del ítem a agregar.
+            const itemElement = document.createElement('div');
+            itemElement.id = `item-orden-${idDetalle}`;
+            itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2', 'd-flex', 'justify-content-between', 'align-items-center');
+            itemElement.innerHTML = `
+                <input type="hidden" name="items_orden[${idDetalle}][id_detalle]" value="${idDetalle}">
+                <input type="hidden" name="items_orden[${idDetalle}][id_producto]" value="${idProducto}">
+                <input type="hidden" name="items_orden[${idDetalle}][cantidad]" value="${cantidadVerificada}">
+                <div style="font-size: 12px; flex-grow: 1;">
+                    <strong>Cant. Verif:</strong> ${cantidadVerificada} |
+                    <strong>Descripción:</strong> ${descripcion}
+                </div>
+                <button type="button" class="btn btn-danger btn-xs btn-remover-item" data-id="${idDetalle}">
+                    <i class="fa fa-trash"></i>
+                </button>
+            `;
+
+            // 4. Agrega el ítem al contenedor.
+            contenedorItemsOrden.appendChild(itemElement);
+
+            // 5. Deshabilita el botón original para evitar que se agregue de nuevo.
+            targetBtn.disabled = true;
+            targetBtn.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
+            targetBtn.classList.remove('btn-primary');
+            targetBtn.classList.add('btn-success');
+        }
+    });
+
+    // Manejador para el botón de remover item del formulario de orden
+    contenedorItemsOrden.addEventListener('click', function(event) {
+        const targetBtn = event.target.closest('.btn-remover-item');
+        if (targetBtn) {
+            const idDetalle = targetBtn.dataset.id;
+            const itemElement = document.getElementById(`item-orden-${idDetalle}`);
+            
+            // 1. Remueve el ítem del formulario de la orden
+            if (itemElement) {
+                itemElement.remove();
+            }
+            
+            // 2. Busca el botón original en la lista de ítems pendientes
+            const originalBtn = document.querySelector(`.btn-agregarOrden[data-id-detalle="${idDetalle}"]`);
+            
+            // 3. Reestablece el estado del botón original
+            if (originalBtn) {
+                originalBtn.disabled = false; // Habilita el botón
+                originalBtn.innerHTML = '<i class="fa fa-check"></i> Agregar a Orden'; // Cambia el texto
+                originalBtn.classList.remove('btn-success'); // Remueve la clase de éxito
+                originalBtn.classList.add('btn-primary'); // Vuelve a la clase primaria
+            }
+        }
+    });
     
-    // Función para mostrar formulario de nueva orden
+    // Función para mostrar el formulario de nueva orden (ya existente)
     function mostrarFormularioNuevaOrden() {
         contenedorTabla.style.display = 'none';
         contenedorNuevaOrden.style.display = 'block';
-        
-        // Cambiar el botón
         btnNuevaOrden.innerHTML = '<i class="fa fa-table"></i> Ver Órdenes';
         btnNuevaOrden.classList.remove('btn-primary');
         btnNuevaOrden.classList.add('btn-secondary');
-        
-        // Establecer fecha actual
         document.getElementById('fecha_orden').value = new Date().toISOString().split('T')[0];
-        
-        // Limpiar formulario
-        formNuevaOrden.reset();
     }
-    
-    // Función para mostrar tabla de órdenes
-    function mostrarTablaOrdenes() {
-        contenedorTabla.style.display = 'block';
-        contenedorNuevaOrden.style.display = 'none';
-        
-        // Restaurar el botón
-        btnNuevaOrden.innerHTML = '<i class="fa fa-plus"></i> Nueva Orden';
-        btnNuevaOrden.classList.remove('btn-secondary');
-        btnNuevaOrden.classList.add('btn-primary');
-    }
-    
-    // Event listeners
-    btnNuevaOrden.addEventListener('click', function() {
-        if (contenedorTabla.style.display === 'none') {
-            mostrarTablaOrdenes();
-        } else {
-            mostrarFormularioNuevaOrden();
-        }
-    });
-    
-    btnCancelarOrden.addEventListener('click', function() {
-        if (confirm('¿Está seguro que desea cancelar? Se perderán los datos ingresados.')) {
-            mostrarTablaOrdenes();
-        }
-    });
-    
-    // Manejar envío del formulario
-    formNuevaOrden.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const datos = {
-            num_orden: document.getElementById('num_orden').value,
-            fecha_orden: document.getElementById('fecha_orden').value,
-            proveedor_orden: document.getElementById('proveedor_orden').value,
-            moneda_orden: document.getElementById('moneda_orden').value,
-            total_orden: document.getElementById('total_orden').value,
-            observaciones_orden: document.getElementById('observaciones_orden').value
-        };
-        
-        // Validaciones básicas
-        if (!datos.num_orden || !datos.fecha_orden || !datos.proveedor_orden) {
-            alert('Por favor complete los campos obligatorios (N° Orden, Fecha y Proveedor).');
-            return;
-        }
-        
-        // Aquí harías la petición AJAX para guardar
-        console.log('Datos de la nueva orden:', datos);
-        
-        // Simulación de guardado exitoso
-        if (confirm('¿Desea guardar esta orden de compra?')) {
-            // Agregar nueva fila a la tabla (simulación)
-            const tbody = document.getElementById('tbody-ordenes');
-            const nuevaFila = `
-                <tr>
-                    <td><strong>${datos.num_orden}</strong></td>
-                    <td>${document.getElementById('proveedor_orden').selectedOptions[0].text}</td>
-                    <td>${new Date(datos.fecha_orden).toLocaleDateString('es-PE')}</td>
-                    <td>${datos.moneda_orden === 'PEN' ? 'S/' : '$'} ${parseFloat(datos.total_orden || 0).toFixed(2)}</td>
-                    <td><span class="badge badge-info">Nueva</span></td>
-                    <td>
-                        <button class="btn btn-info btn-xs" title="Ver Detalles">
-                            <i class="fa fa-eye"></i>
-                        </button>
-                        <button class="btn btn-warning btn-xs ml-1" title="Editar">
-                            <i class="fa fa-edit"></i>
-                        </button>
-                    </td>
-                </tr>
-            `;
-            tbody.insertAdjacentHTML('afterbegin', nuevaFila);
-            
-            alert('Orden de compra creada exitosamente.');
-            mostrarTablaOrdenes();
-        }
-    });
-    
-    // Actualizar total automáticamente si es necesario
-    document.getElementById('total_orden').addEventListener('input', function() {
-        const valor = parseFloat(this.value) || 0;
-        this.value = valor.toFixed(2);
-    });
 });
 </script>
 <script>
@@ -587,6 +593,66 @@ document.addEventListener('DOMContentLoaded', function() {
             // Muestra el modal (usando el método de Bootstrap)
             $(verificarModal).modal('show');
         });
+    });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnNuevaOrden = document.getElementById('btn-nueva-orden');
+    const btnCancelarOrden = document.getElementById('btn-cancelar-orden');
+    const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
+    const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
+    const formNuevaOrden = document.getElementById('form-nueva-orden');
+    
+    // Función para mostrar formulario de nueva orden
+    function mostrarFormularioNuevaOrden() {
+        contenedorTabla.style.display = 'none';
+        contenedorNuevaOrden.style.display = 'block';
+        
+        btnNuevaOrden.innerHTML = '<i class="fa fa-table"></i> Ver Órdenes';
+        btnNuevaOrden.classList.remove('btn-primary');
+        btnNuevaOrden.classList.add('btn-secondary');
+        
+        document.getElementById('fecha_orden').value = new Date().toISOString().split('T')[0];
+        
+        formNuevaOrden.reset();
+        document.getElementById('fecha_orden').value = new Date().toISOString().split('T')[0];
+    }
+    
+    function mostrarTablaOrdenes() {
+        contenedorTabla.style.display = 'block';
+        contenedorNuevaOrden.style.display = 'none';
+        
+        btnNuevaOrden.innerHTML = '<i class="fa fa-plus"></i> Nueva Orden';
+        btnNuevaOrden.classList.remove('btn-secondary');
+        btnNuevaOrden.classList.add('btn-primary');
+    }
+    
+    btnNuevaOrden.addEventListener('click', function() {
+        if (contenedorTabla.style.display === 'none') {
+            mostrarTablaOrdenes();
+        } else {
+            mostrarFormularioNuevaOrden();
+        }
+    });
+    
+    btnCancelarOrden.addEventListener('click', function() {
+        if (confirm('¿Está seguro que desea cancelar? Se perderán los datos ingresados.')) {
+            mostrarTablaOrdenes();
+        }
+    });
+    
+    formNuevaOrden.addEventListener('submit', function(e) {
+        const fecha = document.getElementById('fecha_orden').value;
+        const proveedor = document.getElementById('proveedor_orden').value;
+        const moneda = document.getElementById('moneda_orden').value;
+        
+        if (!fecha || !proveedor || !moneda) {
+            e.preventDefault();
+            alert('Por favor complete los campos obligatorios (Fecha, Proveedor y Moneda).');
+            return false;
+        }
+        return true;
     });
 });
 </script>

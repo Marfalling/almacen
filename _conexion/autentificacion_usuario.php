@@ -11,6 +11,7 @@ $pass = mysqli_real_escape_string($con, $_REQUEST['pass']);
 $sql = "SELECT 
             u.id_usuario,
             u.usu_usuario,
+            u.id_personal,
             p.nom_personal,
             p.ape_personal,
             c.nom_cargo,
@@ -32,11 +33,13 @@ $row = mysqli_fetch_array($resultado);
 
 if ($row != null) {
     $id_usuario = $row['id_usuario'];
+    $id_personal = $row['id_personal'];
     $nom_usuario = $row['nom_personal'] . ' ' . $row['ape_personal'];
     $nom_cargo = $row['nom_cargo'];
     $nom_area = $row['nom_area'];
     
     $_SESSION['id'] = $id_usuario;
+    $_SESSION['id_personal']  = $id_personal;
     $_SESSION['usuario_sesion'] = $nom_usuario;
     $_SESSION['cargo_sesion'] = $nom_cargo;
     $_SESSION['area_sesion'] = $nom_area;
