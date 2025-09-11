@@ -59,7 +59,13 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Fecha de Necesidad <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="date" name="fecha_necesidad" class="form-control" value="<?php echo $pedido['fec_req_pedido']; ?>" required>
+                                    <?php 
+                                    // Determinar la fecha mínima: la menor entre la fecha actual del pedido y hoy
+                                    $fecha_pedido = $pedido['fec_req_pedido'];
+                                    $fecha_hoy = date('Y-m-d');
+                                    $fecha_minima = (strtotime($fecha_pedido) < strtotime($fecha_hoy)) ? $fecha_pedido : $fecha_hoy;
+                                    ?>
+                                    <input type="date" name="fecha_necesidad" class="form-control" value="<?php echo $fecha_pedido; ?>" min="<?php echo $fecha_minima; ?>" required>
                                 </div>
                             </div>
 

@@ -333,7 +333,7 @@ $html = '
     </div>
     
     <div class="footer">
-        Generado el ' . $fecha_formateada . ' - Sistema de Gestión de Pedidos
+        Generado el ' . $fecha_formateada . ' 
     </div>
 </body>
 </html>';

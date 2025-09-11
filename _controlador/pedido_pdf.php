@@ -9,7 +9,17 @@ setlocale(LC_TIME, 'es_ES.UTF-8');
 date_default_timezone_set('America/Lima');
 $fecha_actual = date("Y-m-d");
 $fecha_completa = new DateTime();
-$fecha_formateada = date('l d \d\e F \d\e Y, H:i:s', $fecha_completa->getTimestamp());
+//$fecha_formateada = date('l d \d\e F \d\e Y, H:i:s', $fecha_completa->getTimestamp());
+
+$fecha_formateada = $fecha_completa->format('l d \d\e F \d\e Y, H:i:s');
+ $dias_esp = ['Monday' => 'lunes', 'Tuesday' => 'martes', 'Wednesday' => 'miércoles', 
+             'Thursday' => 'jueves', 'Friday' => 'viernes', 'Saturday' => 'sábado', 'Sunday' => 'domingo'];
+ $meses_esp = ['January' => 'enero', 'February' => 'febrero', 'March' => 'marzo', 
+               'April' => 'abril', 'May' => 'mayo', 'June' => 'junio',
+               'July' => 'julio', 'August' => 'agosto', 'September' => 'septiembre',
+               'October' => 'octubre', 'November' => 'noviembre', 'December' => 'diciembre'];
+ $fecha_formateada = str_replace(array_keys($dias_esp), array_values($dias_esp), $fecha_formateada);
+ $fecha_formateada = str_replace(array_keys($meses_esp), array_values($meses_esp), $fecha_formateada);
 
 // Verificar si se recibió el ID del pedido
 if (!isset($_GET['id']) || $_GET['id'] == "") {
