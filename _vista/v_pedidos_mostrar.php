@@ -87,7 +87,7 @@
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
 
-                                                            <a href="#" 
+                                                            <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
                                                             class="btn btn-success btn-sm" 
                                                             title="Verificar">
                                                                 <i class="fa fa-check"></i>

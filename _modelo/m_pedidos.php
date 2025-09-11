@@ -301,4 +301,33 @@ function ActualizarPedido($id_pedido, $nom_pedido, $fecha_necesidad, $num_ot,
         return "ERROR: " . mysqli_error($con);
     }
 }
+
+function verificarItem($id_pedido_detalle, $new_cant_fin){
+    include("../_conexion/conexion.php");
+
+    $sql = "SELECT cant_pedido_detalle FROM pedido_detalle WHERE id_pedido_detalle = $id_pedido_detalle";
+    $res = mysqli_query($con, $sql);
+
+    if ($res && mysqli_num_rows($res) > 0) {
+        $row = mysqli_fetch_assoc($res);
+        $cant_pedido = floatval($row['cant_pedido_detalle']);
+        $cant_final = $cant_pedido - floatval($new_cant_fin);
+
+        $sql_update = "UPDATE pedido_detalle 
+                       SET cant_fin_pedido_detalle = $cant_final 
+                       WHERE id_pedido_detalle = $id_pedido_detalle";
+
+        if (mysqli_query($con, $sql_update)) {
+            mysqli_close($con);
+            return "SI";
+        } else {
+            $error = mysqli_error($con);
+            mysqli_close($con);
+            return "ERROR: " . $error;
+        }
+    } else {
+        mysqli_close($con);
+        return "ERROR: Item no encontrado";
+    }
+}
 ?>

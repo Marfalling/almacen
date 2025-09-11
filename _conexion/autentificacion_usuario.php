@@ -52,14 +52,14 @@ if ($row != null) {
     mysqli_stmt_execute($stmt_update);
 
     // Grabar auditoría
-    GrabarAuditoria($id_usuario, $nom_usuario, 'INICIO DE SESIÓN', 'SESIÓN', $nom_usuario);
+    //GrabarAuditoria($id_usuario, $nom_usuario, 'INICIO DE SESIÓN', 'SESIÓN', $nom_usuario);
     
     // Obtener permisos del usuario
     $_SESSION['permisos'] = obtenerPermisosUsuario($id_usuario);
 
     header("location: bienvenido.php");
 } else {
-    GrabarAuditoria(0, $usu, 'INTENTO DE ACCESO FALLIDO', 'SESIÓN', 'LOGIN');
+    //GrabarAuditoria(0, $usu, 'INTENTO DE ACCESO FALLIDO', 'SESIÓN', 'LOGIN');
     ?>
     <script Language="JavaScript">
         location.href = 'index.php?acceso=true';
