@@ -61,28 +61,42 @@ if (!verificarPermisoEspecifico('crear_producto')) {
 
                 // Función para subir archivos
                 function subirArchivo($archivo, $prefijo) {
-                    if ($archivo['error'] == 0) {
-                        $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
-                        $extensiones_permitidas = array('pdf', 'jpg', 'jpeg');
+                if ($archivo['error'] == 0) {
+                    $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
+                    $extensiones_permitidas = array('pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx');
+                    
+                    if (in_array($extension, $extensiones_permitidas)) {
+                        // Crear directorio si no existe
+                        $directorio = "../_uploads/documentos/";
+                        if (!file_exists($directorio)) {
+                            mkdir($directorio, 0755, true);
+                        }
                         
-                        if (in_array($extension, $extensiones_permitidas)) {
-                            // Crear directorio si no existe
-                            $directorio = "../_uploads/documentos/";
-                            if (!file_exists($directorio)) {
-                                mkdir($directorio, 0777, true);
-                            }
-                            
-                            // Generar nombre único
-                            $nombre_archivo = $prefijo . '_' . date('YmdHis') . '_' . uniqid() . '.' . $extension;
+                        // Generar nombre optimizado (máximo 35 caracteres)
+                        $prefijo_corto = ($prefijo === 'calibrado') ? 'cal' : 'ope';
+                        $timestamp = date('YmdHis'); // 14 caracteres
+                        $random = substr(md5(uniqid(rand(), true)), 0, 4); // 4 caracteres
+                        
+                        // Estructura: prefijo(3) + _ + timestamp(14) + _ + random(4) + .ext = ~25-30 caracteres
+                        $nombre_archivo = $prefijo_corto . '_' . $timestamp . '_' . $random . '.' . $extension;
+                        $ruta_completa = $directorio . $nombre_archivo;
+                        
+                        // Verificar que no existe (muy improbable)
+                        $contador = 1;
+                        while (file_exists($ruta_completa) && $contador < 10) {
+                            $nombre_sin_ext = pathinfo($nombre_archivo, PATHINFO_FILENAME);
+                            $nombre_archivo = $nombre_sin_ext . $contador . '.' . $extension;
                             $ruta_completa = $directorio . $nombre_archivo;
-                            
-                            if (move_uploaded_file($archivo['tmp_name'], $ruta_completa)) {
-                                return $nombre_archivo;
-                            }
+                            $contador++;
+                        }
+                        
+                        if (move_uploaded_file($archivo['tmp_name'], $ruta_completa)) {
+                            return $nombre_archivo;
                         }
                     }
-                    return '';
                 }
+                return '';
+            }
 
                 // Procesar archivos subidos
                 $dcal_producto = '';
