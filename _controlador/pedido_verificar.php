@@ -25,6 +25,8 @@ require_once("../_conexion/sesion.php");
 
             require_once("../_modelo/m_pedidos.php");
             require_once("../_modelo/m_obras.php");
+            require_once("../_modelo/m_proveedor.php");
+            require_once("../_modelo/m_moneda.php");
 
             $id_pedido = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : 0;
 
@@ -49,9 +51,44 @@ require_once("../_conexion/sesion.php");
                 }
             }
 
+            if (isset($_REQUEST['crear_orden'])){
+                var_dump($_REQUEST);
+                $id_pedido = $_REQUEST['id'];
+                $proveedor = $_REQUEST['proveedor_orden'];
+                $moneda = $_REQUEST['moneda_orden'];
+                $id_personal = $_SESSION['id_personal'];
+                
+                $observacion = $_REQUEST['observaciones_orden'];
+                $direccion = $_REQUEST['direccion_envio'];
+                $plazo_entrega = $_REQUEST['plazo_entrega'];
+                $porte = $_REQUEST['tipo_porte'];
+                $fecha_orden = $_REQUEST['fecha_orden'];
+                $items = $_REQUEST['items_orden'];
+                
+                $rpta = CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items);
+
+                if ($rpta == "SI") {
+            ?>
+                    <script Language="JavaScript">
+                        alert('Pedido verificado exitosamente');
+                        location.href = 'pedido_verificar.php?id=<?php echo $id_pedido; ?>';
+                    </script>
+                <?php
+                } else {
+                ?>
+                    <script Language="JavaScript">
+                        alert('Error al finalizar la verificación del pedido: <?php echo $rpta; ?>');
+                    </script>
+            <?php
+                }
+            }
+
             if ($id_pedido > 0) {
                 $pedido_data = ConsultarPedido($id_pedido);
                 $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
+                $pedido_compra = ConsultarCompra($id_pedido);
+                $proveedor = MostrarProveedores();
+                $moneda = MostrarMoneda();
                 $obras = MostrarObrasActivas();
                 
                 if (!empty($pedido_data)) {
