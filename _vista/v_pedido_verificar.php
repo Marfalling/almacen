@@ -328,6 +328,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                     </button>
                 </div>
                 <div class="modal-body">
+                    <input type="hidden" name="id" value="<?php echo $id_pedido; ?>">
                     <input type="hidden" name="verificar_item" value="true">
                     <input type="hidden" id="id_pedido_detalle_input" name="id_pedido_detalle">
                     <div class="form-group">
