@@ -26,10 +26,12 @@ require_once("../_conexion/sesion.php");
             require_once("../_modelo/m_pedidos.php");
             require_once("../_modelo/m_obras.php");
             require_once("../_modelo/m_unidad_medida.php");
-
+            require_once("../_modelo/m_tipo_producto.php");
+            require_once("../_modelo/m_tipo_material.php");
             // Cargar datos necesarios para el formulario
             $unidades_medida = MostrarUnidadMedidaActiva();
-
+            $producto_tipos = MostrarProductoTipoActivos();
+            $material_tipos = MostrarMaterialTipoActivos();
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/pedidos/")) {
                 mkdir("../_archivos/pedidos/", 0777, true);

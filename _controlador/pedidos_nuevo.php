@@ -28,12 +28,14 @@ require_once("../_conexion/sesion.php");
             require_once("../_modelo/m_almacen.php");
             require_once("../_modelo/m_tipo_producto.php");
             require_once("../_modelo/m_unidad_medida.php");
+            require_once("../_modelo/m_tipo_material.php");
 
             // Cargar almacenes activos para el formulario
             $almacenes = MostrarAlmacenesActivos();
             $producto_tipos = MostrarProductoTipoActivos();
             $unidades_medida = MostrarUnidadMedidaActiva();
-
+            $material_tipos = MostrarMaterialTipoActivos();
+            
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/pedidos/")) {
                 mkdir("../_archivos/pedidos/", 0777, true);
