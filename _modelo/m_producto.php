@@ -165,16 +165,24 @@ function ObtenerProductoPorId($id) {
 }
 
 
-//-----------------------------------------------------------------------09/09/2025
-function NumeroRegistrosTotalProductos() {
+//-----------------------------------------------------------------------11/09/2025
+
+//-----------------------------------------------------------------------
+function NumeroRegistrosTotalProductos($tipoPedido = 0) {
     include("../_conexion/conexion.php");
     
+    $whereClause = "WHERE p.est_producto = 1";
+    
+    // Agregar filtro por tipo de pedido si se especifica
+    if ($tipoPedido > 0) {
+        $whereClause .= " AND p.id_producto_tipo = $tipoPedido";
+    }
     
     $sql = "SELECT COUNT(*) as total 
             FROM producto p
             INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
             INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
-            WHERE p.est_producto = 1";
+            $whereClause";
     
     $resultado = mysqli_query($con, $sql);
     $row = mysqli_fetch_assoc($resultado);
@@ -183,14 +191,19 @@ function NumeroRegistrosTotalProductos() {
     return $row['total'];
 }
 
-function NumeroRegistrosFiltradosModalProductos($search) {
+function NumeroRegistrosFiltradosModalProductos($search, $tipoPedido = 0) {
     include("../_conexion/conexion.php");
     mysqli_set_charset($con, "utf8");
     
     $whereClause = "WHERE p.est_producto = 1";
     
+    // Agregar filtro por tipo de pedido si se especifica
+    if ($tipoPedido > 0) {
+        $whereClause .= " AND p.id_producto_tipo = $tipoPedido";
+    }
+    
     if (!empty($search)) {
-        $searchTerm = mysqli_real_escape_string($conexion, $search);
+        $searchTerm = mysqli_real_escape_string($con, $search);
         $whereClause .= " AND (
             p.cod_material LIKE '%$searchTerm%' OR
             p.nom_producto LIKE '%$searchTerm%' OR
@@ -214,13 +227,18 @@ function NumeroRegistrosFiltradosModalProductos($search) {
     return $row['total'];
 }
 
-function MostrarProductoMejoradoModal($limit, $offset, $search, $orderColumn, $orderDirection, $startIndex) {
+function MostrarProductoMejoradoModal($limit, $offset, $search, $orderColumn, $orderDirection, $startIndex, $tipoPedido = 0) {
     include("../_conexion/conexion.php");
     
     $whereClause = "WHERE p.est_producto = 1";
     
+    // Agregar filtro por tipo de pedido si se especifica
+    if ($tipoPedido > 0) {
+        $whereClause .= " AND p.id_producto_tipo = $tipoPedido";
+    }
+    
     if (!empty($search)) {
-        $searchTerm = mysqli_real_escape_string($conexion, $search);
+        $searchTerm = mysqli_real_escape_string($con, $search);
         $whereClause .= " AND (
             p.cod_material LIKE '%$searchTerm%' OR
             p.nom_producto LIKE '%$searchTerm%' OR
@@ -230,7 +248,6 @@ function MostrarProductoMejoradoModal($limit, $offset, $search, $orderColumn, $o
             p.mod_producto LIKE '%$searchTerm%'
         )";
     }
-    
     
     $columnMap = [
         'cod_material' => 'p.cod_material',
@@ -266,14 +283,14 @@ function MostrarProductoMejoradoModal($limit, $offset, $search, $orderColumn, $o
     $counter = $startIndex;
     
     while ($fila = mysqli_fetch_assoc($resultado)) {
-    $boton = '<button type="button" class="btn btn-success btn-select-producto" 
-                onclick="seleccionarProducto(' . $fila['id_producto'] . ', \'' . 
-                htmlspecialchars($fila['nom_producto'], ENT_QUOTES) . '\', ' . 
-                $fila['id_unidad_medida'] . ', \'' . 
-                htmlspecialchars($fila['nom_unidad_medida'], ENT_QUOTES) . '\')" 
-                title="Seleccionar producto">
-                <i class="fa fa-check"></i>
-             </button>';
+        $boton = '<button type="button" class="btn btn-success btn-select-producto" 
+                    onclick="seleccionarProducto(' . $fila['id_producto'] . ', \'' . 
+                    htmlspecialchars($fila['nom_producto'], ENT_QUOTES) . '\', ' . 
+                    $fila['id_unidad_medida'] . ', \'' . 
+                    htmlspecialchars($fila['nom_unidad_medida'], ENT_QUOTES) . '\')" 
+                    title="Seleccionar producto">
+                    <i class="fa fa-check"></i>
+                 </button>';
         
         $data[] = [
             $fila['cod_material'] ?: 'N/A',
@@ -290,4 +307,6 @@ function MostrarProductoMejoradoModal($limit, $offset, $search, $orderColumn, $o
     mysqli_close($con);
     return $data;
 }
+
+
 ?>

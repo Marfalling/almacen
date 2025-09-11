@@ -71,7 +71,7 @@
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Fecha de Necesidad <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="date" name="fecha_necesidad" class="form-control" required>
+                                    <input type="date" name="fecha_necesidad" class="form-control" min="<?php echo date('Y-m-d'); ?>" required>
                                 </div>
                             </div>
 
@@ -455,17 +455,36 @@
 let currentSearchButton = null;
 
 function buscarMaterial(button) {
+    // Obtener el valor del select tipo de pedido
+    const selectTipoPedido = document.querySelector('select[name="tipo_pedido"]');
+    const tipoPedidoValue = selectTipoPedido ? selectTipoPedido.value : '';
+    
+    // Validar que se haya seleccionado un tipo de pedido
+    if (!tipoPedidoValue) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Tipo de pedido requerido',
+                text: 'Debe seleccionar un tipo de pedido antes de buscar productos.',
+                confirmButtonText: 'Entendido'
+            });
+        } else {
+            alert('Debe seleccionar un tipo de pedido antes de buscar productos.');
+        }
+        return; // Salir de la función sin abrir la modal
+    }
+    
     // Guardar referencia al botón que se clickeó
     currentSearchButton = button;
     
     // Abrir la modal
     $('#buscar_producto').modal('show');
     
-    // Cargar los productos en la tabla
-    cargarProductos();
+    // Cargar los productos en la tabla con filtro de tipo
+    cargarProductos(tipoPedidoValue);
 }
 
-function cargarProductos() {
+function cargarProductos(tipoPedido = '') {
     // Si la tabla ya está inicializada, destrúyela antes de crear una nueva instancia
     if ($.fn.dataTable.isDataTable('#datatable_producto')) {
         $('#datatable_producto').DataTable().destroy();
@@ -478,7 +497,12 @@ function cargarProductos() {
         "responsive": true,
         "ajax": {
             "url": "producto_mostrar_modal.php",
-            "type": "POST"
+            "type": "POST",
+            "data": function(d) {
+                // Agregar el filtro de tipo de pedido a los datos enviados
+                d.tipo_pedido = tipoPedido;
+                return d;
+            }
         },
         "columns": [
             { "title": "Código" },
@@ -494,7 +518,7 @@ function cargarProductos() {
         "lengthMenu": [10, 25, 50, 100],
         "language": {
             "lengthMenu": "Mostrar _MENU_ registros por página",
-            "zeroRecords": "No se encontraron resultados",
+            "zeroRecords": "No se encontraron resultados para este tipo de pedido",
             "info": "Mostrando página _PAGE_ de _PAGES_",
             "infoEmpty": "No hay registros disponibles",
             "infoFiltered": "(filtrado de _MAX_ registros en total)",
@@ -507,7 +531,7 @@ function cargarProductos() {
             },
             "loadingRecords": "Cargando...",
             "processing": "Procesando...",
-            "emptyTable": "No hay datos disponibles en la tabla",
+            "emptyTable": "No hay productos disponibles para este tipo de pedido",
             "aria": {
                 "sortAscending": ": activar para ordenar la columna de manera ascendente",
                 "sortDescending": ": activar para ordenar la columna de manera descendente"
@@ -563,6 +587,36 @@ function seleccionarProducto(idProducto, nombreProducto, idUnidad, nombreUnidad)
 // Limpiar la referencia cuando se cierre la modal sin seleccionar
 $('#buscar_producto').on('hidden.bs.modal', function () {
     currentSearchButton = null;
+});
+
+// Agregar validación adicional cuando se cambie el tipo de pedido
+document.addEventListener('DOMContentLoaded', function() {
+    const selectTipoPedido = document.querySelector('select[name="tipo_pedido"]');
+    if (selectTipoPedido) {
+        selectTipoPedido.addEventListener('change', function() {
+            // Si hay productos ya agregados, mostrar advertencia
+            const materialesItems = document.querySelectorAll('.material-item');
+            let hayProductosSeleccionados = false;
+            
+            materialesItems.forEach(item => {
+                const inputDescripcion = item.querySelector('input[name="descripcion[]"]');
+                if (inputDescripcion && inputDescripcion.value.trim() !== '') {
+                    hayProductosSeleccionados = true;
+                }
+            });
+            
+            if (hayProductosSeleccionados && this.value) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Tipo de pedido cambiado',
+                        text: 'Al cambiar el tipo de pedido, los productos mostrados en la búsqueda se filtrarán según la nueva selección.',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+            }
+        });
+    }
 });
 </script>
 
