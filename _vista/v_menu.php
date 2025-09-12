@@ -87,7 +87,7 @@ require_once("../_conexion/sesion.php");
                   <li><a href="compras_mostrar.php">Lista de compras</a></li>
                   <?php endif; ?>
                   <?php if (verificarPermisoEspecifico('crear_compras')): ?>
-                  <li><a href="compras_nuevo.php">Nueva compra</a></li>
+                  <!-- <li><a href="compras_nuevo.php">Nueva compra</a></li> -->
                   <?php endif; ?>
                 </ul>
               </li>

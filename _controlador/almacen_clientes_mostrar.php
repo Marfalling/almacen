@@ -43,12 +43,13 @@ require_once("../_modelo/m_obras.php");
             if(isset($_POST['consultar'])) 
             {
                 $id_cliente = $_POST['id_cliente'];
+                $almacenes = ConsultarAlmacenClientes($id_cliente);
             } else {
                 $id_cliente = null;
                 $almacenes = [];
             }
 
-            $almacenes = ConsultarAlmacenClientes($id_cliente);
+           
 
             require_once("../_vista/v_almacen_clientes_mostrar.php");
 

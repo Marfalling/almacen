@@ -186,7 +186,9 @@ function ConsultarAlmacenArce()
 
     $sqlc = "SELECT 
         pro.nom_producto       AS Producto,
-        
+        pti.nom_producto_tipo  AS Tipo_Producto,
+        mti.nom_material_tipo  AS Tipo_Material,
+        umi.nom_unidad_medida  AS Unidad_Medida,
         SUM(CASE 
                 WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
                 WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
