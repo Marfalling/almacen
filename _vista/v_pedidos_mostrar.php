@@ -81,11 +81,19 @@
                                                                 <i class="fa fa-eye"></i>
                                                             </button>
 
-                                                            <a href="pedidos_editar.php?id=<?php echo $pedido['id_pedido']; ?>" 
-                                                            class="btn btn-warning btn-sm" 
-                                                            title="Editar">
-                                                                <i class="fa fa-edit"></i>
-                                                            </a>
+                                                            <?php
+                                                            // Si tiene detalles verificados (cant_fin_pedido_detalle no es NULL), deshabilitar botón de editar
+                                                            if ($pedido['tiene_verificados'] == 1) { ?>
+                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="No se puede editar - Pedido verificado" tabindex="-1" aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a href="pedidos_editar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+                                                                class="btn btn-warning btn-sm" 
+                                                                title="Editar">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } ?>
 
                                                             <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
                                                             class="btn btn-success btn-sm" 
@@ -240,9 +248,17 @@ foreach($pedidos as $pedido) {
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
-                <a href="pedidos_editar.php?id=<?php echo $pedido['id_pedido']; ?>" class="btn btn-warning">
-                    <i class="fa fa-edit"></i> Editar Pedido
-                </a>
+                <?php
+                // Aplicar la misma lógica al botón del modal
+                if ($pedido['tiene_verificados'] == 1) { ?>
+                    <a href="#" class="btn btn-outline-secondary disabled" tabindex="-1" aria-disabled="true">
+                        <i class="fa fa-edit"></i> No se puede editar
+                    </a>
+                <?php } else { ?>
+                    <a href="pedidos_editar.php?id=<?php echo $pedido['id_pedido']; ?>" class="btn btn-warning">
+                        <i class="fa fa-edit"></i> Editar Pedido
+                    </a>
+                <?php } ?>
             </div>
         </div>
     </div>

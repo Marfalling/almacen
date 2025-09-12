@@ -108,7 +108,22 @@ function MostrarPedidos()
 {
     include("../_conexion/conexion.php");
 
-    $sqlc = "SELECT p.*, ob.nom_obra, c.nom_cliente, pr.nom_personal, pr.ape_personal, a.nom_almacen, u.nom_ubicacion
+    $sqlc = "SELECT p.*, 
+                ob.nom_obra, 
+                c.nom_cliente, 
+                pr.nom_personal, 
+                pr.ape_personal, 
+                a.nom_almacen, 
+                u.nom_ubicacion,
+                CASE 
+                    WHEN EXISTS (
+                        SELECT 1 FROM pedido_detalle pd 
+                        WHERE pd.id_pedido = p.id_pedido 
+                        AND pd.cant_fin_pedido_detalle IS NOT NULL 
+                        AND pd.est_pedido_detalle = 1
+                    ) THEN 1 
+                    ELSE 0 
+                END as tiene_verificados
              FROM pedido p 
              INNER JOIN almacen a ON p.id_almacen = a.id_almacen
                 INNER JOIN obra ob ON a.id_obra = ob.id_obra

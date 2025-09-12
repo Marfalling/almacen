@@ -102,7 +102,7 @@ require_once("../_conexion/sesion.php");
                   <li><a href="ingresos_mostrar.php">Lista de ingresos</a></li>
                   <?php endif; ?>
                   <?php if (verificarPermisoEspecifico('crear_ingresos')): ?>
-                  <li><a href="ingresos_nuevo.php">Nuevo ingreso</a></li>
+                  <!-- <li><a href="ingresos_nuevo.php">Nuevo ingreso</a></li>-->
                   <?php endif; ?>
                 </ul>
               </li>
