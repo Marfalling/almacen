@@ -44,7 +44,6 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
         </div>
 
         <div class="row">
-            <!-- Ventana Izquierda - Items Pendientes COMPACTOS -->
             <div class="col-md-6">
                 <div class="x_panel">
                     <div class="x_title" style="padding: 8px 15px;">
@@ -81,21 +80,22 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                     $ca = trim($matches[1]);
                                 }
                             ?>
-                            <!-- ITEM COMPACTO -->
                             <div class="item-pendiente border mb-2" style="background-color: #fff3cd; border-left: 4px solid #ffc107 !important; padding: 8px 12px; border-radius: 4px;" data-item="<?php echo $contador_detalle; ?>">
-                                <!-- Header compacto -->
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="text-warning" style="font-weight: 600; font-size: 14px;">
                                         <i class="fa fa-clock-o"></i> Item <?php echo $contador_detalle; ?>
                                     </span>
-                                    <?php if ($detalle['cant_fin_pedido_detalle'] == null) { ?>
+                                    <span>Stock Almacen: <?php echo $detalle['cantidad_disponible_almacen']; ?></span>
+                                    <?php if ($detalle['cant_fin_pedido_detalle'] == null && $detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle']) { ?>
+                                        
                                         <button type="button" class="btn btn-success btn-xs verificar-btn"
                                                 data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
                                                 data-cantidad-actual="<?php echo $detalle['cant_pedido_detalle']; ?>"
+                                                data-cantidad-almacen="<?php echo $detalle['cantidad_disponible_almacen']; ?>"
                                                 title="Verificar Item" style="padding: 2px 8px; font-size: 11px;">
                                             Verificar
                                         </button>
-                                    <?php } else { ?>
+                                    <?php } else if ($detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle']) { ?>
                                         <button type="button" 
                                                 class="btn btn-primary btn-xs btn-agregarOrden" 
                                                 data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
@@ -142,7 +142,6 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
 
             <div class="col-md-6">
                 <div class="x_panel">
-                    <!-- Header con botón Nueva Orden -->
                     <div class="x_title" style="padding: 8px 15px;">
                         <div class="d-flex justify-content-between align-items-center">
                             <h2 style="margin: 0; font-size: 16px;">
@@ -157,7 +156,6 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                     </div>
                     
                     <div class="x_content" style="max-height: 650px; overflow-y: auto; padding: 5px;">
-                        <!-- Contenedor para la tabla de órdenes -->
                         <div id="contenedor-tabla-ordenes">
                             <div class="table-responsive">
                                 <table class="table table-striped table-bordered" style="font-size: 12px;">
@@ -205,7 +203,6 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                 </table>
                             </div>
                             
-                            <!-- Mensaje cuando no hay órdenes -->
                             <div id="mensaje-sin-ordenes" class="text-center p-3" style="display: none;">
                                 <i class="fa fa-file-text-o fa-2x text-info mb-2"></i>
                                 <h5 class="text-info">Sin órdenes de compra</h5>
@@ -215,7 +212,6 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
 
                         <div id="contenedor-nueva-orden" style="display: none;">
                             <form id="form-nueva-orden" method="POST" action="">
-                                <!-- Agregar campo hidden para identificar la acción -->
                                 <input type="hidden" name="crear_orden" value="1">
                                 <input type="hidden" name="id" value="<?php echo $id_pedido; ?>">
                                 
@@ -293,7 +289,6 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                 <div id="contenedor-items-orden" class="mb-3">
                                 </div>
                                 
-                                <!-- Botones de acción -->
                                 <div class="text-center mt-2" style="padding: 8px;">
                                     <button type="button" class="btn btn-secondary btn-sm mr-2" id="btn-cancelar-orden">
                                         <i class="fa fa-times"></i> Cancelar
@@ -309,7 +304,6 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
             </div>
         </div>
 
-        <!-- Botones compactos -->
         <div class="row">
             <div class="col-md-12">
                 <div class="x_panel">
@@ -367,6 +361,55 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
     </div>
 </div>
 
+<div class="modal fade" id="precioCompraModal" tabindex="-1" role="dialog" aria-labelledby="precioCompraModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="precioCompraModalLabel">Precio de Compra</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-2">
+                    <div class="col-md-12">
+                        <h6 class="text-primary">Información del Item:</h6>
+                        <div id="info-item-precio" class="alert alert-light" style="font-size: 12px;">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="precio_compra_input">Precio de Compra: <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">S/.</span>
+                        </div>
+                        <input type="number" 
+                               class="form-control" 
+                               id="precio_compra_input" 
+                               step="0.01" 
+                               min="0"
+                               placeholder="0.00"
+                               required>
+                    </div>
+                    <small class="form-text text-muted">Ingrese el precio unitario del producto</small>
+                </div>
+                
+                <input type="hidden" id="modal_id_detalle">
+                <input type="hidden" id="modal_id_producto">
+                <input type="hidden" id="modal_descripcion">
+                <input type="hidden" id="modal_cantidad_verificada">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-confirmar-precio">
+                    <i class="fa fa-check"></i> Agregar a Orden
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let itemsVerificados = 0;
@@ -411,21 +454,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!itemPendiente) return;
         
-        // Clonar y adaptar para verificado
         const itemVerificado = itemPendiente.cloneNode(true);
         itemVerificado.className = 'item-verificado border mb-2';
         itemVerificado.style.cssText = 'background-color: #d4edda; border-left: 4px solid #28a745 !important; padding: 8px 12px; border-radius: 4px;';
         
-        // Actualizar título
         const titulo = itemVerificado.querySelector('span');
         titulo.className = 'text-success';
         titulo.innerHTML = `<i class="fa fa-check-circle"></i> Item ${numeroItem}`;
         
-        // Reemplazar botón
         const btnVerificar = itemVerificado.querySelector('.btn-verificar');
         btnVerificar.outerHTML = '<span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">✓ Verificado</span>';
         
-        // Agregar timestamp compacto
         const timestamp = new Date().toLocaleString('es-PE', {
             day: '2-digit',
             month: '2-digit',
@@ -438,11 +477,9 @@ document.addEventListener('DOMContentLoaded', function() {
         timestampElement.innerHTML = `<i class="fa fa-clock-o"></i> ${timestamp}`;
         itemVerificado.appendChild(timestampElement);
         
-        // Agregar al contenedor
         const contenedorVerificados = document.getElementById('contenedor-verificados');
         contenedorVerificados.insertBefore(itemVerificado, contenedorVerificados.firstChild);
         
-        // Animación de salida
         itemPendiente.style.transition = 'all 0.3s ease';
         itemPendiente.style.opacity = '0';
         itemPendiente.style.transform = 'translateX(20px)';
@@ -484,87 +521,220 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-    const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
-    const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
-    const btnNuevaOrden = document.getElementById('btn-nueva-orden');
-    const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-
-    // Manejador para el botón "Agregar a Orden"
+document.addEventListener('DOMContentLoaded', function() {
+    const precioCompraModal = document.getElementById('precioCompraModal');
+    const precioCompraInput = document.getElementById('precio_compra_input');
+    const btnConfirmarPrecio = document.getElementById('btn-confirmar-precio');
+    const infoItemPrecio = document.getElementById('info-item-precio');
+    
+    let itemSeleccionado = null;
+    
+    document.body.removeEventListener('click', function(event) {
+        // Remover el event listener anterior si existe
+    });
+    
     document.body.addEventListener('click', function(event) {
         const targetBtn = event.target.closest('.btn-agregarOrden');
         if (targetBtn) {
+            event.preventDefault();
+            
             const idDetalle = targetBtn.dataset.idDetalle;
             const idProducto = targetBtn.dataset.idProducto;
             const descripcion = targetBtn.dataset.descripcion;
             const cantidadVerificada = targetBtn.dataset.cantidadVerificada;
-
-            // 1. Oculta la tabla de órdenes y muestra el formulario de nueva orden.
-            if (contenedorTabla.style.display !== 'none') {
-                mostrarFormularioNuevaOrden();
-            }
-
-            // 2. Verifica si el ítem ya fue agregado para evitar duplicados.
+            
             if (document.getElementById(`item-orden-${idDetalle}`)) {
                 alert('Este ítem ya ha sido agregado a la orden.');
                 return;
             }
-
-            // 3. Crea la estructura del ítem a agregar.
-            const itemElement = document.createElement('div');
-            itemElement.id = `item-orden-${idDetalle}`;
-            itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2', 'd-flex', 'justify-content-between', 'align-items-center');
-            itemElement.innerHTML = `
-                <input type="hidden" name="items_orden[${idDetalle}][id_detalle]" value="${idDetalle}">
-                <input type="hidden" name="items_orden[${idDetalle}][id_producto]" value="${idProducto}">
-                <input type="hidden" name="items_orden[${idDetalle}][cantidad]" value="${cantidadVerificada}">
-                <div style="font-size: 12px; flex-grow: 1;">
-                    <strong>Cant. Verif:</strong> ${cantidadVerificada} |
-                    <strong>Descripción:</strong> ${descripcion}
-                </div>
-                <button type="button" class="btn btn-danger btn-xs btn-remover-item" data-id="${idDetalle}">
-                    <i class="fa fa-trash"></i>
-                </button>
+            
+            itemSeleccionado = {
+                idDetalle: idDetalle,
+                idProducto: idProducto,
+                descripcion: descripcion,
+                cantidadVerificada: cantidadVerificada,
+                botonOriginal: targetBtn
+            };
+            
+            document.getElementById('modal_id_detalle').value = idDetalle;
+            document.getElementById('modal_id_producto').value = idProducto;
+            document.getElementById('modal_descripcion').value = descripcion;
+            document.getElementById('modal_cantidad_verificada').value = cantidadVerificada;
+            
+            infoItemPrecio.innerHTML = `
+                <strong>Descripción:</strong> ${descripcion}<br>
+                <strong>Cantidad Verificada:</strong> ${cantidadVerificada}
             `;
-
-            // 4. Agrega el ítem al contenedor.
-            contenedorItemsOrden.appendChild(itemElement);
-
-            // 5. Deshabilita el botón original para evitar que se agregue de nuevo.
-            targetBtn.disabled = true;
-            targetBtn.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
-            targetBtn.classList.remove('btn-primary');
-            targetBtn.classList.add('btn-success');
+            
+            precioCompraInput.value = '';
+            $(precioCompraModal).modal('show');
+            
+            $(precioCompraModal).on('shown.bs.modal', function () {
+                precioCompraInput.focus();
+            });
         }
     });
+    
+    btnConfirmarPrecio.addEventListener('click', function() {
+        const precio = precioCompraInput.value;
+        
+        if (!precio || parseFloat(precio) <= 0) {
+            alert('Por favor ingrese un precio válido mayor a 0.');
+            precioCompraInput.focus();
+            return;
+        }
+        
+        if (!itemSeleccionado) {
+            alert('Error: No hay item seleccionado.');
+            return;
+        }
+        
+        const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
+        const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
+        if (contenedorTabla.style.display !== 'none') {
+            mostrarFormularioNuevaOrden();
+        }
+        
+        agregarItemAOrden(itemSeleccionado, precio);
+        
+        $(precioCompraModal).modal('hide');
+        
+        itemSeleccionado = null;
+    });
+    
+    function agregarItemAOrden(item, precio) {
+        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
+        
+        const subtotal = (parseFloat(item.cantidadVerificada) * parseFloat(precio)).toFixed(2);
+        
+        const itemElement = document.createElement('div');
+        itemElement.id = `item-orden-${item.idDetalle}`;
+        itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
+        itemElement.innerHTML = `
+            <input type="hidden" name="items_orden[${item.idDetalle}][id_detalle]" value="${item.idDetalle}">
+            <input type="hidden" name="items_orden[${item.idDetalle}][id_producto]" value="${item.idProducto}">
+            <input type="hidden" name="items_orden[${item.idDetalle}][cantidad]" value="${item.cantidadVerificada}">
+            <input type="hidden" name="items_orden[${item.idDetalle}][precio_unitario]" value="${precio}">
+            <div class="d-flex justify-content-between align-items-center">
+                <div style="font-size: 12px; flex-grow: 1;">
+                    <div class="mb-1">
+                        <strong>Descripción:</strong> ${item.descripcion}
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <strong>Cantidad:</strong> ${item.cantidadVerificada}
+                        </div>
+                        <div class="col-md-3">
+                            <strong>P. Unit:</strong> S/. ${parseFloat(precio).toFixed(2)}
+                        </div>
+                        <div class="col-md-3">
+                            <strong>Subtotal:</strong> S/. ${subtotal}
+                        </div>
+                        <div class="col-md-3 text-right">
+                            <button type="button" class="btn btn-danger btn-xs btn-remover-item" data-id="${item.idDetalle}">
+                                <i class="fa fa-trash"></i> Remover
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        contenedorItemsOrden.appendChild(itemElement);
+        
+        item.botonOriginal.disabled = true;
+        item.botonOriginal.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
+        item.botonOriginal.classList.remove('btn-primary');
+        item.botonOriginal.classList.add('btn-success');
+        
+        actualizarTotalOrden();
+    }
 
-    // Manejador para el botón de remover item del formulario de orden
+    
+    
+    function actualizarTotalOrden() {
+        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
+        const items = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
+        let total = 0;
+        
+        items.forEach(item => {
+            const cantidad = parseFloat(item.querySelector('input[name$="[cantidad]"]').value);
+            const precio = parseFloat(item.querySelector('input[name$="[precio_unitario]"]').value);
+            total += cantidad * precio;
+        });
+        
+        let totalElement = document.getElementById('total-orden');
+        let totalInput = document.getElementById('total_orden_input');
+        
+        if (!totalElement && items.length > 0) {
+            totalElement = document.createElement('div');
+            totalElement.id = 'total-orden';
+            totalElement.className = 'alert alert-info text-center';
+            totalElement.style.fontSize = '14px';
+            totalElement.style.fontWeight = 'bold';
+            
+            totalInput = document.createElement('input');
+            totalInput.type = 'hidden';
+            totalInput.name = 'total_orden';
+            totalInput.id = 'total_orden_input';
+        }
+        
+        if (totalElement) {
+            if (items.length > 0) {
+                totalElement.innerHTML = `<i class="fa fa-calculator"></i> Total de la Orden: S/. ${total.toFixed(2)}`;
+                totalInput.value = total.toFixed(2);
+                totalElement.style.display = 'block';
+                
+                if (totalElement.parentNode) {
+                    totalElement.remove();
+                }
+                if (totalInput.parentNode) {
+                    totalInput.remove();
+                }
+                
+                contenedorItemsOrden.appendChild(totalElement);
+                contenedorItemsOrden.appendChild(totalInput);
+                
+            } else {
+                totalElement.style.display = 'none';
+            }
+        }
+    }
+    
+    const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
     contenedorItemsOrden.addEventListener('click', function(event) {
         const targetBtn = event.target.closest('.btn-remover-item');
         if (targetBtn) {
             const idDetalle = targetBtn.dataset.id;
             const itemElement = document.getElementById(`item-orden-${idDetalle}`);
             
-            // 1. Remueve el ítem del formulario de la orden
             if (itemElement) {
                 itemElement.remove();
+                actualizarTotalOrden();
             }
             
-            // 2. Busca el botón original en la lista de ítems pendientes
             const originalBtn = document.querySelector(`.btn-agregarOrden[data-id-detalle="${idDetalle}"]`);
-            
-            // 3. Reestablece el estado del botón original
             if (originalBtn) {
-                originalBtn.disabled = false; // Habilita el botón
-                originalBtn.innerHTML = '<i class="fa fa-check"></i> Agregar a Orden'; // Cambia el texto
-                originalBtn.classList.remove('btn-success'); // Remueve la clase de éxito
-                originalBtn.classList.add('btn-primary'); // Vuelve a la clase primaria
+                originalBtn.disabled = false;
+                originalBtn.innerHTML = '<i class="fa fa-check"></i> Agregar a Orden';
+                originalBtn.classList.remove('btn-success');
+                originalBtn.classList.add('btn-primary');
             }
         }
     });
     
-    // Función para mostrar el formulario de nueva orden (ya existente)
+    precioCompraInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            btnConfirmarPrecio.click();
+        }
+    });
+    
     function mostrarFormularioNuevaOrden() {
+        const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
+        const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
+        const btnNuevaOrden = document.getElementById('btn-nueva-orden');
+        
         contenedorTabla.style.display = 'none';
         contenedorNuevaOrden.style.display = 'block';
         btnNuevaOrden.innerHTML = '<i class="fa fa-table"></i> Ver Órdenes';
@@ -585,12 +755,12 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', function() {
             const idDetalle = this.getAttribute('data-id-detalle');
             const cantidadActual = this.getAttribute('data-cantidad-actual');
+            const cantidadAlmacen = parseFloat(this.getAttribute('data-cantidad-almacen'));
+            const diferencia = cantidadActual - cantidadAlmacen;
 
-            // Pasa los datos al modal
             idDetalleInput.value = idDetalle;
-            //cantidadInput.value = cantidadActual;
+            cantidadInput.value = diferencia;
 
-            // Muestra el modal (usando el método de Bootstrap)
             $(verificarModal).modal('show');
         });
     });
@@ -604,7 +774,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
     const formNuevaOrden = document.getElementById('form-nueva-orden');
     
-    // Función para mostrar formulario de nueva orden
     function mostrarFormularioNuevaOrden() {
         contenedorTabla.style.display = 'none';
         contenedorNuevaOrden.style.display = 'block';

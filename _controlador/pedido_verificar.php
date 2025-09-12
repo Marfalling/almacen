@@ -52,12 +52,12 @@ require_once("../_conexion/sesion.php");
             }
 
             if (isset($_REQUEST['crear_orden'])){
-                var_dump($_REQUEST);
+                //var_dump($_REQUEST);
+                //exit;
                 $id_pedido = $_REQUEST['id'];
                 $proveedor = $_REQUEST['proveedor_orden'];
                 $moneda = $_REQUEST['moneda_orden'];
                 $id_personal = $_SESSION['id_personal'];
-                
                 $observacion = $_REQUEST['observaciones_orden'];
                 $direccion = $_REQUEST['direccion_envio'];
                 $plazo_entrega = $_REQUEST['plazo_entrega'];

@@ -159,9 +159,25 @@ function ConsultarPedidoDetalle($id_pedido)
     include("../_conexion/conexion.php");
 
     $sqlc = "SELECT pd.*, 
-             GROUP_CONCAT(pdd.nom_pedido_detalle_documento) as archivos
+             GROUP_CONCAT(pdd.nom_pedido_detalle_documento) as archivos,
+             p.nom_producto,
+             COALESCE(
+                (SELECT SUM(CASE
+                    WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                    WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+                    ELSE 0
+                END)
+                FROM movimiento mov
+                INNER JOIN pedido ped ON pd.id_pedido = ped.id_pedido
+                WHERE mov.id_producto = pd.id_producto 
+                AND mov.id_almacen = ped.id_almacen 
+                AND mov.id_ubicacion = ped.id_ubicacion
+                AND mov.est_movimiento = 1), 0
+             ) AS cantidad_disponible_almacen
              FROM pedido_detalle pd 
              LEFT JOIN pedido_detalle_documento pdd ON pd.id_pedido_detalle = pdd.id_pedido_detalle
+             INNER JOIN producto p ON pd.id_producto = p.id_producto
+             INNER JOIN pedido ped ON pd.id_pedido = ped.id_pedido
              WHERE pd.id_pedido = $id_pedido AND pd.est_pedido_detalle = 1
              GROUP BY pd.id_pedido_detalle
              ORDER BY pd.id_pedido_detalle";
@@ -314,7 +330,11 @@ function verificarItem($id_pedido_detalle, $new_cant_fin){
         $cant_final = $cant_pedido - floatval($new_cant_fin);
 
         $sql_update = "UPDATE pedido_detalle 
-                       SET cant_fin_pedido_detalle = $cant_final 
+                       SET cant_fin_pedido_detalle = $new_cant_fin, 
+                           est_pedido_detalle = CASE 
+                               WHEN $cant_final <= 0 THEN 3 
+                               ELSE 2 
+                           END 
                        WHERE id_pedido_detalle = $id_pedido_detalle";
 
         if (mysqli_query($con, $sql_update)) {
@@ -368,14 +388,21 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
         foreach ($items as $item) {
             $cantidad = floatval($item['cantidad']);
             $id_producto = intval($item['id_producto']);
+            $precio_unitario = floatval($item['precio_unitario']);
+            $id_detalle = intval($item['id_detalle']);
             
             $sql_detalle = "INSERT INTO compra_detalle (
-                                id_compra, id_producto, cant_compra_detalle, est_compra_detalle
+                                id_compra, id_producto, cant_compra_detalle, prec_compra_detalle, est_compra_detalle
                             ) VALUES (
-                                $id_compra, $id_producto, $cantidad, 1
+                                $id_compra, $id_producto, $cantidad, $precio_unitario, 1
                             )";
             
             mysqli_query($con, $sql_detalle);
+
+            $sql_update = "UPDATE pedido_detalle 
+                       SET est_pedido_detalle = 2 
+                       WHERE id_pedido_detalle = $id_detalle";
+            mysqli_query($con, $sql_update);
         }
         
         mysqli_close($con);
