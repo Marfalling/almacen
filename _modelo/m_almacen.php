@@ -152,22 +152,117 @@ function ConsultarAlmacenTotal()
     INNER JOIN producto   pro ON mov.id_producto   = pro.id_producto
     INNER JOIN personal   per ON mov.id_personal   = per.id_personal
     INNER JOIN almacen    alm ON mov.id_almacen    = alm.id_almacen
-    INNER JOIN cliente    cli ON alm.id_cliente    = cli.id_cliente
-    INNER JOIN obra       obr ON alm.id_obra       = obr.id_obra
+        INNER JOIN cliente    cli ON alm.id_cliente    = cli.id_cliente
+        INNER JOIN obra       obr ON alm.id_obra       = obr.id_obra
     INNER JOIN ubicacion  ubi ON mov.id_ubicacion  = ubi.id_ubicacion
     WHERE mov.est_movimiento = 1
     GROUP BY 
-        pro.nom_producto,
-        cli.nom_cliente,
-        obr.nom_obra,
-        alm.nom_almacen,
-        ubi.nom_ubicacion
+        pro.id_producto,
+        cli.id_cliente,
+        alm.id_almacen,
+        ubi.id_ubicacion
     ORDER BY 
         pro.nom_producto,
         cli.nom_cliente,
-        obr.nom_obra,
         alm.nom_almacen,
+        obr.nom_obra,
         ubi.nom_ubicacion;
+    ";
+    $resc = mysqli_query($con, $sqlc);
+
+    $resultado = array();
+
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $resultado[] = $rowc;
+    }
+
+    mysqli_close($con);
+    
+    return $resultado;
+}
+function ConsultarAlmacenArce()
+{
+    include("../_conexion/conexion.php");
+
+    $sqlc = "SELECT 
+        pro.nom_producto       AS Producto,
+        
+        SUM(CASE 
+                WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
+                WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
+                ELSE 0 
+            END) AS Cantidad
+    FROM movimiento mov
+    INNER JOIN producto   pro ON mov.id_producto   = pro.id_producto
+        INNER JOIN producto_tipo  pti ON pro.id_producto_tipo = pti.id_producto_tipo
+        INNER JOIN material_tipo mti ON pro.id_material_tipo  = mti.id_material_tipo
+        INNER JOIN unidad_medida  umi ON pro.id_unidad_medida = umi.id_unidad_medida
+    INNER JOIN personal   per ON mov.id_personal   = per.id_personal
+    INNER JOIN almacen    alm ON mov.id_almacen    = alm.id_almacen
+        INNER JOIN cliente    cli ON alm.id_cliente    = cli.id_cliente
+        INNER JOIN obra       obr ON alm.id_obra       = obr.id_obra
+    INNER JOIN ubicacion  ubi ON mov.id_ubicacion  = ubi.id_ubicacion
+    WHERE mov.est_movimiento = 1
+    GROUP BY 
+        pro.id_producto
+    ORDER BY 
+        pro.nom_producto
+    ";
+    $resc = mysqli_query($con, $sqlc);
+
+    $resultado = array();
+
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $resultado[] = $rowc;
+    }
+
+    mysqli_close($con);
+    
+    return $resultado;
+}
+function ConsultarAlmacenClientes($id_cliente)
+{
+    include("../_conexion/conexion.php");
+
+    $filtro_cliente = "";
+    if (!empty($id_cliente)) {
+        $filtro_cliente = " AND cli.id_cliente = $id_cliente ";
+    }
+
+    $sqlc = "SELECT 
+        pro.nom_producto       AS Producto,
+        pti.nom_producto_tipo  AS Tipo_Producto,
+        mti.nom_material_tipo  AS Tipo_Material,
+        umi.nom_unidad_medida  AS Unidad_Medida,
+        alm.nom_almacen       AS Almacen,
+        obr.nom_obra           AS Obra,
+        ubi.nom_ubicacion      AS Ubicacion,
+        SUM(CASE 
+                WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
+                WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
+                ELSE 0 
+            END) AS Cantidad
+    FROM movimiento mov
+    INNER JOIN producto   pro ON mov.id_producto   = pro.id_producto
+        INNER JOIN producto_tipo  pti ON pro.id_producto_tipo = pti.id_producto_tipo
+        INNER JOIN material_tipo mti ON pro.id_material_tipo  = mti.id_material_tipo
+        INNER JOIN unidad_medida  umi ON pro.id_unidad_medida = umi.id_unidad_medida
+    INNER JOIN personal   per ON mov.id_personal   = per.id_personal
+    INNER JOIN almacen    alm ON mov.id_almacen    = alm.id_almacen
+        INNER JOIN cliente    cli ON alm.id_cliente    = cli.id_cliente
+        INNER JOIN obra       obr ON alm.id_obra       = obr.id_obra
+    INNER JOIN ubicacion  ubi ON mov.id_ubicacion  = ubi.id_ubicacion
+    WHERE mov.est_movimiento = 1
+    $filtro_cliente
+    GROUP BY 
+        pro.id_producto,
+        alm.id_almacen,
+        ubi.id_ubicacion
+    ORDER BY 
+        pro.nom_producto,
+        alm.nom_almacen,
+        obr.nom_obra,
+        ubi.nom_ubicacion
     ";
     $resc = mysqli_query($con, $sqlc);
 

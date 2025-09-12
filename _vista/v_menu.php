@@ -141,6 +141,8 @@ require_once("../_conexion/sesion.php");
               
               <!-- Almacén Clientes -->
               <?php if (tieneAccesoModulo('almacen clientes')): ?>
+              <li><a href="almacen_clientes_mostrar.php">Almacén Clientes</a></li>
+              <!--
               <li>
                 <a>Almacén Clientes<span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
@@ -152,6 +154,7 @@ require_once("../_conexion/sesion.php");
                   <?php endif; ?>
                 </ul>
               </li>
+              -->
               <?php endif; ?>
 
             </ul>
