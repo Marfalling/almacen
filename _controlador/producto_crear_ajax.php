@@ -210,7 +210,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $dcal_producto = $resultado_cal['filename'];
         }
-
         // Archivo de operatividad
         if (isset($_FILES['dope_archivo'])) {
             $resultado_ope = subirArchivo($_FILES['dope_archivo'], 'ope', 10485760);

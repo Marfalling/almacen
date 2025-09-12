@@ -36,7 +36,6 @@ if (!verificarPermisoEspecifico('crear_producto')) {
             require_once("../_modelo/m_tipo_producto.php");
             require_once("../_modelo/m_tipo_material.php");
             require_once("../_modelo/m_unidad_medida.php");
-
             // Obtener datos para los select
             $producto_tipos = MostrarProductoTipoActivos();
             $material_tipos = MostrarMaterialTipoActivos(); 
