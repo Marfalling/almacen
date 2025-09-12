@@ -345,12 +345,9 @@ function verificarItem($id_pedido_detalle, $new_cant_fin){
         $cant_final = $cant_pedido - floatval($new_cant_fin);
 
         $sql_update = "UPDATE pedido_detalle 
-                       SET cant_fin_pedido_detalle = $new_cant_fin, 
-                           est_pedido_detalle = CASE 
-                               WHEN $cant_final <= 0 THEN 3 
-                               ELSE 2 
-                           END 
-                       WHERE id_pedido_detalle = $id_pedido_detalle";
+               SET cant_fin_pedido_detalle = $new_cant_fin, 
+                   est_pedido_detalle = 2 
+               WHERE id_pedido_detalle = $id_pedido_detalle";
 
         if (mysqli_query($con, $sql_update)) {
             mysqli_close($con);
