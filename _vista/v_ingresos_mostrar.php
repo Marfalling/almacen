@@ -69,11 +69,11 @@
                                                     <td><?php echo $ingreso['aprobado_por'] ?? 'Pendiente'; ?></td>
                                                     <td>
                                                         <?php if ($ingreso['est_compra'] == 3) { ?>
-                                                            <span class="badge badge-success">Completado</span>
+                                                            <span class="badge badge-success badge_size">Completado</span>
                                                         <?php } elseif ($ingreso['productos_ingresados'] > 0) { ?>
-                                                            <span class="badge badge-warning">Parcial (<?php echo $ingreso['productos_ingresados']; ?>/<?php echo $ingreso['total_productos']; ?>)</span>
+                                                            <span class="badge badge-warning badge_size">Parcial (<?php echo $ingreso['productos_ingresados']; ?>/<?php echo $ingreso['total_productos']; ?>)</span>
                                                         <?php } else { ?>
-                                                            <span class="badge badge-warning">Pendiente</span>
+                                                            <span class="badge badge-warning badge_size">Pendiente</span>
                                                         <?php } ?>
                                                     </td>
                                                     <td>

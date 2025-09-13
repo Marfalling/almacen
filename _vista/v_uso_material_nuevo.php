@@ -1,0 +1,1034 @@
+<?php 
+//=======================================================================
+// VISTA: v_pedidos_nuevo.php
+//=======================================================================
+?>
+<!-- page content -->
+<div class="right_col" role="main">
+    <div class="">
+        <div class="page-title">
+            <div class="title_left">
+                <h3>Nuevo Uso de Material</h3>
+            </div>
+        </div>
+
+        <div class="clearfix"></div>
+
+        <div class="row">
+            <div class="col-md-12 ">
+                <div class="x_panel">
+                    <div class="x_title">
+                        <h2>Datos del Uso de Material <small></small></h2>
+                        <div class="clearfix"></div>
+                    </div>
+                    <div class="x_content">
+                        <br>
+                        <form class="form-horizontal form-label-left" action="pedidos_nuevo.php" method="post" enctype="multipart/form-data">
+                            
+                            <!-- Información básica del pedido -->
+                        
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Almacén <span class="text-danger">*</span>:</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <select name="id_obra" class="form-control" required>
+                                        <option value="">Seleccionar</option>
+                                        <?php foreach ($almacenes as $almacen) { ?>
+                                            <option value="<?php echo $almacen['id_almacen']; ?>">
+                                                <?php echo $almacen['nom_almacen']; ?>
+                                            </option>
+                                        <?php } ?>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Ubicación <span class="text-danger">*</span>:</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <select name="id_ubicacion" class="form-control" required>
+                                        <option value="">Seleccionar</option>
+                                        <?php foreach ($ubicaciones as $ubicacion) { ?>
+                                            <option value="<?php echo $ubicacion['id_ubicacion']; ?>">
+                                                <?php echo $ubicacion['nom_ubicacion']; ?>
+                                            </option>
+                                        <?php } ?>
+                                    </select>
+                                </div>
+                            </div>
+
+                          
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Solicitante:</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" name="solicitante" class="form-control" value="<?php echo $usuario_sesion; ?>" readonly>
+                                </div>
+                            </div>
+
+                          
+
+                            <div class="ln_solid"></div>
+
+                            <!-- Sección de materiales/servicios -->
+                            <div class="x_title">
+                                <h4>Detalles del Pedido <small></small></h4>
+                                <div class="clearfix"></div>
+                            </div>
+
+                            <div id="contenedor-materiales">
+                                <div class="material-item border p-3 mb-3">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label>Material/Servicio <span class="text-danger">*</span>:</label>
+                                            <div class="input-group">
+                                                <input type="text" readonly name="descripcion[]" class="form-control" placeholder="Material o Servicio" required>
+                                                <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
+                                                    <i class="fa fa-search"></i>
+                                                </button>
+                                            </div>
+                                            <input type="hidden" name="id_material[]" value="">
+                                        </div>
+
+                                         <div class="col-md-3">
+                                            <label>Unidad de Medida <span class="text-danger">*</span>:</label>
+                                            <select name="unidad[]" class="form-control" required disabled  >
+                                                <option value=""></option>
+                                                <?php foreach ($unidades_medida as $unidad) { ?>
+                                                    <option value="<?php echo $unidad['id_unidad_medida']; ?>">
+                                                        <?php echo $unidad['nom_unidad_medida']; ?>
+                                                    </option>
+                                                <?php } ?>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label>Cantidad <span class="text-danger">*</span>:</label>
+                                            <input type="number" name="cantidad[]" class="form-control" step="0.01" min="0" required>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-md-6">
+                                            <label>Observaciones:</label>
+                                            <textarea name="observaciones[]" class="form-control" rows="1" placeholder="Observaciones o comentarios"></textarea>
+                                        </div>
+                                         <div class="col-md-6">
+                                            <label>Adjuntar Evidencias:</label>
+                                            <input type="file" name="archivos_0[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
+                                            <small class="form-text text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, XLS. Máximo 5MB por archivo.</small>
+                                        </div>
+                                       
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-md-3 d-flex align-items-end">
+                                                <button type="button" class="btn btn-danger btn-sm eliminar-material" style="display: none;">
+                                                    <i class="fa fa-trash"></i> Eliminar
+                                                </button>
+                                            </div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <button type="button" id="agregar-material" class="btn btn-info btn-sm">
+                                    <i class="fa fa-plus"></i> Agregar Material
+                                </button>
+                            </div>
+
+                            <div class="ln_solid"></div>
+
+                            <!-- Aclaraciones -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Aclaraciones:</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <textarea name="aclaraciones" class="form-control" rows="4" ></textarea>
+                                </div>
+                            </div>
+
+                            <div class="ln_solid"></div>
+
+                            <div class="form-group">
+                                <div class="col-md-2 col-sm-2 offset-md-8">
+                                    <button type="reset" class="btn btn-outline-danger btn-block">Limpiar</button>
+                                </div>
+                                <div class="col-md-2 col-sm-2">
+                                    <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">Registrar</button>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="col-md-12 col-sm-12">
+                                    <p><span class="text-danger">*</span> Los campos con (<span class="text-danger">*</span>) son obligatorios.</p>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- /page content -->
+
+<!-- Modal para buscar productos  -->
+<div class="modal fade" id="buscar_producto" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="myModalLabel">Buscar Producto/Material</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="text-right mb-3">
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#crear_producto" data-dismiss="modal">
+                        <i class="fa fa-plus"></i> Nuevo Producto
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table id="datatable_producto" class="table table-striped table-bordered" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Producto</th>
+                                <th>Tipo</th>
+                                <th>Unidad</th>
+                                <th>Marca</th>
+                                <th>Modelo</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para crear producto (COMPLETA) -->
+<div class="modal fade" id="crear_producto" tabindex="-1" role="dialog" aria-labelledby="crearProductoModalLabel">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable" role="document" style="max-height: 90vh;">
+        <div class="modal-content" style="max-height: 90vh;">
+            <div class="modal-header">
+                <h4 class="modal-title" id="crearProductoModalLabel">Crear Nuevo Producto</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height: 70vh; overflow-y: auto; padding: 20px;">
+                <form id="form-crear-producto" class="form-horizontal form-label-left" enctype="multipart/form-data">
+                    
+                    <!-- Información Básica -->
+                    <div class="x_title">
+                        <h5>Información Básica</h5>
+                        <div class="clearfix"></div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Tipo de Producto <span class="text-danger">*</span>:</label>
+                                <select name="id_producto_tipo" class="form-control" required>
+                                    <option value="">Seleccionar tipo de producto</option>
+                                    <?php foreach($producto_tipos as $tipo) { ?>
+                                        <option value="<?php echo $tipo['id_producto_tipo']; ?>"><?php echo $tipo['nom_producto_tipo']; ?></option>
+                                    <?php } ?>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Tipo de Material <span class="text-danger">*</span>:</label>
+                                <select name="id_material_tipo" class="form-control" required>
+                                    <option value="">Seleccionar tipo de material</option>
+                                    <?php foreach($material_tipos as $material) { ?>
+                                        <option value="<?php echo $material['id_material_tipo']; ?>"><?php echo $material['nom_material_tipo']; ?></option>
+                                    <?php } ?>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Unidad de Medida <span class="text-danger">*</span>:</label>
+                                <select name="id_unidad_medida" class="form-control" required>
+                                    <option value="">Seleccionar unidad de medida</option>
+                                    <?php foreach($unidades_medida as $unidad) { ?>
+                                        <option value="<?php echo $unidad['id_unidad_medida']; ?>"><?php echo $unidad['nom_unidad_medida']; ?></option>
+                                    <?php } ?>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Código de Material:</label>
+                                <input type="text" name="cod_material" class="form-control" placeholder="Código del material">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">Nombre del Producto <span class="text-danger">*</span>:</label>
+                                <input type="text" name="nom_producto" class="form-control" placeholder="Nombre del producto" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">Número de Serie:</label>
+                                <input type="text" name="nser_producto" class="form-control" placeholder="Número de serie">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">Modelo:</label>
+                                <input type="text" name="mod_producto" class="form-control" placeholder="Modelo del producto">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="control-label">Marca:</label>
+                                <input type="text" name="mar_producto" class="form-control" placeholder="Marca del producto">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">Detalle:</label>
+                                <textarea name="det_producto" class="form-control" rows="2" placeholder="Detalle del producto"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información de Calibrado -->
+                    <div class="x_title">
+                        <h5>Información de Calibrado <small>(para materiales)</small></h5>
+                        <div class="clearfix"></div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Fecha Último Calibrado:</label>
+                                <input type="date" name="fuc_producto" class="form-control">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Fecha Próximo Calibrado:</label>
+                                <input type="date" name="fpc_producto" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">Documento de Calibrado:</label>
+                                <input type="file" name="dcal_archivo" class="form-control" accept=".pdf,.jpg,.jpeg">
+                                <small class="text-muted">Formatos permitidos: PDF, JPG, JPEG. Tamaño máximo: 10MB</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información de Operatividad -->
+                    <div class="x_title">
+                        <h5>Información de Operatividad <small>(para materiales)</small></h5>
+                        <div class="clearfix"></div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Fecha Última Operatividad:</label>
+                                <input type="date" name="fuo_producto" class="form-control">
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="control-label">Fecha Próxima Operatividad:</label>
+                                <input type="date" name="fpo_producto" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">Documento de Operatividad:</label>
+                                <input type="file" name="dope_archivo" class="form-control" accept=".pdf,.jpg,.jpeg">
+                                <small class="text-muted">Formatos permitidos: PDF, JPG, JPEG. Tamaño máximo: 10MB</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estado -->
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">Estado:</label>
+                                <div class="">
+                                    <label>
+                                        <input type="checkbox" name="est" class="js-switch" checked> Activo
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="col-md-12">
+                            <p><span class="text-danger">*</span> Los campos con (<span class="text-danger">*</span>) son obligatorios.</p>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btn-guardar-producto">Guardar Producto</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+// Variable global para rastrear qué botón de búsqueda se clickeó
+let currentSearchButton = null;
+
+function buscarMaterial(button) {
+    // Obtener el valor del select tipo de pedido
+    //const selectTipoPedido = document.querySelector('select[name="tipo_pedido"]');
+    //const tipoPedidoValue = selectTipoPedido ? selectTipoPedido.value : '';
+    const tipoPedidoValue = 1; //MATERIAL
+    
+    // Validar que se haya seleccionado un tipo de pedido
+    if (!tipoPedidoValue) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Tipo de pedido requerido',
+                text: 'Debe seleccionar un tipo de pedido antes de buscar productos.',
+                confirmButtonText: 'Entendido'
+            });
+        } else {
+            alert('Debe seleccionar un tipo de pedido antes de buscar productos.');
+        }
+        return; // Salir de la función sin abrir la modal
+    }
+    
+    // Guardar referencia al botón que se clickeó
+    currentSearchButton = button;
+    
+    // Abrir la modal
+    $('#buscar_producto').modal('show');
+    
+    // Cargar los productos en la tabla con filtro de tipo
+    cargarProductos(tipoPedidoValue);
+}
+
+function cargarProductos(tipoPedido = '') {
+    // Si la tabla ya está inicializada, destrúyela antes de crear una nueva instancia
+    if ($.fn.dataTable.isDataTable('#datatable_producto')) {
+        $('#datatable_producto').DataTable().destroy();
+    }
+
+    // Inicializar DataTable con configuración y AJAX
+    $('#datatable_producto').DataTable({
+        "processing": true,
+        "serverSide": true,
+        "responsive": true,
+        "ajax": {
+            "url": "producto_mostrar_modal.php",
+            "type": "POST",
+            "data": function(d) {
+                // Agregar el filtro de tipo de pedido a los datos enviados
+                d.tipo_pedido = tipoPedido;
+                return d;
+            }
+        },
+        "columns": [
+            { "title": "Código" },
+            { "title": "Producto" },
+            { "title": "Tipo" },
+            { "title": "Unidad de Medida" },
+            { "title": "Marca" },
+            { "title": "Modelo" },
+            { "title": "Acción" }
+        ],
+        "order": [[1, 'asc']],
+        "pageLength": 10,
+        "lengthMenu": [10, 25, 50, 100],
+        "language": {
+            "lengthMenu": "Mostrar _MENU_ registros por página",
+            "zeroRecords": "No se encontraron resultados para este tipo de pedido",
+            "info": "Mostrando página _PAGE_ de _PAGES_",
+            "infoEmpty": "No hay registros disponibles",
+            "infoFiltered": "(filtrado de _MAX_ registros en total)",
+            "search": "Buscar:",
+            "paginate": {
+                "first": "Primero",
+                "last": "Último",
+                "next": "Siguiente",
+                "previous": "Anterior"
+            },
+            "loadingRecords": "Cargando...",
+            "processing": "Procesando...",
+            "emptyTable": "No hay productos disponibles para este tipo de pedido",
+            "aria": {
+                "sortAscending": ": activar para ordenar la columna de manera ascendente",
+                "sortDescending": ": activar para ordenar la columna de manera descendente"
+            }
+        }
+    });
+}
+
+function seleccionarProducto(idProducto, nombreProducto, idUnidad, nombreUnidad) {
+    if (currentSearchButton) {
+        // Encontrar el contenedor padre del botón que se clickeó
+        let materialItem = currentSearchButton.closest('.material-item');
+        
+        if (materialItem) {
+            // Actualizar el input de descripción
+            let inputDescripcion = materialItem.querySelector('input[name="descripcion[]"]');
+            if (inputDescripcion) {
+                inputDescripcion.value = nombreProducto;
+            }
+            
+            // Actualizar el input hidden del ID del material
+            let inputIdMaterial = materialItem.querySelector('input[name="id_material[]"]');
+            if (inputIdMaterial) {
+                inputIdMaterial.value = idProducto;
+            }
+            
+            // Actualizar el select de unidad de medida
+            let selectUnidad = materialItem.querySelector('select[name="unidad[]"]');
+            if (selectUnidad) {
+                selectUnidad.value = idUnidad;
+            }
+        }
+    }
+    
+    // Cerrar la modal
+    $('#buscar_producto').modal('hide');
+    
+    // Limpiar la referencia
+    currentSearchButton = null;
+    
+    // Mostrar mensaje de éxito
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            icon: 'success',
+            title: 'Producto seleccionado',
+            text: 'El producto "' + nombreProducto + '" ha sido seleccionado.',
+            showConfirmButton: false,
+            timer: 2000
+        });
+    }
+}
+
+// Limpiar la referencia cuando se cierre la modal sin seleccionar
+$('#buscar_producto').on('hidden.bs.modal', function () {
+    currentSearchButton = null;
+});
+
+// Agregar validación adicional cuando se cambie el tipo de pedido
+document.addEventListener('DOMContentLoaded', function() {
+    const selectTipoPedido = document.querySelector('select[name="tipo_pedido"]');
+    if (selectTipoPedido) {
+        selectTipoPedido.addEventListener('change', function() {
+            // Si hay productos ya agregados, mostrar advertencia
+            const materialesItems = document.querySelectorAll('.material-item');
+            let hayProductosSeleccionados = false;
+            
+            materialesItems.forEach(item => {
+                const inputDescripcion = item.querySelector('input[name="descripcion[]"]');
+                if (inputDescripcion && inputDescripcion.value.trim() !== '') {
+                    hayProductosSeleccionados = true;
+                }
+            });
+            
+            if (hayProductosSeleccionados && this.value) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Tipo de pedido cambiado',
+                        text: 'Al cambiar el tipo de pedido, los productos mostrados en la búsqueda se filtrarán según la nueva selección.',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+            }
+        });
+    }
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let contadorMateriales = 1;
+    let selectTipoProducto = document.querySelector('select[name="tipo_pedido"]'); 
+    let valorInicialTipoPedido = '';
+    let formularioModificado = false;
+    
+    // Detectar cambios en cualquier campo del formulario
+    const todosLosCampos = document.querySelectorAll('input, textarea, select');
+    
+    function marcarFormularioComoModificado() {
+        formularioModificado = true;
+    }
+    
+    // Agregar evento change a todos los campos excepto al select tipo de producto
+    todosLosCampos.forEach(campo => {
+        if (campo.name !== 'tipo_pedido') { 
+            campo.addEventListener('change', marcarFormularioComoModificado);
+            campo.addEventListener('input', marcarFormularioComoModificado);
+        }
+    });
+    
+    // Función para limpiar todo el formulario
+    function limpiarFormularioCompleto() {
+        // Limpiar campos básicos - CORREGIDO: nombres correctos de los campos
+        document.querySelector('select[name="id_obra"]').value = '';
+        document.querySelector('input[name="nom_pedido"]').value = '';
+        document.querySelector('input[name="fecha_necesidad"]').value = '';
+        document.querySelector('input[name="num_ot"]').value = '';
+        document.querySelector('input[name="contacto"]').value = '';
+        document.querySelector('input[name="lugar_entrega"]').value = '';
+        document.querySelector('textarea[name="aclaraciones"]').value = '';
+        
+        // Limpiar sección de materiales - mantener solo el primer item y limpiarlo
+        const contenedorMateriales = document.getElementById('contenedor-materiales');
+        const materialesItems = contenedorMateriales.querySelectorAll('.material-item');
+        
+        // Eliminar todos los items adicionales, mantener solo el primero
+        for (let i = 1; i < materialesItems.length; i++) {
+            materialesItems[i].remove();
+        }
+        
+        // Limpiar el primer item de material
+        const primerMaterial = contenedorMateriales.querySelector('.material-item');
+        if (primerMaterial) {
+            const inputs = primerMaterial.querySelectorAll('input, textarea, select');
+            inputs.forEach(input => {
+                if (input.name !== 'tipo_pedido') { // CORREGIDO: nombre correcto
+                    input.value = '';
+                }
+            });
+            
+            // Ocultar el botón eliminar del primer item
+            const btnEliminar = primerMaterial.querySelector('.eliminar-material');
+            if (btnEliminar) {
+                btnEliminar.style.display = 'none';
+            }
+        }
+        
+        // Reiniciar contadores y estado
+        contadorMateriales = 1;
+        formularioModificado = false;
+        
+        // Actualizar eventos
+        actualizarEventosEliminar();
+        actualizarEventosCampos();
+    }
+    
+    // Función para actualizar eventos en campos dinámicos
+    function actualizarEventosCampos() {
+        const todosLosCamposActualizados = document.querySelectorAll('input, textarea, select');
+        todosLosCamposActualizados.forEach(campo => {
+            if (campo.name !== 'tipo_pedido') { // CORREGIDO: nombre correcto
+                // Remover eventos anteriores para evitar duplicados
+                campo.removeEventListener('change', marcarFormularioComoModificado);
+                campo.removeEventListener('input', marcarFormularioComoModificado);
+                
+                // Agregar eventos nuevamente
+                campo.addEventListener('change', marcarFormularioComoModificado);
+                campo.addEventListener('input', marcarFormularioComoModificado);
+            }
+        });
+    }
+    
+    // Evento para el select tipo de pedido
+    if (selectTipoProducto) { // VERIFICAR que existe el elemento
+        selectTipoProducto.addEventListener('focus', function() {
+            valorInicialTipoPedido = this.value;
+        });
+        
+        selectTipoProducto.addEventListener('change', function() {
+            const valorActual = this.value;
+            
+            // Si el formulario ha sido modificado y se está cambiando el tipo de pedido
+            if (formularioModificado && valorInicialTipoPedido !== valorActual) {
+                // Verificar si SweetAlert está disponible
+                if (typeof Swal !== 'undefined') {
+                    // Mostrar SweetAlert
+                    Swal.fire({
+                        title: '¿Estás seguro?',
+                        text: 'Si cambias el tipo de pedido, todos los cambios realizados en el formulario se perderán.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Sí, continuar',
+                        cancelButtonText: 'Cancelar',
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Usuario confirma - limpiar formulario
+                            limpiarFormularioCompleto();
+                            
+                            // Mostrar mensaje de confirmación
+                            Swal.fire({
+                                title: 'Formulario limpiado',
+                                text: 'Todos los cambios han sido eliminados.',
+                                icon: 'success',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                        } else {
+                            // Usuario cancela - revertir el select al valor anterior
+                            this.value = valorInicialTipoPedido;
+                        }
+                    });
+                } else {
+                    // Fallback si no está disponible SweetAlert
+                    if (confirm('Si cambias el tipo de pedido, todos los cambios realizados en el formulario se perderán. ¿Continuar?')) {
+                        limpiarFormularioCompleto();
+                        alert('Formulario limpiado');
+                    } else {
+                        this.value = valorInicialTipoPedido;
+                    }
+                }
+            } else {
+                // Si no hay cambios o es la primera selección, actualizar valor inicial
+                valorInicialTipoPedido = valorActual;
+            }
+        });
+    }
+    
+    // Agregar nuevo material
+    const btnAgregarMaterial = document.getElementById('agregar-material');
+    if (btnAgregarMaterial) {
+        btnAgregarMaterial.addEventListener('click', function() {
+            const contenedor = document.getElementById('contenedor-materiales');
+            const nuevoMaterial = document.querySelector('.material-item').cloneNode(true);
+            
+            // Limpiar los valores del nuevo elemento
+            const inputs = nuevoMaterial.querySelectorAll('input, textarea, select');
+            inputs.forEach(input => {
+                if (input.type === 'hidden') {
+                    input.value = '';
+                } else {
+                    input.value = '';
+                }
+            });
+
+            // Actualizar el name del input file para que sea único
+            const fileInput = nuevoMaterial.querySelector('input[type="file"]');
+            if (fileInput) {
+                fileInput.name = `archivos_${contadorMateriales}[]`;
+            }
+
+            // Mostrar el botón eliminar
+            const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
+            if (btnEliminar) {
+                btnEliminar.style.display = 'block';
+            }
+            
+            contenedor.appendChild(nuevoMaterial);
+            contadorMateriales++;
+            
+            // Actualizar eventos
+            actualizarEventosEliminar();
+            actualizarEventosCampos();
+            
+            // Marcar como modificado
+            formularioModificado = true;
+        });
+    }
+    
+    // Función para actualizar eventos de eliminar
+    function actualizarEventosEliminar() {
+        document.querySelectorAll('.eliminar-material').forEach(btn => {
+            btn.onclick = function() {
+                if (document.querySelectorAll('.material-item').length > 1) {
+                    this.closest('.material-item').remove();
+                    formularioModificado = true;
+                }
+            };
+        });
+    }
+    
+    // Inicializar eventos
+    actualizarEventosEliminar();
+    
+    // Interceptar el botón reset del formulario
+    const btnLimpiar = document.querySelector('button[type="reset"]');
+    if (btnLimpiar) {
+        btnLimpiar.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: '¿Limpiar formulario?',
+                    text: 'Se eliminarán todos los datos ingresados.',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Sí, limpiar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Limpiar completamente incluyendo el select tipo de producto
+                        document.querySelector('form').reset();
+                        limpiarFormularioCompleto();
+                        if (selectTipoProducto) {
+                            selectTipoProducto.value = '';
+                            valorInicialTipoPedido = '';
+                        }
+                        
+                        Swal.fire({
+                            title: 'Formulario limpiado',
+                            text: 'Todos los datos han sido eliminados.',
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    }
+                });
+            } else {
+                // Fallback sin SweetAlert
+                if (confirm('¿Limpiar formulario? Se eliminarán todos los datos ingresados.')) {
+                    document.querySelector('form').reset();
+                    limpiarFormularioCompleto();
+                    if (selectTipoProducto) {
+                        selectTipoProducto.value = '';
+                        valorInicialTipoPedido = '';
+                    }
+                    alert('Formulario limpiado');
+                }
+            }
+        });
+    }
+});
+</script>
+
+<script>
+// Función para seleccionar automáticamente el producto recién creado
+function seleccionarProductoCreado(producto) {
+    if (currentSearchButton) {
+        // Encontrar el contenedor padre del botón que se clickeó
+        let materialItem = currentSearchButton.closest('.material-item');
+        
+        if (materialItem) {
+            // Actualizar el input de descripción
+            let inputDescripcion = materialItem.querySelector('input[name="descripcion[]"]');
+            if (inputDescripcion) {
+                inputDescripcion.value = producto.nom_producto;
+            }
+            
+            // Actualizar el input hidden del ID del material
+            let inputIdMaterial = materialItem.querySelector('input[name="id_material[]"]');
+            if (inputIdMaterial) {
+                inputIdMaterial.value = producto.id_producto;
+            }
+            
+            // Actualizar el select de unidad de medida
+            let selectUnidad = materialItem.querySelector('select[name="unidad[]"]');
+            if (selectUnidad) {
+                selectUnidad.value = producto.id_unidad_medida;
+            }
+        }
+    }
+    
+    // Limpiar la referencia
+    currentSearchButton = null;
+}
+
+// Versión mejorada del manejo de creación de productos
+document.addEventListener('DOMContentLoaded', function() {
+    const btnGuardarProducto = document.getElementById('btn-guardar-producto');
+    if (btnGuardarProducto) {
+        btnGuardarProducto.addEventListener('click', function() {
+            const form = document.getElementById('form-crear-producto');
+            const formData = new FormData(form);
+            
+            // Validaciones básicas
+            const tipoProducto = formData.get('id_producto_tipo');
+            const tipoMaterial = formData.get('id_material_tipo');
+            const unidadMedida = formData.get('id_unidad_medida');
+            const nombreProducto = formData.get('nom_producto');
+            
+            if (!tipoProducto || !tipoMaterial || !unidadMedida || !nombreProducto) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Campos requeridos',
+                        text: 'Por favor complete todos los campos obligatorios (marcados con *)'
+                    });
+                } else {
+                    alert('Por favor complete todos los campos obligatorios (marcados con *)');
+                }
+                return;
+            }
+            
+            // Validar archivos si se han seleccionado
+            const archivoCalibrado = document.querySelector('input[name="dcal_archivo"]')?.files[0];
+            const archivoOperatividad = document.querySelector('input[name="dope_archivo"]')?.files[0];
+            
+            if (archivoCalibrado && archivoCalibrado.size > 10 * 1024 * 1024) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Archivo muy grande',
+                        text: 'El archivo de calibrado no debe superar los 10MB'
+                    });
+                } else {
+                    alert('El archivo de calibrado no debe superar los 10MB');
+                }
+                return;
+            }
+            
+            if (archivoOperatividad && archivoOperatividad.size > 10 * 1024 * 1024) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Archivo muy grande',
+                        text: 'El archivo de operatividad no debe superar los 10MB'
+                    });
+                } else {
+                    alert('El archivo de operatividad no debe superar los 10MB');
+                }
+                return;
+            }
+            
+            // Deshabilitar botón mientras se procesa
+            btnGuardarProducto.disabled = true;
+            const textoOriginal = btnGuardarProducto.textContent;
+            btnGuardarProducto.textContent = 'Guardando...';
+            
+            // Enviar datos via AJAX con FormData para manejar archivos
+            fetch('producto_crear_ajax.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error en la respuesta del servidor');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Producto creado exitosamente
+                    
+                    // PRIMERO: Seleccionar automáticamente el producto recién creado
+                    if (currentSearchButton && data.producto) {
+                        seleccionarProductoCreado(data.producto);
+                    }
+                    
+                    // SEGUNDO: Cerrar modal ANTES de mostrar SweetAlert
+                    $('#crear_producto').modal('hide');
+                    
+                    // TERCERO: Limpiar formulario
+                    form.reset();
+                    resetearSwitches(form);
+                    
+                    // CUARTO: Recargar tabla de productos si está abierta
+                    if ($.fn.dataTable.isDataTable('#datatable_producto')) {
+                        $('#datatable_producto').DataTable().ajax.reload();
+                    }
+                    
+                    // QUINTO: Mostrar mensaje de éxito DESPUÉS de cerrar modal
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Producto creado',
+                            text: data.message,
+                            showConfirmButton: false,
+                            timer: 2000
+                        });
+                    } else {
+                        alert(data.message);
+                    }
+                    
+                } else {
+                    // Error al crear producto
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message
+                        });
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error de conexión',
+                        text: 'No se pudo conectar con el servidor'
+                    });
+                } else {
+                    alert('Error de conexión: ' + error.message);
+                }
+            })
+            .finally(() => {
+                // Rehabilitar botón
+                btnGuardarProducto.disabled = false;
+                btnGuardarProducto.textContent = textoOriginal;
+            });
+        });
+    }
+    
+    // Función auxiliar para resetear switches
+    function resetearSwitches(form) {
+        const switchElements = form.querySelectorAll('.js-switch');
+        switchElements.forEach(sw => {
+            if (!sw.checked) {
+                sw.checked = true;
+                if (typeof $.fn.switchery !== 'undefined') {
+                    $(sw).trigger('change');
+                }
+            }
+        });
+    }
+    
+    // Limpiar formulario cuando se cierre la modal
+    $('#crear_producto').on('hidden.bs.modal', function () {
+        const form = document.getElementById('form-crear-producto');
+        if (form) {
+            form.reset();
+            resetearSwitches(form);
+        }
+    });
+    
+    // Forzar el cierre de modal si hay problemas
+    $('#crear_producto').on('show.bs.modal', function () {
+        // Asegurar que cualquier modal anterior esté cerrada
+        $('.modal').not(this).modal('hide');
+    });
+});
+</script>

@@ -39,6 +39,7 @@
                                             <tr>
                                                 <th>#</th>
                                                 <th>Código Pedido</th>
+                                                 <th>Tipo Pedido</th>
                                                 <th>Nombre Pedido</th>
                                                 <th>Solicitante</th>
                                                 <th>Fecha Pedido</th>
@@ -58,6 +59,7 @@
                                                 <tr>
                                                     <td><?php echo $contador; ?></td>
                                                     <td><?php echo $pedido['cod_pedido']; ?></td>
+                                                    <td><?php echo $pedido['nom_producto_tipo']; ?></td>
                                                     <td><?php echo $pedido['nom_pedido']; ?></td>
                                                     <td><?php echo $pedido['nom_personal'] . ' ' . $pedido['ape_personal']; ?></td>
                                                     <td><?php echo date('d/m/Y H:i', strtotime($pedido['fec_pedido'])); ?></td>
@@ -65,10 +67,12 @@
                                                     <td><?php echo $pedido['nom_almacen']; ?></td>
                                                     <td><?php echo $pedido['nom_ubicacion']; ?></td>
                                                     <td>
-                                                        <?php if($pedido['est_pedido'] == 1) { ?>
-                                                            <span class="badge badge-success">Activo</span>
-                                                        <?php } else { ?>
-                                                            <span class="badge badge-danger">Inactivo</span>
+                                                        <?php if($pedido['est_pedido_calc'] == 1) { ?>
+                                                            <span class="badge badge-warning badge_size">Pendiente</span>
+                                                        <?php } elseif($pedido['est_pedido_calc'] == 2) { ?>
+                                                            <span class="badge badge-success badge_size">Completado</span>
+                                                          <?php } elseif($pedido['est_pedido_calc'] == 0) { ?>
+                                                            <span class="badge badge-danger badge_size">Anulado</span>
                                                         <?php } ?>
                                                     </td>
                                                     <td>
@@ -83,7 +87,7 @@
 
                                                             <?php
                                                             // Si tiene detalles verificados (cant_fin_pedido_detalle no es NULL), deshabilitar botón de editar
-                                                            if ($pedido['tiene_verificados'] == 1) { ?>
+                                                            if ($pedido['tiene_verificados'] == 1 || $pedido['est_pedido_calc'] == 0 || $pedido['est_pedido_calc'] == 2) { ?>
                                                                 <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="No se puede editar - Pedido verificado" tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-edit"></i>
                                                                 </a>
@@ -95,11 +99,17 @@
                                                                 </a>
                                                             <?php } ?>
 
-                                                            <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
-                                                            class="btn btn-success btn-sm" 
-                                                            title="Verificar">
-                                                                <i class="fa fa-check"></i>
-                                                            </a>
+                                                            <?php if ($pedido['est_pedido_calc'] == 0 || $pedido['est_pedido_calc'] == 2) { ?>
+                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="No se puede verificar" tabindex="-1" aria-disabled="true">
+                                                                    <i class="fa fa-check"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+                                                                class="btn btn-success btn-sm" 
+                                                                title="Verificar">
+                                                                    <i class="fa fa-check"></i>
+                                                                </a>
+                                                            <?php } ?>
 
                                                             <a href="pedido_pdf.php?id=<?php echo $pedido['id_pedido']; ?>" 
                                                             class="btn btn-secondary btn-sm" 

@@ -115,22 +115,35 @@ function MostrarPedidos()
                 pr.ape_personal, 
                 a.nom_almacen, 
                 u.nom_ubicacion,
+                pt.nom_producto_tipo,
                 CASE 
                     WHEN EXISTS (
-                        SELECT 1 FROM pedido_detalle pd 
+                        SELECT 1 
+                        FROM compra comp 
+                        WHERE comp.id_pedido = p.id_pedido 
+                        AND comp.est_compra <> 0
+                    ) THEN 2 
+                    ELSE p.est_pedido
+                END AS est_pedido_calc,
+                CASE 
+                    WHEN EXISTS (
+                        SELECT 1 
+                        FROM pedido_detalle pd 
                         WHERE pd.id_pedido = p.id_pedido 
                         AND pd.cant_fin_pedido_detalle IS NOT NULL 
-                        AND pd.est_pedido_detalle = 1
+                        AND pd.est_pedido_detalle <> 0
                     ) THEN 1 
                     ELSE 0 
-                END as tiene_verificados
+                END AS tiene_verificados
              FROM pedido p 
              INNER JOIN almacen a ON p.id_almacen = a.id_almacen
-                INNER JOIN obra ob ON a.id_obra = ob.id_obra
-                INNER JOIN cliente c ON a.id_cliente = c.id_cliente
+             INNER JOIN obra ob ON a.id_obra = ob.id_obra
+             INNER JOIN cliente c ON a.id_cliente = c.id_cliente
              INNER JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion
              INNER JOIN personal pr ON p.id_personal = pr.id_personal
+             INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
              ORDER BY p.fec_pedido DESC";
+
     $resc = mysqli_query($con, $sqlc);
 
     $resultado = array();

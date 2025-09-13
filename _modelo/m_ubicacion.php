@@ -16,6 +16,18 @@ function MostrarUbicacion() {
     return $resultado;
 }
 
+function MostrarUbicacionesActivas() {
+    include("../_conexion/conexion.php");
+    $sqlc = "SELECT * FROM ubicacion WHERE est_ubicacion = 1 ORDER BY nom_ubicacion ASC";
+    $resc = mysqli_query($con, $sqlc);
+    $resultado = array();
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $resultado[] = $rowc;
+    }
+    mysqli_close($con);
+    return $resultado;
+}
+
 //-----------------------------------------------------------------------
 function GrabarUbicacion($nom, $est) {
     include("../_conexion/conexion.php");
