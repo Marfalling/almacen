@@ -30,5 +30,9 @@
     <!-- Custom Theme Style -->
     <link href="../_complemento/build/css/custom.min.css" rel="stylesheet">
 
-
-
+    <style>
+        .badge_size {
+            font-size: 12px;
+            padding: 8px 10px;
+        }
+    </style>

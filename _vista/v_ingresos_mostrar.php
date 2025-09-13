@@ -1,3 +1,8 @@
+<?php 
+//=======================================================================
+// VISTA: v_ingresos_mostrar.php
+//=======================================================================
+?>
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -64,11 +69,11 @@
                                                     <td><?php echo $ingreso['aprobado_por'] ?? 'Pendiente'; ?></td>
                                                     <td>
                                                         <?php if ($ingreso['est_compra'] == 3) { ?>
-                                                            <span class="badge badge-success">Completado</span>
+                                                            <span class="badge badge-success badge_size">Completado</span>
                                                         <?php } elseif ($ingreso['productos_ingresados'] > 0) { ?>
-                                                            <span class="badge badge-warning">Parcial (<?php echo $ingreso['productos_ingresados']; ?>/<?php echo $ingreso['total_productos']; ?>)</span>
+                                                            <span class="badge badge-warning badge_size">Parcial (<?php echo $ingreso['productos_ingresados']; ?>/<?php echo $ingreso['total_productos']; ?>)</span>
                                                         <?php } else { ?>
-                                                            <span class="badge badge-info">Pendiente</span>
+                                                            <span class="badge badge-warning badge_size">Pendiente</span>
                                                         <?php } ?>
                                                     </td>
                                                     <td>
@@ -78,14 +83,14 @@
                                                             <a href="ingresos_verificar.php?id_compra=<?php echo $ingreso['id_compra']; ?>" 
                                                                class="btn btn-info btn-sm"
                                                                title="Ver detalles de la orden de compra">
-                                                                <i class="fa fa-eye"> Verificar</i>
+                                                                <i class="fa fa-eye"></i>
                                                             </a>
                                                             <?php } ?>
                                                             <!-- Botón Ingresos - siempre visible -->
                                                             <a href="ingresos_detalle.php?id_compra=<?php echo $ingreso['id_compra']; ?>" 
                                                                 class="btn btn-success btn-sm"
                                                                 title="Ver detalles e ingresar productos al stock">
-                                                                <i class="fa fa-plus"> Ingresos</i>
+                                                                <i class="fa fa-plus"></i>
                                                             </a>
                                                         </div>
                                                     </td>
@@ -107,5 +112,3 @@
     </div>
 </div>
 <!-- /page content -->
-
-

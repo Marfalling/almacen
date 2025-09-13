@@ -26,6 +26,7 @@ function MostrarCompras()
     mysqli_close($con);
     return $resultado;
 }
+
 function AprobarCompra($id_compra, $id_personal)
 {
     include("../_conexion/conexion.php");
@@ -52,6 +53,7 @@ function AprobarCompra($id_compra, $id_personal)
     mysqli_close($con);
     return $res_update;
 }
+
 function AnularCompra($id_compra, $id_personal)
 {
     include("../_conexion/conexion.php");
@@ -76,5 +78,95 @@ function AnularCompra($id_compra, $id_personal)
 
     mysqli_close($con);
     return $res_update;
+}
+
+function ConsultarCompra($id_compra)
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT 
+                c.*,
+                pe.cod_pedido,
+                pe.fec_req_pedido,
+                pe.ot_pedido,
+                pe.cel_pedido,
+                pe.lug_pedido,
+                pe.acl_pedido,
+                p.nom_proveedor,
+                p.ruc_proveedor,
+                p.dir_proveedor,
+                p.tel_proveedor,
+                p.cont_proveedor,
+                per1.nom_personal,
+                per1.ape_personal,
+                a.nom_almacen,
+                o.nom_obra,
+                m.nom_moneda,
+                c.denv_compra,
+                c.plaz_compra,
+                c.port_compra
+            FROM compra c
+            LEFT JOIN pedido pe ON c.id_pedido = pe.id_pedido
+            LEFT JOIN proveedor p ON c.id_proveedor = p.id_proveedor
+            LEFT JOIN personal per1 ON c.id_personal = per1.id_personal
+            LEFT JOIN almacen a ON pe.id_almacen = a.id_almacen
+            LEFT JOIN obra o ON a.id_obra = o.id_obra
+            LEFT JOIN moneda m ON c.id_moneda = m.id_moneda
+            WHERE c.id_compra = '$id_compra'";
+    
+    $resc = mysqli_query($con, $sql);
+    
+    if (!$resc) {
+        echo "Error en la consulta SQL: " . mysqli_error($con);
+        mysqli_close($con);
+        return array();
+    }
+    
+    $resultado = array();
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $resultado[] = $rowc;
+    }
+    
+    mysqli_close($con);
+    return $resultado;
+}
+
+function ConsultarCompraDetalle($id_compra)
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT 
+                cd.*,
+                pd.prod_pedido_detalle,
+                pd.com_pedido_detalle,
+                pd.req_pedido,
+                pr.nom_producto,
+                pr.cod_material,
+                um.nom_unidad_medida
+            FROM compra_detalle cd
+            LEFT JOIN compra c ON cd.id_compra = c.id_compra
+            LEFT JOIN pedido_detalle pd ON cd.id_producto = pd.id_producto 
+                AND pd.id_pedido = c.id_pedido
+            LEFT JOIN producto pr ON cd.id_producto = pr.id_producto
+            LEFT JOIN unidad_medida um ON pr.id_unidad_medida = um.id_unidad_medida
+            WHERE cd.id_compra = '$id_compra'
+            AND cd.est_compra_detalle = 1
+            ORDER BY cd.id_compra_detalle";
+    
+    $resc = mysqli_query($con, $sql);
+    
+    if (!$resc) {
+        echo "Error en la consulta SQL: " . mysqli_error($con);
+        mysqli_close($con);
+        return array();
+    }
+    
+    $resultado = array();
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $resultado[] = $rowc;
+    }
+    
+    mysqli_close($con);
+    return $resultado;
 }
 ?>

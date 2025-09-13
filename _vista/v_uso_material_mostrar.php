@@ -103,7 +103,7 @@ function AnularCompra(id_compra) {
     <div class="">
         <div class="page-title">
             <div class="title_left">
-                <h3>Compras<small></small></h3>
+                <h3>Uso de Material<small></small></h3>
             </div>
         </div>
 
@@ -116,7 +116,7 @@ function AnularCompra(id_compra) {
                     <div class="x_title">
                         <div class="row">
                             <div class="col-sm-10">
-                                <h2>Listado de Compras<small></small></h2>
+                                <h2>Listado de Uso de Material<small></small></h2>
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
@@ -135,12 +135,14 @@ function AnularCompra(id_compra) {
                                         <thead>
                                             <tr>
                                                 <th>#</th>
-                                                <th>N° Orden</th>
-                                                <th>Código Pedido</th>
-                                                <th>Proveedor</th>
+                                                <th>N° Uso</th>
+                                                <th>Almacén</th>
+                                                <th>Ubicación</th>
+                                                <th>Obra</th>
+                                                <th>Cliente</th>
+                                                <th>Solicitante</th>
+                                                <th>Registrado por</th>
                                                 <th>Fecha Registro</th>
-                                                <th>Registrado Por</th>
-                                                <th>Aprobado Por</th>
                                                 <th>Estado</th>
                                                 <th>Acciones</th>
                                             </tr>
@@ -149,22 +151,25 @@ function AnularCompra(id_compra) {
                                         <tbody>
                                             <?php 
                                             $contador = 1;
-                                            foreach($compras as $compra) { 
+                                            foreach($usos_material as $uso) { 
                                             ?>
                                                 <tr>
                                                     <td><?php echo $contador; ?></td>
-                                                    <td><?php echo $compra['id_compra']; ?></td>
-                                                    <td><a class="btn btn-sm btn-outline-secondary" target="_blank" href="pedido_pdf.php?id=<?php echo $compra['id_pedido']; ?>"><?php echo $compra['cod_pedido']; ?></a></td>
-                                                    <td><?php echo $compra['nom_proveedor']; ?></td>
-                                                    <td><?php echo date('d/m/Y H:i', strtotime($compra['fec_compra'])); ?></td>
-                                                    <td><?php echo $compra['nom_registrado']; ?></td>
-                                                    <td><?php echo $compra['nom_aprobado']; ?></td>
+                                                    <td><?php echo $uso['id_uso_material']; ?></td>
+                                                    <td><a class="btn btn-sm btn-outline-secondary" target="_blank" href="pedido_pdf.php?id=<?php echo $uso['id_pedido']; ?>"><?php echo $uso['cod_pedido']; ?></a></td>
+                                                    <td><?php echo $uso['nom_almacen']; ?></td>
+                                                    <td><?php echo $uso['nom_ubicacion']; ?></td>
+                                                    <td><?php echo $uso['nom_obra']; ?></td>
+                                                    <td><?php echo $uso['nom_cliente']; ?></td>
+                                                    <td><?php echo $uso['nom_solicitante']; ?></td>
+                                                    <td><?php echo $uso['nom_registrado']; ?></td>
+                                                    <td><?php echo date('d/m/Y H:i', strtotime($uso['fec_uso_material'])); ?></td>
                                                     <td>
-                                                        <?php if($compra['est_compra'] == 1) { ?>
+                                                        <?php if($uso['est_uso_material'] == 1) { ?>
                                                             <span class="badge badge-warning badge_size">Pendiente</span>
-                                                        <?php } elseif($compra['est_compra'] == 2) { ?>
+                                                        <?php } elseif($uso['est_uso_material'] == 2) { ?>
                                                             <span class="badge badge-success badge_size">Aprobado</span>
-                                                        <?php } elseif($compra['est_compra'] == 3) { ?>
+                                                        <?php } elseif($uso['est_uso_material'] == 3) { ?>
                                                             <span class="badge badge-success badge_size">Aprobado</span>
                                                         <?php } else { ?>
                                                             <span class="badge badge-danger badge_size">Anulado</span>
@@ -175,14 +180,14 @@ function AnularCompra(id_compra) {
 
                                                         <?php
                                                         // Si está anulado o aprobado, bloquear botones de aprobar y anular
-                                                        if ($compra['est_compra'] == 0 || $compra['est_compra'] == 2 || $compra['est_compra'] == 3) { ?>
+                                                        if ($uso['est_uso_material'] == 0 || $uso['est_uso_material'] == 2 || $uso['est_uso_material'] == 3) { ?>
                                                             <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Verificar" tabindex="-1" aria-disabled="true">
                                                                 <i class="fa fa-check"></i>
                                                             </a>
                                                             <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Anular" tabindex="-1" aria-disabled="true">
                                                                 <i class="fa fa-times"></i>
                                                             </a>
-                                                            <a href="compras_pdf.php?id=<?php echo $compra['id_compra']; ?>"
+                                                            <a href="compras_pdf.php?id=<?php echo $uso['id_uso_material']; ?>"
                                                                class="btn btn-secondary btn-sm"
                                                                title="Generar PDF"
                                                                target="_blank">
@@ -190,17 +195,17 @@ function AnularCompra(id_compra) {
                                                             </a>
                                                         <?php
                                                         } else { ?>
-                                                            <a href="#" onclick="AprobarCompra(<?php echo $compra['id_compra']; ?>)"
+                                                            <a href="#" onclick="AprobarUso(<?php echo $uso['id_uso_material']; ?>)"
                                                                class="btn btn-success btn-sm"
                                                                title="Verificar">
                                                                 <i class="fa fa-check"></i>
                                                             </a>
-                                                            <a href="#" onclick="AnularCompra(<?php echo $compra['id_compra']; ?>)"
+                                                            <a href="#" onclick="AnularUso(<?php echo $uso['id_uso_material']; ?>)"
                                                                class="btn btn-danger btn-sm"
                                                                title="Anular">
                                                                 <i class="fa fa-times"></i>
                                                             </a>
-                                                            <a href="compras_pdf.php?id=<?php echo $compra['id_compra']; ?>"
+                                                            <a href="compras_pdf.php?id=<?php echo $uso['id_uso_material']; ?>"
                                                                class="btn btn-secondary btn-sm"
                                                                title="Generar PDF"
                                                                target="_blank">

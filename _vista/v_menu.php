@@ -108,6 +108,21 @@ require_once("../_conexion/sesion.php");
               </li>
               <?php endif; ?>
 
+               <!-- Salidas -->
+              <?php if (tieneAccesoModulo('ingresos')): ?>
+              <li>
+                <a>Salidas<span class="fa fa-chevron-down"></span></a>
+                <ul class="nav child_menu">
+                  <?php if (verificarPermisoEspecifico('ver_ingresos')): ?>
+                  <li><a href="salidas_mostrar.php">Lista de salidas</a></li>
+                  <?php endif; ?>
+                  <?php if (verificarPermisoEspecifico('crear_ingresos')): ?>
+                  <li><a href="salidas_nuevo.php">Nueva salida</a></li>
+                  <?php endif; ?>
+                </ul>
+              </li>
+              <?php endif; ?>
+
               <!-- Devoluciones -->
               <?php if (tieneAccesoModulo('devoluciones')): ?>
               <li>

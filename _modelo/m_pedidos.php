@@ -1,5 +1,5 @@
 <?php
-function GrabarPedido($id_producto_tipo, $id_almacen, $nom_pedido, $solicitante, $fecha_necesidad, 
+function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $nom_pedido, $solicitante, $fecha_necesidad, 
                      $num_ot, $contacto, $lugar_entrega, $aclaraciones, $id_personal, 
                      $materiales, $archivos_subidos) 
 {
@@ -24,13 +24,13 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $nom_pedido, $solicitante,
     
     $cod_pedido = $obra['nom_obra'] . " " . $num_pedido;
 
-    // Insertar pedido principal - USA EL ID_PRODUCTO_TIPO CORRECTO
+    // Insertar pedido principal - AHORA INCLUYE EL id_ubicacion RECIBIDO COMO PARÁMETRO
     $sql = "INSERT INTO pedido (
                 id_producto_tipo, id_almacen, id_ubicacion, id_personal, 
                 cod_pedido, nom_pedido, ot_pedido, cel_pedido, lug_pedido, 
                 acl_pedido, fec_req_pedido, fec_pedido, est_pedido
             ) VALUES (
-                $id_producto_tipo, $id_almacen, 1, $id_personal, 
+                $id_producto_tipo, $id_almacen, $id_ubicacion, $id_personal, 
                 '$cod_pedido', '$nom_pedido', '$num_ot', '$contacto', '$lugar_entrega', 
                 '$aclaraciones', '$fecha_necesidad', NOW(), 1
             )";
@@ -115,22 +115,35 @@ function MostrarPedidos()
                 pr.ape_personal, 
                 a.nom_almacen, 
                 u.nom_ubicacion,
+                pt.nom_producto_tipo,
                 CASE 
                     WHEN EXISTS (
-                        SELECT 1 FROM pedido_detalle pd 
+                        SELECT 1 
+                        FROM compra comp 
+                        WHERE comp.id_pedido = p.id_pedido 
+                        AND comp.est_compra <> 0
+                    ) THEN 2 
+                    ELSE p.est_pedido
+                END AS est_pedido_calc,
+                CASE 
+                    WHEN EXISTS (
+                        SELECT 1 
+                        FROM pedido_detalle pd 
                         WHERE pd.id_pedido = p.id_pedido 
                         AND pd.cant_fin_pedido_detalle IS NOT NULL 
-                        AND pd.est_pedido_detalle = 1
+                        AND pd.est_pedido_detalle <> 0
                     ) THEN 1 
                     ELSE 0 
-                END as tiene_verificados
+                END AS tiene_verificados
              FROM pedido p 
              INNER JOIN almacen a ON p.id_almacen = a.id_almacen
-                INNER JOIN obra ob ON a.id_obra = ob.id_obra
-                INNER JOIN cliente c ON a.id_cliente = c.id_cliente
+             INNER JOIN obra ob ON a.id_obra = ob.id_obra
+             INNER JOIN cliente c ON a.id_cliente = c.id_cliente
              INNER JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion
              INNER JOIN personal pr ON p.id_personal = pr.id_personal
+             INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
              ORDER BY p.fec_pedido DESC";
+
     $resc = mysqli_query($con, $sqlc);
 
     $resultado = array();
@@ -208,13 +221,14 @@ function ConsultarPedidoDetalle($id_pedido)
     return $resultado;
 }
 
-function ActualizarPedido($id_pedido, $nom_pedido, $fecha_necesidad, $num_ot, 
+function ActualizarPedido($id_pedido, $id_ubicacion, $nom_pedido, $fecha_necesidad, $num_ot, 
                          $contacto, $lugar_entrega, $aclaraciones, $materiales, $archivos_subidos) 
 {
     include("../_conexion/conexion.php");
 
-    // Actualizar pedido principal
+    // Actualizar pedido principal - AHORA INCLUYE id_ubicacion
     $sql = "UPDATE pedido SET 
+            id_ubicacion = $id_ubicacion,
             nom_pedido = '$nom_pedido',
             fec_req_pedido = '$fecha_necesidad',
             ot_pedido = '$num_ot',
@@ -258,7 +272,7 @@ function ActualizarPedido($id_pedido, $nom_pedido, $fecha_necesidad, $num_ot,
             $comentario_detalle = "Unidad: $nombre_unidad | Unidad ID: $id_unidad | Obs: $observaciones";
             
             if ($id_detalle > 0 && in_array($id_detalle, $detalles_existentes)) {
-                // ACTUALIZAR DETALLE EXISTENTE - CORREGIDO: UPDATE no INSERT
+                // ACTUALIZAR DETALLE EXISTENTE
                 $sql_detalle = "UPDATE pedido_detalle SET 
                                 prod_pedido_detalle = '$descripcion',
                                 cant_pedido_detalle = $cantidad,

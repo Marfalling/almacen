@@ -1,6 +1,7 @@
 <?php
 require_once("../_conexion/sesion.php");
 
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -11,7 +12,7 @@ require_once("../_conexion/sesion.php");
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>Editar Pedido</title>
+    <title>Nuevo Uso de Material</title>
 
     <?php require_once("../_vista/v_estilo.php"); ?>
 </head>
@@ -25,30 +26,32 @@ require_once("../_conexion/sesion.php");
 
             require_once("../_modelo/m_pedidos.php");
             require_once("../_modelo/m_almacen.php");
-            require_once("../_modelo/m_unidad_medida.php");
+            require_once("../_modelo/m_ubicacion.php");
             require_once("../_modelo/m_tipo_producto.php");
+            require_once("../_modelo/m_unidad_medida.php");
             require_once("../_modelo/m_tipo_material.php");
-            require_once("../_modelo/m_ubicacion.php"); // AGREGADO: Modelo de ubicación
-            
-            // Cargar datos necesarios para el formulario
-            $unidades_medida = MostrarUnidadMedidaActiva();
+
+            // Cargar almacenes activos para el formulario
+            $almacenes = MostrarAlmacenesActivos();
+            $ubicaciones = MostrarUbicacionesActivas();
             $producto_tipos = MostrarProductoTipoActivos();
+            $unidades_medida = MostrarUnidadMedidaActiva();
             $material_tipos = MostrarMaterialTipoActivos();
-            $ubicaciones = MostrarUbicacionesActivas(); // AGREGADO: Cargar ubicaciones
             
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/pedidos/")) {
                 mkdir("../_archivos/pedidos/", 0777, true);
             }
-
-            $id_pedido = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : 0;
-
             //=======================================================================
-            // CONTROLADOR ACTUALIZADO CON UBICACIÓN
+            // CONTROLADOR CORREGIDO
             //=======================================================================
-            if (isset($_REQUEST['actualizar'])) {
-                $id_ubicacion = intval($_REQUEST['id_ubicacion']); // AGREGADO: Recibir ubicación
+            if (isset($_REQUEST['registrar'])) {
+                // CORREGIDO: Recibir id_producto_tipo en lugar de tipo_pedido
+                $id_producto_tipo = intval($_REQUEST['tipo_pedido']); // El select envía el ID
+                // CORREGIDO: Recibir id_almacen en lugar de id_obra
+                $id_almacen = intval($_REQUEST['id_obra']); // El select envía el ID del almacén
                 $nom_pedido = strtoupper($_REQUEST['nom_pedido']);
+                $solicitante = strtoupper($_REQUEST['solicitante']);
                 $fecha_necesidad = $_REQUEST['fecha_necesidad'];
                 $num_ot = strtoupper($_REQUEST['num_ot']);
                 $contacto = $_REQUEST['contacto'];
@@ -69,8 +72,7 @@ require_once("../_conexion/sesion.php");
                             'observaciones' => $_REQUEST['observaciones'][$i],
                             'sst' => trim($valores_sst[0] ?? ''),        // Primer valor: SST
                             'ma' => trim($valores_sst[1] ?? ''),         // Segundo valor: MA
-                            'ca' => trim($valores_sst[2] ?? ''),         // Tercer valor: CA
-                            'id_detalle' => $_REQUEST['id_detalle'][$i]  // ID del detalle para actualización
+                            'ca' => trim($valores_sst[2] ?? '')          // Tercer valor: CA
                         );
                     }
                 }
@@ -78,47 +80,36 @@ require_once("../_conexion/sesion.php");
                 // Procesar archivos
                 $archivos_subidos = array();
                 foreach ($_FILES as $key => $file) {
-                    if (strpos($key, 'archivos_') === 0 && !empty($file['name'][0])) {
+                    if (strpos($key, 'archivos_') === 0) {
                         $index = str_replace('archivos_', '', $key);
                         $archivos_subidos[$index] = $file;
                     }
                 }
 
-                // LLAMADA ACTUALIZADA con ubicación
-                $rpta = ActualizarPedido($id_pedido, $id_ubicacion, $nom_pedido, $fecha_necesidad, 
-                                       $num_ot, $contacto, $lugar_entrega, 
-                                       $aclaraciones, $materiales, $archivos_subidos);
+                // LLAMADA CORREGIDA con los parámetros correctos
+                $rpta = GrabarPedido($id_producto_tipo, $id_almacen, $nom_pedido, $solicitante, 
+                                $fecha_necesidad, $num_ot, $contacto, $lugar_entrega, 
+                                $aclaraciones, $id, $materiales, $archivos_subidos);
 
                 if ($rpta == "SI") {
             ?>
                     <script Language="JavaScript">
-                        location.href = 'pedidos_mostrar.php?actualizado=true';
+                        location.href = 'uso_material_mostrar.php?registrado=true';
                     </script>
                 <?php
                 } else {
                 ?>
                     <script Language="JavaScript">
-                        alert('Error al actualizar el pedido: <?php echo $rpta; ?>');
+                        alert('Error al registrar el pedido: <?php echo $rpta; ?>');
+                        location.href = 'uso_material_mostrar.php?error=true';
                     </script>
             <?php
                 }
             }
             //-------------------------------------------
 
-            if ($id_pedido > 0) {
-                // Cargar datos del pedido
-                $pedido_data = ConsultarPedido($id_pedido);
-                $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
-                
-                if (!empty($pedido_data)) {
-                    require_once("../_vista/v_pedidos_editar.php");
-                } else {
-                    echo "<script>alert('Pedido no encontrado'); location.href='pedidos_mostrar.php';</script>";
-                }
-            } else {
-                echo "<script>alert('ID de pedido no válido'); location.href='pedidos_mostrar.php';</script>";
-            }
-
+            
+            require_once("../_vista/v_uso_material_nuevo.php");
             require_once("../_vista/v_footer.php");
             ?>
         </div>

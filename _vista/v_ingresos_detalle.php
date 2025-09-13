@@ -72,11 +72,11 @@
                                                 <td>
                                                     <?php 
                                                     if ($detalle_ingreso['compra']['est_compra'] == 3) {
-                                                        echo '<span class="badge badge-success">COMPLETADO</span>';
+                                                        echo '<span class="badge badge-success badge_size">COMPLETADO</span>';
                                                     } elseif ($detalle_ingreso['resumen']['productos_parciales'] > 0) {
-                                                        echo '<span class="badge badge-warning">EN PROCESO</span>';
+                                                        echo '<span class="badge badge-warning badge_size">EN PROCESO</span>';
                                                     } else {
-                                                        echo '<span class="badge badge-info">PENDIENTE</span>';
+                                                        echo '<span class="badge badge-warning badge_size">PENDIENTE</span>';
                                                     }
                                                     ?>
                                                 </td>
@@ -109,7 +109,7 @@
                                             </tr>
                                             <tr>
                                                 <td><strong>Pendientes:</strong></td>
-                                                <td><span class="badge badge-info badge-lg"><?php echo $detalle_ingreso['resumen']['productos_pendientes']; ?></span></td>
+                                                <td><span class="badge badge-warning badge-lg"><?php echo $detalle_ingreso['resumen']['productos_pendientes']; ?></span></td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Registrado Por:</strong></td>
@@ -157,11 +157,11 @@
                                                         $porcentaje = $cantidad_pedida > 0 ? ($cantidad_ingresada / $cantidad_pedida) * 100 : 0;
                                                         
                                                         if ($porcentaje >= 100) {
-                                                            $estado_badge = '<span class="badge badge-success">COMPLETO</span>';
+                                                            $estado_badge = '<span class="badge badge-success badge_size">COMPLETO</span>';
                                                         } elseif ($porcentaje > 0) {
-                                                            $estado_badge = '<span class="badge badge-warning">PARCIAL</span>';
+                                                            $estado_badge = '<span class="badge badge-warning badge_size">PARCIAL</span>';
                                                         } else {
-                                                            $estado_badge = '<span class="badge badge-secondary">PENDIENTE</span>';
+                                                            $estado_badge = '<span class="badge badge-warning badge_size">PENDIENTE</span>';
                                                         }
                                                     ?>
                                                         <tr>
@@ -169,10 +169,10 @@
                                                             <td><strong><?php echo $producto['cod_material']; ?></strong></td>
                                                             <td><?php echo $producto['nom_producto']; ?></td>
                                                             <td class="text-center">
-                                                                <span class="badge badge-primary"><?php echo number_format($cantidad_pedida, 2); ?></span>
+                                                                <span class="badge badge-primary badge_size"><?php echo number_format($cantidad_pedida, 2); ?></span>
                                                             </td>
                                                             <td class="text-center">
-                                                                <span class="badge badge-success" style="font-size: 14px; padding: 8px 12px;">
+                                                                <span class="badge badge-success badge_size">
                                                                     <?php echo number_format($cantidad_ingresada, 2); ?>
                                                                 </span>
                                                             </td>
