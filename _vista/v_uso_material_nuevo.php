@@ -60,7 +60,8 @@
                                     <select name="id_solicitante" class="form-control" required>
                                         <option value="">Seleccionar</option>
                                         <?php foreach ($personal as $persona) { ?>
-                                            <option value="<?php echo $persona['id_personal']; ?>">
+                                            <option value="<?php echo $persona['id_personal']; ?>" 
+                                                <?php echo ($persona['id_personal'] == $id_personal) ? 'selected' : ''; ?>>
                                                 <?php echo $persona['nom_personal'] . ' ' . $persona['ape_personal']; ?>
                                             </option>
                                         <?php } ?>
@@ -98,32 +99,28 @@
                                         </div>
 
                                         <div class="col-md-3">
-                                            <label>Cantidad <span class="text-danger">*</span>:</label>
-                                            <input type="number" name="cantidad[]" class="form-control" step="0.01" min="0.01" required>
-                                        </div>
-
-                                        <div class="col-md-3">
                                             <label>Unidad:</label>
                                             <input type="text" name="unidad[]" class="form-control" readonly>
                                         </div>
+
+                                        <div class="col-md-3">
+                                            <label>Cantidad <span class="text-danger">*</span>:</label>
+                                            <input type="number" name="cantidad[]" class="form-control" step="0.01" min="0.01" required>
+                                        </div>
                                     </div>
                                     <div class="row mt-2">
-                                        <div class="col-md-6">
-                                            <label>Stock Disponible:</label>
-                                            <input type="text" name="stock_disponible[]" class="form-control text-primary font-weight-bold" readonly>
-                                        </div>
                                         <div class="col-md-6">
                                             <label>Observaciones:</label>
-                                            <textarea name="observaciones[]" class="form-control" rows="2" placeholder="Observaciones del uso"></textarea>
+                                            <input type="text" name="observaciones[]" class="form-control" placeholder="Observaciones del uso">
                                         </div>
-                                    </div>
-                                    <div class="row mt-2">
                                         <div class="col-md-6">
                                             <label>Adjuntar Evidencias:</label>
                                             <input type="file" name="archivos_0[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
                                             <small class="form-text text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, XLS. Máximo 5MB por archivo.</small>
                                         </div>
-                                        <div class="col-md-6 d-flex align-items-end">
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-md-12 d-flex align-items-end">
                                             <button type="button" class="btn btn-danger btn-sm eliminar-material" style="display: none;">
                                                 <i class="fa fa-trash"></i> Eliminar
                                             </button>
@@ -205,11 +202,59 @@
 </div>
 
 <script>
-// Variable global para rastrear qué botón de búsqueda se clickeó
+// Variables globales
 let currentSearchButton = null;
+let almacenUbicacionActual = { almacen: '', ubicacion: '' };
+let formularioModificado = false;
+let productosSeleccionados = [];
 
+// Detectar cambios en el formulario
+function marcarFormularioComoModificado() {
+    formularioModificado = true;
+}
+
+// Verificar si hay productos seleccionados
+function hayProductosSeleccionados() {
+    const materialesItems = document.querySelectorAll('.material-item');
+    for (let item of materialesItems) {
+        const inputDescripcion = item.querySelector('input[name="descripcion[]"]');
+        if (inputDescripcion && inputDescripcion.value.trim() !== '') {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Limpiar todos los productos seleccionados
+function limpiarProductosSeleccionados() {
+    const materialesItems = document.querySelectorAll('.material-item');
+    
+    // Eliminar todos los items adicionales, mantener solo el primero
+    for (let i = 1; i < materialesItems.length; i++) {
+        materialesItems[i].remove();
+    }
+    
+    // Limpiar el primer item de material
+    const primerMaterial = document.querySelector('.material-item');
+    if (primerMaterial) {
+        const inputs = primerMaterial.querySelectorAll('input[name="descripcion[]"], input[name="id_producto[]"], input[name="unidad[]"], input[name="cantidad[]"], input[name="observaciones[]"]');
+        inputs.forEach(input => {
+            input.value = '';
+        });
+        
+        // Ocultar el botón eliminar del primer item
+        const btnEliminar = primerMaterial.querySelector('.eliminar-material');
+        if (btnEliminar) {
+            btnEliminar.style.display = 'none';
+        }
+    }
+    
+    productosSeleccionados = [];
+    formularioModificado = false;
+}
+
+// Función para buscar material
 function buscarMaterial(button) {
-    // Validar que se haya seleccionado almacén y ubicación
     const selectAlmacen = document.querySelector('select[name="id_almacen"]');
     const selectUbicacion = document.querySelector('select[name="id_ubicacion"]');
     
@@ -227,10 +272,8 @@ function buscarMaterial(button) {
         return;
     }
     
-    // Guardar referencia al botón que se clickeó
     currentSearchButton = button;
     
-    // Actualizar el filtro en la modal
     const filtroSelect = document.getElementById('filtro_almacen_ubicacion');
     const almacenTexto = selectAlmacen.options[selectAlmacen.selectedIndex].text;
     const ubicacionTexto = selectUbicacion.options[selectUbicacion.selectedIndex].text;
@@ -238,31 +281,27 @@ function buscarMaterial(button) {
     filtroSelect.innerHTML = `<option value="${selectAlmacen.value}_${selectUbicacion.value}">${almacenTexto} - ${ubicacionTexto}</option>`;
     filtroSelect.value = `${selectAlmacen.value}_${selectUbicacion.value}`;
     
-    // Abrir la modal
     $('#buscar_producto').modal('show');
-    
-    // Cargar los productos en la tabla
     cargarProductos(selectAlmacen.value, selectUbicacion.value);
 }
 
+// Función para cargar productos
 function cargarProductos(idAlmacen, idUbicacion) {
-    // Si la tabla ya está inicializada, destrúyela
     if ($.fn.dataTable.isDataTable('#datatable_producto')) {
         $('#datatable_producto').DataTable().destroy();
     }
 
-    // Inicializar DataTable
     $('#datatable_producto').DataTable({
         "processing": true,
         "serverSide": true,
         "responsive": true,
         "ajax": {
-            "url": "material_mostrar_modal.php", // Este archivo necesitará ser creado
+            "url": "material_mostrar_modal.php",
             "type": "POST",
             "data": function(d) {
                 d.id_almacen = idAlmacen;
                 d.id_ubicacion = idUbicacion;
-                d.solo_con_stock = true; // Solo mostrar materiales con stock
+                d.solo_con_stock = true;
                 return d;
             }
         },
@@ -295,32 +334,25 @@ function cargarProductos(idAlmacen, idUbicacion) {
     });
 }
 
+// Función para seleccionar producto
 function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisponible) {
     if (currentSearchButton) {
-        // Encontrar el contenedor padre del botón que se clickeó
         let materialItem = currentSearchButton.closest('.material-item');
         
         if (materialItem) {
-            // Actualizar los campos
             let inputDescripcion = materialItem.querySelector('input[name="descripcion[]"]');
             let inputIdProducto = materialItem.querySelector('input[name="id_producto[]"]');
             let inputUnidad = materialItem.querySelector('input[name="unidad[]"]');
-            let inputStock = materialItem.querySelector('input[name="stock_disponible[]"]');
             
             if (inputDescripcion) inputDescripcion.value = nombreProducto;
             if (inputIdProducto) inputIdProducto.value = idProducto;
             if (inputUnidad) inputUnidad.value = unidadMedida;
-            if (inputStock) inputStock.value = stockDisponible + ' ' + unidadMedida;
         }
     }
     
-    // Cerrar la modal
     $('#buscar_producto').modal('hide');
-    
-    // Limpiar la referencia
     currentSearchButton = null;
     
-    // Mostrar mensaje de éxito
     if (typeof Swal !== 'undefined') {
         Swal.fire({
             icon: 'success',
@@ -332,13 +364,132 @@ function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisp
     }
 }
 
-// Limpiar la referencia cuando se cierre la modal sin seleccionar
-$('#buscar_producto').on('hidden.bs.modal', function () {
-    currentSearchButton = null;
-});
+// Función para manejar cambios en almacén
+function manejarCambioAlmacen(elemento) {
+    elemento.addEventListener('focus', function() {
+        almacenUbicacionActual.almacen = this.value;
+    });
+    
+    elemento.addEventListener('change', function() {
+        const valorActual = this.value;
+        const hayProductos = hayProductosSeleccionados();
+        
+        if (hayProductos && almacenUbicacionActual.almacen !== valorActual) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: '¿Cambiar almacén?',
+                    text: 'Si cambias el almacén, todos los materiales seleccionados se eliminarán.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Sí, cambiar almacén',
+                    cancelButtonText: 'Cancelar',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        limpiarProductosSeleccionados();
+                        almacenUbicacionActual.almacen = valorActual;
+                        
+                        Swal.fire({
+                            title: 'Almacén cambiado',
+                            text: 'Los materiales seleccionados han sido eliminados.',
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        this.value = almacenUbicacionActual.almacen;
+                    }
+                });
+            } else {
+                if (confirm('Si cambias el almacén, todos los materiales seleccionados se eliminarán. ¿Continuar?')) {
+                    limpiarProductosSeleccionados();
+                    almacenUbicacionActual.almacen = valorActual;
+                    alert('Almacén cambiado. Materiales eliminados.');
+                } else {
+                    this.value = almacenUbicacionActual.almacen;
+                }
+            }
+        } else {
+            almacenUbicacionActual.almacen = valorActual;
+        }
+    });
+}
 
+// Función para manejar cambios en ubicación
+function manejarCambioUbicacion(elemento) {
+    elemento.addEventListener('focus', function() {
+        almacenUbicacionActual.ubicacion = this.value;
+    });
+    
+    elemento.addEventListener('change', function() {
+        const valorActual = this.value;
+        const hayProductos = hayProductosSeleccionados();
+        
+        if (hayProductos && almacenUbicacionActual.ubicacion !== valorActual) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: '¿Cambiar ubicación?',
+                    text: 'Si cambias la ubicación, todos los materiales seleccionados se eliminarán.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Sí, cambiar ubicación',
+                    cancelButtonText: 'Cancelar',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        limpiarProductosSeleccionados();
+                        almacenUbicacionActual.ubicacion = valorActual;
+                        
+                        Swal.fire({
+                            title: 'Ubicación cambiada',
+                            text: 'Los materiales seleccionados han sido eliminados.',
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        this.value = almacenUbicacionActual.ubicacion;
+                    }
+                });
+            } else {
+                if (confirm('Si cambias la ubicación, todos los materiales seleccionados se eliminarán. ¿Continuar?')) {
+                    limpiarProductosSeleccionados();
+                    almacenUbicacionActual.ubicacion = valorActual;
+                    alert('Ubicación cambiada. Materiales eliminados.');
+                } else {
+                    this.value = almacenUbicacionActual.ubicacion;
+                }
+            }
+        } else {
+            almacenUbicacionActual.ubicacion = valorActual;
+        }
+    });
+}
+
+// Event listeners
 document.addEventListener('DOMContentLoaded', function() {
     let contadorMateriales = 1;
+    
+    // Detectar cambios en campos del formulario
+    const todosLosCampos = document.querySelectorAll('input, textarea, select');
+    todosLosCampos.forEach(campo => {
+        if (campo.name !== 'id_almacen' && campo.name !== 'id_ubicacion') {
+            campo.addEventListener('change', marcarFormularioComoModificado);
+            campo.addEventListener('input', marcarFormularioComoModificado);
+        }
+    });
+    
+    // Controlar cambios en almacén y ubicación
+    const selectAlmacen = document.querySelector('select[name="id_almacen"]');
+    const selectUbicacion = document.querySelector('select[name="id_ubicacion"]');
+    
+    // Aplicar los event listeners específicos
+    if (selectAlmacen) manejarCambioAlmacen(selectAlmacen);
+    if (selectUbicacion) manejarCambioUbicacion(selectUbicacion);
     
     // Agregar nuevo material
     const btnAgregarMaterial = document.getElementById('agregar-material');
@@ -347,7 +498,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const contenedor = document.getElementById('contenedor-materiales');
             const nuevoMaterial = document.querySelector('.material-item').cloneNode(true);
             
-            // Limpiar los valores del nuevo elemento
             const inputs = nuevoMaterial.querySelectorAll('input, textarea');
             inputs.forEach(input => {
                 if (input.type !== 'hidden') {
@@ -357,13 +507,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
-            // Actualizar el name del input file para que sea único
             const fileInput = nuevoMaterial.querySelector('input[type="file"]');
             if (fileInput) {
                 fileInput.name = `archivos_${contadorMateriales}[]`;
             }
 
-            // Mostrar el botón eliminar
             const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
             if (btnEliminar) {
                 btnEliminar.style.display = 'block';
@@ -372,12 +520,11 @@ document.addEventListener('DOMContentLoaded', function() {
             contenedor.appendChild(nuevoMaterial);
             contadorMateriales++;
             
-            // Actualizar eventos
             actualizarEventosEliminar();
+            actualizarEventosCampos();
         });
     }
     
-    // Función para actualizar eventos de eliminar
     function actualizarEventosEliminar() {
         document.querySelectorAll('.eliminar-material').forEach(btn => {
             btn.onclick = function() {
@@ -388,7 +535,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Inicializar eventos
+    function actualizarEventosCampos() {
+        const todosLosCamposActualizados = document.querySelectorAll('input, textarea, select');
+        todosLosCamposActualizados.forEach(campo => {
+            if (campo.name !== 'id_almacen' && campo.name !== 'id_ubicacion') {
+                campo.removeEventListener('change', marcarFormularioComoModificado);
+                campo.removeEventListener('input', marcarFormularioComoModificado);
+                campo.addEventListener('change', marcarFormularioComoModificado);
+                campo.addEventListener('input', marcarFormularioComoModificado);
+            }
+        });
+    }
+    
     actualizarEventosEliminar();
     
     // Validación de cantidad vs stock
@@ -396,16 +554,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target && e.target.name === 'cantidad[]') {
             const materialItem = e.target.closest('.material-item');
             const stockInput = materialItem.querySelector('input[name="stock_disponible[]"]');
-            const stockText = stockInput.value;
-            const stockNumero = parseFloat(stockText.split(' ')[0]) || 0;
-            const cantidadIngresada = parseFloat(e.target.value) || 0;
-            
-            if (cantidadIngresada > stockNumero) {
-                e.target.style.borderColor = 'red';
-                e.target.title = `La cantidad no puede ser mayor al stock disponible (${stockNumero})`;
-            } else {
-                e.target.style.borderColor = '';
-                e.target.title = '';
+            if (stockInput) {
+                const stockText = stockInput.value;
+                const stockNumero = parseFloat(stockText.split(' ')[0]) || 0;
+                const cantidadIngresada = parseFloat(e.target.value) || 0;
+                
+                if (cantidadIngresada > stockNumero) {
+                    e.target.style.borderColor = 'red';
+                    e.target.title = `La cantidad no puede ser mayor al stock disponible (${stockNumero})`;
+                } else {
+                    e.target.style.borderColor = '';
+                    e.target.title = '';
+                }
             }
         }
     });
@@ -418,13 +578,15 @@ document.addEventListener('DOMContentLoaded', function() {
         cantidadInputs.forEach(input => {
             const materialItem = input.closest('.material-item');
             const stockInput = materialItem.querySelector('input[name="stock_disponible[]"]');
-            const stockText = stockInput.value;
-            const stockNumero = parseFloat(stockText.split(' ')[0]) || 0;
-            const cantidadIngresada = parseFloat(input.value) || 0;
-            
-            if (cantidadIngresada > stockNumero) {
-                hayErrores = true;
-                input.style.borderColor = 'red';
+            if (stockInput) {
+                const stockText = stockInput.value;
+                const stockNumero = parseFloat(stockText.split(' ')[0]) || 0;
+                const cantidadIngresada = parseFloat(input.value) || 0;
+                
+                if (cantidadIngresada > stockNumero) {
+                    hayErrores = true;
+                    input.style.borderColor = 'red';
+                }
             }
         });
         
@@ -441,5 +603,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+});
+
+// Limpiar referencia al cerrar modal
+$('#buscar_producto').on('hidden.bs.modal', function () {
+    currentSearchButton = null;
 });
 </script>

@@ -33,6 +33,7 @@
                                 <label class="control-label col-md-3 col-sm-3">Almacén:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <input type="text" class="form-control" value="<?php echo $uso['nom_almacen']; ?>" readonly>
+                                    <input type="hidden" name="id_almacen" value="<?php echo $uso['id_almacen']; ?>">
                                 </div>
                             </div>
 
@@ -78,7 +79,7 @@
                                 <div class="col-md-9 col-sm-9">
                                     <input type="text" class="form-control" value="<?php echo date('d/m/Y H:i', strtotime($uso['fec_uso_material'])); ?>" readonly>
                                 </div>
-            </div>
+                            </div>
 
                             <div class="ln_solid"></div>
 
@@ -109,29 +110,23 @@
                                         </div>
 
                                         <div class="col-md-3">
-                                            <label>Cantidad <span class="text-danger">*</span>:</label>
-                                            <input type="number" name="cantidad[]" class="form-control" step="0.01" min="0.01" 
-                                                   value="<?php echo $detalle['cant_uso_material_detalle']; ?>" required>
-                                        </div>
-
-                                        <div class="col-md-3">
                                             <label>Unidad:</label>
                                             <input type="text" name="unidad[]" class="form-control" 
                                                    value="<?php echo $detalle['nom_unidad_medida']; ?>" readonly>
                                         </div>
+
+                                        <div class="col-md-3">
+                                            <label>Cantidad <span class="text-danger">*</span>:</label>
+                                            <input type="number" name="cantidad[]" class="form-control" step="0.01" min="0.01" 
+                                                   value="<?php echo $detalle['cant_uso_material_detalle']; ?>" required>
+                                        </div>
                                     </div>
                                     <div class="row mt-2">
-                                        <div class="col-md-6">
-                                            <label>Stock Disponible:</label>
-                                            <input type="text" name="stock_disponible[]" class="form-control text-primary font-weight-bold" 
-                                                   value="<?php echo $detalle['cantidad_disponible_almacen'] . ' ' . $detalle['nom_unidad_medida']; ?>" readonly>
-                                        </div>
                                         <div class="col-md-6">
                                             <label>Observaciones:</label>
-                                            <textarea name="observaciones[]" class="form-control" rows="2" placeholder="Observaciones del uso"><?php echo $detalle['obs_uso_material_detalle']; ?></textarea>
+                                            <input type="text" name="observaciones[]" class="form-control" placeholder="Observaciones del uso"
+                                                   value="<?php echo $detalle['obs_uso_material_detalle']; ?>">
                                         </div>
-                                    </div>
-                                    <div class="row mt-2">
                                         <div class="col-md-6">
                                             <label>Adjuntar Evidencias:</label>
                                             <input type="file" name="archivos_<?php echo $contador; ?>[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
@@ -147,7 +142,9 @@
                                                 echo '</div>';
                                             } ?>
                                         </div>
-                                        <div class="col-md-6 d-flex align-items-end">
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-md-12 d-flex align-items-end">
                                             <button type="button" class="btn btn-danger btn-sm eliminar-material" 
                                                     <?php echo ($contador == 0) ? 'style="display: none;"' : ''; ?>>
                                                 <i class="fa fa-trash"></i> Eliminar
@@ -238,12 +235,48 @@
 </div>
 
 <script>
-// Variable global para rastrear qué botón de búsqueda se clickeó
+// Variables globales
 let currentSearchButton = null;
+let ubicacionActual = '';
+let formularioModificado = false;
+let productosSeleccionados = [];
 
+// Detectar cambios en el formulario
+function marcarFormularioComoModificado() {
+    formularioModificado = true;
+}
+
+// Verificar si hay productos seleccionados
+function hayProductosSeleccionados() {
+    const materialesItems = document.querySelectorAll('.material-item');
+    for (let item of materialesItems) {
+        const inputDescripcion = item.querySelector('input[name="descripcion[]"]');
+        if (inputDescripcion && inputDescripcion.value.trim() !== '') {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Limpiar productos nuevos (no originales del registro)
+function limpiarProductosNuevos() {
+    const materialesItems = document.querySelectorAll('.material-item');
+    
+    // Eliminar solo los items nuevos (que no tienen id_detalle o tienen id_detalle = 0)
+    materialesItems.forEach((item) => {
+        const inputIdDetalle = item.querySelector('input[name="id_detalle[]"]');
+        if (inputIdDetalle && (inputIdDetalle.value === '' || inputIdDetalle.value === '0')) {
+            item.remove();
+        }
+    });
+    
+    formularioModificado = false;
+}
+
+// Función para buscar material
 function buscarMaterial(button) {
-    // Obtener almacén de los datos existentes (no editable)
     const selectUbicacion = document.querySelector('select[name="id_ubicacion"]');
+    const inputAlmacen = document.querySelector('input[name="id_almacen"]');
     
     if (!selectUbicacion.value) {
         if (typeof Swal !== 'undefined') {
@@ -259,32 +292,25 @@ function buscarMaterial(button) {
         return;
     }
     
-    // Guardar referencia al botón que se clickeó
     currentSearchButton = button;
     
-    // Actualizar el filtro en la modal (usando almacén fijo del registro actual)
     const filtroSelect = document.getElementById('filtro_almacen_ubicacion');
-    const almacenId = '<?php echo $uso['id_almacen']; ?>';
     const almacenNombre = '<?php echo $uso['nom_almacen']; ?>';
     const ubicacionTexto = selectUbicacion.options[selectUbicacion.selectedIndex].text;
     
-    filtroSelect.innerHTML = `<option value="${almacenId}_${selectUbicacion.value}">${almacenNombre} - ${ubicacionTexto}</option>`;
-    filtroSelect.value = `${almacenId}_${selectUbicacion.value}`;
+    filtroSelect.innerHTML = `<option value="${inputAlmacen.value}_${selectUbicacion.value}">${almacenNombre} - ${ubicacionTexto}</option>`;
+    filtroSelect.value = `${inputAlmacen.value}_${selectUbicacion.value}`;
     
-    // Abrir la modal
     $('#buscar_producto').modal('show');
-    
-    // Cargar los productos en la tabla
-    cargarProductos(almacenId, selectUbicacion.value);
+    cargarProductos(inputAlmacen.value, selectUbicacion.value);
 }
 
+// Función para cargar productos
 function cargarProductos(idAlmacen, idUbicacion) {
-    // Si la tabla ya está inicializada, destrúyela
     if ($.fn.dataTable.isDataTable('#datatable_producto')) {
         $('#datatable_producto').DataTable().destroy();
     }
 
-    // Inicializar DataTable
     $('#datatable_producto').DataTable({
         "processing": true,
         "serverSide": true,
@@ -328,6 +354,7 @@ function cargarProductos(idAlmacen, idUbicacion) {
     });
 }
 
+// Función para seleccionar producto
 function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisponible) {
     if (currentSearchButton) {
         let materialItem = currentSearchButton.closest('.material-item');
@@ -336,12 +363,10 @@ function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisp
             let inputDescripcion = materialItem.querySelector('input[name="descripcion[]"]');
             let inputIdProducto = materialItem.querySelector('input[name="id_producto[]"]');
             let inputUnidad = materialItem.querySelector('input[name="unidad[]"]');
-            let inputStock = materialItem.querySelector('input[name="stock_disponible[]"]');
             
             if (inputDescripcion) inputDescripcion.value = nombreProducto;
             if (inputIdProducto) inputIdProducto.value = idProducto;
             if (inputUnidad) inputUnidad.value = unidadMedida;
-            if (inputStock) inputStock.value = stockDisponible + ' ' + unidadMedida;
         }
     }
     
@@ -359,12 +384,90 @@ function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisp
     }
 }
 
-$('#buscar_producto').on('hidden.bs.modal', function () {
-    currentSearchButton = null;
-});
+// Función para manejar cambios en ubicación
+function manejarCambioUbicacion(elemento) {
+    elemento.addEventListener('focus', function() {
+        ubicacionActual = this.value;
+    });
+    
+    elemento.addEventListener('change', function() {
+        const valorActual = this.value;
+        const hayProductosNuevos = hayProductosNuevos();
+        
+        if (hayProductosNuevos && ubicacionActual !== valorActual) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    title: '¿Cambiar ubicación?',
+                    text: 'Si cambias la ubicación, los materiales nuevos agregados se eliminarán.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Sí, cambiar ubicación',
+                    cancelButtonText: 'Cancelar',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        limpiarProductosNuevos();
+                        ubicacionActual = valorActual;
+                        
+                        Swal.fire({
+                            title: 'Ubicación cambiada',
+                            text: 'Los materiales nuevos han sido eliminados.',
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        this.value = ubicacionActual;
+                    }
+                });
+            } else {
+                if (confirm('Si cambias la ubicación, los materiales nuevos agregados se eliminarán. ¿Continuar?')) {
+                    limpiarProductosNuevos();
+                    ubicacionActual = valorActual;
+                    alert('Ubicación cambiada. Materiales nuevos eliminados.');
+                } else {
+                    this.value = ubicacionActual;
+                }
+            }
+        } else {
+            ubicacionActual = valorActual;
+        }
+    });
+}
 
+// Verificar si hay productos nuevos (no originales del registro)
+function hayProductosNuevos() {
+    const materialesItems = document.querySelectorAll('.material-item');
+    for (let item of materialesItems) {
+        const inputIdDetalle = item.querySelector('input[name="id_detalle[]"]');
+        if (inputIdDetalle && (inputIdDetalle.value === '' || inputIdDetalle.value === '0')) {
+            const inputDescripcion = item.querySelector('input[name="descripcion[]"]');
+            if (inputDescripcion && inputDescripcion.value.trim() !== '') {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+// Event listeners
 document.addEventListener('DOMContentLoaded', function() {
     let contadorMateriales = <?php echo count($uso_material_detalle); ?>;
+    
+    // Detectar cambios en campos del formulario
+    const todosLosCampos = document.querySelectorAll('input, textarea, select');
+    todosLosCampos.forEach(campo => {
+        if (campo.name !== 'id_ubicacion') {
+            campo.addEventListener('change', marcarFormularioComoModificado);
+            campo.addEventListener('input', marcarFormularioComoModificado);
+        }
+    });
+    
+    // Controlar cambios en ubicación
+    const selectUbicacion = document.querySelector('select[name="id_ubicacion"]');
+    if (selectUbicacion) manejarCambioUbicacion(selectUbicacion);
     
     // Agregar nuevo material
     const btnAgregarMaterial = document.getElementById('agregar-material');
@@ -373,19 +476,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const contenedor = document.getElementById('contenedor-materiales');
             const nuevoMaterial = document.querySelector('.material-item').cloneNode(true);
             
-            // Limpiar los valores del nuevo elemento
             const inputs = nuevoMaterial.querySelectorAll('input, textarea');
             inputs.forEach(input => {
                 if (input.type !== 'hidden') {
                     input.value = '';
                 } else if (input.name === 'id_detalle[]') {
-                    input.value = '0'; // Nuevo detalle
+                    input.value = '0';
                 } else {
                     input.value = '';
                 }
             });
 
-            // Actualizar el name del input file para que sea único
             const fileInput = nuevoMaterial.querySelector('input[type="file"]');
             if (fileInput) {
                 fileInput.name = `archivos_${contadorMateriales}[]`;
@@ -393,11 +494,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Remover archivos existentes del nuevo elemento
             const archivosExistentes = nuevoMaterial.querySelector('.mt-2');
-            if (archivosExistentes) {
+            if (archivosExistentes && archivosExistentes.innerHTML.includes('Archivos existentes:')) {
                 archivosExistentes.remove();
             }
 
-            // Mostrar el botón eliminar
             const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
             if (btnEliminar) {
                 btnEliminar.style.display = 'block';
@@ -407,6 +507,7 @@ document.addEventListener('DOMContentLoaded', function() {
             contadorMateriales++;
             
             actualizarEventosEliminar();
+            actualizarEventosCampos();
         });
     }
     
@@ -420,57 +521,57 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    function actualizarEventosCampos() {
+        const todosLosCamposActualizados = document.querySelectorAll('input, textarea, select');
+        todosLosCamposActualizados.forEach(campo => {
+            if (campo.name !== 'id_ubicacion') {
+                campo.removeEventListener('change', marcarFormularioComoModificado);
+                campo.removeEventListener('input', marcarFormularioComoModificado);
+                campo.addEventListener('change', marcarFormularioComoModificado);
+                campo.addEventListener('input', marcarFormularioComoModificado);
+            }
+        });
+    }
+    
     actualizarEventosEliminar();
     
-    // Validación de cantidad vs stock
+    // Validación de cantidad vs stock (se aplicará dinámicamente)
     document.addEventListener('input', function(e) {
         if (e.target && e.target.name === 'cantidad[]') {
-            const materialItem = e.target.closest('.material-item');
-            const stockInput = materialItem.querySelector('input[name="stock_disponible[]"]');
-            const stockText = stockInput.value;
-            const stockNumero = parseFloat(stockText.split(' ')[0]) || 0;
-            const cantidadIngresada = parseFloat(e.target.value) || 0;
-            
-            if (cantidadIngresada > stockNumero) {
-                e.target.style.borderColor = 'red';
-                e.target.title = `La cantidad no puede ser mayor al stock disponible (${stockNumero})`;
-            } else {
-                e.target.style.borderColor = '';
-                e.target.title = '';
-            }
+            // La validación de stock se manejará cuando se seleccione un producto del modal
+            // o se puede implementar una consulta AJAX para obtener el stock actual
         }
     });
     
     // Validación antes del envío
     document.querySelector('form').addEventListener('submit', function(e) {
-        let hayErrores = false;
-        const cantidadInputs = document.querySelectorAll('input[name="cantidad[]"]');
+        // Validaciones básicas - se puede extender según necesidades
+        const materialesConDatos = document.querySelectorAll('.material-item input[name="descripcion[]"]');
+        let hayMaterialesValidos = false;
         
-        cantidadInputs.forEach(input => {
-            const materialItem = input.closest('.material-item');
-            const stockInput = materialItem.querySelector('input[name="stock_disponible[]"]');
-            const stockText = stockInput.value;
-            const stockNumero = parseFloat(stockText.split(' ')[0]) || 0;
-            const cantidadIngresada = parseFloat(input.value) || 0;
-            
-            if (cantidadIngresada > stockNumero) {
-                hayErrores = true;
-                input.style.borderColor = 'red';
+        materialesConDatos.forEach(input => {
+            if (input.value.trim() !== '') {
+                hayMaterialesValidos = true;
             }
         });
         
-        if (hayErrores) {
+        if (!hayMaterialesValidos) {
             e.preventDefault();
             if (typeof Swal !== 'undefined') {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error de validación',
-                    text: 'Hay cantidades que superan el stock disponible. Por favor revise los campos marcados en rojo.'
+                    text: 'Debe seleccionar al menos un material.'
                 });
             } else {
-                alert('Hay cantidades que superan el stock disponible. Por favor revise los campos marcados en rojo.');
+                alert('Debe seleccionar al menos un material.');
             }
         }
     });
+});
+
+// Limpiar referencia al cerrar modal
+$('#buscar_producto').on('hidden.bs.modal', function () {
+    currentSearchButton = null;
 });
 </script>
