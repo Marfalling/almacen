@@ -193,7 +193,7 @@ function ConsultarPedidoDetalle($id_pedido)
              LEFT JOIN pedido_detalle_documento pdd ON pd.id_pedido_detalle = pdd.id_pedido_detalle
              INNER JOIN producto p ON pd.id_producto = p.id_producto
              INNER JOIN pedido ped ON pd.id_pedido = ped.id_pedido
-             WHERE pd.id_pedido = $id_pedido AND pd.est_pedido_detalle = 1
+             WHERE pd.id_pedido = $id_pedido AND pd.est_pedido_detalle IN (1, 2)
              GROUP BY pd.id_pedido_detalle
              ORDER BY pd.id_pedido_detalle";
     $resc = mysqli_query($con, $sqlc);
@@ -340,13 +340,8 @@ function verificarItem($id_pedido_detalle, $new_cant_fin){
     $res = mysqli_query($con, $sql);
 
     if ($res && mysqli_num_rows($res) > 0) {
-        $row = mysqli_fetch_assoc($res);
-        $cant_pedido = floatval($row['cant_pedido_detalle']);
-        $cant_final = $cant_pedido - floatval($new_cant_fin);
-
         $sql_update = "UPDATE pedido_detalle 
-               SET cant_fin_pedido_detalle = $new_cant_fin, 
-                   est_pedido_detalle = 2 
+               SET cant_fin_pedido_detalle = $new_cant_fin
                WHERE id_pedido_detalle = $id_pedido_detalle";
 
         if (mysqli_query($con, $sql_update)) {

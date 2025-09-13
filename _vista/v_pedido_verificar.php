@@ -79,15 +79,41 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                 if (preg_match('/CA:\s*(.*)$/', $requisitos, $matches)) {
                                     $ca = trim($matches[1]);
                                 }
+
+                                $esVerificado = !is_null($detalle['cant_fin_pedido_detalle']);
+                                $stockInsuficiente = $detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle'];
+                                
+                                if ($esVerificado && $stockInsuficiente && $detalle['est_pedido_detalle'] != 2) {
+                                    $colorFondo = '#d4edda';
+                                    $colorBorde = '#28a745';
+                                    $claseTexto = 'text-success';
+                                    $icono = 'fa-check-circle';
+                                    $estadoTexto = 'Verificado';
+                                } else if ($detalle['est_pedido_detalle'] == 2) {
+                                    $colorFondo = '#f8d7da';
+                                    $colorBorde = '#dc3545';
+                                    $claseTexto = 'text-danger';
+                                    $icono = 'fa-times-circle';
+                                    $estadoTexto = 'Cerrado';
+                                } else {
+                                    $colorFondo = '#fff3cd';
+                                    $colorBorde = '#ffc107';
+                                    $claseTexto = 'text-warning';
+                                    $icono = 'fa-clock-o';
+                                    $estadoTexto = 'Pendiente';
+                                }
                             ?>
-                            <div class="item-pendiente border mb-2" style="background-color: #fff3cd; border-left: 4px solid #ffc107 !important; padding: 8px 12px; border-radius: 4px;" data-item="<?php echo $contador_detalle; ?>">
+                            <div class="item-pendiente border mb-2" 
+                                style="background-color: <?php echo $colorFondo; ?>; border-left: 4px solid <?php echo $colorBorde; ?> !important; padding: 8px 12px; border-radius: 4px;" 
+                                data-item="<?php echo $contador_detalle; ?>">
+                                
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="text-warning" style="font-weight: 600; font-size: 14px;">
-                                        <i class="fa fa-clock-o"></i> Item <?php echo $contador_detalle; ?>
+                                    <span class="<?php echo $claseTexto; ?>" style="font-weight: 600; font-size: 14px;">
+                                        <i class="fa <?php echo $icono; ?>"></i> Item <?php echo $contador_detalle; ?> - <?php echo $estadoTexto; ?>
                                     </span>
                                     <span>Stock Almacen: <?php echo $detalle['cantidad_disponible_almacen']; ?></span>
-                                    <?php if ($detalle['cant_fin_pedido_detalle'] == null && $detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle']) { ?>
-                                        
+                                    
+                                    <?php if (!$esVerificado && $stockInsuficiente) { ?>
                                         <button type="button" class="btn btn-success btn-xs verificar-btn"
                                                 data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
                                                 data-cantidad-actual="<?php echo $detalle['cant_pedido_detalle']; ?>"
@@ -95,7 +121,8 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                                 title="Verificar Item" style="padding: 2px 8px; font-size: 11px;">
                                             Verificar
                                         </button>
-                                    <?php } else if ($detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle']) { ?>
+                                        
+                                    <?php } elseif ($esVerificado && $stockInsuficiente && $detalle['est_pedido_detalle'] != 2) { ?>
                                         <button type="button" 
                                                 class="btn btn-primary btn-xs btn-agregarOrden" 
                                                 data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
@@ -106,8 +133,17 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                                 style="padding: 2px 8px; font-size: 11px;">
                                             <i class="fa fa-check"></i> Agregar a Orden
                                         </button>
+                                        
+                                    <?php } elseif ($esVerificado && !$stockInsuficiente) { ?>
+                                        <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">
+                                            ✓ Completo
+                                        </span>
+                                        
+                                    <?php } else { ?>
+                                        <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px;">
+                                            ✓ Cerrado
+                                        </span>
                                     <?php } ?>
-
                                 </div>
                                 
                                 <div style="font-size: 11px; color: #333; line-height: 1.4;">
@@ -123,6 +159,11 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                     <strong>MA:</strong> <?php echo $ma; ?>
                                     <span style="margin: 0 8px;">|</span>
                                     <strong>CA:</strong> <?php echo $ca; ?>
+                                    
+                                    <?php if ($esVerificado) { ?>
+                                        <span style="margin: 0 8px;">|</span>
+                                        <strong>Cant. Verificada:</strong> <?php echo $detalle['cant_fin_pedido_detalle']; ?>
+                                    <?php } ?>
                                 </div>
                             </div>
                             <?php 
@@ -361,55 +402,6 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
     </div>
 </div>
 
-<div class="modal fade" id="precioCompraModal" tabindex="-1" role="dialog" aria-labelledby="precioCompraModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="precioCompraModalLabel">Precio de Compra</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="row mb-2">
-                    <div class="col-md-12">
-                        <h6 class="text-primary">Información del Item:</h6>
-                        <div id="info-item-precio" class="alert alert-light" style="font-size: 12px;">
-                        </div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="precio_compra_input">Precio de Compra: <span class="text-danger">*</span></label>
-                    <div class="input-group">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">S/.</span>
-                        </div>
-                        <input type="number" 
-                               class="form-control" 
-                               id="precio_compra_input" 
-                               step="0.01" 
-                               min="0"
-                               placeholder="0.00"
-                               required>
-                    </div>
-                    <small class="form-text text-muted">Ingrese el precio unitario del producto</small>
-                </div>
-                
-                <input type="hidden" id="modal_id_detalle">
-                <input type="hidden" id="modal_id_producto">
-                <input type="hidden" id="modal_descripcion">
-                <input type="hidden" id="modal_cantidad_verificada">
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btn-confirmar-precio">
-                    <i class="fa fa-check"></i> Agregar a Orden
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let itemsVerificados = 0;
@@ -548,29 +540,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            itemSeleccionado = {
+            const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
+            if (contenedorTabla.style.display !== 'none') {
+                mostrarFormularioNuevaOrden();
+            }
+            
+            agregarItemAOrdenSinPrecio({
                 idDetalle: idDetalle,
                 idProducto: idProducto,
                 descripcion: descripcion,
                 cantidadVerificada: cantidadVerificada,
                 botonOriginal: targetBtn
-            };
-            
-            document.getElementById('modal_id_detalle').value = idDetalle;
-            document.getElementById('modal_id_producto').value = idProducto;
-            document.getElementById('modal_descripcion').value = descripcion;
-            document.getElementById('modal_cantidad_verificada').value = cantidadVerificada;
-            
-            infoItemPrecio.innerHTML = `
-                <strong>Descripción:</strong> ${descripcion}<br>
-                <strong>Cantidad Verificada:</strong> ${cantidadVerificada}
-            `;
-            
-            precioCompraInput.value = '';
-            $(precioCompraModal).modal('show');
-            
-            $(precioCompraModal).on('shown.bs.modal', function () {
-                precioCompraInput.focus();
             });
         }
     });
@@ -602,10 +582,8 @@ document.addEventListener('DOMContentLoaded', function() {
         itemSeleccionado = null;
     });
     
-    function agregarItemAOrden(item, precio) {
+    function agregarItemAOrdenSinPrecio(item) {
         const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-        
-        const subtotal = (parseFloat(item.cantidadVerificada) * parseFloat(precio)).toFixed(2);
         
         const itemElement = document.createElement('div');
         itemElement.id = `item-orden-${item.idDetalle}`;
@@ -614,27 +592,45 @@ document.addEventListener('DOMContentLoaded', function() {
             <input type="hidden" name="items_orden[${item.idDetalle}][id_detalle]" value="${item.idDetalle}">
             <input type="hidden" name="items_orden[${item.idDetalle}][id_producto]" value="${item.idProducto}">
             <input type="hidden" name="items_orden[${item.idDetalle}][cantidad]" value="${item.cantidadVerificada}">
-            <input type="hidden" name="items_orden[${item.idDetalle}][precio_unitario]" value="${precio}">
-            <div class="d-flex justify-content-between align-items-center">
-                <div style="font-size: 12px; flex-grow: 1;">
-                    <div class="mb-1">
-                        <strong>Descripción:</strong> ${item.descripcion}
-                    </div>
-                    <div class="row">
-                        <div class="col-md-3">
+            
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div style="font-size: 12px;">
+                        <div class="mb-1">
+                            <strong>Descripción:</strong> ${item.descripcion}
+                        </div>
+                        <div>
                             <strong>Cantidad:</strong> ${item.cantidadVerificada}
                         </div>
-                        <div class="col-md-3">
-                            <strong>P. Unit:</strong> S/. ${parseFloat(precio).toFixed(2)}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label style="font-size: 11px; font-weight: bold;">Precio Unit.:</label>
+                    <div class="input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" style="font-size: 11px;">S/.</span>
                         </div>
-                        <div class="col-md-3">
-                            <strong>Subtotal:</strong> S/. ${subtotal}
-                        </div>
-                        <div class="col-md-3 text-right">
-                            <button type="button" class="btn btn-danger btn-xs btn-remover-item" data-id="${item.idDetalle}">
-                                <i class="fa fa-trash"></i> Remover
-                            </button>
-                        </div>
+                        <input type="number" 
+                            class="form-control form-control-sm precio-item" 
+                            name="items_orden[${item.idDetalle}][precio_unitario]"
+                            data-id-detalle="${item.idDetalle}"
+                            step="0.01" 
+                            min="0"
+                            placeholder="0.00"
+                            style="font-size: 11px;"
+                            required>
+                    </div>
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-danger btn-sm btn-remover-item" data-id="${item.idDetalle}">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-12">
+                    <div class="subtotal-item text-right" id="subtotal-${item.idDetalle}" style="font-size: 12px; font-weight: bold; color: #007bff;">
+                        Subtotal: S/. 0.00
                     </div>
                 </div>
             </div>
@@ -647,9 +643,23 @@ document.addEventListener('DOMContentLoaded', function() {
         item.botonOriginal.classList.remove('btn-primary');
         item.botonOriginal.classList.add('btn-success');
         
-        actualizarTotalOrden();
+        const inputPrecio = itemElement.querySelector('.precio-item');
+        inputPrecio.addEventListener('input', function() {
+            actualizarSubtotalItem(item.idDetalle, item.cantidadVerificada);
+            actualizarTotalOrden();
+        });
     }
 
+    function actualizarSubtotalItem(idDetalle, cantidad) {
+        const inputPrecio = document.querySelector(`input[data-id-detalle="${idDetalle}"]`);
+        const subtotalElement = document.getElementById(`subtotal-${idDetalle}`);
+        
+        if (inputPrecio && subtotalElement) {
+            const precio = parseFloat(inputPrecio.value) || 0;
+            const subtotal = (cantidad * precio).toFixed(2);
+            subtotalElement.textContent = `Subtotal: S/. ${subtotal}`;
+        }
+    }
     
     
     function actualizarTotalOrden() {
@@ -659,7 +669,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         items.forEach(item => {
             const cantidad = parseFloat(item.querySelector('input[name$="[cantidad]"]').value);
-            const precio = parseFloat(item.querySelector('input[name$="[precio_unitario]"]').value);
+            const inputPrecio = item.querySelector('input[name$="[precio_unitario]"]');
+            const precio = parseFloat(inputPrecio.value) || 0;
             total += cantidad * precio;
         });
         
@@ -669,8 +680,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!totalElement && items.length > 0) {
             totalElement = document.createElement('div');
             totalElement.id = 'total-orden';
-            totalElement.className = 'alert alert-info text-center';
-            totalElement.style.fontSize = '14px';
+            totalElement.className = 'alert alert-success text-center';
+            totalElement.style.fontSize = '16px';
             totalElement.style.fontWeight = 'bold';
             
             totalInput = document.createElement('input');
@@ -679,24 +690,13 @@ document.addEventListener('DOMContentLoaded', function() {
             totalInput.id = 'total_orden_input';
         }
         
-        if (totalElement) {
-            if (items.length > 0) {
-                totalElement.innerHTML = `<i class="fa fa-calculator"></i> Total de la Orden: S/. ${total.toFixed(2)}`;
-                totalInput.value = total.toFixed(2);
-                totalElement.style.display = 'block';
-                
-                if (totalElement.parentNode) {
-                    totalElement.remove();
-                }
-                if (totalInput.parentNode) {
-                    totalInput.remove();
-                }
-                
+        if (totalElement && items.length > 0) {
+            totalElement.innerHTML = `<i class="fa fa-calculator"></i> TOTAL DE LA ORDEN: S/. ${total.toFixed(2)}`;
+            totalInput.value = total.toFixed(2);
+            
+            if (!totalElement.parentNode) {
                 contenedorItemsOrden.appendChild(totalElement);
                 contenedorItemsOrden.appendChild(totalInput);
-                
-            } else {
-                totalElement.style.display = 'none';
             }
         }
     }
