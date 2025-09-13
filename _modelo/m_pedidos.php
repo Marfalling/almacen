@@ -1,5 +1,5 @@
 <?php
-function GrabarPedido($id_producto_tipo, $id_almacen, $nom_pedido, $solicitante, $fecha_necesidad, 
+function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $nom_pedido, $solicitante, $fecha_necesidad, 
                      $num_ot, $contacto, $lugar_entrega, $aclaraciones, $id_personal, 
                      $materiales, $archivos_subidos) 
 {
@@ -24,13 +24,13 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $nom_pedido, $solicitante,
     
     $cod_pedido = $obra['nom_obra'] . " " . $num_pedido;
 
-    // Insertar pedido principal - USA EL ID_PRODUCTO_TIPO CORRECTO
+    // Insertar pedido principal - AHORA INCLUYE EL id_ubicacion RECIBIDO COMO PARÁMETRO
     $sql = "INSERT INTO pedido (
                 id_producto_tipo, id_almacen, id_ubicacion, id_personal, 
                 cod_pedido, nom_pedido, ot_pedido, cel_pedido, lug_pedido, 
                 acl_pedido, fec_req_pedido, fec_pedido, est_pedido
             ) VALUES (
-                $id_producto_tipo, $id_almacen, 1, $id_personal, 
+                $id_producto_tipo, $id_almacen, $id_ubicacion, $id_personal, 
                 '$cod_pedido', '$nom_pedido', '$num_ot', '$contacto', '$lugar_entrega', 
                 '$aclaraciones', '$fecha_necesidad', NOW(), 1
             )";
@@ -221,13 +221,14 @@ function ConsultarPedidoDetalle($id_pedido)
     return $resultado;
 }
 
-function ActualizarPedido($id_pedido, $nom_pedido, $fecha_necesidad, $num_ot, 
+function ActualizarPedido($id_pedido, $id_ubicacion, $nom_pedido, $fecha_necesidad, $num_ot, 
                          $contacto, $lugar_entrega, $aclaraciones, $materiales, $archivos_subidos) 
 {
     include("../_conexion/conexion.php");
 
-    // Actualizar pedido principal
+    // Actualizar pedido principal - AHORA INCLUYE id_ubicacion
     $sql = "UPDATE pedido SET 
+            id_ubicacion = $id_ubicacion,
             nom_pedido = '$nom_pedido',
             fec_req_pedido = '$fecha_necesidad',
             ot_pedido = '$num_ot',
@@ -271,7 +272,7 @@ function ActualizarPedido($id_pedido, $nom_pedido, $fecha_necesidad, $num_ot,
             $comentario_detalle = "Unidad: $nombre_unidad | Unidad ID: $id_unidad | Obs: $observaciones";
             
             if ($id_detalle > 0 && in_array($id_detalle, $detalles_existentes)) {
-                // ACTUALIZAR DETALLE EXISTENTE - CORREGIDO: UPDATE no INSERT
+                // ACTUALIZAR DETALLE EXISTENTE
                 $sql_detalle = "UPDATE pedido_detalle SET 
                                 prod_pedido_detalle = '$descripcion',
                                 cant_pedido_detalle = $cantidad,

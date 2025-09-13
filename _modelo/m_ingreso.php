@@ -1,5 +1,6 @@
 <?php
 //-----------------------------------------------------------------------
+//-----------------------------------------------------------------------
 function ObtenerDetalleIngresoPorCompra($id_compra)
 {
     include("../_conexion/conexion.php");
@@ -43,16 +44,20 @@ function ObtenerDetalleIngresoPorCompra($id_compra)
         return false;
     }
 
-    // Productos del detalle de compra con información de ingresos
+    // Productos del detalle de compra con información de ingresos - CORREGIDO
     $sql_productos = "SELECT 
                         cd.id_producto,
                         cd.cant_compra_detalle,
                         prod.cod_material,
-                        prod.nom_producto,
+                        pd.prod_pedido_detalle as nom_producto,
                         um.nom_unidad_medida,
                         COALESCE(SUM(id2.cant_ingreso_detalle), 0) as cantidad_ingresada,
                         MAX(i.fec_ingreso) as fecha_ultimo_ingreso
                     FROM compra_detalle cd
+                    INNER JOIN compra c ON cd.id_compra = c.id_compra
+                    INNER JOIN pedido_detalle pd ON cd.id_producto = pd.id_producto 
+                        AND pd.id_pedido = c.id_pedido
+                        AND pd.est_pedido_detalle IN (1, 2)
                     INNER JOIN producto prod ON cd.id_producto = prod.id_producto
                     INNER JOIN unidad_medida um ON prod.id_unidad_medida = um.id_unidad_medida
                     LEFT JOIN ingreso i ON i.id_compra = '$id_compra'
@@ -60,8 +65,8 @@ function ObtenerDetalleIngresoPorCompra($id_compra)
                     WHERE cd.id_compra = '$id_compra'
                     AND cd.est_compra_detalle = 1
                     GROUP BY cd.id_compra_detalle, cd.id_producto, cd.cant_compra_detalle, 
-                             prod.cod_material, prod.nom_producto, um.nom_unidad_medida
-                    ORDER BY prod.nom_producto";
+                             prod.cod_material, pd.prod_pedido_detalle, um.nom_unidad_medida
+                    ORDER BY pd.prod_pedido_detalle";
                     
     $resultado_productos = mysqli_query($con, $sql_productos);
     
@@ -245,21 +250,25 @@ function ObtenerProductosPendientesIngreso($id_compra)
                 cd.id_compra_detalle,
                 cd.id_producto,
                 cd.cant_compra_detalle,
-                prod.nom_producto,
+                pd.prod_pedido_detalle as nom_producto, -- CAMBIADO: ahora usa la descripción del pedido
                 prod.cod_material,
                 um.nom_unidad_medida,
                 COALESCE(SUM(id2.cant_ingreso_detalle), 0) as cantidad_ingresada,
                 (cd.cant_compra_detalle - COALESCE(SUM(id2.cant_ingreso_detalle), 0)) as cantidad_pendiente
             FROM compra_detalle cd
+            INNER JOIN compra c ON cd.id_compra = c.id_compra -- JOIN con compra
+            INNER JOIN pedido_detalle pd ON cd.id_producto = pd.id_producto 
+                AND pd.id_pedido = c.id_pedido -- JOIN con pedido_detalle usando la relación correcta
+                AND pd.est_pedido_detalle IN (1, 2) -- Solo detalles activos o en proceso
             INNER JOIN producto prod ON cd.id_producto = prod.id_producto
             INNER JOIN unidad_medida um ON prod.id_unidad_medida = um.id_unidad_medida
             LEFT JOIN ingreso i ON i.id_compra = '$id_compra'
             LEFT JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso AND cd.id_producto = id2.id_producto
             WHERE cd.id_compra = '$id_compra'
             AND cd.est_compra_detalle = 1
-            GROUP BY cd.id_compra_detalle, cd.id_producto
+            GROUP BY cd.id_compra_detalle, cd.id_producto, pd.prod_pedido_detalle
             HAVING cantidad_pendiente > 0
-            ORDER BY prod.nom_producto";
+            ORDER BY pd.prod_pedido_detalle"; 
             
     $resultado = mysqli_query($con, $sql);
     $productos = array();

@@ -29,6 +29,35 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                             
                             <!-- Información básica del pedido -->
                             <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Tipo de Pedido:</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" class="form-control" value="<?php echo $pedido['nom_producto_tipo'] ?? 'N/A'; ?>" readonly>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Almacén:</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" class="form-control" value="<?php echo $pedido['nom_almacen']; ?>" readonly>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Ubicación <span class="text-danger">*</span>:</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <select name="id_ubicacion" class="form-control" required>
+                                        <option value="">Seleccionar</option>
+                                        <?php foreach ($ubicaciones as $ubicacion) { ?>
+                                            <option value="<?php echo $ubicacion['id_ubicacion']; ?>" 
+                                                    <?php echo ($ubicacion['id_ubicacion'] == $pedido['id_ubicacion']) ? 'selected' : ''; ?>>
+                                                <?php echo $ubicacion['nom_ubicacion']; ?>
+                                            </option>
+                                        <?php } ?>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Código del Pedido:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <input type="text" class="form-control" value="<?php echo $pedido['cod_pedido']; ?>" readonly>

@@ -55,6 +55,20 @@
                             </div>
 
                             <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Ubicación <span class="text-danger">*</span>:</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <select name="id_ubicacion" class="form-control" required>
+                                        <option value="">Seleccionar</option>
+                                        <?php foreach ($ubicaciones as $ubicacion) { ?>
+                                            <option value="<?php echo $ubicacion['id_ubicacion']; ?>">
+                                                <?php echo $ubicacion['nom_ubicacion']; ?>
+                                            </option>
+                                        <?php } ?>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Nombre del Pedido <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <input type="text" name="nom_pedido" class="form-control" placeholder="Nombre del Pedido" required>
@@ -448,8 +462,6 @@
     </div>
 </div>
 
-
-
 <script>
 // Variable global para rastrear qué botón de búsqueda se clickeó
 let currentSearchButton = null;
@@ -646,6 +658,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function limpiarFormularioCompleto() {
         // Limpiar campos básicos - CORREGIDO: nombres correctos de los campos
         document.querySelector('select[name="id_obra"]').value = '';
+        document.querySelector('select[name="id_ubicacion"]').value = '';
         document.querySelector('input[name="nom_pedido"]').value = '';
         document.querySelector('input[name="fecha_necesidad"]').value = '';
         document.querySelector('input[name="num_ot"]').value = '';

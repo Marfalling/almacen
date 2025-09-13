@@ -29,12 +29,14 @@ require_once("../_conexion/sesion.php");
             require_once("../_modelo/m_tipo_producto.php");
             require_once("../_modelo/m_unidad_medida.php");
             require_once("../_modelo/m_tipo_material.php");
+            require_once("../_modelo/m_ubicacion.php"); // AGREGADO
 
-            // Cargar almacenes activos para el formulario
+            // Cargar datos para el formulario
             $almacenes = MostrarAlmacenesActivos();
             $producto_tipos = MostrarProductoTipoActivos();
             $unidades_medida = MostrarUnidadMedidaActiva();
             $material_tipos = MostrarMaterialTipoActivos();
+            $ubicaciones = MostrarUbicacionesActivas(); // AGREGADO
             
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/pedidos/")) {
@@ -44,10 +46,10 @@ require_once("../_conexion/sesion.php");
             // CONTROLADOR CORREGIDO
             //=======================================================================
             if (isset($_REQUEST['registrar'])) {
-                // CORREGIDO: Recibir id_producto_tipo en lugar de tipo_pedido
+                // Recibir datos del formulario
                 $id_producto_tipo = intval($_REQUEST['tipo_pedido']); // El select envía el ID
-                // CORREGIDO: Recibir id_almacen en lugar de id_obra
                 $id_almacen = intval($_REQUEST['id_obra']); // El select envía el ID del almacén
+                $id_ubicacion = intval($_REQUEST['id_ubicacion']); // AGREGADO: Recibir ubicación
                 $nom_pedido = strtoupper($_REQUEST['nom_pedido']);
                 $solicitante = strtoupper($_REQUEST['solicitante']);
                 $fecha_necesidad = $_REQUEST['fecha_necesidad'];
@@ -84,8 +86,8 @@ require_once("../_conexion/sesion.php");
                     }
                 }
 
-                // LLAMADA CORREGIDA con los parámetros correctos
-                $rpta = GrabarPedido($id_producto_tipo, $id_almacen, $nom_pedido, $solicitante, 
+                // LLAMADA CORREGIDA con los parámetros correctos, incluyendo ubicación
+                $rpta = GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $nom_pedido, $solicitante, 
                                 $fecha_necesidad, $num_ot, $contacto, $lugar_entrega, 
                                 $aclaraciones, $id, $materiales, $archivos_subidos);
 

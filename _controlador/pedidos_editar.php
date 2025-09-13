@@ -24,14 +24,18 @@ require_once("../_conexion/sesion.php");
             require_once("../_vista/v_menu_user.php");
 
             require_once("../_modelo/m_pedidos.php");
-            require_once("../_modelo/m_obras.php");
+            require_once("../_modelo/m_almacen.php");
             require_once("../_modelo/m_unidad_medida.php");
             require_once("../_modelo/m_tipo_producto.php");
             require_once("../_modelo/m_tipo_material.php");
+            require_once("../_modelo/m_ubicacion.php"); // AGREGADO: Modelo de ubicación
+            
             // Cargar datos necesarios para el formulario
             $unidades_medida = MostrarUnidadMedidaActiva();
             $producto_tipos = MostrarProductoTipoActivos();
             $material_tipos = MostrarMaterialTipoActivos();
+            $ubicaciones = MostrarUbicacionesActivas(); // AGREGADO: Cargar ubicaciones
+            
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/pedidos/")) {
                 mkdir("../_archivos/pedidos/", 0777, true);
@@ -39,8 +43,11 @@ require_once("../_conexion/sesion.php");
 
             $id_pedido = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : 0;
 
-            //-------------------------------------------
+            //=======================================================================
+            // CONTROLADOR ACTUALIZADO CON UBICACIÓN
+            //=======================================================================
             if (isset($_REQUEST['actualizar'])) {
+                $id_ubicacion = intval($_REQUEST['id_ubicacion']); // AGREGADO: Recibir ubicación
                 $nom_pedido = strtoupper($_REQUEST['nom_pedido']);
                 $fecha_necesidad = $_REQUEST['fecha_necesidad'];
                 $num_ot = strtoupper($_REQUEST['num_ot']);
@@ -48,10 +55,11 @@ require_once("../_conexion/sesion.php");
                 $lugar_entrega = strtoupper($_REQUEST['lugar_entrega']);
                 $aclaraciones = strtoupper($_REQUEST['aclaraciones']);
 
-                // En pedidos_editar.php, modifica la creación del array de materiales:
+                // Procesar materiales
                 $materiales = array();
                 if (isset($_REQUEST['descripcion']) && is_array($_REQUEST['descripcion'])) {
                     for ($i = 0; $i < count($_REQUEST['descripcion']); $i++) {
+                        // SEPARAR los valores de SST/MA/CA
                         $valores_sst = explode('/', $_REQUEST['sst'][$i]);
                         
                         $materiales[] = array(
@@ -59,10 +67,10 @@ require_once("../_conexion/sesion.php");
                             'cantidad' => $_REQUEST['cantidad'][$i],
                             'unidad' => $_REQUEST['unidad'][$i],
                             'observaciones' => $_REQUEST['observaciones'][$i],
-                            'sst' => trim($valores_sst[0] ?? ''),
-                            'ma' => trim($valores_sst[1] ?? ''),
-                            'ca' => trim($valores_sst[2] ?? ''),
-                            'id_detalle' => $_REQUEST['id_detalle'][$i] // ← ESTO ES IMPORTANTE
+                            'sst' => trim($valores_sst[0] ?? ''),        // Primer valor: SST
+                            'ma' => trim($valores_sst[1] ?? ''),         // Segundo valor: MA
+                            'ca' => trim($valores_sst[2] ?? ''),         // Tercer valor: CA
+                            'id_detalle' => $_REQUEST['id_detalle'][$i]  // ID del detalle para actualización
                         );
                     }
                 }
@@ -76,7 +84,8 @@ require_once("../_conexion/sesion.php");
                     }
                 }
 
-                $rpta = ActualizarPedido($id_pedido, $nom_pedido, $fecha_necesidad, 
+                // LLAMADA ACTUALIZADA con ubicación
+                $rpta = ActualizarPedido($id_pedido, $id_ubicacion, $nom_pedido, $fecha_necesidad, 
                                        $num_ot, $contacto, $lugar_entrega, 
                                        $aclaraciones, $materiales, $archivos_subidos);
 
