@@ -225,9 +225,15 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                                         <button class="btn btn-info btn-xs" title="Ver Detalles">
                                                             <i class="fa fa-eye"></i>
                                                         </button>
-                                                        <button class="btn btn-warning btn-xs ml-1" title="Editar">
-                                                            <i class="fa fa-edit"></i>
-                                                        </button>
+                                                        <?php if ($compra['est_compra'] == 1) { ?>
+                                                            <button class="btn btn-warning btn-xs ml-1" title="Editar">
+                                                                <i class="fa fa-edit"></i>
+                                                            </button>
+                                                        <?php } else { ?>
+                                                            <button class="btn btn-outline-secondary btn-xs ml-1" title="Editar">
+                                                                <i class="fa fa-edit"></i>
+                                                            </button>
+                                                        <?php } ?>
                                                     </td>
                                                 </tr>
                                             <?php } ?>
@@ -514,77 +520,43 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const precioCompraModal = document.getElementById('precioCompraModal');
-    const precioCompraInput = document.getElementById('precio_compra_input');
-    const btnConfirmarPrecio = document.getElementById('btn-confirmar-precio');
-    const infoItemPrecio = document.getElementById('info-item-precio');
+    let itemsAgregadosOrden = new Set();
     
-    let itemSeleccionado = null;
-    
-    document.body.removeEventListener('click', function(event) {
-        // Remover el event listener anterior si existe
-    });
-    
-    document.body.addEventListener('click', function(event) {
-        const targetBtn = event.target.closest('.btn-agregarOrden');
-        if (targetBtn) {
+    document.addEventListener('click', function(event) {
+        const btnAgregar = event.target.closest('.btn-agregarOrden');
+        if (btnAgregar) {
             event.preventDefault();
+            event.stopPropagation();
             
-            const idDetalle = targetBtn.dataset.idDetalle;
-            const idProducto = targetBtn.dataset.idProducto;
-            const descripcion = targetBtn.dataset.descripcion;
-            const cantidadVerificada = targetBtn.dataset.cantidadVerificada;
-            
-            if (document.getElementById(`item-orden-${idDetalle}`)) {
-                alert('Este ítem ya ha sido agregado a la orden.');
-                return;
-            }
-            
+            const idDetalle = btnAgregar.dataset.idDetalle;
+            const idProducto = btnAgregar.dataset.idProducto;
+            const descripcion = btnAgregar.dataset.descripcion;
+            const cantidadVerificada = btnAgregar.dataset.cantidadVerificada;
             const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
             if (contenedorTabla.style.display !== 'none') {
                 mostrarFormularioNuevaOrden();
             }
             
-            agregarItemAOrdenSinPrecio({
+            agregarItemAOrden({
                 idDetalle: idDetalle,
                 idProducto: idProducto,
                 descripcion: descripcion,
                 cantidadVerificada: cantidadVerificada,
-                botonOriginal: targetBtn
+                botonOriginal: btnAgregar
             });
         }
+        
+        const btnRemover = event.target.closest('.btn-remover-item');
+        if (btnRemover) {
+            event.preventDefault();
+            event.stopPropagation();
+            const idDetalle = btnRemover.dataset.idDetalle;
+            removerItemDeOrden(idDetalle);
+        }
     });
     
-    btnConfirmarPrecio.addEventListener('click', function() {
-        const precio = precioCompraInput.value;
-        
-        if (!precio || parseFloat(precio) <= 0) {
-            alert('Por favor ingrese un precio válido mayor a 0.');
-            precioCompraInput.focus();
-            return;
-        }
-        
-        if (!itemSeleccionado) {
-            alert('Error: No hay item seleccionado.');
-            return;
-        }
-        
-        const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
-        const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
-        if (contenedorTabla.style.display !== 'none') {
-            mostrarFormularioNuevaOrden();
-        }
-        
-        agregarItemAOrden(itemSeleccionado, precio);
-        
-        $(precioCompraModal).modal('hide');
-        
-        itemSeleccionado = null;
-    });
-    
-    function agregarItemAOrdenSinPrecio(item) {
+    function agregarItemAOrden(item) {
         const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-        
         const itemElement = document.createElement('div');
         itemElement.id = `item-orden-${item.idDetalle}`;
         itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
@@ -622,7 +594,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
                 <div class="col-md-1">
-                    <button type="button" class="btn btn-danger btn-sm btn-remover-item" data-id="${item.idDetalle}">
+                    <button type="button" class="btn btn-danger btn-sm btn-remover-item" data-id-detalle="${item.idDetalle}">
                         <i class="fa fa-trash"></i>
                     </button>
                 </div>
@@ -637,17 +609,38 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         
         contenedorItemsOrden.appendChild(itemElement);
-        
+        itemsAgregadosOrden.add(item.idDetalle);
         item.botonOriginal.disabled = true;
         item.botonOriginal.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
         item.botonOriginal.classList.remove('btn-primary');
         item.botonOriginal.classList.add('btn-success');
-        
         const inputPrecio = itemElement.querySelector('.precio-item');
         inputPrecio.addEventListener('input', function() {
             actualizarSubtotalItem(item.idDetalle, item.cantidadVerificada);
             actualizarTotalOrden();
         });
+    }
+    
+    function removerItemDeOrden(idDetalle) {
+        const itemElement = document.getElementById(`item-orden-${idDetalle}`);
+        itemElement.remove();
+        itemsAgregadosOrden.delete(idDetalle);
+        const originalBtn = document.querySelector(`.btn-agregarOrden[data-id-detalle="${idDetalle}"]`);
+        if (originalBtn) {
+            originalBtn.disabled = false;
+            originalBtn.innerHTML = '<i class="fa fa-check"></i> Agregar a Orden';
+            originalBtn.classList.remove('btn-success');
+            originalBtn.classList.add('btn-primary');
+        }
+        actualizarTotalOrden();
+    }
+
+    function obtenerSimboloMoneda() {
+        const selectMoneda = document.getElementById('moneda_orden');
+        if (!selectMoneda || !selectMoneda.value) return 'S/.';
+        
+        const idMonedaSeleccionada = selectMoneda.value;
+        return idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
     }
 
     function actualizarSubtotalItem(idDetalle, cantidad) {
@@ -657,10 +650,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (inputPrecio && subtotalElement) {
             const precio = parseFloat(inputPrecio.value) || 0;
             const subtotal = (cantidad * precio).toFixed(2);
-            subtotalElement.textContent = `Subtotal: S/. ${subtotal}`;
+            const simboloMoneda = obtenerSimboloMoneda();
+            subtotalElement.textContent = `Subtotal: ${simboloMoneda} ${subtotal}`;
         }
     }
-    
     
     function actualizarTotalOrden() {
         const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
@@ -691,44 +684,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         if (totalElement && items.length > 0) {
-            totalElement.innerHTML = `<i class="fa fa-calculator"></i> TOTAL DE LA ORDEN: S/. ${total.toFixed(2)}`;
+            const simboloMoneda = obtenerSimboloMoneda();
+            totalElement.innerHTML = `<i class="fa fa-calculator"></i> TOTAL DE LA ORDEN: ${simboloMoneda} ${total.toFixed(2)}`;
             totalInput.value = total.toFixed(2);
             
             if (!totalElement.parentNode) {
                 contenedorItemsOrden.appendChild(totalElement);
                 contenedorItemsOrden.appendChild(totalInput);
             }
+        } else if (totalElement && items.length === 0) {
+            totalElement.remove();
+            if (totalInput) totalInput.remove();
         }
     }
-    
-    const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-    contenedorItemsOrden.addEventListener('click', function(event) {
-        const targetBtn = event.target.closest('.btn-remover-item');
-        if (targetBtn) {
-            const idDetalle = targetBtn.dataset.id;
-            const itemElement = document.getElementById(`item-orden-${idDetalle}`);
-            
-            if (itemElement) {
-                itemElement.remove();
-                actualizarTotalOrden();
-            }
-            
-            const originalBtn = document.querySelector(`.btn-agregarOrden[data-id-detalle="${idDetalle}"]`);
-            if (originalBtn) {
-                originalBtn.disabled = false;
-                originalBtn.innerHTML = '<i class="fa fa-check"></i> Agregar a Orden';
-                originalBtn.classList.remove('btn-success');
-                originalBtn.classList.add('btn-primary');
-            }
-        }
-    });
-    
-    precioCompraInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            btnConfirmarPrecio.click();
-        }
-    });
     
     function mostrarFormularioNuevaOrden() {
         const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
@@ -797,6 +765,25 @@ document.addEventListener('DOMContentLoaded', function() {
         btnNuevaOrden.classList.add('btn-primary');
     }
     
+    function limpiarItemsOrden() {
+        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
+        const itemsOrden = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
+        itemsOrden.forEach(item => {
+            const idDetalle = item.id.replace('item-orden-', '');
+            const originalBtn = document.querySelector(`.btn-agregarOrden[data-id-detalle="${idDetalle}"]`);
+            if (originalBtn) {
+                originalBtn.disabled = false;
+                originalBtn.innerHTML = '<i class="fa fa-check"></i> Agregar a Orden';
+                originalBtn.classList.remove('btn-success');
+                originalBtn.classList.add('btn-primary');
+            }
+            if (typeof itemsAgregadosOrden !== 'undefined') {
+                itemsAgregadosOrden.delete(idDetalle);
+            }
+        });
+        contenedorItemsOrden.innerHTML = '';
+    }
+    
     btnNuevaOrden.addEventListener('click', function() {
         if (contenedorTabla.style.display === 'none') {
             mostrarTablaOrdenes();
@@ -807,6 +794,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     btnCancelarOrden.addEventListener('click', function() {
         if (confirm('¿Está seguro que desea cancelar? Se perderán los datos ingresados.')) {
+            limpiarItemsOrden();
+            formNuevaOrden.reset();
             mostrarTablaOrdenes();
         }
     });
@@ -821,7 +810,177 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Por favor complete los campos obligatorios (Fecha, Proveedor y Moneda).');
             return false;
         }
+        
+        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
+        const itemsOrden = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
+        
+        if (itemsOrden.length === 0) {
+            e.preventDefault();
+            alert('Debe agregar al menos un ítem a la orden antes de guardar.');
+            return false;
+        }
+        
         return true;
     });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectMoneda = document.getElementById('moneda_orden');
+    function actualizarEtiquetasMoneda(idMoneda) {
+        const simboloMoneda = idMoneda == '1' ? 'S/.' : (idMoneda == '2' ? 'US$' : 'S/.');
+        
+        const etiquetasMoneda = document.querySelectorAll('.input-group-text');
+        etiquetasMoneda.forEach(etiqueta => {
+            if (etiqueta.textContent === 'S/.' || etiqueta.textContent === 'US$') {
+                etiqueta.textContent = simboloMoneda;
+            }
+        });
+        
+        const itemsOrden = document.querySelectorAll('[id^="item-orden-"]');
+        itemsOrden.forEach(item => {
+            const idDetalle = item.id.replace('item-orden-', '');
+            const cantidad = parseFloat(item.querySelector('input[name$="[cantidad]"]').value);
+            actualizarSubtotalItem(idDetalle, cantidad);
+        });
+        
+        actualizarTotalOrden();
+    }
+    
+    selectMoneda.addEventListener('change', function() {
+        const idMonedaSeleccionada = this.value;
+        actualizarEtiquetasMoneda(idMonedaSeleccionada);
+    });
+    
+    const originalAgregarItemAOrden = window.agregarItemAOrden || function() {};
+    
+    window.agregarItemAOrden = function(item) {
+        const idMonedaSeleccionada = document.getElementById('moneda_orden').value;
+        const simboloMoneda = idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
+        
+        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
+        const itemElement = document.createElement('div');
+        itemElement.id = `item-orden-${item.idDetalle}`;
+        itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
+        itemElement.innerHTML = `
+            <input type="hidden" name="items_orden[${item.idDetalle}][id_detalle]" value="${item.idDetalle}">
+            <input type="hidden" name="items_orden[${item.idDetalle}][id_producto]" value="${item.idProducto}">
+            <input type="hidden" name="items_orden[${item.idDetalle}][cantidad]" value="${item.cantidadVerificada}">
+            
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div style="font-size: 12px;">
+                        <div class="mb-1">
+                            <strong>Descripción:</strong> ${item.descripcion}
+                        </div>
+                        <div>
+                            <strong>Cantidad:</strong> ${item.cantidadVerificada}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label style="font-size: 11px; font-weight: bold;">Precio Unit.:</label>
+                    <div class="input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" style="font-size: 11px;">${simboloMoneda}</span>
+                        </div>
+                        <input type="number" 
+                            class="form-control form-control-sm precio-item" 
+                            name="items_orden[${item.idDetalle}][precio_unitario]"
+                            data-id-detalle="${item.idDetalle}"
+                            step="0.01" 
+                            min="0"
+                            placeholder="0.00"
+                            style="font-size: 11px;"
+                            required>
+                    </div>
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-danger btn-sm btn-remover-item" data-id-detalle="${item.idDetalle}">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-12">
+                    <div class="subtotal-item text-right" id="subtotal-${item.idDetalle}" style="font-size: 12px; font-weight: bold; color: #007bff;">
+                        Subtotal: ${simboloMoneda} 0.00
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        contenedorItemsOrden.appendChild(itemElement);
+        if (typeof itemsAgregadosOrden !== 'undefined') {
+            itemsAgregadosOrden.add(item.idDetalle);
+        }
+        item.botonOriginal.disabled = true;
+        item.botonOriginal.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
+        item.botonOriginal.classList.remove('btn-primary');
+        item.botonOriginal.classList.add('btn-success');
+        
+        const inputPrecio = itemElement.querySelector('.precio-item');
+        inputPrecio.addEventListener('input', function() {
+            actualizarSubtotalItem(item.idDetalle, item.cantidadVerificada);
+            actualizarTotalOrden();
+        });
+    };
+    
+    window.actualizarSubtotalItem = function(idDetalle, cantidad) {
+        const inputPrecio = document.querySelector(`input[data-id-detalle="${idDetalle}"]`);
+        const subtotalElement = document.getElementById(`subtotal-${idDetalle}`);
+        
+        if (inputPrecio && subtotalElement) {
+            const precio = parseFloat(inputPrecio.value) || 0;
+            const subtotal = (cantidad * precio).toFixed(2);
+            const idMonedaSeleccionada = document.getElementById('moneda_orden').value;
+            const simboloMoneda = idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
+            subtotalElement.textContent = `Subtotal: ${simboloMoneda} ${subtotal}`;
+        }
+    };
+    
+    window.actualizarTotalOrden = function() {
+        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
+        const items = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
+        let total = 0;
+        
+        items.forEach(item => {
+            const cantidad = parseFloat(item.querySelector('input[name$="[cantidad]"]').value);
+            const inputPrecio = item.querySelector('input[name$="[precio_unitario]"]');
+            const precio = parseFloat(inputPrecio.value) || 0;
+            total += cantidad * precio;
+        });
+        
+        let totalElement = document.getElementById('total-orden');
+        let totalInput = document.getElementById('total_orden_input');
+        
+        if (!totalElement && items.length > 0) {
+            totalElement = document.createElement('div');
+            totalElement.id = 'total-orden';
+            totalElement.className = 'alert alert-success text-center';
+            totalElement.style.fontSize = '16px';
+            totalElement.style.fontWeight = 'bold';
+            
+            totalInput = document.createElement('input');
+            totalInput.type = 'hidden';
+            totalInput.name = 'total_orden';
+            totalInput.id = 'total_orden_input';
+        }
+        
+        if (totalElement && items.length > 0) {
+            const idMonedaSeleccionada = document.getElementById('moneda_orden').value;
+            const simboloMoneda = idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
+            totalElement.innerHTML = `<i class="fa fa-calculator"></i> TOTAL DE LA ORDEN: ${simboloMoneda} ${total.toFixed(2)}`;
+            totalInput.value = total.toFixed(2);
+            
+            if (!totalElement.parentNode) {
+                contenedorItemsOrden.appendChild(totalElement);
+                contenedorItemsOrden.appendChild(totalInput);
+            }
+        } else if (totalElement && items.length === 0) {
+            totalElement.remove();
+            if (totalInput) totalInput.remove();
+        }
+    };
 });
 </script>
