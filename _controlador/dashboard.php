@@ -7,11 +7,6 @@ if (!verificarPermisoEspecifico('ver_dashboard')) {
     header("location: bienvenido.php?permisos=true");
     exit;
 }
-
-function generarColor()
-{
-  return sprintf('#%06X', mt_rand(0, 0xFFFFFF));
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -22,7 +17,7 @@ function generarColor()
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>Dashboard</title>
+  <title>Dashboard Almacén</title>
 
   <?php require_once("../_vista/v_estilo.php"); ?>
 </head>
@@ -35,7 +30,21 @@ function generarColor()
       require_once("../_vista/v_menu_user.php");
 
       require_once("../_modelo/m_dashboard.php");
+
+      // Variables globales para el dashboard 
+      $cantidad_productos = obtenerTotalProductos($con);
+      $cantidad_usuarios = obtenerTotalUsuarios($con);
+      $cantidad_pedidos = obtenerTotalPedidos($con);
+      $cantidad_compras = obtenerTotalCompras($con);
+      $cantidad_almacenes = obtenerTotalAlmacenes($con);
+      $cantidad_proveedores = obtenerTotalProveedores($con);
      
+      // Datos para gráficos 
+      $datos_tipos_producto = obtenerDatosGraficoTiposProducto($con);
+      $datos_compras_por_proveedor = obtenerDatosGraficoComprasPorProveedor($con);
+      $datos_productos_por_material = obtenerDatosGraficoProductosPorMaterial($con);
+      $datos_estado_pedidos = obtenerDatosGraficoEstadoPedidos($con);
+
       require_once("../_vista/v_dashboard.php");
 
       require_once("../_vista/v_footer.php");
@@ -44,16 +53,12 @@ function generarColor()
     </div>
   </div>
 
-  <script>
-  </script>
-
   <?php
   require_once("../_vista/v_script.php");
   require_once("../_vista/v_alertas.php");
   ?>
 
-  <script src="../_complemento/vendors/raphael/raphael.min.js"></script>
-  <script src="../_complemento/vendors/morris.js/morris.min.js"></script>
+
 </body>
 
 </html>
