@@ -76,7 +76,7 @@
                                                     } elseif ($detalle_ingreso['resumen']['productos_parciales'] > 0) {
                                                         echo '<span class="badge badge-warning">EN PROCESO</span>';
                                                     } else {
-                                                        echo '<span class="badge badge-info">PENDIENTE</span>';
+                                                        echo '<span class="badge badge-warning">PENDIENTE</span>';
                                                     }
                                                     ?>
                                                 </td>
@@ -109,7 +109,7 @@
                                             </tr>
                                             <tr>
                                                 <td><strong>Pendientes:</strong></td>
-                                                <td><span class="badge badge-info badge-lg"><?php echo $detalle_ingreso['resumen']['productos_pendientes']; ?></span></td>
+                                                <td><span class="badge badge-warning badge-lg"><?php echo $detalle_ingreso['resumen']['productos_pendientes']; ?></span></td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Registrado Por:</strong></td>
@@ -161,7 +161,7 @@
                                                         } elseif ($porcentaje > 0) {
                                                             $estado_badge = '<span class="badge badge-warning">PARCIAL</span>';
                                                         } else {
-                                                            $estado_badge = '<span class="badge badge-secondary">PENDIENTE</span>';
+                                                            $estado_badge = '<span class="badge badge-warning">PENDIENTE</span>';
                                                         }
                                                     ?>
                                                         <tr>
