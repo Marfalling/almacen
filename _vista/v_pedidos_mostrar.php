@@ -105,7 +105,7 @@
                                                             class="btn btn-secondary btn-sm" 
                                                             title="Generar PDF"
                                                             target="_blank">
-                                                                <i class="fa fa-file-pdf-o"></i> PDF
+                                                                <i class="fa fa-file-pdf-o"></i>
                                                             </a>
                                                         </div>
                                                     </td>
