@@ -82,8 +82,17 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
 
                                 $esVerificado = !is_null($detalle['cant_fin_pedido_detalle']);
                                 $stockInsuficiente = $detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle'];
-                                
-                                if ($esVerificado && $stockInsuficiente && $detalle['est_pedido_detalle'] != 2) {
+
+                                $esAutoOrden = ($pedido['id_producto_tipo'] == 2);
+                                if ($esAutoOrden) {
+                                    $esVerificado = true;
+                                    $cantidadVerificada = $detalle['cant_pedido_detalle'];
+                                    $colorFondo = '#e3f2fd';
+                                    $colorBorde = '#2196f3';
+                                    $claseTexto = 'text-primary';
+                                    $icono = 'fa-cog';
+                                    $estadoTexto = 'Auto-Orden';
+                                } else if ($esVerificado && $stockInsuficiente && $detalle['est_pedido_detalle'] != 2) {
                                     $colorFondo = '#d4edda';
                                     $colorBorde = '#28a745';
                                     $claseTexto = 'text-success';
@@ -112,8 +121,18 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                         <i class="fa <?php echo $icono; ?>"></i> Item <?php echo $contador_detalle; ?> - <?php echo $estadoTexto; ?>
                                     </span>
                                     <span>Stock Almacen: <?php echo $detalle['cantidad_disponible_almacen']; ?></span>
-                                    
-                                    <?php if (!$esVerificado && $stockInsuficiente) { ?>
+                                    <?php if ($esAutoOrden) { ?>
+                                        <span class="badge badge-primary" style="font-size: 10px; padding: 2px 6px;">
+                                            <i class="fa fa-cog"></i> En Orden Automática
+                                        </span>
+                                        
+                                        <div class="datos-auto-orden" style="display: none;"
+                                            data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                            data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                            data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                                            data-cantidad="<?php echo $detalle['cant_pedido_detalle']; ?>">
+                                        </div>
+                                    <?php } elseif (!$esVerificado && $stockInsuficiente) { ?>
                                         <button type="button" class="btn btn-success btn-xs verificar-btn"
                                                 data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
                                                 data-cantidad-actual="<?php echo $detalle['cant_pedido_detalle']; ?>"
@@ -409,6 +428,128 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
 </div>
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const esAutoOrden = <?php echo ($pedido['id_producto_tipo'] == 2) ? 'true' : 'false'; ?>;
+    if (esAutoOrden) {
+        setTimeout(function() {
+            mostrarFormularioNuevaOrdenAuto();
+            autoAgregarItemsAOrden();
+        }, 800);
+    }
+    
+    function mostrarFormularioNuevaOrdenAuto() {
+        const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
+        const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
+        const btnNuevaOrden = document.getElementById('btn-nueva-orden');
+        
+        if (contenedorTabla && contenedorNuevaOrden && btnNuevaOrden) {
+            contenedorTabla.style.display = 'none';
+            contenedorNuevaOrden.style.display = 'block';
+            
+            btnNuevaOrden.innerHTML = '<i class="fa fa-table"></i> Ver Órdenes';
+            btnNuevaOrden.classList.remove('btn-primary');
+            btnNuevaOrden.classList.add('btn-secondary');
+            
+            const fechaOrden = document.getElementById('fecha_orden');
+            if (fechaOrden) {
+                fechaOrden.value = new Date().toISOString().split('T')[0];
+            }
+        }
+    }
+    
+    function autoAgregarItemsAOrden() {
+        const itemsAutoOrden = document.querySelectorAll('.datos-auto-orden');
+        let itemsAgregados = 0;
+        
+        itemsAutoOrden.forEach(function(item) {
+            const idDetalle = item.getAttribute('data-id-detalle');
+            const idProducto = item.getAttribute('data-id-producto');
+            const descripcion = item.getAttribute('data-descripcion');
+            const cantidad = item.getAttribute('data-cantidad');
+            
+            agregarItemAOrdenAutomatico({
+                idDetalle: idDetalle,
+                idProducto: idProducto,
+                descripcion: descripcion,
+                cantidadVerificada: cantidad
+            });
+            
+            itemsAgregados++;
+        });
+        
+        if (itemsAgregados > 0) {
+            const contadorVerificados = document.getElementById('contador-verificados');
+            if (contadorVerificados) {
+                contadorVerificados.textContent = `(${itemsAgregados} items auto-agregados)`;
+            }
+        }
+    }
+    
+    function agregarItemAOrdenAutomatico(item) {
+        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
+        const itemElement = document.createElement('div');
+        itemElement.id = `item-orden-${item.idDetalle}`;
+        itemElement.classList.add('alert', 'alert-primary', 'p-2', 'mb-2');
+        itemElement.innerHTML = `
+            <input type="hidden" name="items_orden[${item.idDetalle}][id_detalle]" value="${item.idDetalle}">
+            <input type="hidden" name="items_orden[${item.idDetalle}][id_producto]" value="${item.idProducto}">
+            <input type="hidden" name="items_orden[${item.idDetalle}][cantidad]" value="${item.cantidadVerificada}">
+            
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div style="font-size: 12px;">
+                        <div class="mb-1">
+                            <i class="fa fa-cog text-primary"></i>
+                            <strong>Descripción:</strong> ${item.descripcion}
+                            <span class="badge badge-primary badge-sm ml-1">AUTO</span>
+                        </div>
+                        <div>
+                            <strong>Cantidad:</strong> ${item.cantidadVerificada}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label style="font-size: 11px; font-weight: bold;">Precio Unit.:</label>
+                    <div class="input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" style="font-size: 11px;">S/.</span>
+                        </div>
+                        <input type="number" 
+                            class="form-control form-control-sm precio-item" 
+                            name="items_orden[${item.idDetalle}][precio_unitario]"
+                            data-id-detalle="${item.idDetalle}"
+                            step="0.01" 
+                            min="0"
+                            placeholder="0.00"
+                            style="font-size: 11px;"
+                            required>
+                    </div>
+                </div>
+                <div class="col-md-1">
+                    <span class="badge badge-primary" title="Item agregado automáticamente" style="padding: 4px 6px;">
+                        <i class="fa fa-cog"></i>
+                    </span>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-12">
+                    <div class="subtotal-item text-right" id="subtotal-${item.idDetalle}" style="font-size: 12px; font-weight: bold; color: #2196f3;">
+                        Subtotal: S/. 0.00
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        contenedorItemsOrden.appendChild(itemElement);
+        
+        const inputPrecio = itemElement.querySelector('.precio-item');
+        inputPrecio.addEventListener('input', function() {
+            actualizarSubtotalItem(item.idDetalle, item.cantidadVerificada);
+            actualizarTotalOrden();
+        });
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     let itemsVerificados = 0;
     const totalItems = <?php echo count($pedido_detalle); ?>;

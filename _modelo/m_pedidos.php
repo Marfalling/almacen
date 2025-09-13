@@ -40,6 +40,7 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $nom_pedido
         
         // Insertar detalles del pedido
         foreach ($materiales as $index => $material) {
+            $id_producto = intval($material['id_producto']);
             $descripcion = mysqli_real_escape_string($con, $material['descripcion']);
             $cantidad = floatval($material['cantidad']);
             $id_unidad = intval($material['unidad']); // Este es el ID de la unidad
@@ -65,7 +66,7 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $nom_pedido
                                 cant_pedido_detalle, cant_fin_pedido_detalle, 
                                 com_pedido_detalle, req_pedido, est_pedido_detalle
                             ) VALUES (
-                                $id_pedido, 1, '$descripcion', 
+                                $id_pedido, $id_producto, '$descripcion',
                                 $cantidad, NULL, 
                                 '$comentario_detalle', '$requisitos', 1
                             )";
@@ -189,6 +190,7 @@ function ConsultarPedidoDetalle($id_pedido)
     $sqlc = "SELECT pd.*, 
              GROUP_CONCAT(pdd.nom_pedido_detalle_documento) as archivos,
              p.nom_producto,
+             p.id_producto as id_producto,
              COALESCE(
                 (SELECT SUM(CASE
                     WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
@@ -250,9 +252,9 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $nom_pedido, $fecha_necesid
         
         // Array para trackear qué detalles se están usando
         $detalles_utilizados = array();
-        
         // Procesar cada material
         foreach ($materiales as $index => $material) {
+            $id_producto = intval($material['id_producto']);
             $descripcion = mysqli_real_escape_string($con, $material['descripcion']);
             $cantidad = floatval($material['cantidad']);
             $id_unidad = intval($material['unidad']);
@@ -274,6 +276,7 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $nom_pedido, $fecha_necesid
             if ($id_detalle > 0 && in_array($id_detalle, $detalles_existentes)) {
                 // ACTUALIZAR DETALLE EXISTENTE
                 $sql_detalle = "UPDATE pedido_detalle SET 
+                                id_producto = $id_producto,
                                 prod_pedido_detalle = '$descripcion',
                                 cant_pedido_detalle = $cantidad,
                                 com_pedido_detalle = '$comentario_detalle',
@@ -292,7 +295,7 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $nom_pedido, $fecha_necesid
                                     cant_pedido_detalle, cant_fin_pedido_detalle, 
                                     com_pedido_detalle, req_pedido, est_pedido_detalle
                                 ) VALUES (
-                                    $id_pedido, 1, '$descripcion', 
+                                    $id_pedido, $id_producto, '$descripcion', 
                                     $cantidad, NULL, 
                                     '$comentario_detalle', '$requisitos', 1
                                 )";

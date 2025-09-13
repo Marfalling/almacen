@@ -54,7 +54,6 @@ require_once("../_conexion/sesion.php");
                 $contacto = $_REQUEST['contacto'];
                 $lugar_entrega = strtoupper($_REQUEST['lugar_entrega']);
                 $aclaraciones = strtoupper($_REQUEST['aclaraciones']);
-
                 // Procesar materiales
                 $materiales = array();
                 if (isset($_REQUEST['descripcion']) && is_array($_REQUEST['descripcion'])) {
@@ -63,6 +62,7 @@ require_once("../_conexion/sesion.php");
                         $valores_sst = explode('/', $_REQUEST['sst'][$i]);
                         
                         $materiales[] = array(
+                            'id_producto' => $_REQUEST['id_material'][$i],
                             'descripcion' => $_REQUEST['descripcion'][$i],
                             'cantidad' => $_REQUEST['cantidad'][$i],
                             'unidad' => $_REQUEST['unidad'][$i],
@@ -74,6 +74,7 @@ require_once("../_conexion/sesion.php");
                         );
                     }
                 }
+
 
                 // Procesar archivos
                 $archivos_subidos = array();

@@ -183,7 +183,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                                     <i class="fa fa-search"></i>
                                                 </button>
                                             </div>
-                                            <input type="hidden" name="id_material[]" value="">
+                                            <input type="hidden" name="id_material[]" value="<?php echo $detalle['id_producto'] ?? ''; ?>">
                                         </div>
 
                                          <div class="col-md-3">
