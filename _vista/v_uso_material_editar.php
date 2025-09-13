@@ -1,6 +1,6 @@
 <?php 
 //=======================================================================
-// VISTA: v_uso_material_nuevo.php
+// VISTA: v_uso_material_editar.php
 //=======================================================================
 ?>
 <!-- page content -->
@@ -8,7 +8,7 @@
     <div class="">
         <div class="page-title">
             <div class="title_left">
-                <h3>Nuevo Uso de Material</h3>
+                <h3>Editar Uso de Material</h3>
             </div>
         </div>
 
@@ -23,20 +23,16 @@
                     </div>
                     <div class="x_content">
                         <br>
-                        <form class="form-horizontal form-label-left" action="uso_material_nuevo.php" method="post" enctype="multipart/form-data">
+                        <?php if (!empty($uso_material_data)) { 
+                            $uso = $uso_material_data[0];
+                        ?>
+                        <form class="form-horizontal form-label-left" action="uso_material_editar.php?id=<?php echo $id_uso_material; ?>" method="post" enctype="multipart/form-data">
                             
                             <!-- Información básica -->
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Almacén <span class="text-danger">*</span>:</label>
+                                <label class="control-label col-md-3 col-sm-3">Almacén:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <select name="id_almacen" class="form-control" required>
-                                        <option value="">Seleccionar</option>
-                                        <?php foreach ($almacenes as $almacen) { ?>
-                                            <option value="<?php echo $almacen['id_almacen']; ?>">
-                                                <?php echo $almacen['nom_almacen']; ?>
-                                            </option>
-                                        <?php } ?>
-                                    </select>
+                                    <input type="text" class="form-control" value="<?php echo $uso['nom_almacen']; ?>" readonly>
                                 </div>
                             </div>
 
@@ -46,7 +42,8 @@
                                     <select name="id_ubicacion" class="form-control" required>
                                         <option value="">Seleccionar</option>
                                         <?php foreach ($ubicaciones as $ubicacion) { ?>
-                                            <option value="<?php echo $ubicacion['id_ubicacion']; ?>">
+                                            <option value="<?php echo $ubicacion['id_ubicacion']; ?>" 
+                                                <?php echo ($uso['id_ubicacion'] == $ubicacion['id_ubicacion']) ? 'selected' : ''; ?>>
                                                 <?php echo $ubicacion['nom_ubicacion']; ?>
                                             </option>
                                         <?php } ?>
@@ -60,7 +57,8 @@
                                     <select name="id_solicitante" class="form-control" required>
                                         <option value="">Seleccionar</option>
                                         <?php foreach ($personal as $persona) { ?>
-                                            <option value="<?php echo $persona['id_personal']; ?>">
+                                            <option value="<?php echo $persona['id_personal']; ?>"
+                                                <?php echo ($uso['id_solicitante'] == $persona['id_personal']) ? 'selected' : ''; ?>>
                                                 <?php echo $persona['nom_personal'] . ' ' . $persona['ape_personal']; ?>
                                             </option>
                                         <?php } ?>
@@ -71,9 +69,16 @@
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Registrado por:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" class="form-control" value="<?php echo $usuario_sesion; ?>" readonly>
+                                    <input type="text" class="form-control" value="<?php echo $uso['nom_registrado'] . ' ' . $uso['ape_registrado']; ?>" readonly>
                                 </div>
                             </div>
+
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Fecha de Registro:</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" class="form-control" value="<?php echo date('d/m/Y H:i', strtotime($uso['fec_uso_material'])); ?>" readonly>
+                                </div>
+            </div>
 
                             <div class="ln_solid"></div>
 
@@ -84,13 +89,19 @@
                             </div>
 
                             <div id="contenedor-materiales">
+                                <?php 
+                                $contador = 0;
+                                foreach ($uso_material_detalle as $detalle) { 
+                                ?>
                                 <div class="material-item border p-3 mb-3">
                                     <div class="row">
                                         <div class="col-md-6">
                                             <label>Material <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
-                                                <input type="text" readonly name="descripcion[]" class="form-control" placeholder="Buscar material" required>
-                                                <input type="hidden" name="id_producto[]" value="">
+                                                <input type="text" readonly name="descripcion[]" class="form-control" 
+                                                       value="<?php echo $detalle['nom_producto']; ?>" required>
+                                                <input type="hidden" name="id_producto[]" value="<?php echo $detalle['id_producto']; ?>">
+                                                <input type="hidden" name="id_detalle[]" value="<?php echo $detalle['id_uso_material_detalle']; ?>">
                                                 <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
                                                     <i class="fa fa-search"></i>
                                                 </button>
@@ -99,37 +110,55 @@
 
                                         <div class="col-md-3">
                                             <label>Cantidad <span class="text-danger">*</span>:</label>
-                                            <input type="number" name="cantidad[]" class="form-control" step="0.01" min="0.01" required>
+                                            <input type="number" name="cantidad[]" class="form-control" step="0.01" min="0.01" 
+                                                   value="<?php echo $detalle['cant_uso_material_detalle']; ?>" required>
                                         </div>
 
                                         <div class="col-md-3">
                                             <label>Unidad:</label>
-                                            <input type="text" name="unidad[]" class="form-control" readonly>
+                                            <input type="text" name="unidad[]" class="form-control" 
+                                                   value="<?php echo $detalle['nom_unidad_medida']; ?>" readonly>
                                         </div>
                                     </div>
                                     <div class="row mt-2">
                                         <div class="col-md-6">
                                             <label>Stock Disponible:</label>
-                                            <input type="text" name="stock_disponible[]" class="form-control text-primary font-weight-bold" readonly>
+                                            <input type="text" name="stock_disponible[]" class="form-control text-primary font-weight-bold" 
+                                                   value="<?php echo $detalle['cantidad_disponible_almacen'] . ' ' . $detalle['nom_unidad_medida']; ?>" readonly>
                                         </div>
                                         <div class="col-md-6">
                                             <label>Observaciones:</label>
-                                            <textarea name="observaciones[]" class="form-control" rows="2" placeholder="Observaciones del uso"></textarea>
+                                            <textarea name="observaciones[]" class="form-control" rows="2" placeholder="Observaciones del uso"><?php echo $detalle['obs_uso_material_detalle']; ?></textarea>
                                         </div>
                                     </div>
                                     <div class="row mt-2">
                                         <div class="col-md-6">
                                             <label>Adjuntar Evidencias:</label>
-                                            <input type="file" name="archivos_0[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
+                                            <input type="file" name="archivos_<?php echo $contador; ?>[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
                                             <small class="form-text text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, XLS. Máximo 5MB por archivo.</small>
+                                            <?php if (!empty($detalle['archivos'])) { 
+                                                $archivos = explode(',', $detalle['archivos']);
+                                                echo '<div class="mt-2"><strong>Archivos existentes:</strong><br>';
+                                                foreach ($archivos as $archivo) {
+                                                    if (!empty($archivo)) {
+                                                        echo '<a href="../_archivos/uso_material/' . $archivo . '" target="_blank" class="btn btn-link btn-sm p-0">' . $archivo . '</a><br>';
+                                                    }
+                                                }
+                                                echo '</div>';
+                                            } ?>
                                         </div>
                                         <div class="col-md-6 d-flex align-items-end">
-                                            <button type="button" class="btn btn-danger btn-sm eliminar-material" style="display: none;">
+                                            <button type="button" class="btn btn-danger btn-sm eliminar-material" 
+                                                    <?php echo ($contador == 0) ? 'style="display: none;"' : ''; ?>>
                                                 <i class="fa fa-trash"></i> Eliminar
                                             </button>
                                         </div>
                                     </div>
                                 </div>
+                                <?php 
+                                    $contador++;
+                                } 
+                                ?>
                             </div>
 
                             <div class="form-group">
@@ -141,11 +170,14 @@
                             <div class="ln_solid"></div>
 
                             <div class="form-group">
-                                <div class="col-md-2 col-sm-2 offset-md-8">
+                                <div class="col-md-2 col-sm-2 offset-md-6">
+                                    <a href="uso_material_mostrar.php" class="btn btn-outline-secondary btn-block">Cancelar</a>
+                                </div>
+                                <div class="col-md-2 col-sm-2">
                                     <button type="reset" class="btn btn-outline-danger btn-block">Limpiar</button>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
-                                    <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">Registrar</button>
+                                    <button type="submit" name="actualizar" id="btn_actualizar" class="btn btn-success btn-block">Actualizar</button>
                                 </div>
                             </div>
 
@@ -155,6 +187,7 @@
                                 </div>
                             </div>
                         </form>
+                        <?php } ?>
                     </div>
                 </div>
             </div>
@@ -209,20 +242,19 @@
 let currentSearchButton = null;
 
 function buscarMaterial(button) {
-    // Validar que se haya seleccionado almacén y ubicación
-    const selectAlmacen = document.querySelector('select[name="id_almacen"]');
+    // Obtener almacén de los datos existentes (no editable)
     const selectUbicacion = document.querySelector('select[name="id_ubicacion"]');
     
-    if (!selectAlmacen.value || !selectUbicacion.value) {
+    if (!selectUbicacion.value) {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 icon: 'warning',
                 title: 'Datos requeridos',
-                text: 'Debe seleccionar almacén y ubicación antes de buscar materiales.',
+                text: 'Debe seleccionar ubicación antes de buscar materiales.',
                 confirmButtonText: 'Entendido'
             });
         } else {
-            alert('Debe seleccionar almacén y ubicación antes de buscar materiales.');
+            alert('Debe seleccionar ubicación antes de buscar materiales.');
         }
         return;
     }
@@ -230,19 +262,20 @@ function buscarMaterial(button) {
     // Guardar referencia al botón que se clickeó
     currentSearchButton = button;
     
-    // Actualizar el filtro en la modal
+    // Actualizar el filtro en la modal (usando almacén fijo del registro actual)
     const filtroSelect = document.getElementById('filtro_almacen_ubicacion');
-    const almacenTexto = selectAlmacen.options[selectAlmacen.selectedIndex].text;
+    const almacenId = '<?php echo $uso['id_almacen']; ?>';
+    const almacenNombre = '<?php echo $uso['nom_almacen']; ?>';
     const ubicacionTexto = selectUbicacion.options[selectUbicacion.selectedIndex].text;
     
-    filtroSelect.innerHTML = `<option value="${selectAlmacen.value}_${selectUbicacion.value}">${almacenTexto} - ${ubicacionTexto}</option>`;
-    filtroSelect.value = `${selectAlmacen.value}_${selectUbicacion.value}`;
+    filtroSelect.innerHTML = `<option value="${almacenId}_${selectUbicacion.value}">${almacenNombre} - ${ubicacionTexto}</option>`;
+    filtroSelect.value = `${almacenId}_${selectUbicacion.value}`;
     
     // Abrir la modal
     $('#buscar_producto').modal('show');
     
     // Cargar los productos en la tabla
-    cargarProductos(selectAlmacen.value, selectUbicacion.value);
+    cargarProductos(almacenId, selectUbicacion.value);
 }
 
 function cargarProductos(idAlmacen, idUbicacion) {
@@ -257,12 +290,12 @@ function cargarProductos(idAlmacen, idUbicacion) {
         "serverSide": true,
         "responsive": true,
         "ajax": {
-            "url": "material_mostrar_modal.php", // Este archivo necesitará ser creado
+            "url": "material_mostrar_modal.php",
             "type": "POST",
             "data": function(d) {
                 d.id_almacen = idAlmacen;
                 d.id_ubicacion = idUbicacion;
-                d.solo_con_stock = true; // Solo mostrar materiales con stock
+                d.solo_con_stock = true;
                 return d;
             }
         },
@@ -297,11 +330,9 @@ function cargarProductos(idAlmacen, idUbicacion) {
 
 function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisponible) {
     if (currentSearchButton) {
-        // Encontrar el contenedor padre del botón que se clickeó
         let materialItem = currentSearchButton.closest('.material-item');
         
         if (materialItem) {
-            // Actualizar los campos
             let inputDescripcion = materialItem.querySelector('input[name="descripcion[]"]');
             let inputIdProducto = materialItem.querySelector('input[name="id_producto[]"]');
             let inputUnidad = materialItem.querySelector('input[name="unidad[]"]');
@@ -314,13 +345,9 @@ function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisp
         }
     }
     
-    // Cerrar la modal
     $('#buscar_producto').modal('hide');
-    
-    // Limpiar la referencia
     currentSearchButton = null;
     
-    // Mostrar mensaje de éxito
     if (typeof Swal !== 'undefined') {
         Swal.fire({
             icon: 'success',
@@ -332,13 +359,12 @@ function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisp
     }
 }
 
-// Limpiar la referencia cuando se cierre la modal sin seleccionar
 $('#buscar_producto').on('hidden.bs.modal', function () {
     currentSearchButton = null;
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    let contadorMateriales = 1;
+    let contadorMateriales = <?php echo count($uso_material_detalle); ?>;
     
     // Agregar nuevo material
     const btnAgregarMaterial = document.getElementById('agregar-material');
@@ -352,6 +378,8 @@ document.addEventListener('DOMContentLoaded', function() {
             inputs.forEach(input => {
                 if (input.type !== 'hidden') {
                     input.value = '';
+                } else if (input.name === 'id_detalle[]') {
+                    input.value = '0'; // Nuevo detalle
                 } else {
                     input.value = '';
                 }
@@ -363,6 +391,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 fileInput.name = `archivos_${contadorMateriales}[]`;
             }
 
+            // Remover archivos existentes del nuevo elemento
+            const archivosExistentes = nuevoMaterial.querySelector('.mt-2');
+            if (archivosExistentes) {
+                archivosExistentes.remove();
+            }
+
             // Mostrar el botón eliminar
             const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
             if (btnEliminar) {
@@ -372,12 +406,10 @@ document.addEventListener('DOMContentLoaded', function() {
             contenedor.appendChild(nuevoMaterial);
             contadorMateriales++;
             
-            // Actualizar eventos
             actualizarEventosEliminar();
         });
     }
     
-    // Función para actualizar eventos de eliminar
     function actualizarEventosEliminar() {
         document.querySelectorAll('.eliminar-material').forEach(btn => {
             btn.onclick = function() {
@@ -388,7 +420,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Inicializar eventos
     actualizarEventosEliminar();
     
     // Validación de cantidad vs stock

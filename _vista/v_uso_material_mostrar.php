@@ -1,13 +1,13 @@
 <?php 
 //=======================================================================
-// VISTA: v_pedidos_mostrar.php
+// VISTA: v_uso_material_mostrar.php
 //=======================================================================
 ?>
 
 <script>
-function AprobarCompra(id_compra) {
+function AprobarUso(id_uso_material) {
     Swal.fire({
-        title: '¿Deseas aprobar esta compra?',
+        title: '¿Deseas aprobar este uso de material?',
         text: "Esta acción no se puede deshacer.",
         icon: 'warning',
         showCancelButton: true,
@@ -18,10 +18,10 @@ function AprobarCompra(id_compra) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: 'compras_aprobar.php',
+                url: 'uso_material_aprobar.php',
                 type: 'POST',
-                data: { id_compra: id_compra },
-                dataType: 'json', // 👈 importante
+                data: { id_uso_material: id_uso_material },
+                dataType: 'json',
                 success: function(response) {
                     if (response.tipo_mensaje === 'success') {
                         Swal.fire(
@@ -29,52 +29,7 @@ function AprobarCompra(id_compra) {
                             response.mensaje,
                             'success'
                         ).then(() => {
-                            location.reload(); // Recargar cambios
-                        });
-                    } else {
-                        Swal.fire(
-                            'Error',
-                            response.mensaje,
-                            'error'
-                        );
-                    }
-                },
-                error: function() {
-                    Swal.fire(
-                        'Error',
-                        'No se pudo conectar con el servidor.',
-                        'error'
-                    );
-                }
-            });
-        }
-    });
-}
-function AnularCompra(id_compra) {
-    Swal.fire({
-        title: '¿Deseas anular esta compra?',
-        text: "Esta acción no se puede deshacer.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Sí, anular',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: 'compras_anular.php',
-                type: 'POST',
-                data: { id_compra: id_compra },
-                dataType: 'json', // 👈 importante
-                success: function(response) {
-                    if (response.tipo_mensaje === 'success') {
-                        Swal.fire(
-                            '¡Anulado!',
-                            response.mensaje,
-                            'success'
-                        ).then(() => {
-                            location.reload(); // Recargar cambios
+                            location.reload();
                         });
                     } else {
                         Swal.fire(
@@ -96,6 +51,51 @@ function AnularCompra(id_compra) {
     });
 }
 
+function AnularUso(id_uso_material) {
+    Swal.fire({
+        title: '¿Deseas anular este uso de material?',
+        text: "Esta acción no se puede deshacer y el stock será devuelto al almacén.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, anular',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: 'uso_material_anular.php',
+                type: 'POST',
+                data: { id_uso_material: id_uso_material },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.tipo_mensaje === 'success') {
+                        Swal.fire(
+                            '¡Anulado!',
+                            response.mensaje,
+                            'success'
+                        ).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire(
+                            'Error',
+                            response.mensaje,
+                            'error'
+                        );
+                    }
+                },
+                error: function() {
+                    Swal.fire(
+                        'Error',
+                        'No se pudo conectar con el servidor.',
+                        'error'
+                    );
+                }
+            });
+        }
+    });
+}
 </script>
 
 <!-- page content -->
@@ -120,9 +120,7 @@ function AnularCompra(id_compra) {
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                               <!-- 
-                               <a href="compras_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nueva Compra</a>
-                               -->  
+                                <a href="uso_material_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nuevo Uso</a>
                         </div>
                         </div>
                     </div>
@@ -156,20 +154,17 @@ function AnularCompra(id_compra) {
                                                 <tr>
                                                     <td><?php echo $contador; ?></td>
                                                     <td><?php echo $uso['id_uso_material']; ?></td>
-                                                    <td><a class="btn btn-sm btn-outline-secondary" target="_blank" href="pedido_pdf.php?id=<?php echo $uso['id_pedido']; ?>"><?php echo $uso['cod_pedido']; ?></a></td>
                                                     <td><?php echo $uso['nom_almacen']; ?></td>
                                                     <td><?php echo $uso['nom_ubicacion']; ?></td>
                                                     <td><?php echo $uso['nom_obra']; ?></td>
                                                     <td><?php echo $uso['nom_cliente']; ?></td>
-                                                    <td><?php echo $uso['nom_solicitante']; ?></td>
-                                                    <td><?php echo $uso['nom_registrado']; ?></td>
+                                                    <td><?php echo $uso['nom_completo_solicitante']; ?></td>
+                                                    <td><?php echo $uso['nom_registrado'] . ' ' . $uso['ape_registrado']; ?></td>
                                                     <td><?php echo date('d/m/Y H:i', strtotime($uso['fec_uso_material'])); ?></td>
                                                     <td>
                                                         <?php if($uso['est_uso_material'] == 1) { ?>
                                                             <span class="badge badge-warning badge_size">Pendiente</span>
                                                         <?php } elseif($uso['est_uso_material'] == 2) { ?>
-                                                            <span class="badge badge-success badge_size">Aprobado</span>
-                                                        <?php } elseif($uso['est_uso_material'] == 3) { ?>
                                                             <span class="badge badge-success badge_size">Aprobado</span>
                                                         <?php } else { ?>
                                                             <span class="badge badge-danger badge_size">Anulado</span>
@@ -180,14 +175,19 @@ function AnularCompra(id_compra) {
 
                                                         <?php
                                                         // Si está anulado o aprobado, bloquear botones de aprobar y anular
-                                                        if ($uso['est_uso_material'] == 0 || $uso['est_uso_material'] == 2 || $uso['est_uso_material'] == 3) { ?>
-                                                            <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Verificar" tabindex="-1" aria-disabled="true">
+                                                        if ($uso['est_uso_material'] == 0 || $uso['est_uso_material'] == 2) { ?>
+                                                            <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Aprobar" tabindex="-1" aria-disabled="true">
                                                                 <i class="fa fa-check"></i>
                                                             </a>
                                                             <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Anular" tabindex="-1" aria-disabled="true">
                                                                 <i class="fa fa-times"></i>
                                                             </a>
-                                                            <a href="compras_pdf.php?id=<?php echo $uso['id_uso_material']; ?>"
+                                                            <?php if($uso['est_uso_material'] != 0) { ?>
+                                                            <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Editar" tabindex="-1" aria-disabled="true">
+                                                                <i class="fa fa-edit"></i>
+                                                            </a>
+                                                            <?php } ?>
+                                                            <a href="uso_material_pdf.php?id=<?php echo $uso['id_uso_material']; ?>"
                                                                class="btn btn-secondary btn-sm"
                                                                title="Generar PDF"
                                                                target="_blank">
@@ -197,7 +197,7 @@ function AnularCompra(id_compra) {
                                                         } else { ?>
                                                             <a href="#" onclick="AprobarUso(<?php echo $uso['id_uso_material']; ?>)"
                                                                class="btn btn-success btn-sm"
-                                                               title="Verificar">
+                                                               title="Aprobar">
                                                                 <i class="fa fa-check"></i>
                                                             </a>
                                                             <a href="#" onclick="AnularUso(<?php echo $uso['id_uso_material']; ?>)"
@@ -205,7 +205,12 @@ function AnularCompra(id_compra) {
                                                                title="Anular">
                                                                 <i class="fa fa-times"></i>
                                                             </a>
-                                                            <a href="compras_pdf.php?id=<?php echo $uso['id_uso_material']; ?>"
+                                                            <a href="uso_material_editar.php?id=<?php echo $uso['id_uso_material']; ?>"
+                                                               class="btn btn-info btn-sm"
+                                                               title="Editar">
+                                                                <i class="fa fa-edit"></i>
+                                                            </a>
+                                                            <a href="uso_material_pdf.php?id=<?php echo $uso['id_uso_material']; ?>"
                                                                class="btn btn-secondary btn-sm"
                                                                title="Generar PDF"
                                                                target="_blank">
