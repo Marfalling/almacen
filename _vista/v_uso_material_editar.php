@@ -38,17 +38,10 @@
                             </div>
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Ubicación <span class="text-danger">*</span>:</label>
+                                <label class="control-label col-md-3 col-sm-3">Ubicación:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <select name="id_ubicacion" class="form-control" required>
-                                        <option value="">Seleccionar</option>
-                                        <?php foreach ($ubicaciones as $ubicacion) { ?>
-                                            <option value="<?php echo $ubicacion['id_ubicacion']; ?>" 
-                                                <?php echo ($uso['id_ubicacion'] == $ubicacion['id_ubicacion']) ? 'selected' : ''; ?>>
-                                                <?php echo $ubicacion['nom_ubicacion']; ?>
-                                            </option>
-                                        <?php } ?>
-                                    </select>
+                                    <input type="text" class="form-control" value="<?php echo $uso['nom_ubicacion']; ?>" readonly>
+                                    <input type="hidden" name="id_ubicacion" value="<?php echo $uso['id_ubicacion']; ?>">
                                 </div>
                             </div>
 
@@ -131,12 +124,18 @@
                                             <label>Adjuntar Evidencias:</label>
                                             <input type="file" name="archivos_<?php echo $contador; ?>[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
                                             <small class="form-text text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, XLS. Máximo 5MB por archivo.</small>
+                                            
                                             <?php if (!empty($detalle['archivos'])) { 
                                                 $archivos = explode(',', $detalle['archivos']);
                                                 echo '<div class="mt-2"><strong>Archivos existentes:</strong><br>';
                                                 foreach ($archivos as $archivo) {
                                                     if (!empty($archivo)) {
-                                                        echo '<a href="../_archivos/uso_material/' . $archivo . '" target="_blank" class="btn btn-link btn-sm p-0">' . $archivo . '</a><br>';
+                                                        echo '<div class="d-flex align-items-center mb-1">';
+                                                        echo '<a href="../_archivos/uso_material/' . $archivo . '" target="_blank" class="btn btn-link btn-sm p-0 me-2">' . $archivo . '</a>';
+                                                        echo '<button type="button" class="btn btn-danger btn-xs ms-2" onclick="eliminarArchivo(\'' . $archivo . '\', ' . $detalle['id_uso_material_detalle'] . ', this)" title="Eliminar archivo">';
+                                                        echo '<i class="fa fa-trash"></i>';
+                                                        echo '</button>';
+                                                        echo '</div>';
                                                     }
                                                 }
                                                 echo '</div>';
@@ -237,7 +236,7 @@
 <script>
 // Variables globales
 let currentSearchButton = null;
-let ubicacionActual = '';
+let ubicacionActual = '<?php echo $uso['id_ubicacion']; ?>';
 let formularioModificado = false;
 let productosSeleccionados = [];
 
@@ -273,21 +272,105 @@ function limpiarProductosNuevos() {
     formularioModificado = false;
 }
 
+// Función para eliminar archivo
+function eliminarArchivo(nombreArchivo, idDetalle, botonEliminar) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: '¿Eliminar archivo?',
+            text: 'Esta acción no se puede deshacer. El archivo "' + nombreArchivo + '" será eliminado permanentemente.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Realizar petición AJAX para eliminar el archivo
+                fetch('eliminar_archivo_uso_material.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'nombre_archivo=' + encodeURIComponent(nombreArchivo) + 
+                          '&id_detalle=' + idDetalle
+                })
+                .then(response => response.text())
+                .then(data => {
+                    if (data.trim() === 'OK') {
+                        // Eliminar la fila del archivo del DOM
+                        botonEliminar.parentElement.remove();
+                        
+                        Swal.fire({
+                            title: 'Archivo eliminado',
+                            text: 'El archivo ha sido eliminado correctamente.',
+                            icon: 'success',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'No se pudo eliminar el archivo: ' + data,
+                            icon: 'error'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'Error de conexión al eliminar el archivo.',
+                        icon: 'error'
+                    });
+                });
+            }
+        });
+    } else {
+        if (confirm('¿Está seguro de eliminar el archivo "' + nombreArchivo + '"?')) {
+            // Realizar petición AJAX para eliminar el archivo
+            fetch('eliminar_archivo_uso_material.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'nombre_archivo=' + encodeURIComponent(nombreArchivo) + 
+                      '&id_detalle=' + idDetalle
+            })
+            .then(response => response.text())
+            .then(data => {
+                if (data.trim() === 'OK') {
+                    // Eliminar la fila del archivo del DOM
+                    botonEliminar.parentElement.remove();
+                    alert('Archivo eliminado correctamente.');
+                } else {
+                    alert('Error al eliminar archivo: ' + data);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión al eliminar el archivo.');
+            });
+        }
+    }
+}
+
 // Función para buscar material
 function buscarMaterial(button) {
-    const selectUbicacion = document.querySelector('select[name="id_ubicacion"]');
     const inputAlmacen = document.querySelector('input[name="id_almacen"]');
+    const hiddenUbicacion = document.querySelector('input[name="id_ubicacion"]');
     
-    if (!selectUbicacion.value) {
+    if (!hiddenUbicacion.value) {
         if (typeof Swal !== 'undefined') {
             Swal.fire({
                 icon: 'warning',
-                title: 'Datos requeridos',
-                text: 'Debe seleccionar ubicación antes de buscar materiales.',
+                title: 'Error',
+                text: 'No se pudo obtener la ubicación.',
                 confirmButtonText: 'Entendido'
             });
         } else {
-            alert('Debe seleccionar ubicación antes de buscar materiales.');
+            alert('No se pudo obtener la ubicación.');
         }
         return;
     }
@@ -296,13 +379,13 @@ function buscarMaterial(button) {
     
     const filtroSelect = document.getElementById('filtro_almacen_ubicacion');
     const almacenNombre = '<?php echo $uso['nom_almacen']; ?>';
-    const ubicacionTexto = selectUbicacion.options[selectUbicacion.selectedIndex].text;
+    const ubicacionNombre = '<?php echo $uso['nom_ubicacion']; ?>';
     
-    filtroSelect.innerHTML = `<option value="${inputAlmacen.value}_${selectUbicacion.value}">${almacenNombre} - ${ubicacionTexto}</option>`;
-    filtroSelect.value = `${inputAlmacen.value}_${selectUbicacion.value}`;
+    filtroSelect.innerHTML = `<option value="${inputAlmacen.value}_${hiddenUbicacion.value}">${almacenNombre} - ${ubicacionNombre}</option>`;
+    filtroSelect.value = `${inputAlmacen.value}_${hiddenUbicacion.value}`;
     
     $('#buscar_producto').modal('show');
-    cargarProductos(inputAlmacen.value, selectUbicacion.value);
+    cargarProductos(inputAlmacen.value, hiddenUbicacion.value);
 }
 
 // Función para cargar productos
@@ -384,59 +467,6 @@ function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisp
     }
 }
 
-// Función para manejar cambios en ubicación
-function manejarCambioUbicacion(elemento) {
-    elemento.addEventListener('focus', function() {
-        ubicacionActual = this.value;
-    });
-    
-    elemento.addEventListener('change', function() {
-        const valorActual = this.value;
-        const hayProductosNuevos = hayProductosNuevos();
-        
-        if (hayProductosNuevos && ubicacionActual !== valorActual) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    title: '¿Cambiar ubicación?',
-                    text: 'Si cambias la ubicación, los materiales nuevos agregados se eliminarán.',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Sí, cambiar ubicación',
-                    cancelButtonText: 'Cancelar',
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        limpiarProductosNuevos();
-                        ubicacionActual = valorActual;
-                        
-                        Swal.fire({
-                            title: 'Ubicación cambiada',
-                            text: 'Los materiales nuevos han sido eliminados.',
-                            icon: 'success',
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                    } else {
-                        this.value = ubicacionActual;
-                    }
-                });
-            } else {
-                if (confirm('Si cambias la ubicación, los materiales nuevos agregados se eliminarán. ¿Continuar?')) {
-                    limpiarProductosNuevos();
-                    ubicacionActual = valorActual;
-                    alert('Ubicación cambiada. Materiales nuevos eliminados.');
-                } else {
-                    this.value = ubicacionActual;
-                }
-            }
-        } else {
-            ubicacionActual = valorActual;
-        }
-    });
-}
-
 // Verificar si hay productos nuevos (no originales del registro)
 function hayProductosNuevos() {
     const materialesItems = document.querySelectorAll('.material-item');
@@ -459,15 +489,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Detectar cambios en campos del formulario
     const todosLosCampos = document.querySelectorAll('input, textarea, select');
     todosLosCampos.forEach(campo => {
-        if (campo.name !== 'id_ubicacion') {
-            campo.addEventListener('change', marcarFormularioComoModificado);
-            campo.addEventListener('input', marcarFormularioComoModificado);
-        }
+        campo.addEventListener('change', marcarFormularioComoModificado);
+        campo.addEventListener('input', marcarFormularioComoModificado);
     });
-    
-    // Controlar cambios en ubicación
-    const selectUbicacion = document.querySelector('select[name="id_ubicacion"]');
-    if (selectUbicacion) manejarCambioUbicacion(selectUbicacion);
     
     // Agregar nuevo material
     const btnAgregarMaterial = document.getElementById('agregar-material');
@@ -524,24 +548,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function actualizarEventosCampos() {
         const todosLosCamposActualizados = document.querySelectorAll('input, textarea, select');
         todosLosCamposActualizados.forEach(campo => {
-            if (campo.name !== 'id_ubicacion') {
-                campo.removeEventListener('change', marcarFormularioComoModificado);
-                campo.removeEventListener('input', marcarFormularioComoModificado);
-                campo.addEventListener('change', marcarFormularioComoModificado);
-                campo.addEventListener('input', marcarFormularioComoModificado);
-            }
+            campo.removeEventListener('change', marcarFormularioComoModificado);
+            campo.removeEventListener('input', marcarFormularioComoModificado);
+            campo.addEventListener('change', marcarFormularioComoModificado);
+            campo.addEventListener('input', marcarFormularioComoModificado);
         });
     }
     
     actualizarEventosEliminar();
-    
-    // Validación de cantidad vs stock (se aplicará dinámicamente)
-    document.addEventListener('input', function(e) {
-        if (e.target && e.target.name === 'cantidad[]') {
-            // La validación de stock se manejará cuando se seleccione un producto del modal
-            // o se puede implementar una consulta AJAX para obtener el stock actual
-        }
-    });
     
     // Validación antes del envío
     document.querySelector('form').addEventListener('submit', function(e) {

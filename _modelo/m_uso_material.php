@@ -122,13 +122,13 @@ function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_pers
     mysqli_autocommit($con, false);
 
     try {
-        // Insertar uso de material principal
+        // Insertar uso de material principal con estado APROBADO (2) directamente
         $sql = "INSERT INTO uso_material (
                     id_uso_material, id_almacen, id_ubicacion, id_personal, 
                     id_solicitante, fec_uso_material, est_uso_material
                 ) VALUES (
                     $id_uso_material, $id_almacen, $id_ubicacion, $id_personal, 
-                    $id_solicitante, NOW(), 1
+                    $id_solicitante, NOW(), 2
                 )";
 
         if (!mysqli_query($con, $sql)) {
@@ -176,7 +176,7 @@ function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_pers
 
             $id_detalle = mysqli_insert_id($con);
             
-            // Registrar movimiento de salida con tipo_orden = 4 (USO)
+            // Registrar movimiento de salida con tipo_orden = 4 (USO) INMEDIATAMENTE
             $sql_movimiento = "INSERT INTO movimiento (
                                 id_personal, id_orden, id_producto, id_almacen, 
                                 id_ubicacion, tipo_orden, tipo_movimiento, 
@@ -255,7 +255,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante,
             throw new Exception('Error al actualizar uso de material: ' . mysqli_error($con));
         }
         
-        // ✅ SOLUCIÓN: Marcar como inactivos los movimientos anteriores en lugar de crear movimientos de reversión
+        // Marcar como inactivos los movimientos anteriores
         $sql_desactivar_movimientos = "UPDATE movimiento SET est_movimiento = 0 
                                       WHERE id_orden = $id_uso_material 
                                       AND tipo_orden = 4 

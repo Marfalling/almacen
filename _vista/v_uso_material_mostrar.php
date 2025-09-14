@@ -5,52 +5,6 @@
 ?>
 
 <script>
-function AprobarUso(id_uso_material) {
-    Swal.fire({
-        title: '¿Deseas aprobar este uso de material?',
-        text: "Esta acción no se puede deshacer.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Sí, aprobar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: 'uso_material_aprobar.php',
-                type: 'POST',
-                data: { id_uso_material: id_uso_material },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.tipo_mensaje === 'success') {
-                        Swal.fire(
-                            '¡Aprobado!',
-                            response.mensaje,
-                            'success'
-                        ).then(() => {
-                            location.reload();
-                        });
-                    } else {
-                        Swal.fire(
-                            'Error',
-                            response.mensaje,
-                            'error'
-                        );
-                    }
-                },
-                error: function() {
-                    Swal.fire(
-                        'Error',
-                        'No se pudo conectar con el servidor.',
-                        'error'
-                    );
-                }
-            });
-        }
-    });
-}
-
 function AnularUso(id_uso_material) {
     Swal.fire({
         title: '¿Deseas anular este uso de material?',
@@ -162,10 +116,8 @@ function AnularUso(id_uso_material) {
                                                     <td><?php echo $uso['nom_registrado'] . ' ' . $uso['ape_registrado']; ?></td>
                                                     <td><?php echo date('d/m/Y H:i', strtotime($uso['fec_uso_material'])); ?></td>
                                                     <td>
-                                                        <?php if($uso['est_uso_material'] == 1) { ?>
-                                                            <span class="badge badge-warning badge_size">Pendiente</span>
-                                                        <?php } elseif($uso['est_uso_material'] == 2) { ?>
-                                                            <span class="badge badge-success badge_size">Aprobado</span>
+                                                        <?php if($uso['est_uso_material'] == 2) { ?>
+                                                            <span class="badge badge-success badge_size">Registrado</span>
                                                         <?php } else { ?>
                                                             <span class="badge badge-danger badge_size">Anulado</span>
                                                         <?php } ?>
@@ -174,19 +126,14 @@ function AnularUso(id_uso_material) {
                                                         <div class="d-flex flex-wrap gap-2">
 
                                                         <?php
-                                                        // Si está anulado o aprobado, bloquear botones de aprobar y anular
-                                                        if ($uso['est_uso_material'] == 0 || $uso['est_uso_material'] == 2) { ?>
-                                                            <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Aprobar" tabindex="-1" aria-disabled="true">
-                                                                <i class="fa fa-check"></i>
-                                                            </a>
+                                                        // Si está anulado, mostrar botones deshabilitados
+                                                        if ($uso['est_uso_material'] == 0) { ?>
                                                             <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Anular" tabindex="-1" aria-disabled="true">
                                                                 <i class="fa fa-times"></i>
                                                             </a>
-                                                            <?php if($uso['est_uso_material'] != 0) { ?>
                                                             <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Editar" tabindex="-1" aria-disabled="true">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
-                                                            <?php } ?>
                                                             <a href="uso_material_pdf.php?id=<?php echo $uso['id_uso_material']; ?>"
                                                                class="btn btn-secondary btn-sm"
                                                                title="Generar PDF"
@@ -194,12 +141,9 @@ function AnularUso(id_uso_material) {
                                                                 <i class="fa fa-file-pdf-o"></i>
                                                             </a>
                                                         <?php
-                                                        } else { ?>
-                                                            <a href="#" onclick="AprobarUso(<?php echo $uso['id_uso_material']; ?>)"
-                                                               class="btn btn-success btn-sm"
-                                                               title="Aprobar">
-                                                                <i class="fa fa-check"></i>
-                                                            </a>
+                                                        } else { 
+                                                            // Si está registrado (estado 2), mostrar botones activos
+                                                        ?>
                                                             <a href="#" onclick="AnularUso(<?php echo $uso['id_uso_material']; ?>)"
                                                                class="btn btn-danger btn-sm"
                                                                title="Anular">

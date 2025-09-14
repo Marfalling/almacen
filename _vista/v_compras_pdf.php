@@ -40,31 +40,18 @@ $html = '
             height: 90px;
         }
         
-        .logo {
+        .header-left {
             position: absolute;
             left: 15px;
             top: 15px;
-            width: 80px;
-            height: 50px;
-        }
-        
-        .logo img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-        
-        .empresa-info {
-            position: absolute;
-            left: 110px;
-            top: 10px;
             font-size: 8pt;
             line-height: 1.1;
         }
-
+        
         .logo {
             width: 80px;
             margin-right: 15px;
+            margin-bottom: 5px;
         }
 
         .logo img {
@@ -86,7 +73,9 @@ $html = '
         }
 
         .header-right {
-            flex: 2;
+            position: absolute;
+            right: 15px;
+            top: 15px;
             text-align: right;
             font-size: 8pt;
             line-height: 1.3;
