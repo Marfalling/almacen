@@ -158,9 +158,9 @@
                                         <div class="col-md-6">
                                             <label>SST/MA/CA <span class="text-danger">*</span>:</label>
                                             <input type="text" name="sst[]" class="form-control" 
-                                                placeholder="SST / MA / CA (ej: aa / bb / cc)" 
-                                                pattern="[^/]+/[^/]+/[^/]+" 
-                                                title="Por favor ingresa los tres valores separados por barras (ej: valor1 / valor2 / valor3)" 
+                                                placeholder="SST/MA/CA o NA" 
+                                                pattern="([^/]+/[^/]+/[^/]+)|(NA|N/A|NO APLICA)" 
+                                                title="Por favor ingresa los tres valores separados por barras" 
                                                 required>
                                             <small class="form-text text-muted">Ingresa los tres valores separados por barras (/)</small>
                                         </div>
@@ -882,7 +882,41 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form[action="pedidos_nuevo.php"], form[action="pedidos_editar.php"]');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            let archivosInvalidos = false;
+            let mensajeError = '';
+            // Buscar todos los inputs de archivos
+            const archivosInputs = form.querySelectorAll('input[type="file"][name^="archivos_"]');
+            archivosInputs.forEach(input => {
+                for (let i = 0; i < input.files.length; i++) {
+                    if (input.files[i].size > 5 * 1024 * 1024) { // 5MB
+                        archivosInvalidos = true;
+                        mensajeError = 'Uno o más archivos superan el límite de 5MB. Por favor seleccione archivos más pequeños.';
+                        break;
+                    }
+                }
+            });
+            if (archivosInvalidos) {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Archivo demasiado grande',
+                        text: mensajeError
+                    });
+                } else {
+                    alert(mensajeError);
+                }
+                // El formulario NO se envía y los datos NO se pierden
+            }
+        });
+    }
+});
+</script>
 <script>
 // Función para seleccionar automáticamente el producto recién creado
 function seleccionarProductoCreado(producto) {

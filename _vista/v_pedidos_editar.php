@@ -31,14 +31,14 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Tipo de Pedido:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" class="form-control" value="<?php echo $pedido['nom_producto_tipo'] ?? 'N/A'; ?>" readonly>
+                                    <input type="text" class="form-control" value="<?php echo isset($pedido['nom_producto_tipo']) ? $pedido['nom_producto_tipo'] : 'N/A'; ?>" readonly>
                                 </div>
                             </div>
 
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Almacén:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" class="form-control" value="<?php echo $pedido['nom_almacen']; ?>" readonly>
+                                    <input type="text" class="form-control" value="<?php echo isset($pedido['nom_almacen']) ? $pedido['nom_almacen'] : 'N/A'; ?>" readonly>
                                 </div>
                             </div>
 
@@ -60,7 +60,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Código del Pedido:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" class="form-control" value="<?php echo $pedido['cod_pedido']; ?>" readonly>
+                                    <input type="text" class="form-control" value="<?php echo isset($pedido['cod_pedido']) ? $pedido['cod_pedido'] : 'N/A'; ?>" readonly>
                                 </div>
                             </div>
 
@@ -213,27 +213,37 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                         <div class="col-md-6">
                                             <label>SST/MA/CA <span class="text-danger">*</span>:</label>
                                             <?php
-                                            // Reconstruir el valor en formato "valor1/valor2/valor3" para edición
-                                            $sst_valor = '';
+                                            // Extraer valores individuales de la base de datos
+                                            $sst_individual = '';
+                                            $ma_individual = '';
+                                            $ca_individual = '';
+                                            $requisitos = $detalle['req_pedido'];
+                                            
                                             if (preg_match('/SST:\s*([^|]*)\s*\|/', $requisitos, $matches)) {
-                                                $sst_valor .= trim($matches[1]);
+                                                $sst_individual = trim($matches[1]);
                                             }
                                             if (preg_match('/MA:\s*([^|]*)\s*\|/', $requisitos, $matches)) {
-                                                $sst_valor .= '/' . trim($matches[1]);
-                                            } else {
-                                                $sst_valor .= '/';
+                                                $ma_individual = trim($matches[1]);
                                             }
                                             if (preg_match('/CA:\s*(.*)$/', $requisitos, $matches)) {
-                                                $sst_valor .= '/' . trim($matches[1]);
+                                                $ca_individual = trim($matches[1]);
+                                            }
+                                            
+                                            // Determinar el valor a mostrar en el input
+                                            $valor_mostrar = '';
+                                            
+                                            if ($sst_individual === 'NA' && $ma_individual === 'NA' && $ca_individual === 'NA') {
+                                                $valor_mostrar = 'NA';
                                             } else {
-                                                $sst_valor .= '/';
+                                                $valor_mostrar = $sst_individual . '/' . $ma_individual . '/' . $ca_individual;
                                             }
                                             ?>
+                                            
                                             <input type="text" name="sst[]" class="form-control" 
-                                                value="<?php echo $sst_valor; ?>" 
-                                                placeholder="SST / MA / CA (ej: aa / bb / cc)" 
-                                                pattern="[^/]+/[^/]+/[^/]+" 
-                                                title="Por favor ingresa los tres valores separados por barras (ej: valor1 / valor2 / valor3)" 
+                                                value="<?php echo htmlspecialchars($valor_mostrar); ?>" 
+                                                placeholder="SST/MA/CA (ej: valor1/valor2/valor3) o NA" 
+                                                pattern="([^/]+/[^/]+/[^/]+)|(NA|N/A|NO APLICA)" 
+                                                title="Por favor ingresa los tres valores separados por barras" 
                                                 required>
                                             <small class="form-text text-muted">Ingresa los tres valores separados por barras (/)</small>
                                         </div>
@@ -989,6 +999,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (confirm('¿Restaurar valores originales? Se restaurarán todos los valores a su estado original.')) {
                     location.reload();
                 }
+            }
+        });
+    }
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form[action="pedidos_nuevo.php"], form[action="pedidos_editar.php"]');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            let archivosInvalidos = false;
+            let mensajeError = '';
+            // Buscar todos los inputs de archivos
+            const archivosInputs = form.querySelectorAll('input[type="file"][name^="archivos_"]');
+            archivosInputs.forEach(input => {
+                for (let i = 0; i < input.files.length; i++) {
+                    if (input.files[i].size > 5 * 1024 * 1024) { // 5MB
+                        archivosInvalidos = true;
+                        mensajeError = 'Uno o más archivos superan el límite de 5MB. Por favor seleccione archivos más pequeños.';
+                        break;
+                    }
+                }
+            });
+            if (archivosInvalidos) {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Archivo demasiado grande',
+                        text: mensajeError
+                    });
+                } else {
+                    alert(mensajeError);
+                }
+                // El formulario NO se envía y los datos NO se pierden
             }
         });
     }

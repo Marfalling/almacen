@@ -58,19 +58,35 @@ require_once("../_conexion/sesion.php");
                 $materiales = array();
                 if (isset($_REQUEST['descripcion']) && is_array($_REQUEST['descripcion'])) {
                     for ($i = 0; $i < count($_REQUEST['descripcion']); $i++) {
-                        // SEPARAR los valores de SST/MA/CA
-                        $valores_sst = explode('/', $_REQUEST['sst'][$i]);
-                        
+                        $sst_input = trim($_REQUEST['sst'][$i]);
+
+                        // Si el usuario ingresa "NA", "N/A", "No Aplica", etc., tratarlo como caso especial
+                        if (strtoupper($sst_input) === 'NA' || 
+                            strtoupper($sst_input) === 'N/A' || 
+                            strtoupper($sst_input) === 'NO APLICA') {
+                            
+                            $sst_val = 'NA';
+                            $ma_val = 'NA';
+                            $ca_val = 'NA';
+                            
+                        } else {
+                            // Procesamiento normal con separación por barras
+                            $valores_sst = explode('/', $sst_input);
+                            $sst_val = trim($valores_sst[0] ?? '');
+                            $ma_val = trim($valores_sst[1] ?? '');
+                            $ca_val = trim($valores_sst[2] ?? '');
+                        }
+
                         $materiales[] = array(
                             'id_producto' => $_REQUEST['id_material'][$i],
                             'descripcion' => $_REQUEST['descripcion'][$i],
                             'cantidad' => $_REQUEST['cantidad'][$i],
                             'unidad' => $_REQUEST['unidad'][$i],
                             'observaciones' => $_REQUEST['observaciones'][$i],
-                            'sst' => trim($valores_sst[0] ?? ''),        // Primer valor: SST
-                            'ma' => trim($valores_sst[1] ?? ''),         // Segundo valor: MA
-                            'ca' => trim($valores_sst[2] ?? ''),         // Tercer valor: CA
-                            'id_detalle' => $_REQUEST['id_detalle'][$i]  // ID del detalle para actualización
+                            'sst' => $sst_val,
+                            'ma' => $ma_val,
+                            'ca' => $ca_val,
+                            'id_detalle' => $_REQUEST['id_detalle'][$i]
                         );
                     }
                 }

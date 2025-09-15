@@ -224,19 +224,17 @@ foreach($pedidos as $pedido) {
                                             <td>
                                                 <small><?php echo str_replace('|', '<br>', $detalle['req_pedido']); ?></small>
                                             </td>
-                                            <td>
-                                                <?php if (!empty($detalle['archivos'])) { 
-                                                    $archivos = explode(',', $detalle['archivos']);
-                                                    foreach ($archivos as $archivo) {
-                                                        if (!empty(trim($archivo))) {
-                                                ?>
-                                                            <a href="../_archivos/pedidos/<?php echo trim($archivo); ?>" 
-                                                               target="_blank" class="btn btn-sm btn-outline-primary mb-1">
-                                                                <i class="fa fa-download"></i> <?php echo trim($archivo); ?>
-                                                            </a><br>
+                                           <td>
                                                 <?php 
-                                                        }
-                                                    }
+                                                $archivos_activos = ObtenerArchivosActivosDetalle($detalle['id_pedido_detalle']);
+                                                
+                                                if (!empty($archivos_activos)) { 
+                                                    foreach ($archivos_activos as $archivo) { ?>
+                                                        <a href="../_archivos/pedidos/<?php echo $archivo; ?>" 
+                                                        target="_blank" class="btn btn-sm btn-outline-primary mb-1">
+                                                            <i class="fa fa-download"></i> <?php echo $archivo; ?>
+                                                        </a><br>
+                                                <?php } 
                                                 } else { ?>
                                                     <span class="text-muted">Sin archivos</span>
                                                 <?php } ?>

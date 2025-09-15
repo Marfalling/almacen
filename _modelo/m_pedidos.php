@@ -146,7 +146,6 @@ function MostrarPedidos()
              ORDER BY p.fec_pedido DESC";
 
     $resc = mysqli_query($con, $sqlc);
-
     $resultado = array();
 
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
@@ -156,22 +155,31 @@ function MostrarPedidos()
     mysqli_close($con);
     return $resultado;
 }
+
 
 //-----------------------------------------------------------------------
 function ConsultarPedido($id_pedido)
 {
     include("../_conexion/conexion.php");
 
-    $sqlc = "SELECT p.*, ob.nom_obra, c.nom_cliente, u.nom_ubicacion, a.nom_almacen, pr.nom_personal, pr.ape_personal
+    $sqlc = "SELECT p.*, 
+                ob.nom_obra, 
+                c.nom_cliente, 
+                u.nom_ubicacion, 
+                a.nom_almacen, 
+                pr.nom_personal, 
+                pr.ape_personal,
+                pt.nom_producto_tipo
              FROM pedido p 
              INNER JOIN almacen a ON p.id_almacen = a.id_almacen
                 INNER JOIN obra ob ON a.id_obra = ob.id_obra
                 INNER JOIN cliente c ON a.id_cliente = c.id_cliente
              INNER JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion
              INNER JOIN personal pr ON p.id_personal = pr.id_personal
+             INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
              WHERE p.id_pedido = '$id_pedido'";
+    
     $resc = mysqli_query($con, $sqlc);
-
     $resultado = array();
 
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
@@ -182,6 +190,28 @@ function ConsultarPedido($id_pedido)
     return $resultado;
 }
 
+function ObtenerArchivosActivosDetalle($id_pedido_detalle) 
+{
+    include("../_conexion/conexion.php");
+    
+    $archivos = array();
+    $sql = "SELECT nom_pedido_detalle_documento 
+            FROM pedido_detalle_documento 
+            WHERE id_pedido_detalle = $id_pedido_detalle 
+            AND est_pedido_detalle_documento = 1
+            ORDER BY id_pedido_detalle_documento";
+    
+    $resultado = mysqli_query($con, $sql);
+    
+    while ($fila = mysqli_fetch_assoc($resultado)) {
+        if (!empty(trim($fila['nom_pedido_detalle_documento']))) {
+            $archivos[] = trim($fila['nom_pedido_detalle_documento']);
+        }
+    }
+    
+    mysqli_close($con);
+    return $archivos;
+}
 //-----------------------------------------------------------------------
 function ConsultarPedidoDetalle($id_pedido)
 {
@@ -252,6 +282,7 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $nom_pedido, $fecha_necesid
         
         // Array para trackear qué detalles se están usando
         $detalles_utilizados = array();
+        
         // Procesar cada material
         foreach ($materiales as $index => $material) {
             $id_producto = intval($material['id_producto']);
@@ -305,8 +336,36 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $nom_pedido, $fecha_necesid
                 }
             }
             
-            // Guardar archivos si existen - SOLO SI SE SUBIERON NUEVOS ARCHIVOS
+            // MANEJO MEJORADO DE ARCHIVOS - REEMPLAZAR ARCHIVOS EXISTENTES
             if (isset($archivos_subidos[$index]) && !empty($archivos_subidos[$index]['name'][0])) {
+                
+                // PASO 1: Obtener archivos existentes para este detalle
+                $sql_archivos_existentes = "SELECT nom_pedido_detalle_documento 
+                                          FROM pedido_detalle_documento 
+                                          WHERE id_pedido_detalle = $id_detalle_actual 
+                                          AND est_pedido_detalle_documento = 1";
+                $resultado_archivos = mysqli_query($con, $sql_archivos_existentes);
+                $archivos_a_eliminar = array();
+                
+                while ($row_archivo = mysqli_fetch_assoc($resultado_archivos)) {
+                    $archivos_a_eliminar[] = $row_archivo['nom_pedido_detalle_documento'];
+                }
+                
+                // PASO 2: Eliminar archivos físicos del servidor
+                foreach ($archivos_a_eliminar as $nombre_archivo) {
+                    $ruta_archivo = "../_archivos/pedidos/" . $nombre_archivo;
+                    if (file_exists($ruta_archivo)) {
+                        unlink($ruta_archivo); // Eliminar archivo físico
+                    }
+                }
+                
+                // PASO 3: Marcar como inactivos los registros de archivos anteriores
+                $sql_inactivar_docs = "UPDATE pedido_detalle_documento 
+                                      SET est_pedido_detalle_documento = 0 
+                                      WHERE id_pedido_detalle = $id_detalle_actual";
+                mysqli_query($con, $sql_inactivar_docs);
+                
+                // PASO 4: Guardar los nuevos archivos
                 foreach ($archivos_subidos[$index]['name'] as $key => $archivo_nombre) {
                     if (!empty($archivo_nombre)) {
                         $extension = pathinfo($archivo_nombre, PATHINFO_EXTENSION);
@@ -331,11 +390,27 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $nom_pedido, $fecha_necesid
             $detalles_a_eliminar = array_diff($detalles_existentes, $detalles_utilizados);
             if (!empty($detalles_a_eliminar)) {
                 $ids_eliminar = implode(',', $detalles_a_eliminar);
+                
+                // Antes de marcar como inactivos, eliminar los archivos físicos asociados
+                $sql_archivos_eliminar = "SELECT nom_pedido_detalle_documento 
+                                        FROM pedido_detalle_documento 
+                                        WHERE id_pedido_detalle IN ($ids_eliminar) 
+                                        AND est_pedido_detalle_documento = 1";
+                $resultado_archivos_eliminar = mysqli_query($con, $sql_archivos_eliminar);
+                
+                while ($row_archivo = mysqli_fetch_assoc($resultado_archivos_eliminar)) {
+                    $ruta_archivo = "../_archivos/pedidos/" . $row_archivo['nom_pedido_detalle_documento'];
+                    if (file_exists($ruta_archivo)) {
+                        unlink($ruta_archivo); // Eliminar archivo físico
+                    }
+                }
+                
+                // Marcar detalles como inactivos
                 $sql_eliminar = "UPDATE pedido_detalle SET est_pedido_detalle = 0 
                                 WHERE id_pedido_detalle IN ($ids_eliminar)";
                 mysqli_query($con, $sql_eliminar);
                 
-                // Opcional: también marcar como inactivos los documentos de esos detalles
+                // Marcar documentos como inactivos
                 $sql_eliminar_docs = "UPDATE pedido_detalle_documento SET est_pedido_detalle_documento = 0 
                                      WHERE id_pedido_detalle IN ($ids_eliminar)";
                 mysqli_query($con, $sql_eliminar_docs);
