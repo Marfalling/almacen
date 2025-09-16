@@ -1,6 +1,6 @@
 <?php
 require_once '../_conexion/sesion.php';
-require_once '../_modelo/m_auditoria.php';
+//require_once '../_modelo/m_auditoria.php';
 require_once '../_modelo/m_pedidos.php';
 require_once '../_complemento/dompdf/autoload.inc.php';
 require_once '../_complemento/vendor/autoload.php';
@@ -69,6 +69,7 @@ $nom_personal = $pedido['nom_personal'] . ' ' . $pedido['ape_personal'];
 $lugar_entrega = $pedido['lug_pedido'] ?? '';
 $telefono = $pedido['cel_pedido'] ?? '';
 $almacen = $pedido['nom_almacen'] ?? '';
+$ubicacion = $pedido['nom_ubicacion'] ?? '';
 $aclaraciones = $pedido['acl_pedido'] ?? 'Sin aclaraciones especiales';
 
 // Función para verificar si es imagen

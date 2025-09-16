@@ -141,9 +141,9 @@
                                                         <th style="width: 5%;">#</th>
                                                         <th style="width: 15%;">Código</th>
                                                         <th style="width: 30%;">Producto</th>
+                                                        <th style="width: 8%;">Unidad</th>
                                                         <th style="width: 12%;">Cantidad Pedida</th>
                                                         <th style="width: 12%;">Cantidad Ingresada</th>
-                                                        <th style="width: 8%;">Unidad</th>
                                                         <th style="width: 15%;">Último Ingreso</th>
                                                         <th style="width: 8%;">Estado</th>
                                                     </tr>
@@ -168,6 +168,7 @@
                                                             <td class="text-center"><strong><?php echo $contador; ?></strong></td>
                                                             <td><strong><?php echo $producto['cod_material']; ?></strong></td>
                                                             <td><?php echo $producto['nom_producto']; ?></td>
+                                                            <td class="text-center"><?php echo $producto['nom_unidad_medida']; ?></td>
                                                             <td class="text-center">
                                                                 <span class="badge badge-primary badge_size"><?php echo number_format($cantidad_pedida, 2); ?></span>
                                                             </td>
@@ -176,7 +177,6 @@
                                                                     <?php echo number_format($cantidad_ingresada, 2); ?>
                                                                 </span>
                                                             </td>
-                                                            <td class="text-center"><?php echo $producto['nom_unidad_medida']; ?></td>
                                                             <td class="text-center">
                                                                 <?php if (!empty($producto['fecha_ultimo_ingreso'])) { ?>
                                                                     <small><?php echo date('d/m/Y H:i', strtotime($producto['fecha_ultimo_ingreso'])); ?></small>

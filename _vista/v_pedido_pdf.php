@@ -307,7 +307,10 @@ $html = '
             </tr>
             <tr>
                 <td class="label">ALMACÉN:</td>
-                <td class="value" colspan="3">' . htmlspecialchars($almacen, ENT_QUOTES, 'UTF-8') . '</td>
+                <td class="value">' . htmlspecialchars($almacen, ENT_QUOTES, 'UTF-8') . '</td>
+                <td class="label">UBICACIÓN:</td>
+                <td class="value">' . htmlspecialchars($ubicacion, ENT_QUOTES, 'UTF-8') . '</td>
+            </tr>
             </tr>
         </table>
         

@@ -22,49 +22,89 @@
         <div class="row">
             <div class="col-md-12">
                 <!-- Panel de Información de la Orden -->
-                <div class="x_panel">
+               <div class="x_panel shadow-sm">
                     <div class="x_title">
-                        <h2>Información de la Orden de Compra <small></small></h2>
+                        <h2>Información de la Orden de Compra</h2>
                         <div class="clearfix"></div>
                     </div>
                     <div class="x_content">
-                        <br>
                         <div class="form-horizontal">
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">N° Orden:</label>
+
+                            <div class="form-group row mb-2">
+                                <label class="alert alert-secondary col-md-3 col-sm-3 py-2 mb-0">
+                                N° Orden:
+                                </label>
                                 <div class="col-md-3 col-sm-3">
-                                    <p class="form-control-static"><strong><?php echo $compra['id_compra']; ?></strong></p>
+                                <p class="form-control-plaintext fw-bold mb-0">
+                                    <?php echo $compra['id_compra']; ?>
+                                </p>
                                 </div>
-                                <label class="control-label col-md-3 col-sm-3">Proveedor:</label>
+
+                                <label class="alert alert-secondary col-md-3 col-sm-3 py-2 mb-0">
+                                Proveedor:
+                                </label>
                                 <div class="col-md-3 col-sm-3">
-                                    <p class="form-control-static"><?php echo $compra['nom_proveedor']; ?></p>
+                                <p class="form-control-plaintext mb-0">
+                                    <?php echo $compra['nom_proveedor']; ?>
+                                </p>
                                 </div>
                             </div>
 
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Código Pedido:</label>
+                            <div class="form-group row mb-2">
+                                <label class="alert alert-secondary col-md-3 col-sm-3 py-2 mb-0">
+                                Código Pedido:
+                                </label>
                                 <div class="col-md-3 col-sm-3">
-                                    <p class="form-control-static"><?php echo $compra['cod_pedido']; ?></p>
+                                <p class="form-control-plaintext mb-0">
+                                    <?php echo $compra['cod_pedido']; ?>
+                                </p>
                                 </div>
-                                <label class="control-label col-md-3 col-sm-3">RUC:</label>
+
+                                <label class="alert alert-secondary col-md-3 col-sm-3 py-2 mb-0">
+                                RUC:
+                                </label>
                                 <div class="col-md-3 col-sm-3">
-                                    <p class="form-control-static"><?php echo $compra['ruc_proveedor']; ?></p>
+                                <p class="form-control-plaintext mb-0">
+                                    <?php echo $compra['ruc_proveedor']; ?>
+                                </p>
                                 </div>
                             </div>
 
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Fecha:</label>
+                            <div class="form-group row mb-2">
+                                <label class="alert alert-secondary col-md-3 col-sm-3 py-2 mb-0">
+                                Fecha:
+                                </label>
                                 <div class="col-md-3 col-sm-3">
-                                    <p class="form-control-static"><?php echo date('d/m/Y', strtotime($compra['fec_compra'])); ?></p>
+                                <p class="form-control-plaintext mb-0">
+                                    <?php echo date('d/m/Y', strtotime($compra['fec_compra'])); ?>
+                                </p>
                                 </div>
-                                <label class="control-label col-md-3 col-sm-3">Almacén:</label>
+
+                                <label class="alert alert-secondary col-md-3 col-sm-3 py-2 mb-0">
+                                Almacén:
+                                </label>
                                 <div class="col-md-3 col-sm-3">
-                                    <p class="form-control-static"><?php echo $compra['nom_almacen']; ?></p>
+                                <p class="form-control-plaintext mb-0">
+                                    <?php echo $compra['nom_almacen']; ?>
+                                </p>
                                 </div>
                             </div>
+
+                            <div class="form-group row mb-2">
+                                <label class="alert alert-secondary col-md-3 col-sm-3 py-2 mb-0">
+                                Ubicación:
+                                </label>
+                                <div class="col-md-3 col-sm-3">
+                                <p class="form-control-plaintext mb-0">
+                                    <?php echo $compra['nom_ubicacion']; ?>
+                                </p>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
-                </div>
+                    </div>
+
 
                 <?php if (!empty($productos_pendientes)) { ?>
                 <!-- Panel de Productos Pendientes -->
@@ -95,10 +135,10 @@
                                                     <th style="width: 5%; text-align: center;">#</th>
                                                     <th style="width: 15%;">Código</th>
                                                     <th style="width: 25%;">Producto</th>
+                                                    <th style="width: 8%;">Unidad</th>
                                                     <th style="width: 10%; text-align: center;">Compra</th>
                                                     <th style="width: 10%; text-align: center;">Ingresado</th>
                                                     <th style="width: 10%; text-align: center;">Pendiente</th>
-                                                    <th style="width: 8%;">Unidad</th>
                                                     <th style="width: 12%; text-align: center;">Cantidad a Ingresar</th>
                                                     <th style="width: 5%; text-align: center;">Sel.</th>
                                                 </tr>
@@ -112,6 +152,7 @@
                                                     <td style="text-align: center; font-weight: bold; font-size: 16px;"><?php echo $contador; ?></td>
                                                     <td><strong><?php echo $producto['cod_material']; ?></strong></td>
                                                     <td><?php echo $producto['nom_producto']; ?></td>
+                                                    <td style="text-align: center;"><?php echo $producto['nom_unidad_medida']; ?></td>
                                                     <td style="text-align: center;">
                                                         <span class="badge badge-secondary badge_size"><?php echo number_format($producto['cant_compra_detalle'], 2); ?></span>
                                                     </td>
@@ -121,7 +162,7 @@
                                                     <td style="text-align: center;">
                                                         <span class="badge badge-warning badge_size"><?php echo number_format($producto['cantidad_pendiente'], 2); ?></span>
                                                     </td>
-                                                    <td style="text-align: center;"><?php echo $producto['nom_unidad_medida']; ?></td>
+                                                    
                                                     <td style="text-align: center;">
                                                         <input type="number" 
                                                             name="cantidades[<?php echo $producto['id_producto']; ?>]"

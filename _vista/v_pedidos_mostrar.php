@@ -39,13 +39,13 @@
                                             <tr>
                                                 <th>#</th>
                                                 <th>Código Pedido</th>
-                                                 <th>Tipo Pedido</th>
+                                                <th>Tipo Pedido</th>
                                                 <th>Nombre Pedido</th>
+                                                <th>Almacén</th>
+                                                <th>Ubicación</th>
                                                 <th>Solicitante</th>
                                                 <th>Fecha Pedido</th>
                                                 <th>Fecha Necesidad</th>
-                                                <th>Almacén</th>
-                                                <th>Ubicación</th>
                                                 <th>Estado</th>
                                                 <th>Acciones</th>
                                             </tr>
@@ -61,11 +61,11 @@
                                                     <td><?php echo $pedido['cod_pedido']; ?></td>
                                                     <td><?php echo $pedido['nom_producto_tipo']; ?></td>
                                                     <td><?php echo $pedido['nom_pedido']; ?></td>
+                                                    <td><?php echo $pedido['nom_almacen']; ?></td>
+                                                    <td><?php echo $pedido['nom_ubicacion']; ?></td>
                                                     <td><?php echo $pedido['nom_personal'] . ' ' . $pedido['ape_personal']; ?></td>
                                                     <td><?php echo date('d/m/Y H:i', strtotime($pedido['fec_pedido'])); ?></td>
                                                     <td><?php echo date('d/m/Y', strtotime($pedido['fec_req_pedido'])); ?></td>
-                                                    <td><?php echo $pedido['nom_almacen']; ?></td>
-                                                    <td><?php echo $pedido['nom_ubicacion']; ?></td>
                                                     <td>
                                                         <?php if($pedido['est_pedido_calc'] == 1) { ?>
                                                             <span class="badge badge-warning badge_size">Pendiente</span>

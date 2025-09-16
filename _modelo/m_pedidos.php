@@ -167,6 +167,7 @@ function ConsultarPedido($id_pedido)
                 c.nom_cliente, 
                 u.nom_ubicacion, 
                 a.nom_almacen, 
+                u.nom_ubicacion,
                 pr.nom_personal, 
                 pr.ape_personal,
                 pt.nom_producto_tipo

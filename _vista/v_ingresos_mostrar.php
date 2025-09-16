@@ -42,6 +42,7 @@
                                                 <th>Código Pedido</th>
                                                 <th>Proveedor</th>
                                                 <th>Almacén</th>
+                                                <th>Ubicación</th>
                                                 <th>Fecha Registro</th>
                                                 <th>Registrado Por</th>
                                                 <th>Aprobado Por</th>
@@ -64,6 +65,7 @@
                                                     <td><a class="btn btn-sm btn-outline-secondary" target="_blank" href="pedido_pdf.php?id=<?php echo $ingreso['id_pedido']; ?>"><?php echo $ingreso['cod_pedido']; ?></a></td>
                                                     <td><?php echo $ingreso['nom_proveedor']; ?></td>
                                                     <td><?php echo $ingreso['nom_almacen']; ?></td>
+                                                    <td><?php echo $ingreso['nom_ubicacion']; ?></td>
                                                     <td><?php echo date('d/m/Y H:i', strtotime($ingreso['fec_compra'])); ?></td>
                                                     <td><?php echo $ingreso['registrado_por'] ?? 'No especificado'; ?></td>
                                                     <td><?php echo $ingreso['aprobado_por'] ?? 'Pendiente'; ?></td>
@@ -81,15 +83,15 @@
                                                             <?php if ($ingreso['est_compra'] != 3) { ?>
                                                             <!-- Botón Verificar - solo visible si NO está completado (estado != 3) --> 
                                                             <a href="ingresos_verificar.php?id_compra=<?php echo $ingreso['id_compra']; ?>" 
-                                                               class="btn btn-info btn-sm"
-                                                               title="Ver detalles de la orden de compra">
-                                                                <i class="fa fa-eye"></i>
+                                                               class="btn btn-success btn-sm"
+                                                               title="Verificar ingreso">
+                                                                <i class="fa fa-check"></i>
                                                             </a>
                                                             <?php } ?>
                                                             <!-- Botón Ingresos - siempre visible -->
                                                             <a href="ingresos_detalle.php?id_compra=<?php echo $ingreso['id_compra']; ?>" 
-                                                                class="btn btn-success btn-sm"
-                                                                title="Ver detalles e ingresar productos al stock">
+                                                                class="btn btn-secondary btn-sm"
+                                                                title="Ver ingresos">
                                                                 <i class="fa fa-plus"></i>
                                                             </a>
                                                         </div>

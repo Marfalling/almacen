@@ -155,6 +155,7 @@ function MostrarComprasAprobadas()
                 pe1.nom_personal as registrado_por,
                 pe2.nom_personal as aprobado_por,
                 al.nom_almacen,
+                ub.nom_ubicacion,
                 mon.nom_moneda,
                 -- Calcular productos pendientes de ingreso
                 (SELECT COUNT(*) 
@@ -168,6 +169,7 @@ function MostrarComprasAprobadas()
             INNER JOIN pedido p ON c.id_pedido = p.id_pedido
             INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
             INNER JOIN almacen al ON p.id_almacen = al.id_almacen
+            INNER JOIN ubicacion ub ON p.id_ubicacion = ub.id_ubicacion
             INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
             LEFT JOIN personal pe1 ON c.id_personal = pe1.id_personal
             LEFT JOIN personal pe2 ON c.id_personal_aprueba = pe2.id_personal
@@ -202,11 +204,13 @@ function ObtenerDetalleCompra($id_compra)
                 pr.nom_proveedor,
                 pr.ruc_proveedor,
                 al.nom_almacen,
+                ub.nom_ubicacion,
                 mon.nom_moneda
             FROM compra c
             INNER JOIN pedido p ON c.id_pedido = p.id_pedido
             INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
             INNER JOIN almacen al ON p.id_almacen = al.id_almacen
+            INNER JOIN ubicacion ub ON p.id_ubicacion = ub.id_ubicacion
             INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
             WHERE c.id_compra = '$id_compra'";
             
