@@ -308,5 +308,139 @@ function MostrarProductoMejoradoModal($limit, $offset, $search, $orderColumn, $o
     return $data;
 }
 
+//-----------------------------------------------------------------------
+// FUNCIONES PARA MODAL DE PRODUCTOS CON STOCK
+//-----------------------------------------------------------------------
 
+function NumeroRegistrosTotalProductosConStock($id_almacen, $id_ubicacion, $tipoMaterial = 0) {
+    include("../_conexion/conexion.php");
+    
+    $whereClause = "WHERE p.est_producto = 1";
+    
+    // Agregar filtro por tipo de material si se especifica
+    if ($tipoMaterial > 0) {
+        $whereClause .= " AND p.id_material_tipo = $tipoMaterial";
+    }
+    
+    $sql = "SELECT COUNT(*) as total 
+            FROM producto p
+            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
+            INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+            $whereClause";
+    
+    $resultado = mysqli_query($con, $sql);
+    $row = mysqli_fetch_assoc($resultado);
+    mysqli_close($con);
+    
+    return $row['total'];
+}
+
+function NumeroRegistrosFiltradosProductosConStock($search, $id_almacen, $id_ubicacion, $tipoMaterial = 0) {
+    include("../_conexion/conexion.php");
+    mysqli_set_charset($con, "utf8");
+    
+    $whereClause = "WHERE p.est_producto = 1";
+    
+    // Agregar filtro por tipo de material si se especifica
+    if ($tipoMaterial > 0) {
+        $whereClause .= " AND p.id_material_tipo = $tipoMaterial";
+    }
+    
+    if (!empty($search)) {
+        $searchTerm = mysqli_real_escape_string($con, $search);
+        $whereClause .= " AND (
+            p.cod_material LIKE '%$searchTerm%' OR
+            p.nom_producto LIKE '%$searchTerm%' OR
+            pt.nom_producto_tipo LIKE '%$searchTerm%' OR
+            um.nom_unidad_medida LIKE '%$searchTerm%' OR
+            p.mar_producto LIKE '%$searchTerm%' OR
+            p.mod_producto LIKE '%$searchTerm%'
+        )";
+    }
+    
+    $sql = "SELECT COUNT(*) as total 
+            FROM producto p
+            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
+            INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+            $whereClause";
+    
+    $resultado = mysqli_query($con, $sql);
+    $row = mysqli_fetch_assoc($resultado);
+    mysqli_close($con);
+    
+    return $row['total'];
+}
+
+function MostrarProductosConStock($limit, $offset, $search, $orderColumn, $orderDirection, $id_almacen, $id_ubicacion, $tipoMaterial = 0) {
+    include("../_conexion/conexion.php");
+    
+    $whereClause = "WHERE p.est_producto = 1";
+    
+    // Agregar filtro por tipo de material si se especifica
+    if ($tipoMaterial > 0) {
+        $whereClause .= " AND p.id_material_tipo = $tipoMaterial";
+    }
+    
+    if (!empty($search)) {
+        $searchTerm = mysqli_real_escape_string($con, $search);
+        $whereClause .= " AND (
+            p.cod_material LIKE '%$searchTerm%' OR
+            p.nom_producto LIKE '%$searchTerm%' OR
+            pt.nom_producto_tipo LIKE '%$searchTerm%' OR
+            um.nom_unidad_medida LIKE '%$searchTerm%' OR
+            p.mar_producto LIKE '%$searchTerm%' OR
+            p.mod_producto LIKE '%$searchTerm%'
+        )";
+    }
+    
+    $columnMap = [
+        'cod_material' => 'p.cod_material',
+        'nom_producto' => 'p.nom_producto',
+        'nom_producto_tipo' => 'pt.nom_producto_tipo',
+        'nom_unidad_medida' => 'um.nom_unidad_medida',
+        'mar_producto' => 'p.mar_producto',
+        'mod_producto' => 'p.mod_producto',
+        'stock_disponible' => 'stock_disponible'
+    ];
+    
+    $orderBy = isset($columnMap[$orderColumn]) ? $columnMap[$orderColumn] : 'p.nom_producto';
+    $orderDirection = ($orderDirection === 'desc') ? 'DESC' : 'ASC';
+    
+    $sql = "SELECT 
+                p.id_producto,
+                p.cod_material,
+                p.nom_producto,
+                pt.nom_producto_tipo,
+                um.nom_unidad_medida,
+                p.mar_producto,
+                p.mod_producto,
+                COALESCE(
+                    (SELECT SUM(CASE
+                        WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+                        ELSE 0
+                    END)
+                    FROM movimiento mov
+                    WHERE mov.id_producto = p.id_producto 
+                    AND mov.id_almacen = $id_almacen 
+                    AND mov.id_ubicacion = $id_ubicacion
+                    AND mov.est_movimiento = 1), 0
+                ) AS stock_disponible
+            FROM producto p
+            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
+            INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+            $whereClause
+            ORDER BY $orderBy $orderDirection
+            LIMIT $limit OFFSET $offset";
+    
+    $resultado = mysqli_query($con, $sql);
+    $data = [];
+    
+    while ($fila = mysqli_fetch_assoc($resultado)) {
+        $data[] = $fila;
+    }
+    
+    mysqli_close($con);
+    return $data;
+}
 ?>

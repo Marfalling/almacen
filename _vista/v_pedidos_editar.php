@@ -155,23 +155,10 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                     
                                     if (preg_match('/Obs:\s*(.*)$/', $comentario, $matches)) {
                                         $observaciones = trim($matches[1]);
-                                    }
+                                    }   
     
-                                    // Parsear requisitos
-                                    $requisitos = $detalle['req_pedido'];
-                                    $sst = '';
-                                    
-                                    if (preg_match('/SST:\s*([^|]*)\s*\|/', $requisitos, $matches)) {
-                                        $sst = trim($matches[1]);
-                                    }
-                                    if (preg_match('/MA:\s*([^|]*)\s*\|/', $requisitos, $matches)) {
-                                        $ma = trim($matches[1]);
-                                        $sst .= !empty($sst) ? ' | MA: ' . $ma : 'MA: ' . $ma;
-                                    }
-                                    if (preg_match('/CA:\s*(.*)$/', $requisitos, $matches)) {
-                                        $ca = trim($matches[1]);
-                                        $sst .= !empty($sst) ? ' | CA: ' . $ca : 'CA: ' . $ca;
-                                    }
+                                    // CAMBIO: Obtener directamente el valor de req_pedido (que ahora contiene la descripción completa)
+                                    $sst_descripcion = $detalle['req_pedido'];
                                 ?>
                                 <div class="material-item border p-3 mb-3">
                                     <div class="row">
@@ -207,59 +194,76 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                     <div class="row mt-2">
                                         <div class="col-md-6">
                                             <label>Observaciones:</label>
-                                            <textarea name="observaciones[]" class="form-control" rows="1" placeholder="Observaciones o comentarios"><?php echo $observaciones; ?></textarea>
+                                            <input type="text" name="observaciones[]" class="form-control"  
+                                                   value="<?php echo $observaciones; ?>" placeholder="Observaciones o comentarios"></input>
                                         </div>
                                    
                                         <div class="col-md-6">
-                                            <label>SST/MA/CA <span class="text-danger">*</span>:</label>
-                                            <?php
-                                            // Extraer valores individuales de la base de datos
-                                            $sst_individual = '';
-                                            $ma_individual = '';
-                                            $ca_individual = '';
-                                            $requisitos = $detalle['req_pedido'];
-                                            
-                                            if (preg_match('/SST:\s*([^|]*)\s*\|/', $requisitos, $matches)) {
-                                                $sst_individual = trim($matches[1]);
-                                            }
-                                            if (preg_match('/MA:\s*([^|]*)\s*\|/', $requisitos, $matches)) {
-                                                $ma_individual = trim($matches[1]);
-                                            }
-                                            if (preg_match('/CA:\s*(.*)$/', $requisitos, $matches)) {
-                                                $ca_individual = trim($matches[1]);
-                                            }
-                                            
-                                            // Determinar el valor a mostrar en el input
-                                            $valor_mostrar = '';
-                                            
-                                            if ($sst_individual === 'NA' && $ma_individual === 'NA' && $ca_individual === 'NA') {
-                                                $valor_mostrar = 'NA';
-                                            } else {
-                                                $valor_mostrar = $sst_individual . '/' . $ma_individual . '/' . $ca_individual;
-                                            }
-                                            ?>
-                                            
-                                            <input type="text" name="sst[]" class="form-control" 
-                                                value="<?php echo htmlspecialchars($valor_mostrar); ?>" 
-                                                placeholder="SST/MA/CA (ej: valor1/valor2/valor3) o NA" 
-                                                pattern="([^/]+/[^/]+/[^/]+)|(NA|N/A|NO APLICA)" 
-                                                title="Por favor ingresa los tres valores separados por barras" 
-                                                required>
-                                            <small class="form-text text-muted">Ingresa los tres valores separados por barras (/)</small>
+                                            <label>Descripción SST/MA/CA <span class="text-danger">*</span>:</label>
+                                            <input type="text" name="sst[]" class="form-control" value="<?php echo htmlspecialchars($sst_descripcion); ?>" placeholder="Requisitos de SST, MA y CA" required>
                                         </div>
                                     </div>
                                     <div class="row mt-2">
                                         <div class="col-md-6">
-                                            <label>Adjuntar Archivos:</label>
-                                            <input type="hidden" name="id_detalle[]" value="<?php echo $detalle['id_pedido_detalle']; ?>">
-                                            <input type="file" name="archivos_<?php echo $contador_material; ?>[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
-                                            <small class="form-text text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, XLS. Máximo 5MB por archivo.</small>
-                                            <?php if (!empty($detalle['archivos'])) { ?>
-                                                <div class="text-muted small mt-1">
-                                                    <strong>Archivos actuales:</strong> <?php echo $detalle['archivos']; ?>
-                                                </div>
-                                            <?php } ?>
-                                        </div>
+    <label>Adjuntar Archivos:</label>
+    <input type="hidden" name="id_detalle[]" value="<?php echo $detalle['id_pedido_detalle']; ?>">
+    <input type="file" name="archivos_<?php echo $contador_material; ?>[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
+    <small class="form-text text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, XLS. Máximo 5MB por archivo.</small>
+    
+    <?php if (!empty($detalle['archivos'])) { ?>
+        <div class="text-muted small mt-1">
+            <strong>Archivos actuales:</strong>
+            <div class="mt-1">
+                <?php 
+                // Dividir los archivos si están separados por comas
+                $archivos = explode(',', $detalle['archivos']);
+                foreach ($archivos as $archivo) { 
+                    $archivo = trim($archivo);
+                    if (!empty($archivo)) {
+                        // Ruta ajustada a tu estructura de directorios
+                        $archivo_url = "../_archivos/pedidos/" . $archivo;
+                        
+                        // Determinar el icono según la extensión
+                        $extension = strtolower(pathinfo($archivo, PATHINFO_EXTENSION));
+                        $icono = 'fa-file';
+                        $clase_color = 'text-info';
+                        
+                        switch ($extension) {
+                            case 'pdf':
+                                $icono = 'fa-file-pdf-o';
+                                $clase_color = 'text-danger';
+                                break;
+                            case 'jpg':
+                            case 'jpeg':
+                            case 'png':
+                            case 'gif':
+                                $icono = 'fa-file-image-o';
+                                $clase_color = 'text-success';
+                                break;
+                            case 'doc':
+                            case 'docx':
+                                $icono = 'fa-file-word-o';
+                                $clase_color = 'text-primary';
+                                break;
+                            case 'xls':
+                            case 'xlsx':
+                                $icono = 'fa-file-excel-o';
+                                $clase_color = 'text-warning';
+                                break;
+                        }
+                ?>
+                    <a href="<?php echo $archivo_url; ?>" target="_blank" class="<?php echo $clase_color; ?> mr-2 d-inline-block mb-1" title="Ver <?php echo $archivo; ?>" style="text-decoration: none;">
+                        <i class="fa <?php echo $icono; ?>"></i>
+                        <?php echo strlen($archivo) > 25 ? substr($archivo, 0, 25) . '...' : $archivo; ?>
+                    </a>
+                <?php 
+                    }
+                } 
+                ?>
+            </div>
+        </div>
+    <?php } ?>
+</div>
                                         <div class="col-md-6 d-flex align-items-end">
                                             <?php if ($contador_material > 0) { ?>
                                             <button type="button" class="btn btn-danger btn-sm eliminar-material">

@@ -38,16 +38,13 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $nom_pedido
     if (mysqli_query($con, $sql)) {
         $id_pedido = mysqli_insert_id($con);
         
-        // Insertar detalles del pedido
         foreach ($materiales as $index => $material) {
             $id_producto = intval($material['id_producto']);
             $descripcion = mysqli_real_escape_string($con, $material['descripcion']);
             $cantidad = floatval($material['cantidad']);
             $id_unidad = intval($material['unidad']); // Este es el ID de la unidad
             $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
-            $sst = mysqli_real_escape_string($con, $material['sst']);
-            $ma = mysqli_real_escape_string($con, $material['ma']);
-            $ca = mysqli_real_escape_string($con, $material['ca']);
+            $sst_descripcion = mysqli_real_escape_string($con, $material['sst_descripcion']); 
             
             // OBTENER EL NOMBRE DE LA UNIDAD POR SU ID
             $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
@@ -55,7 +52,8 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $nom_pedido
             $unidad_data = mysqli_fetch_assoc($resultado_unidad);
             $nombre_unidad = $unidad_data ? $unidad_data['nom_unidad_medida'] : '';
             
-            $requisitos = "SST: $sst | MA: $ma | CA: $ca";
+            // GUARDAR SOLO LA DESCRIPCIÓN DE SST
+            $requisitos = $sst_descripcion;
             
             // GUARDAR TANTO EL ID COMO EL NOMBRE PARA FACILITAR LA EDICIÓN
             $comentario_detalle = "Unidad: $nombre_unidad | Unidad ID: $id_unidad | Obs: $observaciones";
@@ -103,7 +101,6 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $nom_pedido
         return "ERROR: " . mysqli_error($con);
     }
 }
-
 //-----------------------------------------------------------------------
 function MostrarPedidos()
 {
@@ -219,7 +216,13 @@ function ConsultarPedidoDetalle($id_pedido)
     include("../_conexion/conexion.php");
 
     $sqlc = "SELECT pd.*, 
-             GROUP_CONCAT(pdd.nom_pedido_detalle_documento) as archivos,
+             GROUP_CONCAT(
+                CASE 
+                    WHEN pdd.est_pedido_detalle_documento = 1 
+                    THEN pdd.nom_pedido_detalle_documento 
+                    ELSE NULL 
+                END
+             ) as archivos,
              p.nom_producto,
              p.id_producto as id_producto,
              COALESCE(
@@ -237,16 +240,35 @@ function ConsultarPedidoDetalle($id_pedido)
              ) AS cantidad_disponible_almacen
              FROM pedido_detalle pd 
              LEFT JOIN pedido_detalle_documento pdd ON pd.id_pedido_detalle = pdd.id_pedido_detalle
+                AND pdd.est_pedido_detalle_documento = 1
              INNER JOIN producto p ON pd.id_producto = p.id_producto
              INNER JOIN pedido ped ON pd.id_pedido = ped.id_pedido
              WHERE pd.id_pedido = $id_pedido AND pd.est_pedido_detalle IN (1, 2)
              GROUP BY pd.id_pedido_detalle
              ORDER BY pd.id_pedido_detalle";
+             
     $resc = mysqli_query($con, $sqlc);
 
     $resultado = array();
 
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        // Limpiar archivos nulos o vacíos del GROUP_CONCAT
+        if (!empty($rowc['archivos'])) {
+            $archivos_array = explode(',', $rowc['archivos']);
+            $archivos_limpio = array();
+            
+            foreach ($archivos_array as $archivo) {
+                $archivo = trim($archivo);
+                if (!empty($archivo) && $archivo !== 'NULL') {
+                    $archivos_limpio[] = $archivo;
+                }
+            }
+            
+            $rowc['archivos'] = !empty($archivos_limpio) ? implode(', ', $archivos_limpio) : '';
+        } else {
+            $rowc['archivos'] = '';
+        }
+        
         $resultado[] = $rowc;
     }
 
@@ -284,16 +306,14 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $nom_pedido, $fecha_necesid
         // Array para trackear qué detalles se están usando
         $detalles_utilizados = array();
         
-        // Procesar cada material
+        // Procesar cada material - CORREGIDO: SST como campo único
         foreach ($materiales as $index => $material) {
             $id_producto = intval($material['id_producto']);
             $descripcion = mysqli_real_escape_string($con, $material['descripcion']);
             $cantidad = floatval($material['cantidad']);
             $id_unidad = intval($material['unidad']);
             $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
-            $sst = mysqli_real_escape_string($con, $material['sst']);
-            $ma = mysqli_real_escape_string($con, $material['ma']);
-            $ca = mysqli_real_escape_string($con, $material['ca']);
+            $sst_descripcion = mysqli_real_escape_string($con, $material['sst_descripcion']); // CAMBIO: campo único
             $id_detalle = isset($material['id_detalle']) ? intval($material['id_detalle']) : 0;
             
             // OBTENER EL NOMBRE DE LA UNIDAD
@@ -302,7 +322,8 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $nom_pedido, $fecha_necesid
             $unidad_data = mysqli_fetch_assoc($resultado_unidad);
             $nombre_unidad = $unidad_data ? $unidad_data['nom_unidad_medida'] : '';
             
-            $requisitos = "SST: $sst | MA: $ma | CA: $ca";
+            // CAMBIO: req_pedido ahora almacena directamente la descripción SST/MA/CA
+            $requisitos = $sst_descripcion;
             $comentario_detalle = "Unidad: $nombre_unidad | Unidad ID: $id_unidad | Obs: $observaciones";
             
             if ($id_detalle > 0 && in_array($id_detalle, $detalles_existentes)) {

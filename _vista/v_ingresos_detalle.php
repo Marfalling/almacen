@@ -198,6 +198,7 @@
                             </div>
                         </div>
 
+                        
                         <!-- Historial de Ingresos -->
                         <div class="row">
                             <div class="col-md-12">
@@ -216,7 +217,6 @@
                                                             <th>Usuario</th>
                                                             <th>Productos Ingresados</th>
                                                             <th>Cantidad Total</th>
-                                                            <th>Observaciones</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -228,21 +228,14 @@
                                                                     <?php echo $ingreso['nom_personal']; ?>
                                                                 </td>
                                                                 <td>
-                                                                    <span class="badge badge-info">
+                                                                    <span class="badge badge-info badge_size">
                                                                         <?php echo $ingreso['productos_count']; ?> producto(s)
                                                                     </span>
                                                                 </td>
                                                                 <td>
-                                                                    <span class="badge badge-success">
+                                                                    <span class="badge badge-success badge_size">
                                                                         <?php echo number_format($ingreso['cantidad_total'], 2); ?>
                                                                     </span>
-                                                                </td>
-                                                                <td>
-                                                                    <?php if (!empty($ingreso['observaciones'])) { ?>
-                                                                        <small><?php echo $ingreso['observaciones']; ?></small>
-                                                                    <?php } else { ?>
-                                                                        <span class="text-muted">Sin observaciones</span>
-                                                                    <?php } ?>
                                                                 </td>
                                                             </tr>
                                                         <?php } ?>
@@ -250,7 +243,10 @@
                                                 </table>
                                             </div>
                                         <?php } else { ?>
-
+                                            <div class="alert alert-info text-center">
+                                                <i class="fa fa-info-circle"></i> 
+                                                No se han registrado ingresos para esta orden de compra aún.
+                                            </div>
                                         <?php } ?>
                                     </div>
                                 </div>

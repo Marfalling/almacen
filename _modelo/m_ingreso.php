@@ -102,25 +102,24 @@ function ObtenerDetalleIngresoPorCompra($id_compra)
     // Historial de ingresos
     $sql_historial = "SELECT 
                         i.fec_ingreso,
-                        CONCAT(p.nom_personal, ' ', p.ape_personal) as nom_personal,
-                        COUNT(id2.id_ingreso_detalle) as productos_count,
-                        SUM(id2.cant_ingreso_detalle) as cantidad_total,
-                        i.obs_ingreso as observaciones
+                        COALESCE(p.nom_personal, 'Usuario') as nom_personal,
+                        COUNT(DISTINCT id2.id_ingreso_detalle) as productos_count,
+                        COALESCE(SUM(id2.cant_ingreso_detalle), 0) as cantidad_total
                     FROM ingreso i
-                    INNER JOIN personal p ON i.id_personal = p.id_personal
-                    INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso
+                    LEFT JOIN personal p ON i.id_personal = p.id_personal
+                    LEFT JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso
                     WHERE i.id_compra = '$id_compra'
-                    GROUP BY i.id_ingreso, i.fec_ingreso, p.nom_personal, p.ape_personal, i.obs_ingreso
+                    GROUP BY i.id_ingreso
                     ORDER BY i.fec_ingreso DESC";
-                    
-    $resultado_historial = mysqli_query($con, $sql_historial);
-    $historial = array();
-    
-    if ($resultado_historial) {
-        while ($row = mysqli_fetch_array($resultado_historial, MYSQLI_ASSOC)) {
-            $historial[] = $row;
+                        
+        $resultado_historial = mysqli_query($con, $sql_historial);
+        $historial = array();
+        
+        if ($resultado_historial) {
+            while ($row = mysqli_fetch_array($resultado_historial, MYSQLI_ASSOC)) {
+                $historial[] = $row;
+            }
         }
-    }
 
     // Resumen
     $resumen = array(

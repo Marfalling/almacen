@@ -1,7 +1,6 @@
 <?php
 require_once("../_conexion/sesion.php");
 
-
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -58,29 +57,12 @@ require_once("../_conexion/sesion.php");
                 $lugar_entrega = strtoupper($_REQUEST['lugar_entrega']);
                 $aclaraciones = strtoupper($_REQUEST['aclaraciones']);
                 
-                // Procesar materiales
+                // Procesar materiales - CORREGIDO: SST como campo único
                 $materiales = array();
                 if (isset($_REQUEST['descripcion']) && is_array($_REQUEST['descripcion'])) {
                     for ($i = 0; $i < count($_REQUEST['descripcion']); $i++) {
-                        // MANEJO MEJORADO DE SST/MA/CA - INCLUYE CASO ESPECIAL "NA"
-                        $sst_input = trim($_REQUEST['sst'][$i]);
-
-                        // Si el usuario ingresa "NA", "N/A", "No Aplica", etc., tratarlo como caso especial
-                        if (strtoupper($sst_input) === 'NA' || 
-                            strtoupper($sst_input) === 'N/A' || 
-                            strtoupper($sst_input) === 'NO APLICA') {
-                            
-                            $sst_val = 'NA';
-                            $ma_val = 'NA';
-                            $ca_val = 'NA';
-                            
-                        } else {
-                            // Procesamiento normal con separación por barras
-                            $valores_sst = explode('/', $sst_input);
-                            $sst_val = trim($valores_sst[0] ?? '');
-                            $ma_val = trim($valores_sst[1] ?? '');
-                            $ca_val = trim($valores_sst[2] ?? '');
-                        }
+                        
+                        $sst_descripcion = trim($_REQUEST['sst'][$i]);
 
                         $materiales[] = array(
                             'id_producto' => $_REQUEST['id_material'][$i],
@@ -88,9 +70,7 @@ require_once("../_conexion/sesion.php");
                             'cantidad' => $_REQUEST['cantidad'][$i],
                             'unidad' => $_REQUEST['unidad'][$i],
                             'observaciones' => $_REQUEST['observaciones'][$i],
-                            'sst' => $sst_val,        // Primer valor: SST
-                            'ma' => $ma_val,         // Segundo valor: MA
-                            'ca' => $ca_val          // Tercer valor: CA
+                            'sst_descripcion' => $sst_descripcion  // Campo de texto libre
                         );
                     }
                 }

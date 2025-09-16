@@ -112,34 +112,14 @@ function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_pers
 {
     include("../_conexion/conexion.php");
 
-    // Generar ID manualmente para uso_material
-    $sql_max_id = "SELECT COALESCE(MAX(id_uso_material), 0) + 1 as next_id FROM uso_material";
-    $result_id = mysqli_query($con, $sql_max_id);
-    $row_id = mysqli_fetch_assoc($result_id);
-    $id_uso_material = $row_id['next_id'];
-
-    // Iniciar transacción
+    // Iniciar transacción ANTES de hacer cualquier cosa
     mysqli_autocommit($con, false);
 
     try {
-        // Insertar uso de material principal con estado APROBADO (2) directamente
-        $sql = "INSERT INTO uso_material (
-                    id_uso_material, id_almacen, id_ubicacion, id_personal, 
-                    id_solicitante, fec_uso_material, est_uso_material
-                ) VALUES (
-                    $id_uso_material, $id_almacen, $id_ubicacion, $id_personal, 
-                    $id_solicitante, NOW(), 2
-                )";
-
-        if (!mysqli_query($con, $sql)) {
-            throw new Exception('Error al insertar uso de material: ' . mysqli_error($con));
-        }
-
-        // Insertar detalles del uso de material
-        foreach ($materiales as $index => $material) {
+        // PRIMERO: Validar TODOS los stocks antes de insertar NADA
+        foreach ($materiales as $material) {
             $id_producto = intval($material['id_producto']);
             $cantidad = floatval($material['cantidad']);
-            $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
             
             // Verificar stock disponible
             $sql_stock = "SELECT COALESCE(SUM(CASE
@@ -155,11 +135,39 @@ function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_pers
             
             $result_stock = mysqli_query($con, $sql_stock);
             $row_stock = mysqli_fetch_assoc($result_stock);
-            $stock_actual = $row_stock['stock_actual'];
+            $stock_actual = floatval($row_stock['stock_actual']);
             
             if ($stock_actual < $cantidad) {
-                throw new Exception("Stock insuficiente para el producto. Stock disponible: $stock_actual, Cantidad solicitada: $cantidad");
+                // Cerrar conexión y devolver error SIN hacer rollback porque no hemos insertado nada
+                mysqli_close($con);
+                return "Stock insuficiente para el producto. Stock disponible: " . number_format($stock_actual, 2) . ", Cantidad solicitada: " . number_format($cantidad, 2);
             }
+        }
+        
+        // SEGUNDO: Si todos los stocks están OK, generar ID y proceder con inserciones
+        $sql_max_id = "SELECT COALESCE(MAX(id_uso_material), 0) + 1 as next_id FROM uso_material";
+        $result_id = mysqli_query($con, $sql_max_id);
+        $row_id = mysqli_fetch_assoc($result_id);
+        $id_uso_material = $row_id['next_id'];
+
+        // Insertar uso de material principal con estado APROBADO (2) directamente
+        $sql = "INSERT INTO uso_material (
+                    id_uso_material, id_almacen, id_ubicacion, id_personal, 
+                    id_solicitante, fec_uso_material, est_uso_material
+                ) VALUES (
+                    $id_uso_material, $id_almacen, $id_ubicacion, $id_personal, 
+                    $id_solicitante, NOW(), 2
+                )";
+
+        if (!mysqli_query($con, $sql)) {
+            throw new Exception('Error al insertar uso de material: ' . mysqli_error($con));
+        }
+
+        // Insertar detalles del uso de material y movimientos
+        foreach ($materiales as $index => $material) {
+            $id_producto = intval($material['id_producto']);
+            $cantidad = floatval($material['cantidad']);
+            $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
             
             // Insertar detalle
             $sql_detalle = "INSERT INTO uso_material_detalle (

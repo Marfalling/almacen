@@ -151,18 +151,13 @@
                                     <div class="row mt-2">
                                         <div class="col-md-6">
                                             <label>Observaciones:</label>
-                                            <textarea name="observaciones[]" class="form-control" rows="1" placeholder="Observaciones o comentarios"></textarea>
+                                            <input name="observaciones[]" class="form-control" placeholder="Observaciones o comentarios"></input>
                                         </div>
                                    
                                     
                                         <div class="col-md-6">
-                                            <label>SST/MA/CA <span class="text-danger">*</span>:</label>
-                                            <input type="text" name="sst[]" class="form-control" 
-                                                placeholder="SST/MA/CA o NA" 
-                                                pattern="([^/]+/[^/]+/[^/]+)|(NA|N/A|NO APLICA)" 
-                                                title="Por favor ingresa los tres valores separados por barras" 
-                                                required>
-                                            <small class="form-text text-muted">Ingresa los tres valores separados por barras (/)</small>
+                                            <label>Descripción SST/MA/CA <span class="text-danger">*</span>:</label>
+                                            <input name="sst[]" class="form-control" placeholder="Requisitos de SST, MA y CA" required></input>
                                         </div>
                                     </div>
                                     <div class="row mt-2">
