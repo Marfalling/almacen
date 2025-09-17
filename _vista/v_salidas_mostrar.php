@@ -91,7 +91,7 @@
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
 
-                                                            <a href="salida_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
+                                                            <a href="salidas_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
                                                                class="btn btn-secondary btn-sm" 
                                                                title="Generar PDF"
                                                                target="_blank">
