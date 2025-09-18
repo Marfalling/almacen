@@ -82,12 +82,12 @@ try {
                 $resultados_exitosos++;
                 
                 // Registrar auditoría si existe la función
-                if (file_exists("../_modelo/m_auditoria.php")) {
+                /*if (file_exists("../_modelo/m_auditoria.php")) {
                     require_once("../_modelo/m_auditoria.php");
                     if (function_exists('GrabarAuditoria') && isset($usuario_sesion)) {
                         GrabarAuditoria($id_personal, $usuario_sesion, 'INGRESO DE PRODUCTO', 'INGRESO', "Compra: $id_compra, Producto: $id_producto, Cantidad: $cantidad");
                     }
-                }
+                }*/
             } else {
                 $errores[] = "Producto ID $id_producto: " . ($resultado['message'] ?? 'Error desconocido');
             }
