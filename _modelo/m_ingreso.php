@@ -531,6 +531,310 @@ function VerificarCantidadDisponible($id_compra, $id_producto)
     mysqli_close($con);
     return $row ? floatval($row['cantidad_disponible']) : 0;
 }
+//-----------------------------------------------------------------------
+// NUEVAS FUNCIONES PARA INGRESOS DIRECTOS
+//-----------------------------------------------------------------------
+
+function ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal, $observaciones, $productos)
+{
+    include("../_conexion/conexion.php");
+    
+    if (!$con) {
+        return array('success' => false, 'message' => 'Error de conexión a la base de datos');
+    }
+    
+    mysqli_begin_transaction($con);
+    
+    try {
+        // Crear nuevo ingreso SIN orden de compra (id_compra = NULL)
+        $fecha_ingreso = date('Y-m-d H:i:s');
+        $sql_ingreso = "INSERT INTO ingreso (
+                            id_compra, id_almacen, id_ubicacion, id_personal, 
+                            fec_ingreso, est_ingreso
+                        ) VALUES (
+                            NULL, '$id_almacen', '$id_ubicacion', '$id_personal', 
+                            '$fecha_ingreso', 1
+                        )";
+        
+        if (!mysqli_query($con, $sql_ingreso)) {
+            throw new Exception("Error al crear el ingreso: " . mysqli_error($con));
+        }
+        
+        $id_ingreso = mysqli_insert_id($con);
+        
+        // Procesar cada producto
+        foreach ($productos as $producto) {
+            $id_producto = intval($producto['id_producto']);
+            $cantidad = floatval($producto['cantidad']);
+            
+            if ($cantidad <= 0) {
+                throw new Exception("La cantidad debe ser mayor a 0 para todos los productos");
+            }
+            
+            // Crear detalle de ingreso
+            $sql_detalle = "INSERT INTO ingreso_detalle (
+                                id_ingreso, id_producto, cant_ingreso_detalle, est_ingreso_detalle
+                            ) VALUES (
+                                '$id_ingreso', '$id_producto', '$cantidad', 1
+                            )";
+            
+            if (!mysqli_query($con, $sql_detalle)) {
+                throw new Exception("Error al crear el detalle del ingreso: " . mysqli_error($con));
+            }
+            
+            // Registrar movimiento de stock
+            // Para INGRESO DIRECTO:
+            // tipo_orden = 1 (INGRESO)
+            // tipo_movimiento = 1 (suma al stock)
+            // id_orden = id_ingreso (en lugar de id_compra)
+            $fecha_movimiento = date('Y-m-d H:i:s');
+            $sql_movimiento = "INSERT INTO movimiento (
+                                    id_personal, id_orden, id_producto, id_almacen, 
+                                    id_ubicacion, tipo_orden, tipo_movimiento, 
+                                    cant_movimiento, fec_movimiento, est_movimiento
+                               ) VALUES (
+                                    '$id_personal', '$id_ingreso', '$id_producto', '$id_almacen', 
+                                    '$id_ubicacion', 1, 1, 
+                                    '$cantidad', '$fecha_movimiento', 1
+                               )";
+            
+            if (!mysqli_query($con, $sql_movimiento)) {
+                throw new Exception("Error al registrar el movimiento: " . mysqli_error($con));
+            }
+        }
+        
+        mysqli_commit($con);
+        mysqli_close($con);
+        return array('success' => true, 'message' => 'Ingreso directo procesado correctamente', 'id_ingreso' => $id_ingreso);
+        
+    } catch (Exception $e) {
+        mysqli_rollback($con);
+        mysqli_close($con);
+        return array('success' => false, 'message' => $e->getMessage());
+    }
+}
+
+//-----------------------------------------------------------------------
+function ObtenerProductosMateriales()
+{
+    include("../_conexion/conexion.php");
+    
+    // Solo productos tipo MATERIAL (no servicios)
+    $sql = "SELECT 
+                p.id_producto,
+                p.cod_material,
+                p.nom_producto,
+                p.mar_producto,
+                p.mod_producto,
+                um.nom_unidad_medida,
+                pt.nom_producto_tipo,
+                mt.nom_material_tipo
+            FROM producto p
+            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
+            INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo
+            INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+            WHERE p.est_producto = 1 
+            AND pt.nom_producto_tipo = 'MATERIAL'
+            ORDER BY p.nom_producto";
+    
+    $resultado = mysqli_query($con, $sql);
+    $productos = array();
+    
+    while ($row = mysqli_fetch_array($resultado, MYSQLI_ASSOC)) {
+        $productos[] = $row;
+    }
+    
+    mysqli_close($con);
+    return $productos;
+}
+
+//-----------------------------------------------------------------------
+function MostrarIngresosDirectos()
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT 
+                i.id_ingreso,
+                i.fec_ingreso,
+                i.fpag_ingreso,
+                i.est_ingreso,
+                a.nom_almacen,
+                u.nom_ubicacion,
+                p.nom_personal,
+                COUNT(id2.id_ingreso_detalle) as total_productos,
+                COALESCE(SUM(id2.cant_ingreso_detalle), 0) as cantidad_total,
+                'INGRESO DIRECTO' as tipo_ingreso
+            FROM ingreso i
+            INNER JOIN almacen a ON i.id_almacen = a.id_almacen
+            INNER JOIN ubicacion u ON i.id_ubicacion = u.id_ubicacion
+            LEFT JOIN personal p ON i.id_personal = p.id_personal
+            LEFT JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso AND id2.est_ingreso_detalle = 1
+            WHERE i.id_compra IS NULL  -- Solo ingresos directos
+            AND i.est_ingreso = 1
+            GROUP BY i.id_ingreso
+            ORDER BY i.fec_ingreso DESC";
+    
+    $resultado = mysqli_query($con, $sql);
+    $ingresos = array();
+    
+    while ($row = mysqli_fetch_array($resultado, MYSQLI_ASSOC)) {
+        $ingresos[] = $row;
+    }
+    
+    mysqli_close($con);
+    return $ingresos;
+}
+
+//-----------------------------------------------------------------------
+function ObtenerDetalleIngresoDirecto($id_ingreso)
+{
+    include("../_conexion/conexion.php");
+    
+    // Información básica del ingreso directo
+    $sql_ingreso = "SELECT 
+                        i.id_ingreso,
+                        i.fec_ingreso,
+                        i.fpag_ingreso,
+                        i.est_ingreso,
+                        a.nom_almacen,
+                        u.nom_ubicacion,
+                        p.nom_personal,
+                        c.nom_cliente,
+                        o.nom_obra
+                    FROM ingreso i
+                    INNER JOIN almacen a ON i.id_almacen = a.id_almacen
+                    INNER JOIN ubicacion u ON i.id_ubicacion = u.id_ubicacion
+                    INNER JOIN obra o ON a.id_obra = o.id_obra
+                    INNER JOIN cliente c ON a.id_cliente = c.id_cliente
+                    LEFT JOIN personal p ON i.id_personal = p.id_personal
+                    WHERE i.id_ingreso = '$id_ingreso' 
+                    AND i.id_compra IS NULL";  
+    
+    $resultado_ingreso = mysqli_query($con, $sql_ingreso);
+    
+    if (!$resultado_ingreso) {
+        mysqli_close($con);
+        return false;
+    }
+    
+    $ingreso = mysqli_fetch_assoc($resultado_ingreso);
+    
+    if (!$ingreso) {
+        mysqli_close($con);
+        return false;
+    }
+    
+    // Productos del ingreso directo
+    $sql_productos = "SELECT 
+                        id2.id_ingreso_detalle,
+                        id2.cant_ingreso_detalle,
+                        prod.id_producto,
+                        prod.cod_material,
+                        prod.nom_producto,
+                        prod.mar_producto,
+                        prod.mod_producto,
+                        um.nom_unidad_medida,
+                        mt.nom_material_tipo
+                     FROM ingreso_detalle id2
+                     INNER JOIN producto prod ON id2.id_producto = prod.id_producto
+                     INNER JOIN unidad_medida um ON prod.id_unidad_medida = um.id_unidad_medida
+                     INNER JOIN material_tipo mt ON prod.id_material_tipo = mt.id_material_tipo
+                     WHERE id2.id_ingreso = '$id_ingreso'
+                     AND id2.est_ingreso_detalle = 1
+                     ORDER BY prod.nom_producto";
+    
+    $resultado_productos = mysqli_query($con, $sql_productos);
+    $productos = array();
+    
+    while ($row = mysqli_fetch_array($resultado_productos, MYSQLI_ASSOC)) {
+        $productos[] = $row;
+    }
+    
+    $resultado = array(
+        'ingreso' => $ingreso,
+        'productos' => $productos
+    );
+    
+    mysqli_close($con);
+    return $resultado;
+}
+
+
+//-----------------------------------------------------------------------
+
+function MostrarTodosLosIngresos()
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT 
+                'COMPRA' as tipo,
+                c.id_compra as id_orden,
+                NULL as id_ingreso,
+                c.id_pedido,
+                c.fec_compra as fecha,
+                c.est_compra as estado,
+                p.cod_pedido,
+                pr.nom_proveedor as origen,
+                pe1.nom_personal as registrado_por,
+                pe2.nom_personal as aprobado_por,
+                al.nom_almacen,
+                ub.nom_ubicacion,
+                mon.nom_moneda,
+                (SELECT COUNT(*) FROM compra_detalle cd WHERE cd.id_compra = c.id_compra) as total_productos,
+                COALESCE((SELECT COUNT(DISTINCT id.id_producto) 
+                         FROM ingreso i 
+                         INNER JOIN ingreso_detalle id ON i.id_ingreso = id.id_ingreso 
+                         WHERE i.id_compra = c.id_compra), 0) as productos_ingresados
+            FROM compra c
+            INNER JOIN pedido p ON c.id_pedido = p.id_pedido
+            INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
+            INNER JOIN almacen al ON p.id_almacen = al.id_almacen
+            INNER JOIN ubicacion ub ON p.id_ubicacion = ub.id_ubicacion
+            INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
+            LEFT JOIN personal pe1 ON c.id_personal = pe1.id_personal
+            LEFT JOIN personal pe2 ON c.id_personal_aprueba = pe2.id_personal
+            WHERE c.est_compra IN (2, 3)
+            
+            UNION ALL
+            
+            SELECT 
+                'DIRECTO' as tipo,
+                NULL as id_orden,
+                i.id_ingreso,
+                NULL as id_pedido,
+                i.fec_ingreso as fecha,
+                i.est_ingreso as estado,
+                CAST(NULL AS CHAR) as cod_pedido, 
+                CONCAT(cl.nom_cliente, ' - ', ob.nom_obra) as origen,
+                pe.nom_personal as registrado_por,
+                NULL as aprobado_por,
+                al.nom_almacen,
+                ub.nom_ubicacion,
+                'N/A' as nom_moneda,
+                COALESCE((SELECT COUNT(*) FROM ingreso_detalle id WHERE id.id_ingreso = i.id_ingreso AND id.est_ingreso_detalle = 1), 0) as total_productos,
+                COALESCE((SELECT COUNT(*) FROM ingreso_detalle id WHERE id.id_ingreso = i.id_ingreso AND id.est_ingreso_detalle = 1), 0) as productos_ingresados
+            FROM ingreso i
+            INNER JOIN almacen al ON i.id_almacen = al.id_almacen
+            INNER JOIN ubicacion ub ON i.id_ubicacion = ub.id_ubicacion
+            INNER JOIN obra ob ON al.id_obra = ob.id_obra
+            INNER JOIN cliente cl ON al.id_cliente = cl.id_cliente
+            LEFT JOIN personal pe ON i.id_personal = pe.id_personal
+            WHERE i.id_compra IS NULL
+            AND i.est_ingreso = 1
+            
+            ORDER BY fecha DESC";
+    
+    $resultado = mysqli_query($con, $sql);
+    $todos_ingresos = array();
+    
+    while ($row = mysqli_fetch_array($resultado, MYSQLI_ASSOC)) {
+        $todos_ingresos[] = $row;
+    }
+    
+    mysqli_close($con);
+    return $todos_ingresos;
+}
+
 
 ?>
 
