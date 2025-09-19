@@ -4,6 +4,7 @@ require_once("../_conexion/sesion.php");
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -31,7 +32,7 @@ require_once("../_conexion/sesion.php");
             $almacenes = MostrarAlmacenesActivos();
             $ubicaciones = MostrarUbicacionesActivas();
             $personal = MostrarPersonalActivo();
-            $productos = MostrarProductoActivos();
+            $productos = MostrarMaterialesActivos();
 
             // Variables para alertas
             $mostrar_alerta = false;
@@ -58,7 +59,7 @@ require_once("../_conexion/sesion.php");
                             $materiales[] = array(
                                 'id_producto' => intval($id_producto),
                                 'cantidad'    => floatval($_REQUEST['cantidad'][$index]),
-                                'detalle'     => mysqli_real_escape_string($con, $_REQUEST['detalle'][$index])
+                                'detalle'     => mysqli_real_escape_string($con, $_REQUEST['descripcion'][$index])
                             );
                         }
                     }

@@ -137,4 +137,22 @@ function ConsultarDevolucionDetalle($id_devolucion)
     return $resultado;
 }
 
+//-----------------------------------------------------------------------
+
+function MostrarMaterialesActivos() {
+    global $con;
+    $sql = "SELECT * FROM producto 
+            WHERE est_producto = 1 
+              AND id_producto_tipo = 1";
+    $result = mysqli_query($con, $sql);
+
+    $materiales = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $materiales[] = $row;
+    }
+    return $materiales;
+}
+
+
+
 ?>

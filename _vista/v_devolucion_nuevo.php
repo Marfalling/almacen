@@ -28,7 +28,7 @@
                     </div>
                     <div class="x_content">
                         <br>
-                        <form class="form-horizontal form-label-left" action="devolucion_nuevo.php" method="post">
+                        <form class="form-horizontal form-label-left" action="devoluciones_nuevo.php" method="post" enctype="multipart/form-data">
                             <!-- Información básica -->
                             <div class="form-group row">
                                 <label class="control-label col-md-3">Almacén <span class="text-danger">*</span>:</label>
@@ -123,37 +123,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Plantilla oculta -->
-                                <div id="plantilla-material" class="material-item border p-3 mb-3" style="display:none;">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <label>Material <span class="text-danger">*</span>:</label>
-                                            <div class="input-group">
-                                                <input type="text" name="descripcion[]" class="form-control" placeholder="Material" required>
-                                                <input type="hidden" name="id_producto[]" value="">
-                                                <button type="button" class="btn btn-secondary btn-xs buscar-material-btn">
-                                                    <i class="fa fa-search"></i>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label>Cantidad <span class="text-danger">*</span>:</label>
-                                            <input type="number" name="cantidad[]" class="form-control" step="0.01" required>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label>Stock Disponible:</label>
-                                            <div class="form-control stock-disponible" style="background-color: #f8f9fa;">0.00</div>
-                                        </div>
-                                    </div>
-                                    <div class="row mt-2">
-                                        <div class="col-md-12 d-flex justify-content-end">
-                                            <button type="button" class="btn btn-danger btn-sm eliminar-material">
-                                                <i class="fa fa-trash"></i> Eliminar
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
                             </div>
 
                             <div class="form-group">
@@ -170,7 +139,7 @@
                                     <button type="reset" class="btn btn-outline-danger btn-block">Limpiar</button>
                                 </div>
                                 <div class="col-md-2">
-                                    <button type="submit" name="registrar" class="btn btn-success btn-block">
+                                    <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">
                                         <i class="fa fa-save"></i> Registrar Devolución
                                     </button>
                                 </div>
@@ -224,12 +193,6 @@
 </div>
 
 <script>
-/* Script completo para v_devolucion_nuevo.php
-   - Buscar/seleccionar productos (modal + DataTable)
-   - Agregar / eliminar material (clonado)
-   - Actualizar stock al cambiar almacén/ubicación
-   - Validaciones (cantidad > 0, no exceder stock)
-*/
 
 let currentSearchButton = null;
 
@@ -285,7 +248,7 @@ function cargarProductos(idAlmacen, idUbicacion) {
             { "title": "Acción" }
         ],
         "order": [[1, 'asc']],
-        "pageLength": 10,
+        "pageLength| ": 10,
         "lengthMenu": [10,25,50,100],
         "language": {
             "lengthMenu": "Mostrar _MENU_ registros por página",

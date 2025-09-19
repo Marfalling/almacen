@@ -18,12 +18,12 @@ $orderDirection = isset($_POST['order'][0]['dir']) ? $_POST['order'][0]['dir'] :
 $orderColumn = isset($columns[$orderColumnIndex]) ? $columns[$orderColumnIndex] : 'nom_producto';
 
 // Obtener datos del modelo (sin filtro de tipo de material)
-$productos = MostrarProductosConStock($length, $start, $searchValue, $orderColumn, $orderDirection, $id_almacen, $id_ubicacion, 0);
-$totalRecords = NumeroRegistrosTotalProductosConStock($id_almacen, $id_ubicacion, 0);
-$filteredRecords = NumeroRegistrosFiltradosProductosConStock($searchValue, $id_almacen, $id_ubicacion, 0);
+$productos = MostrarProductosConStockPorTipo($length, $start, $searchValue, $orderColumn, $orderDirection, $id_almacen, $id_ubicacion, 1);
+$totalRecords = NumeroRegistrosTotalProductosConStockPorTipo($id_almacen, $id_ubicacion, 1);
+$filteredRecords = NumeroRegistrosFiltradosProductosConStockPorTipo($searchValue, $id_almacen, $id_ubicacion, 1);
 
 // Formatear datos para DataTables
-$data = array();
+/*$data = array();
 foreach ($productos as $producto) {
     $data[] = array(
         $producto['cod_material'] ?: 'N/A',
@@ -37,6 +37,32 @@ foreach ($productos as $producto) {
         $producto['id_producto'] . ', \'' . 
         addslashes($producto['nom_producto']) . '\', ' . 
         $producto['stock_disponible'] . ')">Seleccionar</button>'
+    );
+}*/
+
+$data = array();
+foreach ($productos as $producto) {
+    // Verificar si hay stock
+    $stock = floatval($producto['stock_disponible']);
+    
+    if ($stock > 0) {
+        $btnSeleccionar = '<button class="btn btn-sm btn-primary" onclick="seleccionarProducto(' . 
+            $producto['id_producto'] . ', \'' . 
+            addslashes($producto['nom_producto']) . '\', ' . 
+            $stock . ')">Seleccionar</button>';
+    } else {
+        $btnSeleccionar = '<button class="btn btn-sm btn-secondary" disabled>Sin stock</button>';
+    }
+
+    $data[] = array(
+        $producto['cod_material'] ?: 'N/A',
+        $producto['nom_producto'],
+        $producto['nom_producto_tipo'],
+        $producto['nom_unidad_medida'],
+        $producto['mar_producto'] ?: 'N/A',
+        $producto['mod_producto'] ?: 'N/A',
+        number_format($stock, 2),
+        $btnSeleccionar
     );
 }
 
