@@ -535,7 +535,7 @@ function VerificarCantidadDisponible($id_compra, $id_producto)
 // NUEVAS FUNCIONES PARA INGRESOS DIRECTOS
 //-----------------------------------------------------------------------
 
-function ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal, $observaciones, $productos)
+function ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal, $productos)
 {
     include("../_conexion/conexion.php");
     
@@ -548,6 +548,7 @@ function ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal, $obser
     try {
         // Crear nuevo ingreso SIN orden de compra (id_compra = NULL)
         $fecha_ingreso = date('Y-m-d H:i:s');
+        
         $sql_ingreso = "INSERT INTO ingreso (
                             id_compra, id_almacen, id_ubicacion, id_personal, 
                             fec_ingreso, est_ingreso
@@ -583,10 +584,6 @@ function ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal, $obser
             }
             
             // Registrar movimiento de stock
-            // Para INGRESO DIRECTO:
-            // tipo_orden = 1 (INGRESO)
-            // tipo_movimiento = 1 (suma al stock)
-            // id_orden = id_ingreso (en lugar de id_compra)
             $fecha_movimiento = date('Y-m-d H:i:s');
             $sql_movimiento = "INSERT INTO movimiento (
                                     id_personal, id_orden, id_producto, id_almacen, 
@@ -610,6 +607,7 @@ function ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal, $obser
     } catch (Exception $e) {
         mysqli_rollback($con);
         mysqli_close($con);
+        error_log("Error en ProcesarIngresoDirecto: " . $e->getMessage());
         return array('success' => false, 'message' => $e->getMessage());
     }
 }

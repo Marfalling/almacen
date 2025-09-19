@@ -31,11 +31,13 @@
                                 <div class="col-md-4 col-sm-4">
                                     <select name="id_material_tipo" class="form-control" required>
                                         <option value="">Seleccionar</option>
-                                        <?php foreach ($material_tipos as $material_tipo) { ?>
+                                        <?php foreach ($material_tipos as $material_tipo) { 
+                                            // Excluir material tipo "NA" (id = 1) para salidas
+                                            if ($material_tipo['id_material_tipo'] != 1) { ?>
                                             <option value="<?php echo $material_tipo['id_material_tipo']; ?>">
                                                 <?php echo $material_tipo['nom_material_tipo']; ?>
                                             </option>
-                                        <?php } ?>
+                                        <?php } } ?>
                                     </select>
                                 </div>
                                 <label class="control-label col-md-2 col-sm-2">Nº Documento de Salida <span class="text-danger">*</span>:</label>
@@ -282,20 +284,41 @@ function buscarMaterial(button) {
     // Obtener valores de almacén y ubicación origen
     const idAlmacenOrigen = document.getElementById('id_almacen_origen').value;
     const idUbicacionOrigen = document.getElementById('id_ubicacion_origen').value;
+    const idAlmacenDestino = document.getElementById('id_almacen_destino').value;
+    const idUbicacionDestino = document.getElementById('id_ubicacion_destino').value;
     
-    // Validar que se haya seleccionado almacén y ubicación origen
+    // Obtener el tipo de material desde el formulario
+    const idMaterialTipo = document.querySelector('select[name="id_material_tipo"]');
+    const tipoMaterial = idMaterialTipo ? idMaterialTipo.value : '';
+    
+    // VALIDACIÓN 1: Almacén y ubicación origen requeridos
     if (!idAlmacenOrigen || !idUbicacionOrigen) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Almacén y Ubicación requeridos',
-                text: 'Debe seleccionar un almacén y ubicación de origen antes de buscar productos.',
-                confirmButtonText: 'Entendido'
-            });
-        } else {
-            alert('Debe seleccionar un almacén y ubicación de origen antes de buscar productos.');
-        }
+        mostrarAlerta('warning', 'Almacén y Ubicación requeridos', 
+            'Debe seleccionar un almacén y ubicación de origen antes de buscar productos.');
         return;
+    }
+    
+    // VALIDACIÓN 2: Tipo de material requerido
+    if (!tipoMaterial) {
+        mostrarAlerta('warning', 'Tipo de material requerido', 
+            'Debe seleccionar un tipo de material antes de buscar productos.');
+        return;
+    }
+    
+    // VALIDACIÓN 3: Verificar que no sea material tipo "NA" (id = 1)
+    if (tipoMaterial == '1') {
+        mostrarAlerta('error', 'Tipo de material no válido', 
+            'No se puede realizar salidas para materiales tipo "NA". Este tipo está reservado para servicios.');
+        return;
+    }
+    
+    // VALIDACIÓN 4: Verificar que origen y destino no sean iguales
+    if (idAlmacenOrigen && idUbicacionOrigen && idAlmacenDestino && idUbicacionDestino) {
+        if (idAlmacenOrigen === idAlmacenDestino && idUbicacionOrigen === idUbicacionDestino) {
+            mostrarAlerta('warning', 'Ubicaciones idénticas', 
+                'No puede realizar una salida hacia la misma ubicación de origen. Seleccione un destino diferente.');
+            return;
+        }
     }
     
     // Guardar referencia al botón que se clickeó
@@ -304,8 +327,8 @@ function buscarMaterial(button) {
     // Abrir la modal
     $('#buscar_producto').modal('show');
     
-    // Cargar los productos en la tabla con información de stock
-    cargarProductos(idAlmacenOrigen, idUbicacionOrigen);
+    // Cargar los productos en la tabla con información de stock Y filtro de tipo de material
+    cargarProductos(idAlmacenOrigen, idUbicacionOrigen, tipoMaterial);
 }
 
 function cargarProductos(idAlmacen, idUbicacion, tipoMaterial = '') {
@@ -325,11 +348,15 @@ function cargarProductos(idAlmacen, idUbicacion, tipoMaterial = '') {
             "data": function(d) {
                 d.id_almacen = idAlmacen;
                 d.id_ubicacion = idUbicacion;
-                // Agregar el filtro de tipo de material si existe
                 if (tipoMaterial) {
                     d.tipo_material = tipoMaterial;
                 }
                 return d;
+            },
+            "error": function(xhr, error, thrown) {
+                console.error('Error en DataTable:', error);
+                mostrarAlerta('error', 'Error al cargar productos', 
+                    'No se pudieron cargar los productos. Verifique su conexión.');
             }
         },
         "columns": [
@@ -347,7 +374,7 @@ function cargarProductos(idAlmacen, idUbicacion, tipoMaterial = '') {
         "lengthMenu": [10, 25, 50, 100],
         "language": {
             "lengthMenu": "Mostrar _MENU_ registros por página",
-            "zeroRecords": "No se encontraron resultados",
+            "zeroRecords": "No se encontraron productos con stock disponible",
             "info": "Mostrando página _PAGE_ de _PAGES_",
             "infoEmpty": "No hay registros disponibles",
             "infoFiltered": "(filtrado de _MAX_ registros en total)",
@@ -360,58 +387,9 @@ function cargarProductos(idAlmacen, idUbicacion, tipoMaterial = '') {
             },
             "loadingRecords": "Cargando...",
             "processing": "Procesando...",
-            "emptyTable": "No hay productos disponibles"
+            "emptyTable": "No hay productos disponibles con stock"
         }
     });
-}
-
-function buscarMaterial(button) {
-    // Obtener valores de almacén y ubicación origen
-    const idAlmacenOrigen = document.getElementById('id_almacen_origen').value;
-    const idUbicacionOrigen = document.getElementById('id_ubicacion_origen').value;
-    
-    // Obtener el tipo de material desde el formulario
-    const idMaterialTipo = document.querySelector('select[name="id_material_tipo"]');
-    const tipoMaterial = idMaterialTipo ? idMaterialTipo.value : '';
-    
-    // Validar que se haya seleccionado almacén y ubicación origen
-    if (!idAlmacenOrigen || !idUbicacionOrigen) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Almacén y Ubicación requeridos',
-                text: 'Debe seleccionar un almacén y ubicación de origen antes de buscar productos.',
-                confirmButtonText: 'Entendido'
-            });
-        } else {
-            alert('Debe seleccionar un almacén y ubicación de origen antes de buscar productos.');
-        }
-        return;
-    }
-    
-    // Validar que se haya seleccionado el tipo de material
-    if (!tipoMaterial) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Tipo de material requerido',
-                text: 'Debe seleccionar un tipo de material antes de buscar productos.',
-                confirmButtonText: 'Entendido'
-            });
-        } else {
-            alert('Debe seleccionar un tipo de material antes de buscar productos.');
-        }
-        return;
-    }
-    
-    // Guardar referencia al botón que se clickeó
-    currentSearchButton = button;
-    
-    // Abrir la modal
-    $('#buscar_producto').modal('show');
-    
-    // Cargar los productos en la tabla con información de stock Y filtro de tipo de material
-    cargarProductos(idAlmacenOrigen, idUbicacionOrigen, tipoMaterial);
 }
 
 function seleccionarProducto(idProducto, nombreProducto, stockDisponible) {
@@ -443,62 +421,57 @@ function seleccionarProducto(idProducto, nombreProducto, stockDisponible) {
                     if (stock > 0) {
                         // Si hay stock, establecer min y max
                         inputCantidad.setAttribute('min', '0.01');
-                        inputCantidad.max = stockDisponible;
+                        inputCantidad.setAttribute('max', stockDisponible);
+                        inputCantidad.setAttribute('step', '0.01');
                     } else {
-                        // Si no hay stock, remover min para evitar validación HTML5
-                        inputCantidad.removeAttribute('min');
-                        inputCantidad.removeAttribute('max');
-                        inputCantidad.value = ''; // Limpiar cualquier valor
+                        // Si no hay stock, deshabilitar el campo
+                        inputCantidad.value = '';
+                        inputCantidad.setAttribute('readonly', 'readonly');
+                        inputCantidad.setAttribute('title', 'No hay stock disponible');
                     }
                 }
             }
         }
     }
     
-    // Mostrar advertencia si no hay stock ANTES de cerrar la modal
+    // Cerrar la modal
+    $('#buscar_producto').modal('hide');
+    
+    // Mostrar mensaje según el stock
     if (parseFloat(stockDisponible) <= 0) {
-        // Cerrar la modal primero
-        $('#buscar_producto').modal('hide');
-        
-        // Luego mostrar la advertencia
-        setTimeout(() => {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Producto sin stock',
-                    text: `El producto "${nombreProducto}" no tiene stock disponible en esta ubicación. No podrá registrar cantidades para este producto.`,
-                    confirmButtonText: 'Entendido'
-                });
-            } else {
-                alert(`El producto "${nombreProducto}" no tiene stock disponible en esta ubicación. No podrá registrar cantidades para este producto.`);
-            }
-        }, 300);
+        mostrarAlerta('warning', 'Producto sin stock',
+            `El producto "${nombreProducto}" no tiene stock disponible en esta ubicación.`);
     } else {
-        // Cerrar la modal
-        $('#buscar_producto').modal('hide');
-        
-        // Mostrar mensaje de éxito
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Producto seleccionado',
-                text: 'El producto "' + nombreProducto + '" ha sido seleccionado.',
-                showConfirmButton: false,
-                timer: 2000
-            });
-        }
+        mostrarAlerta('success', 'Producto seleccionado',
+            `El producto "${nombreProducto}" ha sido seleccionado correctamente.`, 2000);
     }
     
     // Limpiar la referencia
     currentSearchButton = null;
 }
 
-// Limpiar la referencia cuando se cierre la modal sin seleccionar
-$('#buscar_producto').on('hidden.bs.modal', function () {
-    currentSearchButton = null;
-});
+// Función auxiliar para mostrar alertas
+function mostrarAlerta(tipo, titulo, mensaje, tiempo = null) {
+    if (typeof Swal !== 'undefined') {
+        const config = {
+            icon: tipo,
+            title: titulo,
+            text: mensaje,
+            confirmButtonText: 'Entendido'
+        };
+        
+        if (tiempo) {
+            config.showConfirmButton = false;
+            config.timer = tiempo;
+        }
+        
+        Swal.fire(config);
+    } else {
+        alert(titulo + ": " + mensaje);
+    }
+}
 
-// Script para manejo dinámico de materiales
+// Script para manejo dinámico de materiales y validaciones
 document.addEventListener('DOMContentLoaded', function() {
     let contadorMateriales = 1;
     
@@ -513,36 +486,18 @@ document.addEventListener('DOMContentLoaded', function() {
             return true;
         }
         
-        // Si el stock es 0 o menor
+        // VALIDACIÓN: Si el stock es 0 o menor
         if (stock <= 0) {
-            // Limpiar el campo y mostrar alerta
             inputCantidad.value = '';
-            
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Sin stock disponible',
-                    text: `El producto "${nombreProducto}" no tiene stock disponible en esta ubicación. No se puede realizar la salida.`,
-                    confirmButtonText: 'Entendido'
-                });
-            } else {
-                alert(`El producto "${nombreProducto}" no tiene stock disponible en esta ubicación. No se puede realizar la salida.`);
-            }
+            mostrarAlerta('error', 'Sin stock disponible',
+                `El producto "${nombreProducto}" no tiene stock disponible en esta ubicación.`);
             return false;
         }
         
-        // Si la cantidad excede el stock
+        // VALIDACIÓN: Si la cantidad excede el stock
         if (cantidad > stock) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Cantidad excede el stock',
-                    text: `La cantidad ingresada (${cantidad}) excede el stock disponible (${stock.toFixed(2)}) para "${nombreProducto}".`,
-                    confirmButtonText: 'Entendido'
-                });
-            } else {
-                alert(`La cantidad ingresada (${cantidad}) excede el stock disponible (${stock.toFixed(2)}) para "${nombreProducto}".`);
-            }
+            mostrarAlerta('warning', 'Cantidad excede el stock',
+                `La cantidad ingresada (${cantidad}) excede el stock disponible (${stock.toFixed(2)}) para "${nombreProducto}".`);
             return false;
         }
         
@@ -589,27 +544,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Modificar la función seleccionarProducto para manejar stock cero
-    window.seleccionarProductoOriginal = window.seleccionarProducto;
-    window.seleccionarProducto = function(idProducto, nombreProducto, stockDisponible) {
-        // Llamar a la función original
-        window.seleccionarProductoOriginal(idProducto, nombreProducto, stockDisponible);
+    // VALIDACIÓN: Ubicaciones origen y destino
+    function validarUbicaciones() {
+        const almacenOrigen = document.getElementById('id_almacen_origen');
+        const ubicacionOrigen = document.getElementById('id_ubicacion_origen');
+        const almacenDestino = document.getElementById('id_almacen_destino');
+        const ubicacionDestino = document.getElementById('id_ubicacion_destino');
         
-        // Verificar si el stock es cero y mostrar advertencia
-        if (parseFloat(stockDisponible) <= 0) {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Producto sin stock',
-                    text: `El producto "${nombreProducto}" no tiene stock disponible en esta ubicación. No podrá registrar cantidades para este producto.`,
-                    confirmButtonText: 'Entendido'
-                });
+        if (almacenOrigen && ubicacionOrigen && almacenDestino && ubicacionDestino) {
+            if (almacenOrigen.value && ubicacionOrigen.value && 
+                almacenDestino.value && ubicacionDestino.value) {
+                
+                if (almacenOrigen.value === almacenDestino.value && 
+                    ubicacionOrigen.value === ubicacionDestino.value) {
+                    
+                    mostrarAlerta('warning', 'Ubicaciones idénticas',
+                        'No puede realizar una salida hacia la misma ubicación de origen. Seleccione un destino diferente.');
+                    
+                    // Limpiar destino
+                    almacenDestino.value = '';
+                    ubicacionDestino.value = '';
+                    return false;
+                }
             }
         }
-        
-        // Reconfigurar eventos después de seleccionar producto
-        configurarEventosCantidad();
-    };
+        return true;
+    }
+    
+    // Eventos para validar ubicaciones en tiempo real
+    ['id_almacen_destino', 'id_ubicacion_destino'].forEach(id => {
+        const elemento = document.getElementById(id);
+        if (elemento) {
+            elemento.addEventListener('change', validarUbicaciones);
+        }
+    });
     
     // Agregar nuevo material
     const btnAgregarMaterial = document.getElementById('agregar-material');
@@ -623,6 +591,8 @@ document.addEventListener('DOMContentLoaded', function() {
             inputs.forEach(input => {
                 if (input.type !== 'button') {
                     input.value = '';
+                    input.removeAttribute('readonly');
+                    input.removeAttribute('title');
                 }
             });
             
@@ -644,7 +614,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Actualizar eventos
             actualizarEventosEliminar();
-            configurarEventosCantidad(); // Reconfigurar eventos de cantidad
+            configurarEventosCantidad();
         });
     }
     
@@ -663,14 +633,30 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarEventosEliminar();
     configurarEventosCantidad();
     
-    // Validación del formulario antes de enviar - MEJORADA
+    // VALIDACIÓN DEL FORMULARIO ANTES DE ENVIAR - MEJORADA
     const form = document.querySelector('form');
     if (form) {
         form.addEventListener('submit', function(e) {
             let errores = [];
             let tieneProductosSinStock = false;
             
-            // Validar que al menos un material tenga cantidad
+            // VALIDACIÓN 1: Verificar que origen y destino no sean iguales
+            const almacenOrigen = document.getElementById('id_almacen_origen').value;
+            const ubicacionOrigen = document.getElementById('id_ubicacion_origen').value;
+            const almacenDestino = document.getElementById('id_almacen_destino').value;
+            const ubicacionDestino = document.getElementById('id_ubicacion_destino').value;
+            
+            if (almacenOrigen === almacenDestino && ubicacionOrigen === ubicacionDestino) {
+                errores.push('No puede realizar una salida hacia la misma ubicación de origen. Seleccione un destino diferente.');
+            }
+            
+            // VALIDACIÓN 2: Verificar tipo de material no sea "NA"
+            const tipoMaterial = document.querySelector('select[name="id_material_tipo"]').value;
+            if (tipoMaterial === '1') {
+                errores.push('No se puede realizar salidas para materiales tipo "NA". Este tipo está reservado para servicios.');
+            }
+            
+            // VALIDACIÓN 3: Verificar que al menos un material tenga cantidad
             const cantidades = document.querySelectorAll('input[name="cantidad[]"]');
             let tieneMateriales = false;
             
@@ -684,15 +670,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 errores.push('Debe agregar al menos un material con cantidad válida');
             }
             
-            // Validar stocks y cantidades
+            // VALIDACIÓN 4: Validar stocks y cantidades
             const materialesItems = document.querySelectorAll('.material-item');
             materialesItems.forEach((item, index) => {
                 const inputCantidad = item.querySelector('input[name="cantidad[]"]');
                 const stockElement = item.querySelector('[id^="stock-disponible-"]');
                 const inputDescripcion = item.querySelector('input[name="descripcion[]"]');
+                const inputIdProducto = item.querySelector('input[name="id_producto[]"]');
                 
-                // Solo validar si hay descripción (producto seleccionado)
-                if (inputDescripcion && inputDescripcion.value.trim()) {
+                // Solo validar si hay descripción Y id de producto (producto realmente seleccionado)
+                if (inputDescripcion && inputDescripcion.value.trim() && 
+                    inputIdProducto && inputIdProducto.value) {
+                    
                     const stock = parseFloat(stockElement.textContent) || 0;
                     const cantidad = parseFloat(inputCantidad.value) || 0;
                     
@@ -710,8 +699,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         errores.push(`Debe ingresar una cantidad válida para "${inputDescripcion.value}"`);
                     }
                 }
+                
+                // VALIDACIÓN ADICIONAL: Si hay descripción pero no ID de producto
+                if (inputDescripcion && inputDescripcion.value.trim() && 
+                    (!inputIdProducto || !inputIdProducto.value)) {
+                    errores.push(`Debe seleccionar un producto válido desde el buscador para "${inputDescripcion.value}"`);
+                }
             });
             
+            // Mostrar errores si existen
             if (errores.length > 0) {
                 e.preventDefault();
                 
@@ -723,21 +719,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     icono = 'warning';
                 }
                 
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: icono,
-                        title: titulo,
-                        html: errores.join('<br>'),
-                        confirmButtonText: 'Revisar'
-                    });
-                } else {
-                    alert(titulo + ':\n' + errores.join('\n'));
-                }
+                mostrarAlerta(icono, titulo, errores.join('\n'));
             }
         });
     }
 
-    // Actualizar stock cuando cambie el almacén o ubicación origen
+    // ACTUALIZAR STOCK CUANDO CAMBIE EL ALMACÉN O UBICACIÓN ORIGEN
     const almacenOrigen = document.getElementById('id_almacen_origen');
     const ubicacionOrigen = document.getElementById('id_ubicacion_origen');
     
@@ -757,53 +744,62 @@ document.addEventListener('DOMContentLoaded', function() {
         materialesItems.forEach((item, index) => {
             const inputIdProducto = item.querySelector('input[name="id_producto[]"]');
             if (inputIdProducto && inputIdProducto.value) {
-                // Hacer una solicitud AJAX para obtener el stock actualizado
-                fetch(`../_controlador/c_obtener_stock.php?id_producto=${inputIdProducto.value}&id_almacen=${idAlmacen}&id_ubicacion=${idUbicacion}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const stockElement = item.querySelector('[id^="stock-disponible-"]');
-                            const inputCantidad = item.querySelector('input[name="cantidad[]"]');
-                            const inputDescripcion = item.querySelector('input[name="descripcion[]"]');
+                
+                // Crear un controlador temporal para obtener stock actualizado
+                fetch(`obtener_stock.php`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `id_producto=${inputIdProducto.value}&id_almacen=${idAlmacen}&id_ubicacion=${idUbicacion}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const stockElement = item.querySelector('[id^="stock-disponible-"]');
+                        const inputCantidad = item.querySelector('input[name="cantidad[]"]');
+                        const inputDescripcion = item.querySelector('input[name="descripcion[]"]');
+                        
+                        if (stockElement) {
+                            const nuevoStock = parseFloat(data.stock);
+                            stockElement.textContent = nuevoStock.toFixed(2);
                             
-                            if (stockElement) {
-                                const nuevoStock = parseFloat(data.stock);
-                                stockElement.textContent = nuevoStock.toFixed(2);
-                                
-                                if (inputCantidad) {
-                                    // Si no hay stock, limpiar cantidad y remover atributo min
-                                    if (nuevoStock <= 0) {
-                                        inputCantidad.value = '';
-                                        inputCantidad.removeAttribute('min');
-                                        
-                                        // Mostrar advertencia
-                                        if (inputDescripcion && inputDescripcion.value) {
-                                            if (typeof Swal !== 'undefined') {
-                                                Swal.fire({
-                                                    icon: 'warning',
-                                                    title: 'Stock agotado',
-                                                    text: `El producto "${inputDescripcion.value}" ya no tiene stock en la nueva ubicación seleccionada.`,
-                                                    confirmButtonText: 'Entendido'
-                                                });
-                                            }
-                                        }
-                                    } else {
-                                        // Restaurar atributo min si hay stock
-                                        inputCantidad.setAttribute('min', '0.01');
-                                        inputCantidad.max = nuevoStock;
-                                        
-                                        // Si la cantidad actual es mayor que el nuevo stock, ajustarla
-                                        if (parseFloat(inputCantidad.value) > nuevoStock) {
-                                            inputCantidad.value = nuevoStock.toFixed(2);
-                                        }
+                            if (inputCantidad) {
+                                // Si no hay stock, limpiar cantidad y deshabilitar
+                                if (nuevoStock <= 0) {
+                                    inputCantidad.value = '';
+                                    inputCantidad.setAttribute('readonly', 'readonly');
+                                    inputCantidad.setAttribute('title', 'No hay stock disponible');
+                                    
+                                    // Mostrar advertencia
+                                    if (inputDescripcion && inputDescripcion.value) {
+                                        mostrarAlerta('warning', 'Stock agotado',
+                                            `El producto "${inputDescripcion.value}" ya no tiene stock en la nueva ubicación seleccionada.`);
+                                    }
+                                } else {
+                                    // Habilitar campo si hay stock
+                                    inputCantidad.removeAttribute('readonly');
+                                    inputCantidad.removeAttribute('title');
+                                    inputCantidad.setAttribute('min', '0.01');
+                                    inputCantidad.setAttribute('max', nuevoStock);
+                                    
+                                    // Si la cantidad actual es mayor que el nuevo stock, ajustarla
+                                    if (parseFloat(inputCantidad.value) > nuevoStock) {
+                                        inputCantidad.value = nuevoStock.toFixed(2);
                                     }
                                 }
                             }
                         }
-                    })
-                    .catch(error => console.error('Error:', error));
+                    }
+                })
+                .catch(error => console.error('Error al actualizar stock:', error));
             }
         });
     }
+});
+
+// Limpiar la referencia cuando se cierre la modal sin seleccionar
+$('#buscar_producto').on('hidden.bs.modal', function () {
+    currentSearchButton = null;
 });
 </script>

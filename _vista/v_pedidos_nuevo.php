@@ -634,32 +634,49 @@ document.addEventListener('DOMContentLoaded', function() {
     let valorInicialTipoPedido = '';
     let formularioModificado = false;
     
-    // Detectar cambios en cualquier campo del formulario
-    const todosLosCampos = document.querySelectorAll('input, textarea, select');
-    
+    // Función para marcar formulario como modificado
     function marcarFormularioComoModificado() {
         formularioModificado = true;
     }
     
-    // Agregar evento change a todos los campos excepto al select tipo de producto
-    todosLosCampos.forEach(campo => {
-        if (campo.name !== 'tipo_pedido') { 
-            campo.addEventListener('change', marcarFormularioComoModificado);
-            campo.addEventListener('input', marcarFormularioComoModificado);
-        }
-    });
+    // Función para agregar eventos a campos específicos (excluye botones y selects específicos)
+    function agregarEventosACampos() {
+        const campos = document.querySelectorAll('input:not([type="button"]):not([type="submit"]):not([type="reset"]), textarea, select');
+        
+        campos.forEach(campo => {
+            // Solo agregar eventos a campos que NO sean el tipo de pedido
+            if (campo.name !== 'tipo_pedido') {
+                // Remover eventos anteriores para evitar duplicados
+                campo.removeEventListener('change', marcarFormularioComoModificado);
+                campo.removeEventListener('input', marcarFormularioComoModificado);
+                
+                // Agregar eventos nuevamente
+                campo.addEventListener('change', marcarFormularioComoModificado);
+                campo.addEventListener('input', marcarFormularioComoModificado);
+            }
+        });
+    }
     
     // Función para limpiar todo el formulario
     function limpiarFormularioCompleto() {
-        // Limpiar campos básicos - CORREGIDO: nombres correctos de los campos
-        document.querySelector('select[name="id_obra"]').value = '';
-        document.querySelector('select[name="id_ubicacion"]').value = '';
-        document.querySelector('input[name="nom_pedido"]').value = '';
-        document.querySelector('input[name="fecha_necesidad"]').value = '';
-        document.querySelector('input[name="num_ot"]').value = '';
-        document.querySelector('input[name="contacto"]').value = '';
-        document.querySelector('input[name="lugar_entrega"]').value = '';
-        document.querySelector('textarea[name="aclaraciones"]').value = '';
+        // Limpiar campos básicos
+        const camposALimpiar = [
+            'select[name="id_obra"]',
+            'select[name="id_ubicacion"]', 
+            'input[name="nom_pedido"]',
+            'input[name="fecha_necesidad"]',
+            'input[name="num_ot"]',
+            'input[name="contacto"]',
+            'input[name="lugar_entrega"]',
+            'textarea[name="aclaraciones"]'
+        ];
+        
+        camposALimpiar.forEach(selector => {
+            const elemento = document.querySelector(selector);
+            if (elemento) {
+                elemento.value = '';
+            }
+        });
         
         // Limpiar sección de materiales - mantener solo el primer item y limpiarlo
         const contenedorMateriales = document.getElementById('contenedor-materiales');
@@ -675,7 +692,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (primerMaterial) {
             const inputs = primerMaterial.querySelectorAll('input, textarea, select');
             inputs.forEach(input => {
-                if (input.name !== 'tipo_pedido') { // CORREGIDO: nombre correcto
+                if (input.name !== 'tipo_pedido') {
                     input.value = '';
                 }
             });
@@ -693,27 +710,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Actualizar eventos
         actualizarEventosEliminar();
-        actualizarEventosCampos();
+        agregarEventosACampos();
     }
     
-    // Función para actualizar eventos en campos dinámicos
-    function actualizarEventosCampos() {
-        const todosLosCamposActualizados = document.querySelectorAll('input, textarea, select');
-        todosLosCamposActualizados.forEach(campo => {
-            if (campo.name !== 'tipo_pedido') { // CORREGIDO: nombre correcto
-                // Remover eventos anteriores para evitar duplicados
-                campo.removeEventListener('change', marcarFormularioComoModificado);
-                campo.removeEventListener('input', marcarFormularioComoModificado);
-                
-                // Agregar eventos nuevamente
-                campo.addEventListener('change', marcarFormularioComoModificado);
-                campo.addEventListener('input', marcarFormularioComoModificado);
-            }
-        });
-    }
+    // Inicializar eventos en campos existentes
+    agregarEventosACampos();
     
     // Evento para el select tipo de pedido
-    if (selectTipoProducto) { // VERIFICAR que existe el elemento
+    if (selectTipoProducto) {
         selectTipoProducto.addEventListener('focus', function() {
             valorInicialTipoPedido = this.value;
         });
@@ -725,7 +729,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (formularioModificado && valorInicialTipoPedido !== valorActual) {
                 // Verificar si SweetAlert está disponible
                 if (typeof Swal !== 'undefined') {
-                    // Mostrar SweetAlert
                     Swal.fire({
                         title: '¿Estás seguro?',
                         text: 'Si cambias el tipo de pedido, todos los cambios realizados en el formulario se perderán.',
@@ -738,10 +741,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         reverseButtons: true
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            // Usuario confirma - limpiar formulario
                             limpiarFormularioCompleto();
-                            
-                            // Mostrar mensaje de confirmación
                             Swal.fire({
                                 title: 'Formulario limpiado',
                                 text: 'Todos los cambios han sido eliminados.',
@@ -750,12 +750,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 showConfirmButton: false
                             });
                         } else {
-                            // Usuario cancela - revertir el select al valor anterior
                             this.value = valorInicialTipoPedido;
                         }
                     });
                 } else {
-                    // Fallback si no está disponible SweetAlert
                     if (confirm('Si cambias el tipo de pedido, todos los cambios realizados en el formulario se perderán. ¿Continuar?')) {
                         limpiarFormularioCompleto();
                         alert('Formulario limpiado');
@@ -764,66 +762,117 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             } else {
-                // Si no hay cambios o es la primera selección, actualizar valor inicial
                 valorInicialTipoPedido = valorActual;
             }
         });
     }
     
-    // Agregar nuevo material
+    // FUNCIONALIDAD PRINCIPAL: Agregar nuevo material
     const btnAgregarMaterial = document.getElementById('agregar-material');
     if (btnAgregarMaterial) {
-        btnAgregarMaterial.addEventListener('click', function() {
+        btnAgregarMaterial.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevenir comportamiento por defecto
+            
             const contenedor = document.getElementById('contenedor-materiales');
-            const nuevoMaterial = document.querySelector('.material-item').cloneNode(true);
+            const materialOriginal = contenedor.querySelector('.material-item');
             
-            // Limpiar los valores del nuevo elemento
-            const inputs = nuevoMaterial.querySelectorAll('input, textarea, select');
-            inputs.forEach(input => {
-                if (input.type === 'hidden') {
-                    input.value = '';
-                } else {
-                    input.value = '';
+            if (materialOriginal) {
+                // Clonar el elemento original
+                const nuevoMaterial = materialOriginal.cloneNode(true);
+                
+                // Limpiar todos los valores del nuevo elemento
+                const inputs = nuevoMaterial.querySelectorAll('input, textarea, select');
+                inputs.forEach(input => {
+                    if (input.type === 'file') {
+                        // Para inputs de archivo, limpiar el valor y actualizar el name
+                        input.value = '';
+                        input.name = `archivos_${contadorMateriales}[]`;
+                    } else if (input.type === 'hidden') {
+                        input.value = '';
+                    } else if (input.tagName.toLowerCase() === 'select') {
+                        input.selectedIndex = 0; // Seleccionar la primera opción (vacía)
+                    } else {
+                        input.value = '';
+                    }
+                });
+                
+                // Mostrar el botón eliminar en el nuevo elemento
+                const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
+                if (btnEliminar) {
+                    btnEliminar.style.display = 'block';
                 }
-            });
-
-            // Actualizar el name del input file para que sea único
-            const fileInput = nuevoMaterial.querySelector('input[type="file"]');
-            if (fileInput) {
-                fileInput.name = `archivos_${contadorMateriales}[]`;
+                
+                // Agregar el nuevo elemento al contenedor
+                contenedor.appendChild(nuevoMaterial);
+                contadorMateriales++;
+                
+                // Actualizar eventos
+                actualizarEventosEliminar();
+                agregarEventosACampos();
+                
+                // Marcar como modificado
+                formularioModificado = true;
+                
+                // Scroll suave hacia el nuevo elemento agregado
+                nuevoMaterial.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'nearest' 
+                });
             }
-
-            // Mostrar el botón eliminar
-            const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
-            if (btnEliminar) {
-                btnEliminar.style.display = 'block';
-            }
-            
-            contenedor.appendChild(nuevoMaterial);
-            contadorMateriales++;
-            
-            // Actualizar eventos
-            actualizarEventosEliminar();
-            actualizarEventosCampos();
-            
-            // Marcar como modificado
-            formularioModificado = true;
         });
     }
     
     // Función para actualizar eventos de eliminar
     function actualizarEventosEliminar() {
-        document.querySelectorAll('.eliminar-material').forEach(btn => {
-            btn.onclick = function() {
-                if (document.querySelectorAll('.material-item').length > 1) {
-                    this.closest('.material-item').remove();
-                    formularioModificado = true;
+        // Remover todos los event listeners anteriores y agregar nuevos
+        const botonesEliminar = document.querySelectorAll('.eliminar-material');
+        
+        botonesEliminar.forEach(btn => {
+            // Crear una nueva función para cada botón para evitar conflicts
+            btn.onclick = function(e) {
+                e.preventDefault();
+                const materialesItems = document.querySelectorAll('.material-item');
+                
+                if (materialesItems.length > 1) {
+                    // Confirmar eliminación
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: '¿Eliminar material?',
+                            text: 'Se eliminará este material del pedido',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#d33',
+                            cancelButtonColor: '#3085d6',
+                            confirmButtonText: 'Sí, eliminar',
+                            cancelButtonText: 'Cancelar'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                this.closest('.material-item').remove();
+                                formularioModificado = true;
+                            }
+                        });
+                    } else {
+                        if (confirm('¿Eliminar este material?')) {
+                            this.closest('.material-item').remove();
+                            formularioModificado = true;
+                        }
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'No se puede eliminar',
+                            text: 'Debe mantener al menos un material en el pedido'
+                        });
+                    } else {
+                        alert('Debe mantener al menos un material en el pedido');
+                    }
                 }
             };
         });
     }
     
-    // Inicializar eventos
+    // Inicializar eventos de eliminar
     actualizarEventosEliminar();
     
     // Interceptar el botón reset del formulario
@@ -844,7 +893,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     cancelButtonText: 'Cancelar'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        // Limpiar completamente incluyendo el select tipo de producto
                         document.querySelector('form').reset();
                         limpiarFormularioCompleto();
                         if (selectTipoProducto) {
@@ -862,7 +910,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
             } else {
-                // Fallback sin SweetAlert
                 if (confirm('¿Limpiar formulario? Se eliminarán todos los datos ingresados.')) {
                     document.querySelector('form').reset();
                     limpiarFormularioCompleto();
@@ -877,6 +924,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('form[action="pedidos_nuevo.php"], form[action="pedidos_editar.php"]');

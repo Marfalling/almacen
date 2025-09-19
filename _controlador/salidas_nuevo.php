@@ -1,4 +1,7 @@
 <?php
+//=======================================================================
+// CONTROLADOR MODIFICADO: salidas_nuevo.php
+//=======================================================================
 require_once("../_conexion/sesion.php");
 
 ?>
@@ -42,7 +45,7 @@ require_once("../_conexion/sesion.php");
             $mensaje_alerta = '';
 
             //=======================================================================
-            // CONTROLADOR 
+            // CONTROLADOR CON VALIDACIONES MEJORADAS
             //=======================================================================
             if (isset($_REQUEST['registrar'])) {
                 $id_material_tipo = intval($_REQUEST['id_material_tipo']);
@@ -56,52 +59,87 @@ require_once("../_conexion/sesion.php");
                 $id_personal_encargado = intval($_REQUEST['id_personal_encargado']);
                 $id_personal_recibe = intval($_REQUEST['id_personal_recibe']);
                 
-                // CORRECCIÓN: Usar el ID del personal de la sesión
+                // Usar el ID del personal de la sesión
                 $id_personal = $_SESSION['id_personal'];
                 
-                // Procesar materiales
-                $materiales = array();
-                if (isset($_REQUEST['id_producto']) && is_array($_REQUEST['id_producto'])) {
-                    foreach ($_REQUEST['id_producto'] as $index => $id_producto) {
-                        if (!empty($id_producto) && !empty($_REQUEST['cantidad'][$index])) {
-                            $materiales[] = array(
-                                'id_producto' => intval($id_producto),
-                                'descripcion' => mysqli_real_escape_string($con, $_REQUEST['descripcion'][$index]),
-                                'cantidad' => floatval($_REQUEST['cantidad'][$index])
-                            );
-                        }
-                    }
-                }
-                
-                // Validar que haya al menos un material
-                if (count($materiales) > 0) {
-                    $resultado = GrabarSalida(
-                        $id_material_tipo, $id_almacen_origen, $id_ubicacion_origen,
-                        $id_almacen_destino, $id_ubicacion_destino, $ndoc_salida,
-                        $fec_req_salida, $obs_salida, $id_personal_encargado,
-                        $id_personal_recibe, $id_personal, $materiales
-                    );
-                    
-                    if ($resultado === "SI") {
-                        ?>
-                        <script Language="JavaScript">
-                            setTimeout(function() {
-                                window.location.href = 'salidas_mostrar.php?registrado=true';
-                            }, 100);
-                        </script>
-                        <?php
-                        exit();
-                    } else {
-                        $mostrar_alerta = true;
-                        $tipo_alerta = 'error';
-                        $titulo_alerta = 'Error al registrar';
-                        $mensaje_alerta = str_replace("'", "\'", $resultado);
-                    }
-                } else {
+                // VALIDACIÓN 1: No permitir material tipo "NA" (id = 1)
+                if ($id_material_tipo == 1) {
+                    $mostrar_alerta = true;
+                    $tipo_alerta = 'error';
+                    $titulo_alerta = 'Tipo de material no válido';
+                    $mensaje_alerta = 'No se puede realizar salidas para materiales tipo "NA". Este tipo está reservado para servicios.';
+                } 
+                // VALIDACIÓN 2: No permitir misma ubicación origen = destino
+                elseif ($id_almacen_origen == $id_almacen_destino && $id_ubicacion_origen == $id_ubicacion_destino) {
                     $mostrar_alerta = true;
                     $tipo_alerta = 'warning';
-                    $titulo_alerta = 'Datos incompletos';
-                    $mensaje_alerta = 'Debe agregar al menos un material a la salida';
+                    $titulo_alerta = 'Ubicaciones idénticas';
+                    $mensaje_alerta = 'No puede realizar una salida hacia la misma ubicación de origen. Seleccione un destino diferente.';
+                }
+                else {
+                    // Procesar materiales
+                    $materiales = array();
+                    if (isset($_REQUEST['id_producto']) && is_array($_REQUEST['id_producto'])) {
+                        foreach ($_REQUEST['id_producto'] as $index => $id_producto) {
+                            if (!empty($id_producto) && !empty($_REQUEST['cantidad'][$index])) {
+                                $cantidad = floatval($_REQUEST['cantidad'][$index]);
+                                
+                                // VALIDACIÓN 3: Verificar stock antes de procesar
+                                $stock_disponible = ObtenerStockDisponible($id_producto, $id_almacen_origen, $id_ubicacion_origen);
+                                
+                                if ($stock_disponible <= 0) {
+                                    $mostrar_alerta = true;
+                                    $tipo_alerta = 'error';
+                                    $titulo_alerta = 'Stock insuficiente';
+                                    $mensaje_alerta = "El producto '{$_REQUEST['descripcion'][$index]}' no tiene stock disponible en la ubicación origen.";
+                                    break;
+                                } elseif ($cantidad > $stock_disponible) {
+                                    $mostrar_alerta = true;
+                                    $tipo_alerta = 'warning';
+                                    $titulo_alerta = 'Cantidad excede stock';
+                                    $mensaje_alerta = "La cantidad solicitada para '{$_REQUEST['descripcion'][$index]}' ({$cantidad}) excede el stock disponible ({$stock_disponible}).";
+                                    break;
+                                } else {
+                                    $materiales[] = array(
+                                        'id_producto' => intval($id_producto),
+                                        'descripcion' => mysqli_real_escape_string($con, $_REQUEST['descripcion'][$index]),
+                                        'cantidad' => $cantidad
+                                    );
+                                }
+                            }
+                        }
+                    }
+                    
+                    // VALIDACIÓN 4: Verificar que haya al menos un material válido
+                    if (!$mostrar_alerta && count($materiales) > 0) {
+                        $resultado = GrabarSalida(
+                            $id_material_tipo, $id_almacen_origen, $id_ubicacion_origen,
+                            $id_almacen_destino, $id_ubicacion_destino, $ndoc_salida,
+                            $fec_req_salida, $obs_salida, $id_personal_encargado,
+                            $id_personal_recibe, $id_personal, $materiales
+                        );
+                        
+                        if ($resultado === "SI") {
+                            ?>
+                            <script Language="JavaScript">
+                                setTimeout(function() {
+                                    window.location.href = 'salidas_mostrar.php?registrado=true';
+                                }, 100);
+                            </script>
+                            <?php
+                            exit();
+                        } else {
+                            $mostrar_alerta = true;
+                            $tipo_alerta = 'error';
+                            $titulo_alerta = 'Error al registrar';
+                            $mensaje_alerta = str_replace("'", "\'", $resultado);
+                        }
+                    } elseif (!$mostrar_alerta) {
+                        $mostrar_alerta = true;
+                        $tipo_alerta = 'warning';
+                        $titulo_alerta = 'Datos incompletos';
+                        $mensaje_alerta = 'Debe agregar al menos un material válido a la salida';
+                    }
                 }
             }
             //-------------------------------------------

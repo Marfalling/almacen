@@ -8,6 +8,16 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
                      $fec_req_salida, $obs_salida, $id_personal_encargado, 
                      $id_personal_recibe, $id_personal, $materiales) 
 {
+    // VALIDACIONES ANTES DE PROCESAR
+    $errores_validacion = ValidarSalidaAntesDeProcesar(
+        $id_material_tipo, $id_almacen_origen, $id_ubicacion_origen, 
+        $id_almacen_destino, $id_ubicacion_destino, $materiales
+    );
+    
+    if (!empty($errores_validacion)) {
+        return "ERROR DE VALIDACIÓN: " . implode(" | ", $errores_validacion);
+    }
+    
     include("../_conexion/conexion.php");
 
     // Insertar salida principal
@@ -31,6 +41,15 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
             $id_producto = intval($material['id_producto']);
             $descripcion = mysqli_real_escape_string($con, $material['descripcion']);
             $cantidad = floatval($material['cantidad']);
+            
+            // Verificar stock una vez más antes de cada inserción (por seguridad)
+            $stock_actual = ObtenerStockDisponible($id_producto, $id_almacen_origen, $id_ubicacion_origen);
+            if ($cantidad > $stock_actual) {
+                // Rollback: eliminar la salida creada
+                mysqli_query($con, "DELETE FROM salida WHERE id_salida = $id_salida");
+                mysqli_close($con);
+                return "ERROR: Stock insuficiente para '{$descripcion}'. Stock disponible: {$stock_actual}, solicitado: {$cantidad}";
+            }
             
             // Insertar detalle de salida
             $sql_detalle = "INSERT INTO salida_detalle (
@@ -58,9 +77,9 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
                 
                 // 2. Movimiento de INGRESO en almacén destino (suma stock)
                 $sql_mov_ingreso = "INSERT INTO movimiento (
-                                     id_personal, id_orden, id_producto, id_almacen, 
-                                     id_ubicacion, tipo_orden, tipo_movimiento, 
-                                     cant_movimiento, fec_movimiento, est_movimiento
+                                     id_personal, $id_salida, $id_producto, $id_almacen_destino, 
+                                     $id_ubicacion_destino, 2, 1, 
+                                     $cantidad, NOW(), 1
                                    ) VALUES (
                                      $id_personal, $id_salida, $id_producto, $id_almacen_destino, 
                                      $id_ubicacion_destino, 2, 1, 
@@ -311,4 +330,113 @@ function ObtenerStockDisponible($id_producto, $id_almacen, $id_ubicacion)
     return floatval($row['stock_disponible']);
 }
 
+
+//=======================================================================
+// VALIDACIONES PARA SALIDAS - Modelo actualizado m_salidas.php
+//=======================================================================
+
+function ValidarSalidaAntesDeProcesar($id_material_tipo, $id_almacen_origen, $id_ubicacion_origen, 
+                                     $id_almacen_destino, $id_ubicacion_destino, $materiales) 
+{
+    include("../_conexion/conexion.php");
+    
+    $errores = array();
+    
+    // 1. Validar que no sea la misma ubicación (origen = destino)
+    if ($id_almacen_origen == $id_almacen_destino && $id_ubicacion_origen == $id_ubicacion_destino) {
+        $errores[] = "No puede realizar una salida hacia la misma ubicación de origen. Seleccione un destino diferente.";
+    }
+    
+    // 2. Excluir material tipo "NA" (id = 1)
+    if ($id_material_tipo == 1) {
+        $errores[] = "No se puede realizar salidas para el tipo de material 'NA'. Este tipo está reservado para servicios.";
+    }
+    
+    // 3. Validar stock disponible para cada material
+    foreach ($materiales as $material) {
+        $id_producto = intval($material['id_producto']);
+        $cantidad = floatval($material['cantidad']);
+        $descripcion = $material['descripcion'];
+        
+        // Obtener stock actual del producto en la ubicación origen
+        $stock_disponible = ObtenerStockDisponible($id_producto, $id_almacen_origen, $id_ubicacion_origen);
+        
+        if ($stock_disponible <= 0) {
+            $errores[] = "El producto '{$descripcion}' no tiene stock disponible en la ubicación origen seleccionada.";
+        } elseif ($cantidad > $stock_disponible) {
+            $errores[] = "La cantidad solicitada para '{$descripcion}' ({$cantidad}) excede el stock disponible ({$stock_disponible}).";
+        }
+    }
+    
+    mysqli_close($con);
+    return $errores;
+}
+
+
+
+// Función corregida para obtener productos con stock, excluyendo "NA"
+function MostrarProductosConStock($limit, $offset, $searchValue, $orderColumn, $orderDirection, $id_almacen, $id_ubicacion, $tipoMaterial = 0)
+{
+    include("../_conexion/conexion.php");
+
+    // Construir la consulta base
+    $sql = "SELECT p.id_producto, p.cod_material, p.nom_producto, p.mar_producto, p.mod_producto,
+                   pt.nom_producto_tipo, um.nom_unidad_medida,
+                   COALESCE(
+                       SUM(CASE
+                           WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                           WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+                           ELSE 0
+                       END), 0
+                   ) AS stock_disponible
+            FROM producto p 
+            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
+            INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo
+            INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+            LEFT JOIN movimiento mov ON p.id_producto = mov.id_producto 
+                      AND mov.id_almacen = $id_almacen 
+                      AND mov.id_ubicacion = $id_ubicacion
+                      AND mov.est_movimiento = 1
+            WHERE p.est_producto = 1 
+            AND pt.est_producto_tipo = 1
+            AND mt.est_material_tipo = 1
+            AND um.est_unidad_medida = 1";
+
+    // VALIDACIÓN: Excluir material tipo "NA" (id = 1)
+    $sql .= " AND mt.id_material_tipo != 1";
+
+    // Filtrar por tipo de material si se especifica y no es "NA"
+    if ($tipoMaterial > 0 && $tipoMaterial != 1) {
+        $sql .= " AND mt.id_material_tipo = $tipoMaterial";
+    }
+
+    $sql .= " GROUP BY p.id_producto, p.cod_material, p.nom_producto, p.mar_producto, p.mod_producto, 
+                       pt.nom_producto_tipo, um.nom_unidad_medida";
+
+    // Aplicar filtro de búsqueda
+    if (!empty($searchValue)) {
+        $searchValue = mysqli_real_escape_string($con, $searchValue);
+        $sql .= " HAVING (p.cod_material LIKE '%$searchValue%' 
+                  OR p.nom_producto LIKE '%$searchValue%'
+                  OR p.mar_producto LIKE '%$searchValue%'
+                  OR p.mod_producto LIKE '%$searchValue%'
+                  OR pt.nom_producto_tipo LIKE '%$searchValue%')";
+    }
+
+    // Aplicar ordenamiento
+    $sql .= " ORDER BY $orderColumn $orderDirection";
+
+    // Aplicar paginación
+    $sql .= " LIMIT $offset, $limit";
+
+    $resultado = mysqli_query($con, $sql);
+    $productos = array();
+
+    while ($row = mysqli_fetch_array($resultado, MYSQLI_ASSOC)) {
+        $productos[] = $row;
+    }
+
+    mysqli_close($con);
+    return $productos;
+}
 ?>

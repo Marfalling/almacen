@@ -156,8 +156,8 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                     if (preg_match('/Obs:\s*(.*)$/', $comentario, $matches)) {
                                         $observaciones = trim($matches[1]);
                                     }   
-    
-                                    // CAMBIO: Obtener directamente el valor de req_pedido (que ahora contiene la descripción completa)
+
+                                    // CAMBIO: Obtener directamente el valor de req_pedido
                                     $sst_descripcion = $detalle['req_pedido'];
                                 ?>
                                 <div class="material-item border p-3 mb-3">
@@ -173,7 +173,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                             <input type="hidden" name="id_material[]" value="<?php echo $detalle['id_producto'] ?? ''; ?>">
                                         </div>
 
-                                         <div class="col-md-3">
+                                        <div class="col-md-3">
                                             <label>Unidad de Medida <span class="text-danger">*</span>:</label>
                                             <select name="unidad[]" class="form-control" required>
                                                 <option value="">Seleccionar</option>
@@ -188,82 +188,85 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                         <div class="col-md-3">
                                             <label>Cantidad <span class="text-danger">*</span>:</label>
                                             <input type="number" name="cantidad[]" class="form-control" step="0.01" min="0" 
-                                                   value="<?php echo $detalle['cant_pedido_detalle']; ?>" required>
+                                                value="<?php echo $detalle['cant_pedido_detalle']; ?>" required>
                                         </div>
                                     </div>
+                                    
                                     <div class="row mt-2">
                                         <div class="col-md-6">
                                             <label>Observaciones:</label>
                                             <input type="text" name="observaciones[]" class="form-control"  
-                                                   value="<?php echo $observaciones; ?>" placeholder="Observaciones o comentarios"></input>
+                                                value="<?php echo $observaciones; ?>" placeholder="Observaciones o comentarios">
                                         </div>
-                                   
+                                
                                         <div class="col-md-6">
                                             <label>Descripción SST/MA/CA <span class="text-danger">*</span>:</label>
                                             <input type="text" name="sst[]" class="form-control" value="<?php echo htmlspecialchars($sst_descripcion); ?>" placeholder="Requisitos de SST, MA y CA" required>
                                         </div>
                                     </div>
+                                    
                                     <div class="row mt-2">
                                         <div class="col-md-6">
-    <label>Adjuntar Archivos:</label>
-    <input type="hidden" name="id_detalle[]" value="<?php echo $detalle['id_pedido_detalle']; ?>">
-    <input type="file" name="archivos_<?php echo $contador_material; ?>[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
-    <small class="form-text text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, XLS. Máximo 5MB por archivo.</small>
-    
-    <?php if (!empty($detalle['archivos'])) { ?>
-        <div class="text-muted small mt-1">
-            <strong>Archivos actuales:</strong>
-            <div class="mt-1">
-                <?php 
-                // Dividir los archivos si están separados por comas
-                $archivos = explode(',', $detalle['archivos']);
-                foreach ($archivos as $archivo) { 
-                    $archivo = trim($archivo);
-                    if (!empty($archivo)) {
-                        // Ruta ajustada a tu estructura de directorios
-                        $archivo_url = "../_archivos/pedidos/" . $archivo;
-                        
-                        // Determinar el icono según la extensión
-                        $extension = strtolower(pathinfo($archivo, PATHINFO_EXTENSION));
-                        $icono = 'fa-file';
-                        $clase_color = 'text-info';
-                        
-                        switch ($extension) {
-                            case 'pdf':
-                                $icono = 'fa-file-pdf-o';
-                                $clase_color = 'text-danger';
-                                break;
-                            case 'jpg':
-                            case 'jpeg':
-                            case 'png':
-                            case 'gif':
-                                $icono = 'fa-file-image-o';
-                                $clase_color = 'text-success';
-                                break;
-                            case 'doc':
-                            case 'docx':
-                                $icono = 'fa-file-word-o';
-                                $clase_color = 'text-primary';
-                                break;
-                            case 'xls':
-                            case 'xlsx':
-                                $icono = 'fa-file-excel-o';
-                                $clase_color = 'text-warning';
-                                break;
-                        }
-                ?>
-                    <a href="<?php echo $archivo_url; ?>" target="_blank" class="<?php echo $clase_color; ?> mr-2 d-inline-block mb-1" title="Ver <?php echo $archivo; ?>" style="text-decoration: none;">
-                        <i class="fa <?php echo $icono; ?>"></i>
-                        <?php echo strlen($archivo) > 25 ? substr($archivo, 0, 25) . '...' : $archivo; ?>
-                    </a>
-                <?php 
-                    }
-                } 
-                ?>
-            </div>
-        </div>
-    <?php } ?>
-</div>
+                                            <label>Adjuntar Archivos:</label>
+                                            <input type="hidden" name="id_detalle[]" value="<?php echo $detalle['id_pedido_detalle']; ?>">
+                                            <input type="file" name="archivos_<?php echo $contador_material; ?>[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
+                                            <small class="form-text text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, XLS. Máximo 5MB por archivo.</small>
+                                            
+                                            <?php if (!empty($detalle['archivos'])) { ?>
+                                                <div class="archivos-existentes text-muted small mt-1">
+                                                    <strong>Archivos actuales:</strong>
+                                                    <div class="mt-1">
+                                                        <?php 
+                                                        // Dividir los archivos si están separados por comas
+                                                        $archivos = explode(',', $detalle['archivos']);
+                                                        foreach ($archivos as $archivo) { 
+                                                            $archivo = trim($archivo);
+                                                            if (!empty($archivo)) {
+                                                                // Ruta ajustada a tu estructura de directorios
+                                                                $archivo_url = "../_archivos/pedidos/" . $archivo;
+                                                                
+                                                                // Determinar el icono según la extensión
+                                                                $extension = strtolower(pathinfo($archivo, PATHINFO_EXTENSION));
+                                                                $icono = 'fa-file';
+                                                                $clase_color = 'text-info';
+                                                                
+                                                                switch ($extension) {
+                                                                    case 'pdf':
+                                                                        $icono = 'fa-file-pdf-o';
+                                                                        $clase_color = 'text-danger';
+                                                                        break;
+                                                                    case 'jpg':
+                                                                    case 'jpeg':
+                                                                    case 'png':
+                                                                    case 'gif':
+                                                                        $icono = 'fa-file-image-o';
+                                                                        $clase_color = 'text-success';
+                                                                        break;
+                                                                    case 'doc':
+                                                                    case 'docx':
+                                                                        $icono = 'fa-file-word-o';
+                                                                        $clase_color = 'text-primary';
+                                                                        break;
+                                                                    case 'xls':
+                                                                    case 'xlsx':
+                                                                        $icono = 'fa-file-excel-o';
+                                                                        $clase_color = 'text-warning';
+                                                                        break;
+                                                                }
+                                                        ?>
+                                                            <a href="<?php echo $archivo_url; ?>" target="_blank" class="<?php echo $clase_color; ?> mr-2 d-inline-block mb-1" title="Ver <?php echo $archivo; ?>" style="text-decoration: none;">
+                                                                <i class="fa <?php echo $icono; ?>"></i>
+                                                                <?php echo strlen($archivo) > 25 ? substr($archivo, 0, 25) . '...' : $archivo; ?>
+                                                            </a>
+                                                        <?php 
+                                                            }
+                                                        } 
+                                                        ?>
+                                                    </div>
+                                                </div>
+                                            <?php } ?>
+                                        </div>
+                                        
                                         <div class="col-md-6 d-flex align-items-end">
                                             <?php if ($contador_material > 0) { ?>
                                             <button type="button" class="btn btn-danger btn-sm eliminar-material">
@@ -576,14 +579,34 @@ function buscarMaterial(button) {
     // Guardar referencia al botón que se clickeó
     currentSearchButton = button;
     
+    // CORRECCIÓN 1: Obtener el tipo de producto del pedido para filtrar correctamente
+    const tipoProductoInput = document.querySelector('input[value*="MATERIAL"], input[value*="SERVICIO"]');
+    let tipoProducto = '';
+    
+    // Intentar obtener el tipo desde el input readonly
+    if (tipoProductoInput) {
+        const valor = tipoProductoInput.value.toUpperCase();
+        if (valor.includes('MATERIAL')) {
+            tipoProducto = '1'; // ID para MATERIAL
+        } else if (valor.includes('SERVICIO')) {
+            tipoProducto = '2'; // ID para SERVICIO
+        }
+    }
+    
+    // Si no se puede determinar el tipo, buscar en los datos del pedido
+    if (!tipoProducto) {
+        // Como fallback, podríamos usar una variable PHP si está disponible
+        tipoProducto = typeof window.tipoPedidoActual !== 'undefined' ? window.tipoPedidoActual : '';
+    }
+    
     // Abrir la modal
     $('#buscar_producto').modal('show');
     
-    // Cargar los productos en la tabla
-    cargarProductos();
+    // Cargar los productos en la tabla con el filtro de tipo
+    cargarProductos(tipoProducto);
 }
 
-function cargarProductos() {
+function cargarProductos(tipoProducto = '') {
     // Si la tabla ya está inicializada, destrúyela antes de crear una nueva instancia
     if ($.fn.dataTable.isDataTable('#datatable_producto')) {
         $('#datatable_producto').DataTable().destroy();
@@ -596,7 +619,14 @@ function cargarProductos() {
         "responsive": true,
         "ajax": {
             "url": "producto_mostrar_modal.php",
-            "type": "POST"
+            "type": "POST",
+            "data": function(d) {
+                
+                if (tipoProducto) {
+                    d.tipo_producto = tipoProducto;
+                }
+                return d;
+            }
         },
         "columns": [
             { "title": "Código" },
@@ -612,7 +642,7 @@ function cargarProductos() {
         "lengthMenu": [10, 25, 50, 100],
         "language": {
             "lengthMenu": "Mostrar _MENU_ registros por página",
-            "zeroRecords": "No se encontraron resultados",
+            "zeroRecords": "No se encontraron resultados para el tipo de pedido actual",
             "info": "Mostrando página _PAGE_ de _PAGES_",
             "infoEmpty": "No hay registros disponibles",
             "infoFiltered": "(filtrado de _MAX_ registros en total)",
@@ -625,7 +655,7 @@ function cargarProductos() {
             },
             "loadingRecords": "Cargando...",
             "processing": "Procesando...",
-            "emptyTable": "No hay datos disponibles en la tabla",
+            "emptyTable": "No hay productos disponibles para este tipo de pedido",
             "aria": {
                 "sortAscending": ": activar para ordenar la columna de manera ascendente",
                 "sortDescending": ": activar para ordenar la columna de manera descendente"
@@ -678,222 +708,23 @@ function seleccionarProducto(idProducto, nombreProducto, idUnidad, nombreUnidad)
     }
 }
 
-// Limpiar la referencia cuando se cierre la modal sin seleccionar
-$('#buscar_producto').on('hidden.bs.modal', function () {
-    currentSearchButton = null;
-});
-</script>
-
-<script>
-// Función para seleccionar automáticamente el producto recién creado
-function seleccionarProductoCreado(producto) {
-    if (currentSearchButton) {
-        // Encontrar el contenedor padre del botón que se clickeó
-        let materialItem = currentSearchButton.closest('.material-item');
-        
-        if (materialItem) {
-            // Actualizar el input de descripción
-            let inputDescripcion = materialItem.querySelector('input[name="descripcion[]"]');
-            if (inputDescripcion) {
-                inputDescripcion.value = producto.nom_producto;
-            }
-            
-            // Actualizar el input hidden del ID del material
-            let inputIdMaterial = materialItem.querySelector('input[name="id_material[]"]');
-            if (inputIdMaterial) {
-                inputIdMaterial.value = producto.id_producto;
-            }
-            
-            // Actualizar el select de unidad de medida
-            let selectUnidad = materialItem.querySelector('select[name="unidad[]"]');
-            if (selectUnidad) {
-                selectUnidad.value = producto.id_unidad_medida;
-            }
-        }
-    }
-    
-    // Limpiar la referencia
-    currentSearchButton = null;
-}
-
-// Manejo de creación de productos
-document.addEventListener('DOMContentLoaded', function() {
-    const btnGuardarProducto = document.getElementById('btn-guardar-producto');
-    if (btnGuardarProducto) {
-        btnGuardarProducto.addEventListener('click', function() {
-            const form = document.getElementById('form-crear-producto');
-            const formData = new FormData(form);
-            
-            // Validaciones básicas
-            const tipoProducto = formData.get('id_producto_tipo');
-            const tipoMaterial = formData.get('id_material_tipo');
-            const unidadMedida = formData.get('id_unidad_medida');
-            const nombreProducto = formData.get('nom_producto');
-            
-            if (!tipoProducto || !tipoMaterial || !unidadMedida || !nombreProducto) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Campos requeridos',
-                        text: 'Por favor complete todos los campos obligatorios (marcados con *)'
-                    });
-                } else {
-                    alert('Por favor complete todos los campos obligatorios (marcados con *)');
-                }
-                return;
-            }
-            
-            // Validar archivos si se han seleccionado
-            const archivoCalibrado = document.querySelector('input[name="dcal_archivo"]')?.files[0];
-            const archivoOperatividad = document.querySelector('input[name="dope_archivo"]')?.files[0];
-            
-            if (archivoCalibrado && archivoCalibrado.size > 10 * 1024 * 1024) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Archivo muy grande',
-                        text: 'El archivo de calibrado no debe superar los 10MB'
-                    });
-                } else {
-                    alert('El archivo de calibrado no debe superar los 10MB');
-                }
-                return;
-            }
-            
-            if (archivoOperatividad && archivoOperatividad.size > 10 * 1024 * 1024) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Archivo muy grande',
-                        text: 'El archivo de operatividad no debe superar los 10MB'
-                    });
-                } else {
-                    alert('El archivo de operatividad no debe superar los 10MB');
-                }
-                return;
-            }
-            
-            // Deshabilitar botón mientras se procesa
-            btnGuardarProducto.disabled = true;
-            const textoOriginal = btnGuardarProducto.textContent;
-            btnGuardarProducto.textContent = 'Guardando...';
-            
-            // Enviar datos via AJAX con FormData para manejar archivos
-            fetch('producto_crear_ajax.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Error en la respuesta del servidor');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    // Producto creado exitosamente
-                    
-                    // PRIMERO: Seleccionar automáticamente el producto recién creado
-                    if (currentSearchButton && data.producto) {
-                        seleccionarProductoCreado(data.producto);
-                    }
-                    
-                    // SEGUNDO: Cerrar modal ANTES de mostrar SweetAlert
-                    $('#crear_producto').modal('hide');
-                    
-                    // TERCERO: Limpiar formulario
-                    form.reset();
-                    resetearSwitches(form);
-                    
-                    // CUARTO: Recargar tabla de productos si está abierta
-                    if ($.fn.dataTable.isDataTable('#datatable_producto')) {
-                        $('#datatable_producto').DataTable().ajax.reload();
-                    }
-                    
-                    // QUINTO: Mostrar mensaje de éxito DESPUÉS de cerrar modal
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Producto creado',
-                            text: data.message,
-                            showConfirmButton: false,
-                            timer: 2000
-                        });
-                    } else {
-                        alert(data.message);
-                    }
-                    
-                } else {
-                    // Error al crear producto
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: data.message
-                        });
-                    } else {
-                        alert('Error: ' + data.message);
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error de conexión',
-                        text: 'No se pudo conectar con el servidor'
-                    });
-                } else {
-                    alert('Error de conexión: ' + error.message);
-                }
-            })
-            .finally(() => {
-                // Rehabilitar botón
-                btnGuardarProducto.disabled = false;
-                btnGuardarProducto.textContent = textoOriginal;
-            });
-        });
-    }
-    
-    // Función auxiliar para resetear switches
-    function resetearSwitches(form) {
-        const switchElements = form.querySelectorAll('.js-switch');
-        switchElements.forEach(sw => {
-            if (!sw.checked) {
-                sw.checked = true;
-                if (typeof $.fn.switchery !== 'undefined') {
-                    $(sw).trigger('change');
-                }
-            }
-        });
-    }
-    
-    // Limpiar formulario cuando se cierre la modal
-    $('#crear_producto').on('hidden.bs.modal', function () {
-        const form = document.getElementById('form-crear-producto');
-        if (form) {
-            form.reset();
-            resetearSwitches(form);
-        }
-    });
-    
-    // Forzar el cierre de modal si hay problemas
-    $('#crear_producto').on('show.bs.modal', function () {
-        // Asegurar que cualquier modal anterior esté cerrada
-        $('.modal').not(this).modal('hide');
-    });
-});
-</script>
-
-<script>
+// CORRECCIÓN PRINCIPAL: Script mejorado para manejo dinámico de materiales
 document.addEventListener('DOMContentLoaded', function() {
     let contadorMateriales = <?php echo count($pedido_detalle); ?>;
     let formularioModificado = false;
     
-    // Detectar cambios en cualquier campo del formulario
-    const todosLosCampos = document.querySelectorAll('input, textarea, select');
+    // CORRECCIÓN 2: Obtener y almacenar el tipo de producto para uso en JavaScript
+    const tipoProductoElement = document.querySelector('input[value*="MATERIAL"], input[value*="SERVICIO"]');
+    if (tipoProductoElement) {
+        const valor = tipoProductoElement.value.toUpperCase();
+        if (valor.includes('MATERIAL')) {
+            window.tipoPedidoActual = '1';
+        } else if (valor.includes('SERVICIO')) {
+            window.tipoPedidoActual = '2';
+        }
+    }
     
+    // Detectar cambios en cualquier campo del formulario
     function marcarFormularioComoModificado() {
         formularioModificado = true;
     }
@@ -912,54 +743,78 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Agregar nuevo material
+    // CORRECCIÓN 3: Función mejorada para agregar nuevo material
     const btnAgregarMaterial = document.getElementById('agregar-material');
-    if (btnAgregarMaterial) {
-        btnAgregarMaterial.addEventListener('click', function() {
-            const contenedor = document.getElementById('contenedor-materiales');
-            const nuevoMaterial = document.querySelector('.material-item').cloneNode(true);
-            
-            // Limpiar los valores del nuevo elemento
-            const inputs = nuevoMaterial.querySelectorAll('input, textarea, select');
-            inputs.forEach(input => {
-                if (input.type === 'hidden') {
-                    input.value = '';
-                } else if (input.tagName === 'SELECT') {
-                    input.selectedIndex = 0;
-                } else if (input.type !== 'file') {
-                    input.value = '';
+        if (btnAgregarMaterial) {
+            btnAgregarMaterial.addEventListener('click', function() {
+                const contenedor = document.getElementById('contenedor-materiales');
+                const primerMaterial = document.querySelector('.material-item');
+                
+                // Crear una copia limpia del primer material
+                const nuevoMaterial = primerMaterial.cloneNode(true);
+                
+                // CORRECCIÓN: Limpiar TODOS los valores del nuevo elemento
+                const inputs = nuevoMaterial.querySelectorAll('input, textarea, select');
+                inputs.forEach(input => {
+                    if (input.type === 'hidden') {
+                        // Limpiar inputs hidden (id_material, id_detalle)
+                        if (input.name === 'id_material[]' || input.name === 'id_detalle[]') {
+                            input.value = '';
+                        }
+                    } else if (input.tagName === 'SELECT') {
+                        input.selectedIndex = 0;
+                    } else if (input.type === 'file') {
+                        // Limpiar input de archivos y actualizar su name
+                        input.value = '';
+                        input.name = `archivos_${contadorMateriales}[]`;
+                    } else {
+                        // Limpiar otros inputs (text, number, etc.)
+                        input.value = '';
+                    }
+                });
+
+                // CORRECCIÓN CRÍTICA: Remover específicamente la sección de archivos existentes
+                const archivosExistentes = nuevoMaterial.querySelector('.archivos-existentes');
+                if (archivosExistentes) {
+                    archivosExistentes.remove();
                 }
+                
+                // Búsqueda adicional por si el selector anterior no funciona
+                const divConArchivos = nuevoMaterial.querySelector('div[class*="text-muted"][class*="small"][class*="mt-1"]');
+                if (divConArchivos && divConArchivos.textContent.includes('Archivos actuales')) {
+                    divConArchivos.remove();
+                }
+                
+                // Remover todos los enlaces de archivos como medida adicional
+                const enlacesArchivos = nuevoMaterial.querySelectorAll('a[href*="_archivos/pedidos/"]');
+                enlacesArchivos.forEach(enlace => {
+                    // Remover el contenedor padre del enlace
+                    const contenedorPadre = enlace.closest('.archivos-existentes') || 
+                                        enlace.closest('div.text-muted.small.mt-1') ||
+                                        enlace.parentElement;
+                    if (contenedorPadre && contenedorPadre.textContent.includes('Archivos actuales')) {
+                        contenedorPadre.remove();
+                    }
+                });
+
+                // Mostrar el botón eliminar para la nueva fila
+                const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
+                if (btnEliminar) {
+                    btnEliminar.style.display = 'block';
+                }
+                
+                // Agregar el nuevo material al contenedor
+                contenedor.appendChild(nuevoMaterial);
+                contadorMateriales++;
+                
+                // Actualizar eventos
+                actualizarEventosEliminar();
+                actualizarEventosCampos();
+                
+                // Marcar como modificado
+                formularioModificado = true;
             });
-
-            // Actualizar el name del input file para que sea único
-            const fileInput = nuevoMaterial.querySelector('input[type="file"]');
-            if (fileInput) {
-                fileInput.name = `archivos_${contadorMateriales}[]`;
-            }
-
-            // Mostrar el botón eliminar
-            const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
-            if (btnEliminar) {
-                btnEliminar.style.display = 'block';
-            }
-            
-            // Limpiar texto de archivos actuales
-            const archivoActual = nuevoMaterial.querySelector('.text-muted');
-            if (archivoActual) {
-                archivoActual.remove();
-            }
-            
-            contenedor.appendChild(nuevoMaterial);
-            contadorMateriales++;
-            
-            // Actualizar eventos
-            actualizarEventosEliminar();
-            actualizarEventosCampos();
-            
-            // Marcar como modificado
-            formularioModificado = true;
-        });
-    }
+        }
     
     // Función para actualizar eventos de eliminar
     function actualizarEventosEliminar() {
@@ -995,27 +850,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     cancelButtonText: 'Cancelar'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        location.reload(); // Recargar la página para restaurar valores originales
+                        location.reload();
                     }
                 });
             } else {
-                // Fallback sin SweetAlert
                 if (confirm('¿Restaurar valores originales? Se restaurarán todos los valores a su estado original.')) {
                     location.reload();
                 }
             }
         });
     }
-});
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form[action="pedidos_nuevo.php"], form[action="pedidos_editar.php"]');
+    
+    // Validación de archivos antes de enviar el formulario
+    const form = document.querySelector('form[action="pedidos_editar.php"]');
     if (form) {
         form.addEventListener('submit', function(e) {
             let archivosInvalidos = false;
             let mensajeError = '';
+            
             // Buscar todos los inputs de archivos
             const archivosInputs = form.querySelectorAll('input[type="file"][name^="archivos_"]');
             archivosInputs.forEach(input => {
@@ -1027,6 +879,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
             });
+            
             if (archivosInvalidos) {
                 e.preventDefault();
                 if (typeof Swal !== 'undefined') {
@@ -1038,9 +891,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     alert(mensajeError);
                 }
-                // El formulario NO se envía y los datos NO se pierden
             }
         });
     }
+});
+
+// Limpiar la referencia cuando se cierre la modal sin seleccionar
+$('#buscar_producto').on('hidden.bs.modal', function () {
+    currentSearchButton = null;
 });
 </script>

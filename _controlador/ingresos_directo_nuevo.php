@@ -1,7 +1,5 @@
 <?php
 require_once("../_conexion/sesion.php");
-
-
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -33,14 +31,13 @@ require_once("../_conexion/sesion.php");
             $ubicaciones = MostrarUbicacionesActivas();
 
             //=======================================================================
-            // CONTROLADOR PARA INGRESO DIRECTO - ADAPTADO A TU SISTEMA
+            // CONTROLADOR PARA INGRESO DIRECTO - CORREGIDO SIN OBSERVACIONES
             //=======================================================================
             if (isset($_REQUEST['registrar'])) {
                 // Recibir datos del formulario
                 $id_almacen = intval($_REQUEST['id_almacen']);
                 $id_ubicacion = intval($_REQUEST['id_ubicacion']);
                 $id_personal_ingreso = $id; 
-                $observaciones = trim($_REQUEST['observaciones']);
                 
                 // Validar datos básicos
                 if (empty($id_almacen) || empty($id_ubicacion)) {
@@ -97,8 +94,8 @@ require_once("../_conexion/sesion.php");
                     exit;
                 }
                 
-                // Procesar el ingreso directo usando tu sistema
-                $resultado = ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal_ingreso, $observaciones, $productos);
+                // Procesar el ingreso directo sin observaciones
+                $resultado = ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal_ingreso, $productos);
                 
                 if ($resultado['success']) {
                     // Mostrar mensaje de éxito con detalles

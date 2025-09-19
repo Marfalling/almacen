@@ -74,13 +74,6 @@
                                 </div>
                             </div>
 
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Observaciones:</label>
-                                <div class="col-md-9 col-sm-9">
-                                    <textarea name="observaciones" class="form-control" rows="3" placeholder="Observaciones sobre el ingreso directo"></textarea>
-                                </div>
-                            </div>
-
                             <div class="ln_solid"></div>
 
                             <!-- Sección de productos -->
@@ -96,9 +89,11 @@
                                             <label>Material <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
                                                 <input type="text" name="descripcion[]" class="form-control" placeholder="Buscar material..." required readonly>
-                                                <button onclick="buscarMaterial(this)" class="btn btn-secondary" type="button">
-                                                    <i class="fa fa-search"></i>
-                                                </button>
+                                                <div class="input-group-append">
+                                                    <button onclick="buscarMaterial(this)" class="btn btn-secondary" type="button">
+                                                        <i class="fa fa-search"></i> Buscar
+                                                    </button>
+                                                </div>
                                             </div>
                                             <input type="hidden" name="id_producto[]" value="" required>
                                         </div>
@@ -114,11 +109,7 @@
                                         </div>
                                     </div>
                                     <div class="row mt-2">
-                                        <div class="col-md-10">
-                                            <label>Observaciones del Producto:</label>
-                                            <input type="text" name="obs_producto[]" class="form-control" placeholder="Observaciones específicas de este producto">
-                                        </div>
-                                        <div class="col-md-2 d-flex align-items-end">
+                                        <div class="col-md-12 d-flex justify-content-end">
                                             <button type="button" class="btn btn-danger btn-sm eliminar-producto" style="display: none;">
                                                 <i class="fa fa-trash"></i> Eliminar
                                             </button>
@@ -160,51 +151,20 @@
 </div>
 <!-- /page content -->
 
-<!-- Modal para buscar materiales (usando modal existente) -->
+<!-- Modal para buscar materiales (específico para ingresos directos) -->
 <div class="modal fade" id="buscar_material" tabindex="-1" role="dialog" aria-labelledby="modalBuscarMaterial">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title">Buscar Material con Stock</h4>
+                <h4 class="modal-title">Buscar Material para Ingreso Directo</h4>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
             <div class="modal-body">
-                <!-- Filtros -->
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label>Almacén:</label>
-                        <select id="filtro-almacen" class="form-control">
-                            <option value="">Todos los almacenes</option>
-                            <?php foreach ($almacenes as $almacen) { ?>
-                                <option value="<?php echo $almacen['id_almacen']; ?>">
-                                    <?php echo $almacen['nom_almacen']; ?>
-                                </option>
-                            <?php } ?>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label>Ubicación:</label>
-                        <select id="filtro-ubicacion" class="form-control">
-                            <option value="">Todas las ubicaciones</option>
-                            <?php foreach ($ubicaciones as $ubicacion) { ?>
-                                <option value="<?php echo $ubicacion['id_ubicacion']; ?>">
-                                    <?php echo $ubicacion['nom_ubicacion']; ?>
-                                </option>
-                            <?php } ?>
-                        </select>
-                    </div>
-                </div>
-                <div class="row mb-3">
-                    <div class="col-md-12">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="solo-con-stock" checked>
-                            <label class="form-check-label" for="solo-con-stock">
-                                Mostrar solo productos con stock disponible
-                            </label>
-                        </div>
-                    </div>
+                <div class="alert alert-info">
+                    <i class="fa fa-info-circle"></i> 
+                    <strong>Ingreso Directo:</strong> Se mostrarán todos los materiales disponibles, sin restricciones de stock actual.
                 </div>
                 
                 <div class="table-responsive">
@@ -215,7 +175,7 @@
                                 <th>Material</th>
                                 <th>Tipo</th>
                                 <th>Unidad</th>
-                                <th>Stock Actual</th>
+                                <th>Stock</th>
                                 <th>Acción</th>
                             </tr>
                         </thead>
@@ -230,28 +190,6 @@
         </div>
     </div>
 </div>
-
-<style>
-.producto-item {
-    border: 1px solid #dee2e6;
-    border-radius: 0.375rem;
-    background-color: #f8f9fa;
-}
-
-.producto-item:hover {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-}
-
-.btn-secondary {
-    background-color: #6c757d;
-    border-color: #6c757d;
-}
-
-.btn-secondary:hover {
-    background-color: #5a6268;
-    border-color: #545b62;
-}
-</style>
 
 <script>
 let currentSearchButton = null;
@@ -296,22 +234,20 @@ function cargarMateriales() {
         $('#datatable_material').DataTable().destroy();
     }
 
-    // Obtener valores de filtros
-    const idAlmacen = $('#filtro-almacen').val() || 0;
-    const idUbicacion = $('#filtro-ubicacion').val() || 0;
-    const soloConStock = $('#solo-con-stock').is(':checked');
+    // Tomar directamente el almacén y ubicación del formulario principal
+    const idAlmacen = $('select[name="id_almacen"]').val() || 0;
+    const idUbicacion = $('select[name="id_ubicacion"]').val() || 0;
 
     $('#datatable_material').DataTable({
         "processing": true,
         "serverSide": true,
         "responsive": true,
         "ajax": {
-            "url": "material_mostrar_modal.php", // Usar tu archivo existente
+            "url": "material_mostrar_modal_directo.php",
             "type": "POST",
             "data": function(d) {
                 d.id_almacen = idAlmacen;
                 d.id_ubicacion = idUbicacion;
-                d.solo_con_stock = soloConStock;
                 return d;
             }
         },
@@ -342,13 +278,8 @@ function cargarMateriales() {
             "processing": "Procesando..."
         }
     });
-
-    // Event listeners para los filtros
-    $('#filtro-almacen, #filtro-ubicacion, #solo-con-stock').off('change.materialModal');
-    $('#filtro-almacen, #filtro-ubicacion, #solo-con-stock').on('change.materialModal', function() {
-        cargarMateriales(); // Recargar tabla cuando cambien los filtros
-    });
 }
+
 
 function seleccionarProducto(id, nombre, unidad, stockActual) {
     if (currentSearchButton) {
