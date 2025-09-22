@@ -97,3 +97,63 @@
         </script>';
     }
     ?>
+
+    
+<script>
+// Función para mostrar alertas con SweetAlert2
+function mostrarAlerta(tipo, titulo, mensaje, callback = null) {
+    const iconos = {
+        'success': 'success',
+        'error': 'error',
+        'warning': 'warning',
+        'info': 'info'
+    };
+
+    Swal.fire({
+        icon: iconos[tipo] || 'info',
+        title: titulo,
+        text: mensaje,
+        confirmButtonText: 'Aceptar',
+        confirmButtonColor: '#3085d6',
+        allowOutsideClick: false
+    }).then((result) => {
+        if (result.isConfirmed && callback) {
+            callback();
+        }
+    });
+}
+
+// Función para confirmar acciones
+function confirmarAccion(titulo, mensaje, callback) {
+    Swal.fire({
+        title: titulo,
+        text: mensaje,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, confirmar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed && callback) {
+            callback();
+        }
+    });
+}
+
+// Función para mostrar loading
+function mostrarCargando(mensaje = 'Procesando...') {
+    Swal.fire({
+        title: mensaje,
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+}
+
+// Función para cerrar loading
+function cerrarCargando() {
+    Swal.close();
+}
+</script>

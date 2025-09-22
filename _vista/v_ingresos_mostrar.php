@@ -1,7 +1,10 @@
 <?php 
 //=======================================================================
-// VISTA: v_ingresos_mostrar.php - MEJORADA CON DIFERENCIACIÓN CLARA
+// VISTA: v_ingresos_mostrar.php - MEJORADA CON NAVEGACIÓN CORREGIDA
 //=======================================================================
+
+// Detectar el tab activo desde la URL
+$tabActivo = isset($_GET['tab']) ? $_GET['tab'] : 'ordenes-compra';
 ?>
 <!-- page content -->
 <div class="right_col" role="main">
@@ -32,19 +35,19 @@
                     <div class="x_content">
                         <!-- Nav tabs -->
                         <ul class="nav nav-tabs" role="tablist">
-                            <li role="presentation" class="active">
+                            <li role="presentation" class="<?php echo ($tabActivo == 'ordenes-compra') ? 'active' : ''; ?>">
                                 <a href="#ordenes-compra" aria-controls="ordenes-compra" role="tab" data-toggle="tab">
                                     <i class="fa fa-shopping-cart"></i> Órdenes de Compra 
                                     <span class="badge badge-warning badge_size"><?php echo count(array_filter($ingresos, function($ing) { return $ing['tipo'] == 'COMPRA' || !isset($ing['tipo']); })); ?></span>
                                 </a>
                             </li>
-                            <li role="presentation">
+                            <li role="presentation" class="<?php echo ($tabActivo == 'ingresos-directos') ? 'active' : ''; ?>">
                                 <a href="#ingresos-directos" aria-controls="ingresos-directos" role="tab" data-toggle="tab">
                                     <i class="fa fa-plus-circle"></i> Ingresos Directos
                                     <span class="badge badge-info badge_size"><?php echo count(array_filter($ingresos, function($ing) { return isset($ing['tipo']) && $ing['tipo'] == 'DIRECTO'; })); ?></span>
                                 </a>
                             </li>
-                            <li role="presentation">
+                            <li role="presentation" class="<?php echo ($tabActivo == 'todos-ingresos') ? 'active' : ''; ?>">
                                 <a href="#todos-ingresos" aria-controls="todos-ingresos" role="tab" data-toggle="tab">
                                     <i class="fa fa-list"></i> Todos los Ingresos
                                     <span class="badge badge-primary badge_size"><?php echo count($ingresos); ?></span>
@@ -55,7 +58,7 @@
                         <!-- Tab panes -->
                         <div class="tab-content" style="margin-top: 15px;">
                             <!-- TAB 1: ÓRDENES DE COMPRA -->
-                            <div role="tabpanel" class="tab-pane active" id="ordenes-compra">
+                            <div role="tabpanel" class="tab-pane <?php echo ($tabActivo == 'ordenes-compra') ? 'active' : ''; ?>" id="ordenes-compra">
                                 <div class="row">
                                     <div class="col-sm-12">
                                         <div class="card-box table-responsive">
@@ -150,7 +153,7 @@
                             </div>
 
                             <!-- TAB 2: INGRESOS DIRECTOS -->
-                            <div role="tabpanel" class="tab-pane" id="ingresos-directos">
+                            <div role="tabpanel" class="tab-pane <?php echo ($tabActivo == 'ingresos-directos') ? 'active' : ''; ?>" id="ingresos-directos">
                                 <div class="row">
                                     <div class="col-sm-12">
                                         <div class="card-box table-responsive">
@@ -189,7 +192,11 @@
                                                                 <span class="badge badge-primary badge_size"><?php echo $ingreso['total_productos']; ?></span>
                                                             </td>
                                                             <td>
-                                                                <span class="badge badge-success badge_size">Registrado</span>
+                                                                <?php if ($ingreso['estado'] == 0) { ?>
+                                                                    <span class="badge badge-danger badge_size">ANULADO</span>
+                                                                <?php } else { ?>
+                                                                    <span class="badge badge-success badge_size">REGISTRADO</span>
+                                                                <?php } ?>
                                                             </td>
                                                             <td>
                                                                 <div class="d-flex flex-wrap gap-2">
@@ -198,6 +205,17 @@
                                                                         title="Ver ingresos">
                                                                         <i class="fa fa-plus"></i>
                                                                     </a>
+                                                                    <?php if ($ingreso['estado'] == 1) { ?>
+                                                                        <button onclick="anularIngresoDirecto(<?php echo $ingreso['id_ingreso']; ?>)" 
+                                                                            class="btn btn-danger btn-sm"
+                                                                            title="Anular ingreso">
+                                                                            <i class="fa fa-times"></i>
+                                                                        </button>
+                                                                    <?php } else { ?>
+                                                                        <span class="btn btn-outline-secondary btn-sm disabled" title="Ya anulado">
+                                                                            <i class="fa fa-ban"></i> Anulado
+                                                                        </span>
+                                                                    <?php } ?>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -213,7 +231,7 @@
                             </div>
 
                             <!-- TAB 3: TODOS LOS INGRESOS -->
-                            <div role="tabpanel" class="tab-pane" id="todos-ingresos">
+                            <div role="tabpanel" class="tab-pane <?php echo ($tabActivo == 'todos-ingresos') ? 'active' : ''; ?>" id="todos-ingresos">
                                 <div class="row">
                                     <div class="col-sm-12">
                                         <div class="card-box table-responsive">
@@ -275,7 +293,11 @@
                                                                         <span class="badge badge-warning badge_size">Pendiente</span>
                                                                     <?php } ?>
                                                                 <?php } else { ?>
-                                                                    <span class="badge badge-success badge_size">Registrado</span>
+                                                                    <?php if ($ingreso['estado'] == 0) { ?>
+                                                                        <span class="badge badge-danger badge_size">ANULADO</span>
+                                                                    <?php } else { ?>
+                                                                        <span class="badge badge-success badge_size">REGISTRADO</span>
+                                                                    <?php } ?>
                                                                 <?php } ?>
                                                             </td>
                                                             <td>
@@ -302,6 +324,16 @@
                                                                             class="btn btn-secondary btn-sm" title="Ver detalles">
                                                                             <i class="fa fa-plus"></i>
                                                                         </a>
+                                                                        <?php if ($ingreso['estado'] == 1) { ?>
+                                                                            <button onclick="anularIngresoDirecto(<?php echo $ingreso['id_ingreso']; ?>)" 
+                                                                                class="btn btn-danger btn-sm" title="Anular ingreso">
+                                                                                <i class="fa fa-times"></i>
+                                                                            </button>
+                                                                        <?php } else { ?>
+                                                                            <span class="btn btn-outline-secondary btn-sm disabled" title="Ya anulado">
+                                                                                <i class="fa fa-ban"></i>
+                                                                            </span>
+                                                                        <?php } ?>
                                                                     <?php } ?>
                                                                 </div>
                                                             </td>
@@ -324,47 +356,164 @@
     </div>
 </div>
 <!-- /page content -->
-
 <script>
-$(document).ready(function() {
-    // Configuración base para DataTables (manteniendo la configuración original)
-    var datatableConfig = {
-        "language": {
-            "lengthMenu": "Mostrar _MENU_ registros por página",
-            "zeroRecords": "No se encontraron registros",
-            "info": "Mostrando página _PAGE_ de _PAGES_",
-            "infoEmpty": "No hay registros disponibles",
-            "infoFiltered": "(filtrado de _MAX_ registros en total)",
-            "search": "Buscar:",
-            "paginate": {
-                "first": "Primero",
-                "last": "Último",
-                "next": "Siguiente",
-                "previous": "Anterior"
-            },
-            "loadingRecords": "Cargando...",
-            "processing": "Procesando..."
+// Función para anular ingreso directo - definida globalmente
+function anularIngresoDirecto(idIngreso) {
+    console.log('Intentando anular ingreso:', idIngreso);
+    
+    // Verificar si SweetAlert2 está disponible
+    if (typeof Swal !== 'undefined' && typeof confirmarAccion === 'function') {
+        confirmarAccion(
+            '¿Confirmar Anulación?', 
+            '¿Está seguro que desea anular este ingreso directo? Esta acción solo se puede realizar si todos los productos aún están disponibles en stock.',
+            function() {
+                procesarAnulacion(idIngreso);
+            }
+        );
+    } else {
+        // Fallback con confirm nativo
+        if (confirm('¿Está seguro que desea anular este ingreso directo?')) {
+            procesarAnulacion(idIngreso);
+        }
+    }
+}
+
+// Función que procesa la anulación
+function procesarAnulacion(idIngreso) {
+    // Verificar que jQuery esté disponible
+    if (typeof jQuery === 'undefined') {
+        alert('Error: jQuery no está cargado');
+        return;
+    }
+    
+    // Mostrar loading si SweetAlert2 está disponible
+    if (typeof mostrarCargando === 'function') {
+        mostrarCargando('Verificando disponibilidad...');
+    }
+    
+    jQuery.ajax({
+        url: '../_controlador/ingresos_anular_directo.php',
+        type: 'POST',
+        data: { id_ingreso: idIngreso },
+        dataType: 'json',
+        beforeSend: function() {
+            console.log('Enviando petición para anular ingreso:', idIngreso);
         },
-        "pageLength": 25,
-        "responsive": true
-    };
+        success: function(response) {
+            console.log('Respuesta del servidor:', response);
+            
+            // Cerrar loading si está disponible
+            if (typeof cerrarCargando === 'function') {
+                cerrarCargando();
+            }
+            
+            if (response.tipo_mensaje === 'success') {
+                if (typeof mostrarAlerta === 'function') {
+                    mostrarAlerta('success', '¡Anulación Exitosa!', response.mensaje, function() {
+                        location.reload();
+                    });
+                } else {
+                    alert('Éxito: ' + response.mensaje);
+                    location.reload();
+                }
+            } else {
+                if (typeof mostrarAlerta === 'function') {
+                    mostrarAlerta('error', 'Error al Anular', response.mensaje);
+                } else {
+                    alert('Error: ' + response.mensaje);
+                }
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error AJAX:', {
+                status: status,
+                error: error,
+                responseText: xhr.responseText
+            });
+            
+            // Cerrar loading si está disponible
+            if (typeof cerrarCargando === 'function') {
+                cerrarCargando();
+            }
+            
+            if (typeof mostrarAlerta === 'function') {
+                mostrarAlerta('error', 'Error de Conexión', 'No se pudo procesar la solicitud. Error: ' + error);
+            } else {
+                alert('Error de conexión: ' + error);
+            }
+        }
+    });
+}
 
-    // Inicializar DataTables manteniendo el ID original para compatibilidad
-    $('#datatable-compras').DataTable($.extend({}, datatableConfig, {
-        "order": [[ 6, 'desc' ]] // Ordenar por fecha
-    }));
+// Esperar a que jQuery y el DOM estén listos
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar si jQuery está cargado
+    if (typeof jQuery === 'undefined') {
+        console.error('jQuery no está cargado');
+        return;
+    }
+    
+    jQuery(document).ready(function($) {
+        console.log('jQuery cargado correctamente');
+        
+        // Configuración base para DataTables
+        var datatableConfig = {
+            "language": {
+                "lengthMenu": "Mostrar _MENU_ registros por página",
+                "zeroRecords": "No se encontraron registros",
+                "info": "Mostrando página _PAGE_ de _PAGES_",
+                "infoEmpty": "No hay registros disponibles",
+                "infoFiltered": "(filtrado de _MAX_ registros en total)",
+                "search": "Buscar:",
+                "paginate": {
+                    "first": "Primero",
+                    "last": "Último",
+                    "next": "Siguiente",
+                    "previous": "Anterior"
+                },
+                "loadingRecords": "Cargando...",
+                "processing": "Procesando..."
+            },
+            "pageLength": 25,
+            "responsive": true
+        };
 
-    $('#datatable-directos').DataTable($.extend({}, datatableConfig, {
-        "order": [[ 5, 'desc' ]] // Ordenar por fecha
-    }));
+        // Inicializar DataTables solo si existen las tablas
+        if ($('#datatable-compras').length) {
+            $('#datatable-compras').DataTable($.extend({}, datatableConfig, {
+                "order": [[ 6, 'desc' ]]
+            }));
+        }
 
-    $('#datatable-todos').DataTable($.extend({}, datatableConfig, {
-        "order": [[ 6, 'desc' ]] // Ordenar por fecha
-    }));
+        if ($('#datatable-directos').length) {
+            $('#datatable-directos').DataTable($.extend({}, datatableConfig, {
+                "order": [[ 5, 'desc' ]]
+            }));
+        }
 
-    // Manejar cambio de tabs para ajustar DataTables
-    $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
-        $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+        if ($('#datatable-todos').length) {
+            $('#datatable-todos').DataTable($.extend({}, datatableConfig, {
+                "order": [[ 6, 'desc' ]]
+            }));
+        }
+
+        // Manejar cambio de tabs para ajustar DataTables
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            if ($.fn.dataTable) {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            }
+        });
+
+        // Mostrar mensaje de confirmación si se registró un ingreso directo
+        <?php if (isset($_GET['registrado_directo']) && $_GET['registrado_directo'] == 'true'): ?>
+        setTimeout(function() {
+            if (typeof mostrarAlerta === 'function') {
+                mostrarAlerta('success', '¡Proceso Completado!', 'El ingreso directo se ha registrado correctamente y aparece en la lista.');
+            } else {
+                alert('¡Proceso Completado! El ingreso directo se ha registrado correctamente.');
+            }
+        }, 500);
+        <?php endif; ?>
     });
 });
 </script>

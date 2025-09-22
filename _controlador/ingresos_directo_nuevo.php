@@ -31,7 +31,7 @@ require_once("../_conexion/sesion.php");
             $ubicaciones = MostrarUbicacionesActivas();
 
             //=======================================================================
-            // CONTROLADOR PARA INGRESO DIRECTO - CORREGIDO SIN OBSERVACIONES
+            // CONTROLADOR PARA INGRESO DIRECTO - MEJORADO CON SWEETALERT2
             //=======================================================================
             if (isset($_REQUEST['registrar'])) {
                 // Recibir datos del formulario
@@ -42,9 +42,12 @@ require_once("../_conexion/sesion.php");
                 // Validar datos básicos
                 if (empty($id_almacen) || empty($id_ubicacion)) {
                     ?>
-                    <script Language="JavaScript">
-                        alert('Error: Debe seleccionar almacén y ubicación.');
-                        history.back();
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            mostrarAlerta('error', 'Error de Validación', 'Debe seleccionar almacén y ubicación.', function() {
+                                window.history.back();
+                            });
+                        });
                     </script>
                     <?php
                     exit;
@@ -84,11 +87,14 @@ require_once("../_conexion/sesion.php");
                 
                 // Si hay errores, mostrarlos
                 if (!empty($errores)) {
-                    $mensaje_error = implode("\\n", $errores);
+                    $mensaje_error = implode("\\n• ", $errores);
                     ?>
-                    <script Language="JavaScript">
-                        alert('Errores encontrados:\n<?php echo $mensaje_error; ?>');
-                        history.back();
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            mostrarAlerta('error', 'Errores de Validación', 'Se encontraron los siguientes errores:\\n• <?php echo $mensaje_error; ?>', function() {
+                                window.history.back();
+                            });
+                        });
                     </script>
                     <?php
                     exit;
@@ -100,20 +106,31 @@ require_once("../_conexion/sesion.php");
                 if ($resultado['success']) {
                     // Mostrar mensaje de éxito con detalles
                     ?>
-                    <script Language="JavaScript">
-                        <?php if (isset($resultado['id_ingreso'])) { ?>
-                            alert('Ingreso directo registrado correctamente.\nID de Ingreso: ING-<?php echo $resultado["id_ingreso"]; ?>\nProductos: <?php echo count($productos); ?>');
-                        <?php } else { ?>
-                            alert('<?php echo addslashes($resultado["message"]); ?>');
-                        <?php } ?>
-                        location.href = 'ingresos_mostrar.php?registrado_directo=true';
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            <?php if (isset($resultado['id_ingreso'])) { ?>
+                                mostrarAlerta('success', '¡Ingreso Registrado Exitosamente!', 
+                                    'ID de Ingreso: ING-<?php echo $resultado["id_ingreso"]; ?>\\nProductos registrados: <?php echo count($productos); ?>', 
+                                    function() {
+                                        window.location.href = 'ingresos_mostrar.php?tab=todos-ingresos&registrado_directo=true';
+                                    });
+                            <?php } else { ?>
+                                mostrarAlerta('success', 'Ingreso Completado', '<?php echo addslashes($resultado["message"]); ?>', 
+                                    function() {
+                                        window.location.href = 'ingresos_mostrar.php?tab=todos-ingresos&registrado_directo=true';
+                                    });
+                            <?php } ?>
+                        });
                     </script>
                     <?php
                 } else {
                     ?>
-                    <script Language="JavaScript">
-                        alert('Error al registrar el ingreso directo:\n<?php echo addslashes($resultado["message"]); ?>');
-                        history.back();
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            mostrarAlerta('error', 'Error al Registrar Ingreso', '<?php echo addslashes($resultado["message"]); ?>', function() {
+                                window.history.back();
+                            });
+                        });
                     </script>
                     <?php
                 }

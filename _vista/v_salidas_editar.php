@@ -11,7 +11,7 @@
                 <h3>Editar Salida</h3>
             </div>
             <div class="title_right">
-                <div class="col-md-5 col-sm-5 col-xs-12 form-group pull-right top_search">
+                <div class="col-md-12 col-sm-12 col-xs-12 form-group" style="text-align: right; padding-right: 0;">
                     <a href="salidas_mostrar.php" class="btn btn-secondary">
                         <i class="fa fa-arrow-left"></i> Volver a Salidas
                     </a>
@@ -193,7 +193,7 @@
                                 ?>
                                 <div class="material-item border p-3 mb-3">
                                     <div class="row">
-                                        <div class="col-md-6">
+                                        <div class="col-md-8">
                                             <label>Material <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
                                                 <input type="text" name="descripcion[]" class="form-control" 
@@ -205,21 +205,10 @@
                                                 </button>
                                             </div>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-4">
                                             <label>Cantidad <span class="text-danger">*</span>:</label>
                                             <input type="number" name="cantidad[]" class="form-control" step="0.01" 
                                                    value="<?php echo $detalle['cant_salida_detalle']; ?>" required>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <label>Stock Disponible:</label>
-                                            <div class="form-control" id="stock-disponible-<?php echo $contador; ?>" style="background-color: #f8f9fa;">
-                                                <?php 
-                                                // Calcular stock disponible actual + cantidad ya asignada
-                                                $stock_actual = ObtenerStockDisponible($detalle['id_producto'], $salida_datos[0]['id_almacen_origen'], $salida_datos[0]['id_ubicacion_origen']);
-                                                $stock_con_devolucion = $stock_actual + $detalle['cant_salida_detalle'];
-                                                echo number_format($stock_con_devolucion, 2);
-                                                ?>
-                                            </div>
                                         </div>
                                     </div>
                                     <div class="row mt-2">
@@ -246,19 +235,14 @@
                             <div class="ln_solid"></div>
 
                             <div class="form-group row">
-                                <div class="col-md-8 offset-md-2">
-                                    <div class="row">
-                                        <div class="col-4">
+                                <div class="col-md-12">
+                                    <div class="row justify-content-center">
+                                        <div class="col-md-3">
                                             <a href="salidas_mostrar.php" class="btn btn-outline-secondary btn-block">
                                                 <i class="fa fa-times"></i> Cancelar
                                             </a>
                                         </div>
-                                        <div class="col-4">
-                                            <button type="reset" class="btn btn-outline-danger btn-block">
-                                                <i class="fa fa-eraser"></i> Restaurar
-                                            </button>
-                                        </div>
-                                        <div class="col-4">
+                                        <div class="col-md-3">
                                             <button type="submit" name="actualizar" id="btn_actualizar" class="btn btn-success btn-block">
                                                 <i class="fa fa-save"></i> Actualizar Salida
                                             </button>

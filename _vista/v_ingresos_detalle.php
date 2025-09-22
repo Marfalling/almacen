@@ -199,12 +199,12 @@
                         </div>
 
                         
-                        <!-- Historial de Ingresos -->
+                        <!-- Historial de Ingresos - VERSIÓN CORREGIDA -->
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="x_panel">
                                     <div class="x_title">
-                                        <h2><i class="fa fa-history"></i> Historial de Ingresos</h2>
+                                        <h2><i class="fa fa-history"></i> Historial de Ingresos Detallado</h2>
                                         <div class="clearfix"></div>
                                     </div>
                                     <div class="x_content">
@@ -215,8 +215,10 @@
                                                         <tr>
                                                             <th>Fecha/Hora</th>
                                                             <th>Usuario</th>
-                                                            <th>Productos Ingresados</th>
-                                                            <th>Cantidad Total</th>
+                                                            <th>Producto</th>
+                                                            <th>Código</th>
+                                                            <th>Cantidad Ingresada</th>
+                                                            <th>ID Ingreso</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -227,15 +229,17 @@
                                                                     <i class="fa fa-user"></i> 
                                                                     <?php echo $ingreso['nom_personal']; ?>
                                                                 </td>
+                                                                <td><?php echo $ingreso['nom_producto']; ?></td>
                                                                 <td>
-                                                                    <span class="badge badge-info badge_size">
-                                                                        <?php echo $ingreso['productos_count']; ?> producto(s)
-                                                                    </span>
+                                                                    <strong><?php echo $ingreso['cod_material']; ?></strong>
                                                                 </td>
                                                                 <td>
                                                                     <span class="badge badge-success badge_size">
-                                                                        <?php echo number_format($ingreso['cantidad_total'], 2); ?>
+                                                                        <?php echo number_format($ingreso['cantidad_individual'], 2); ?>
                                                                     </span>
+                                                                </td>
+                                                                <td>
+                                                                    <small class="text-muted">ING-<?php echo $ingreso['id_ingreso']; ?></small>
                                                                 </td>
                                                             </tr>
                                                         <?php } ?>

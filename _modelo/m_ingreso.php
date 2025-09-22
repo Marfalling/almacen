@@ -100,21 +100,24 @@ function ObtenerDetalleIngresoPorCompra($id_compra)
     }
 
     // Historial de ingresos
-    $sql_historial = "SELECT 
-                        i.fec_ingreso,
-                        COALESCE(p.nom_personal, 'Usuario') as nom_personal,
-                        COUNT(DISTINCT id2.id_ingreso_detalle) as productos_count,
-                        COALESCE(SUM(id2.cant_ingreso_detalle), 0) as cantidad_total
-                    FROM ingreso i
-                    LEFT JOIN personal p ON i.id_personal = p.id_personal
-                    LEFT JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso
-                    WHERE i.id_compra = '$id_compra'
-                    GROUP BY i.id_ingreso
-                    ORDER BY i.fec_ingreso DESC";
-                        
+        $sql_historial = "SELECT 
+                            i.id_ingreso,
+                            i.fec_ingreso,
+                            COALESCE(p.nom_personal, 'Usuario') as nom_personal,
+                            id2.cant_ingreso_detalle as cantidad_individual,
+                            prod.nom_producto,
+                            prod.cod_material
+                        FROM ingreso i
+                        LEFT JOIN personal p ON i.id_personal = p.id_personal
+                        INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso
+                        INNER JOIN producto prod ON id2.id_producto = prod.id_producto
+                        WHERE i.id_compra = '$id_compra'
+                        AND id2.est_ingreso_detalle = 1
+                        ORDER BY i.fec_ingreso DESC, prod.nom_producto";
+                            
         $resultado_historial = mysqli_query($con, $sql_historial);
         $historial = array();
-        
+
         if ($resultado_historial) {
             while ($row = mysqli_fetch_array($resultado_historial, MYSQLI_ASSOC)) {
                 $historial[] = $row;
@@ -347,68 +350,26 @@ function ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_person
             throw new Exception("Cantidad solicitada ($cantidad) mayor a la disponible ({$row_disponible['cantidad_disponible']})");
         }
         
-        // Verificar si ya existe un ingreso para esta compra
-        $sql_check_ingreso = "SELECT id_ingreso FROM ingreso WHERE id_compra = '$id_compra'";
-        $res_check = mysqli_query($con, $sql_check_ingreso);
+        // CAMBIO PRINCIPAL: SIEMPRE crear un nuevo ingreso para cada operación
+        $fecha_ingreso = date('Y-m-d H:i:s');
+        $sql_ingreso = "INSERT INTO ingreso (id_compra, id_almacen, id_ubicacion, id_personal, fec_ingreso, est_ingreso) 
+                       VALUES ('$id_compra', '$id_almacen', '$id_ubicacion', '$id_personal', '$fecha_ingreso', 1)";
         
-        if (!$res_check) {
-            throw new Exception("Error al verificar ingreso existente: " . mysqli_error($con));
+        if (!mysqli_query($con, $sql_ingreso)) {
+            throw new Exception("Error al crear el ingreso: " . mysqli_error($con));
         }
         
-        if (mysqli_num_rows($res_check) > 0) {
-            $row_ingreso = mysqli_fetch_assoc($res_check);
-            $id_ingreso = $row_ingreso['id_ingreso'];
-        } else {
-            // Crear nuevo ingreso
-            $fecha_ingreso = date('Y-m-d H:i:s');
-            $sql_ingreso = "INSERT INTO ingreso (id_compra, id_almacen, id_ubicacion, id_personal, fec_ingreso, est_ingreso) 
-                           VALUES ('$id_compra', '$id_almacen', '$id_ubicacion', '$id_personal', '$fecha_ingreso', 1)";
-            
-            if (!mysqli_query($con, $sql_ingreso)) {
-                throw new Exception("Error al crear el ingreso: " . mysqli_error($con));
-            }
-            
-            $id_ingreso = mysqli_insert_id($con);
+        $id_ingreso = mysqli_insert_id($con);
+        
+        // Crear nuevo detalle de ingreso
+        $sql_detalle = "INSERT INTO ingreso_detalle (id_ingreso, id_producto, cant_ingreso_detalle, est_ingreso_detalle)
+                       VALUES ('$id_ingreso', '$id_producto', '$cantidad', 1)";
+        
+        if (!mysqli_query($con, $sql_detalle)) {
+            throw new Exception("Error al crear el detalle del ingreso: " . mysqli_error($con));
         }
         
-        // Verificar si ya existe un detalle de ingreso para este producto
-        $sql_check_detalle = "SELECT id_ingreso_detalle, cant_ingreso_detalle 
-                             FROM ingreso_detalle 
-                             WHERE id_ingreso = '$id_ingreso' AND id_producto = '$id_producto'";
-        
-        $res_check_detalle = mysqli_query($con, $sql_check_detalle);
-        
-        if (!$res_check_detalle) {
-            throw new Exception("Error al verificar detalle existente: " . mysqli_error($con));
-        }
-        
-        if (mysqli_num_rows($res_check_detalle) > 0) {
-            // Actualizar cantidad existente
-            $row_detalle = mysqli_fetch_assoc($res_check_detalle);
-            $nueva_cantidad = $row_detalle['cant_ingreso_detalle'] + $cantidad;
-            $id_ingreso_detalle = $row_detalle['id_ingreso_detalle'];
-            
-            $sql_update_detalle = "UPDATE ingreso_detalle 
-                                  SET cant_ingreso_detalle = '$nueva_cantidad'
-                                  WHERE id_ingreso_detalle = '$id_ingreso_detalle'";
-            
-            if (!mysqli_query($con, $sql_update_detalle)) {
-                throw new Exception("Error al actualizar el detalle del ingreso: " . mysqli_error($con));
-            }
-        } else {
-            // Crear nuevo detalle de ingreso
-            $sql_detalle = "INSERT INTO ingreso_detalle (id_ingreso, id_producto, cant_ingreso_detalle, est_ingreso_detalle)
-                           VALUES ('$id_ingreso', '$id_producto', '$cantidad', 1)";
-            
-            if (!mysqli_query($con, $sql_detalle)) {
-                throw new Exception("Error al crear el detalle del ingreso: " . mysqli_error($con));
-            }
-        }
-        
-        // CORRECCIÓN: Registrar movimiento con los tipos correctos
-        // Para INGRESO por orden de compra:
-        // tipo_orden = 1 (INGRESO)
-        // tipo_movimiento = 1 (suma al stock)
+        // Registrar movimiento con los tipos correctos
         $fecha_movimiento = date('Y-m-d H:i:s');
         $sql_movimiento = "INSERT INTO movimiento (id_personal, id_orden, id_producto, id_almacen, id_ubicacion, tipo_orden, tipo_movimiento, cant_movimiento, fec_movimiento, est_movimiento)
                           VALUES ('$id_personal', '$id_compra', '$id_producto', '$id_almacen', '$id_ubicacion', 1, 1, '$cantidad', '$fecha_movimiento', 1)";
@@ -418,7 +379,7 @@ function ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_person
         }
         
         // Log para debug
-        error_log("Movimiento registrado - Compra: $id_compra, Producto: $id_producto, Cantidad: $cantidad, tipo_orden: 1, tipo_movimiento: 1");
+        error_log("Nuevo ingreso creado - ID: $id_ingreso, Compra: $id_compra, Producto: $id_producto, Cantidad: $cantidad");
         
         // Verificar si todos los productos han sido ingresados completamente
         $sql_check_completo = "SELECT 
@@ -461,7 +422,7 @@ function ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_person
         
         mysqli_commit($con);
         mysqli_close($con);
-        return array('success' => true, 'message' => 'Producto ingresado correctamente');
+        return array('success' => true, 'message' => 'Producto ingresado correctamente', 'id_ingreso' => $id_ingreso);
         
     } catch (Exception $e) {
         mysqli_rollback($con);
@@ -470,7 +431,6 @@ function ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_person
         return array('success' => false, 'message' => $e->getMessage());
     }
 }
-
 //-----------------------------------------------------------------------
 function ProcesarIngresoTodosProductos($id_compra, $id_personal)
 {
@@ -534,6 +494,213 @@ function VerificarCantidadDisponible($id_compra, $id_producto)
 //-----------------------------------------------------------------------
 // NUEVAS FUNCIONES PARA INGRESOS DIRECTOS
 //-----------------------------------------------------------------------
+/**
+ * Anula un ingreso directo verificando disponibilidad de stock
+ * @param int $id_ingreso ID del ingreso a anular
+ * @param int $id_personal ID del personal que ejecuta la anulación
+ * @return array Resultado de la operación
+ */
+function AnularIngresoDirecto($id_ingreso, $id_personal)
+{
+    include("../_conexion/conexion.php");
+    
+    try {
+        // Iniciar transacción
+        mysqli_autocommit($con, false);
+        
+        // 1. Verificar que el ingreso existe y no está anulado
+        $sql_verificar = "SELECT i.*, a.nom_almacen, u.nom_ubicacion 
+                         FROM ingreso i 
+                         INNER JOIN almacen a ON i.id_almacen = a.id_almacen
+                         INNER JOIN ubicacion u ON i.id_ubicacion = u.id_ubicacion
+                         WHERE i.id_ingreso = '$id_ingreso' AND i.est_ingreso = 1";
+        
+        $res_verificar = mysqli_query($con, $sql_verificar);
+        
+        if (mysqli_num_rows($res_verificar) == 0) {
+            mysqli_rollback($con);
+            mysqli_close($con);
+            return [
+                'success' => false,
+                'message' => 'El ingreso no existe o ya está anulado.'
+            ];
+        }
+        
+        $ingreso_info = mysqli_fetch_array($res_verificar, MYSQLI_ASSOC);
+        
+        // 2. Obtener todos los productos del ingreso
+        $sql_productos = "SELECT id.*, p.nom_producto, p.cod_material
+                         FROM ingreso_detalle id
+                         INNER JOIN producto p ON id.id_producto = p.id_producto
+                         WHERE id.id_ingreso = '$id_ingreso' AND id.est_ingreso_detalle = 1";
+        
+        $res_productos = mysqli_query($con, $sql_productos);
+        $productos_ingreso = [];
+        
+        while ($producto = mysqli_fetch_array($res_productos, MYSQLI_ASSOC)) {
+            $productos_ingreso[] = $producto;
+        }
+        
+        // 3. Verificar disponibilidad de stock para cada producto
+        $productos_sin_stock = [];
+        
+        foreach ($productos_ingreso as $producto) {
+            // Calcular stock actual del producto en el almacén y ubicación
+            $sql_stock = "SELECT 
+                            COALESCE(SUM(
+                                CASE 
+                                    WHEN tipo_movimiento = 1 THEN cant_movimiento 
+                                    WHEN tipo_movimiento = 2 THEN -cant_movimiento 
+                                    ELSE 0 
+                                END
+                            ), 0) as stock_actual
+                         FROM movimiento 
+                         WHERE id_producto = '" . $producto['id_producto'] . "' 
+                         AND id_almacen = '" . $ingreso_info['id_almacen'] . "' 
+                         AND id_ubicacion = '" . $ingreso_info['id_ubicacion'] . "' 
+                         AND est_movimiento = 1";
+            
+            $res_stock = mysqli_query($con, $sql_stock);
+            $stock_data = mysqli_fetch_array($res_stock, MYSQLI_ASSOC);
+            $stock_actual = floatval($stock_data['stock_actual']);
+            
+            // Verificar si hay suficiente stock para restar la cantidad ingresada
+            if ($stock_actual < $producto['cant_ingreso_detalle']) {
+                $productos_sin_stock[] = [
+                    'producto' => $producto['nom_producto'],
+                    'codigo' => $producto['cod_material'],
+                    'cantidad_necesaria' => $producto['cant_ingreso_detalle'],
+                    'stock_disponible' => $stock_actual
+                ];
+            }
+        }
+        
+        // 4. Si hay productos sin stock suficiente, cancelar operación
+        if (!empty($productos_sin_stock)) {
+            mysqli_rollback($con);
+            mysqli_close($con);
+            
+            $mensaje_error = "No se puede anular el ingreso. Los siguientes productos no tienen stock suficiente:\n\n";
+            foreach ($productos_sin_stock as $item) {
+                $mensaje_error .= "• {$item['producto']} ({$item['codigo']}): ";
+                $mensaje_error .= "Necesario: {$item['cantidad_necesaria']}, Disponible: {$item['stock_disponible']}\n";
+            }
+            
+            return [
+                'success' => false,
+                'message' => $mensaje_error
+            ];
+        }
+        
+        // 5. Proceder con la anulación
+        
+        // 5a. Crear movimientos de salida (restar del stock)
+        $movimientos_creados = [];
+        
+        foreach ($productos_ingreso as $producto) {
+            $sql_movimiento = "INSERT INTO movimiento 
+                              (id_personal, id_orden, id_producto, id_almacen, id_ubicacion, 
+                               tipo_orden, tipo_movimiento, cant_movimiento, fec_movimiento, est_movimiento)
+                              VALUES 
+                              ('$id_personal', '$id_ingreso', '" . $producto['id_producto'] . "', 
+                               '" . $ingreso_info['id_almacen'] . "', '" . $ingreso_info['id_ubicacion'] . "', 
+                               '5', '2', '" . $producto['cant_ingreso_detalle'] . "', NOW(), '1')";
+            
+            if (!mysqli_query($con, $sql_movimiento)) {
+                mysqli_rollback($con);
+                mysqli_close($con);
+                return [
+                    'success' => false,
+                    'message' => 'Error al crear movimiento para el producto: ' . $producto['nom_producto']
+                ];
+            }
+            
+            $movimientos_creados[] = mysqli_insert_id($con);
+        }
+        
+        // 5b. Anular detalles del ingreso
+        $sql_anular_detalles = "UPDATE ingreso_detalle 
+                               SET est_ingreso_detalle = 0 
+                               WHERE id_ingreso = '$id_ingreso'";
+        
+        if (!mysqli_query($con, $sql_anular_detalles)) {
+            mysqli_rollback($con);
+            mysqli_close($con);
+            return [
+                'success' => false,
+                'message' => 'Error al anular los detalles del ingreso.'
+            ];
+        }
+        
+        // 5c. Anular el ingreso principal
+        $sql_anular_ingreso = "UPDATE ingreso 
+                              SET est_ingreso = 0 
+                              WHERE id_ingreso = '$id_ingreso'";
+        
+        if (!mysqli_query($con, $sql_anular_ingreso)) {
+            mysqli_rollback($con);
+            mysqli_close($con);
+            return [
+                'success' => false,
+                'message' => 'Error al anular el ingreso principal.'
+            ];
+        }
+        
+        // 6. Confirmar transacción
+        mysqli_commit($con);
+        mysqli_close($con);
+        
+        return [
+            'success' => true,
+            'message' => "Ingreso ING-$id_ingreso anulado exitosamente. Se han actualizado " . count($productos_ingreso) . " productos en el inventario."
+        ];
+        
+    } catch (Exception $e) {
+        mysqli_rollback($con);
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'message' => 'Error inesperado: ' . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * Obtiene el stock actual de un producto en un almacén y ubicación específicos
+ * @param int $id_producto ID del producto
+ * @param int $id_almacen ID del almacén
+ * @param int $id_ubicacion ID de la ubicación
+ * @return float Stock actual
+ */
+function ObtenerStockActual($id_producto, $id_almacen, $id_ubicacion)
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT 
+                COALESCE(SUM(
+                    CASE 
+                        WHEN tipo_movimiento = 1 THEN cant_movimiento 
+                        WHEN tipo_movimiento = 2 THEN -cant_movimiento 
+                        ELSE 0 
+                    END
+                ), 0) as stock_actual
+            FROM movimiento 
+            WHERE id_producto = '$id_producto' 
+            AND id_almacen = '$id_almacen' 
+            AND id_ubicacion = '$id_ubicacion' 
+            AND est_movimiento = 1";
+    
+    $resultado = mysqli_query($con, $sql);
+    
+    if ($resultado) {
+        $row = mysqli_fetch_array($resultado, MYSQLI_ASSOC);
+        mysqli_close($con);
+        return floatval($row['stock_actual']);
+    }
+    
+    mysqli_close($con);
+    return 0;
+}
 
 function ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal, $productos)
 {
@@ -688,12 +855,12 @@ function ObtenerDetalleIngresoDirecto($id_ingreso)
 {
     include("../_conexion/conexion.php");
     
-    // Información básica del ingreso directo
+    // Información básica del ingreso directo - INCLUIR AMBOS ESTADOS
     $sql_ingreso = "SELECT 
                         i.id_ingreso,
                         i.fec_ingreso,
                         i.fpag_ingreso,
-                        i.est_ingreso,
+                        i.est_ingreso,  -- IMPORTANTE: mantener este campo
                         a.nom_almacen,
                         u.nom_ubicacion,
                         p.nom_personal,
@@ -707,6 +874,7 @@ function ObtenerDetalleIngresoDirecto($id_ingreso)
                     LEFT JOIN personal p ON i.id_personal = p.id_personal
                     WHERE i.id_ingreso = '$id_ingreso' 
                     AND i.id_compra IS NULL";  
+    // ELIMINAR: AND i.est_ingreso = 1  -- No filtrar por estado aquí
     
     $resultado_ingreso = mysqli_query($con, $sql_ingreso);
     
@@ -722,24 +890,25 @@ function ObtenerDetalleIngresoDirecto($id_ingreso)
         return false;
     }
     
-    // Productos del ingreso directo
+    // Productos del ingreso directo - INCLUIR TODOS LOS DETALLES
     $sql_productos = "SELECT 
-                        id2.id_ingreso_detalle,
-                        id2.cant_ingreso_detalle,
-                        prod.id_producto,
-                        prod.cod_material,
-                        prod.nom_producto,
-                        prod.mar_producto,
-                        prod.mod_producto,
-                        um.nom_unidad_medida,
-                        mt.nom_material_tipo
-                     FROM ingreso_detalle id2
-                     INNER JOIN producto prod ON id2.id_producto = prod.id_producto
-                     INNER JOIN unidad_medida um ON prod.id_unidad_medida = um.id_unidad_medida
-                     INNER JOIN material_tipo mt ON prod.id_material_tipo = mt.id_material_tipo
-                     WHERE id2.id_ingreso = '$id_ingreso'
-                     AND id2.est_ingreso_detalle = 1
-                     ORDER BY prod.nom_producto";
+                    id2.id_ingreso_detalle,
+                    id2.cant_ingreso_detalle,
+                    id2.est_ingreso_detalle,  
+                    prod.id_producto,
+                    prod.cod_material,
+                    prod.nom_producto,
+                    prod.mar_producto,
+                    prod.mod_producto,
+                    um.nom_unidad_medida,
+                    mt.nom_material_tipo
+                 FROM ingreso_detalle id2
+                 INNER JOIN producto prod ON id2.id_producto = prod.id_producto
+                 INNER JOIN unidad_medida um ON prod.id_unidad_medida = um.id_unidad_medida
+                 INNER JOIN material_tipo mt ON prod.id_material_tipo = mt.id_material_tipo
+                 WHERE id2.id_ingreso = '$id_ingreso'
+                 ORDER BY prod.nom_producto";
+    
     
     $resultado_productos = mysqli_query($con, $sql_productos);
     $productos = array();
@@ -756,7 +925,6 @@ function ObtenerDetalleIngresoDirecto($id_ingreso)
     mysqli_close($con);
     return $resultado;
 }
-
 
 //-----------------------------------------------------------------------
 
@@ -809,8 +977,8 @@ function MostrarTodosLosIngresos()
                 al.nom_almacen,
                 ub.nom_ubicacion,
                 'N/A' as nom_moneda,
-                COALESCE((SELECT COUNT(*) FROM ingreso_detalle id WHERE id.id_ingreso = i.id_ingreso AND id.est_ingreso_detalle = 1), 0) as total_productos,
-                COALESCE((SELECT COUNT(*) FROM ingreso_detalle id WHERE id.id_ingreso = i.id_ingreso AND id.est_ingreso_detalle = 1), 0) as productos_ingresados
+                COALESCE((SELECT COUNT(*) FROM ingreso_detalle id WHERE id.id_ingreso = i.id_ingreso), 0) as total_productos,
+                COALESCE((SELECT COUNT(*) FROM ingreso_detalle id WHERE id.id_ingreso = i.id_ingreso), 0) as productos_ingresados
             FROM ingreso i
             INNER JOIN almacen al ON i.id_almacen = al.id_almacen
             INNER JOIN ubicacion ub ON i.id_ubicacion = ub.id_ubicacion
@@ -818,7 +986,8 @@ function MostrarTodosLosIngresos()
             INNER JOIN cliente cl ON al.id_cliente = cl.id_cliente
             LEFT JOIN personal pe ON i.id_personal = pe.id_personal
             WHERE i.id_compra IS NULL
-            AND i.est_ingreso = 1
+            -- CAMBIADO: Ahora incluye todos los estados (1 = activo, 0 = anulado)
+            AND i.est_ingreso IN (0, 1)
             
             ORDER BY fecha DESC";
     

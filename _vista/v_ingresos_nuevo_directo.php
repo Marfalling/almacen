@@ -1,5 +1,5 @@
 <?php
-// Vista para crear ingreso directo - v_ingresos_nuevo_directo.php
+// Vista para crear ingreso directo - v_ingresos_nuevo_directo.php 
 ?>
 <!-- page content -->
 <div class="right_col" role="main">
@@ -28,7 +28,7 @@
                     </div>
                     <div class="x_content">
                         <br>
-                        <form class="form-horizontal form-label-left" action="ingresos_directo_nuevo.php" method="post">
+                        <form class="form-horizontal form-label-left" action="ingresos_directo_nuevo.php" method="post" id="form-ingreso-directo">
                             
                             <!-- Información básica del ingreso -->
                             <div class="form-group row">
@@ -91,7 +91,7 @@
                                                 <input type="text" name="descripcion[]" class="form-control" placeholder="Buscar material..." required readonly>
                                                 <div class="input-group-append">
                                                     <button onclick="buscarMaterial(this)" class="btn btn-secondary" type="button">
-                                                        <i class="fa fa-search"></i> Buscar
+                                                        <i class="fa fa-search"></i> 
                                                     </button>
                                                 </div>
                                             </div>
@@ -161,12 +161,7 @@
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
-                <div class="alert alert-info">
-                    <i class="fa fa-info-circle"></i> 
-                    <strong>Ingreso Directo:</strong> Se mostrarán todos los materiales disponibles, sin restricciones de stock actual.
-                </div>
-                
+            <div class="modal-body">                
                 <div class="table-responsive">
                     <table id="datatable_material" class="table table-striped table-bordered" style="width:100%">
                         <thead>
@@ -221,9 +216,75 @@ document.addEventListener('DOMContentLoaded', function() {
         
         actualizarEventosEliminar();
     });
+    
+    // Validación del formulario con SweetAlert2
+    document.getElementById('form-ingreso-directo').addEventListener('submit', function(e) {
+        const productosItems = document.querySelectorAll('.producto-item');
+        let hayProductosValidos = false;
+        let errores = [];
+        
+        // Validar almacén y ubicación
+        const almacen = document.querySelector('select[name="id_almacen"]').value;
+        const ubicacion = document.querySelector('select[name="id_ubicacion"]').value;
+        
+        if (!almacen) {
+            errores.push('Debe seleccionar un almacén');
+        }
+        
+        if (!ubicacion) {
+            errores.push('Debe seleccionar una ubicación');
+        }
+        
+        // Validar productos
+        productosItems.forEach((item, index) => {
+            const idProducto = item.querySelector('input[name="id_producto[]"]').value;
+            const cantidad = item.querySelector('input[name="cantidad[]"]').value;
+            
+            if (idProducto && cantidad && parseFloat(cantidad) > 0) {
+                hayProductosValidos = true;
+            } else if (idProducto || cantidad) {
+                errores.push(`Producto ${index + 1}: Complete todos los campos obligatorios`);
+            }
+        });
+        
+        if (!hayProductosValidos) {
+            errores.push('Debe agregar al menos un producto válido');
+        }
+        
+        if (errores.length > 0) {
+            e.preventDefault();
+            mostrarAlerta('error', 'Errores de Validación', errores.join('\n• '));
+            return false;
+        }
+        
+        // Mostrar confirmación antes de enviar
+        e.preventDefault();
+        confirmarAccion(
+            '¿Confirmar Registro?',
+            '¿Está seguro que desea registrar este ingreso directo? Esta acción no se puede deshacer.',
+            () => {
+                mostrarCargando('Registrando ingreso...');
+                document.getElementById('form-ingreso-directo').submit();
+            }
+        );
+    });
 });
 
 function buscarMaterial(button) {
+    // Validar que se haya seleccionado almacén y ubicación
+    const almacen = document.querySelector('select[name="id_almacen"]').value;
+    const ubicacion = document.querySelector('select[name="id_ubicacion"]').value;
+    
+    if (!almacen || !ubicacion) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Datos requeridos',
+            text: 'Debe seleccionar primero el almacén y la ubicación antes de buscar materiales.',
+            confirmButtonText: 'Entendido'
+        });
+        return;
+    }
+    
     currentSearchButton = button;
     $('#buscar_material').modal('show');
     cargarMateriales();
@@ -234,9 +295,9 @@ function cargarMateriales() {
         $('#datatable_material').DataTable().destroy();
     }
 
-    // Tomar directamente el almacén y ubicación del formulario principal
-    const idAlmacen = $('select[name="id_almacen"]').val() || 0;
-    const idUbicacion = $('select[name="id_ubicacion"]').val() || 0;
+    // Obtener valores validados del formulario principal
+    const idAlmacen = $('select[name="id_almacen"]').val();
+    const idUbicacion = $('select[name="id_ubicacion"]').val();
 
     $('#datatable_material').DataTable({
         "processing": true,

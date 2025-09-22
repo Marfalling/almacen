@@ -1,12 +1,12 @@
 <?php
 //=======================================================================
-// VISTA: v_ingresos_detalle_directo.php
+// VISTA: v_ingresos_detalle_directo.php - MEJORADA PARA IMPRESIÓN
 //=======================================================================
 ?>
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
-        <div class="page-title">
+        <div class="page-title no-print">
             <div class="title_left">
                 <h3>Detalle de Ingreso Directo</h3>
             </div>
@@ -22,8 +22,8 @@
                             <div class="col-sm-10">
                                 <h2>Ingreso Directo #ING-<?php echo $detalle_ingreso_directo['ingreso']['id_ingreso']; ?> <small>Sin Orden de Compra</small></h2>
                             </div>
-                            <div class="col-sm-2">
-                                <a href="ingresos_mostrar.php" class="btn btn-outline-secondary btn-sm btn-block">
+                            <div class="col-sm-2 no-print">
+                                <a href="ingresos_mostrar.php?tab=todos-ingresos" class="btn btn-outline-secondary btn-sm btn-block">
                                     <i class="fa fa-arrow-left"></i> Volver al listado
                                 </a>
                             </div>
@@ -34,7 +34,7 @@
                     <div class="x_content">
                         <div class="row">
                             <!-- Información General del Ingreso -->
-                            <div class="col-md-6">
+                            <div class="col-md-6 col-print-6">
                                 <div class="x_panel">
                                     <div class="x_title">
                                         <h2><i class="fa fa-info-circle"></i> Información General</h2>
@@ -74,7 +74,9 @@
                                                 <td><strong>Estado:</strong></td>
                                                 <td>
                                                     <?php 
-                                                    if ($detalle_ingreso_directo['ingreso']['est_ingreso'] == 1) {
+                                                    if ($detalle_ingreso_directo['ingreso']['est_ingreso'] == 0) {
+                                                        echo '<span class="badge badge-danger badge_size">ANULADO</span>';
+                                                    } elseif ($detalle_ingreso_directo['ingreso']['est_ingreso'] == 1) {
                                                         echo '<span class="badge badge-success badge_size">REGISTRADO</span>';
                                                     } else {
                                                         echo '<span class="badge badge-warning badge_size">PENDIENTE</span>';
@@ -88,7 +90,7 @@
                             </div>
 
                             <!-- Resumen de Productos -->
-                            <div class="col-md-6">
+                            <div class="col-md-6 col-print-6">
                                 <div class="x_panel">
                                     <div class="x_title">
                                         <h2><i class="fa fa-chart-bar"></i> Resumen de Productos</h2>
@@ -103,20 +105,37 @@
                                             <tr>
                                                 <td><strong>Cantidad Total Ingresada:</strong></td>
                                                 <td>
-                                                    <span class="badge badge-success badge-lg">
-                                                        <?php 
-                                                        $cantidad_total = 0;
-                                                        foreach ($detalle_ingreso_directo['productos'] as $producto) {
+                                                    <?php 
+                                                    $cantidad_total = 0;
+                                                    foreach ($detalle_ingreso_directo['productos'] as $producto) {
+                                                        // Solo sumar si el detalle NO está anulado
+                                                        if (isset($producto['est_ingreso_detalle']) && $producto['est_ingreso_detalle'] == 1) {
                                                             $cantidad_total += floatval($producto['cant_ingreso_detalle']);
                                                         }
-                                                        echo number_format($cantidad_total, 2);
-                                                        ?>
+                                                    }
+                                                    
+                                                    // Cambiar color del badge según si hay cantidad o no
+                                                    $badge_class = $cantidad_total > 0 ? 'badge-success' : 'badge-secondary';
+                                                    ?>
+                                                    <span class="badge <?php echo $badge_class; ?> badge-lg">
+                                                        <?php echo number_format($cantidad_total, 2); ?>
                                                     </span>
                                                 </td>
                                             </tr>
+
                                             <tr>
-                                                <td><strong>Estado del Ingreso:</strong></td>
-                                                <td><span class="badge badge-success badge-lg">COMPLETADO</span></td>
+                                                <td><strong>Estado:</strong></td>
+                                                <td>
+                                                    <?php 
+                                                    if ($detalle_ingreso_directo['ingreso']['est_ingreso'] == 0) {
+                                                        echo '<span class="badge badge-danger badge_size">ANULADO</span>';
+                                                    } elseif ($detalle_ingreso_directo['ingreso']['est_ingreso'] == 1) {
+                                                        echo '<span class="badge badge-success badge_size">REGISTRADO</span>';
+                                                    } else {
+                                                        echo '<span class="badge badge-warning badge_size">PENDIENTE</span>';
+                                                    }
+                                                    ?>
+                                                </td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Registrado Por:</strong></td>
@@ -150,7 +169,7 @@
                                     </div>
                                     <div class="x_content">
                                         <div class="table-responsive">
-                                            <table class="table table-striped table-bordered">
+                                            <table class="table table-striped table-bordered print-table">
                                                 <thead class="thead-dark">
                                                     <tr>
                                                         <th style="width: 5%;">#</th>
@@ -178,9 +197,13 @@
                                                             <td class="text-center"><?php echo $producto['mod_producto'] ?? 'N/A'; ?></td>
                                                             <td class="text-center"><?php echo $producto['nom_unidad_medida']; ?></td>
                                                             <td class="text-center">
-                                                                <span class="badge badge-success badge_size">
-                                                                    <?php echo number_format($cantidad_ingresada, 2); ?>
-                                                                </span>
+                                                                <?php if ($producto['est_ingreso_detalle'] == 0): ?>
+                                                                    <span class="badge badge-danger badge_size">ANULADO</span>
+                                                                <?php else: ?>
+                                                                    <span class="badge badge-success badge_size">
+                                                                        <?php echo number_format($cantidad_ingresada, 2); ?>
+                                                                    </span>
+                                                                <?php endif; ?>
                                                             </td>
                                                         </tr>
                                                     <?php 
@@ -204,7 +227,7 @@
                                         <div class="clearfix"></div>
                                     </div>
                                     <div class="x_content">
-                                        <div class="alert alert-info">
+                                        <div class="alert alert-info print-info">
                                             <h4><i class="fa fa-info-circle"></i> Características del Ingreso Directo:</h4>
                                             <ul class="list-unstyled" style="margin-bottom: 0;">
                                                 <li><i class="fa fa-check-circle text-success"></i> Los productos han sido ingresados directamente al almacén sin orden de compra previa</li>
@@ -219,10 +242,10 @@
                         </div>
 
                         <!-- Botones de Acción -->
-                        <div class="row">
+                        <div class="row no-print">
                             <div class="col-md-12">
                                 <div class="form-group text-center">
-                                    <a href="ingresos_mostrar.php" class="btn btn-secondary">
+                                    <a href="ingresos_mostrar.php?tab=todos-ingresos" class="btn btn-secondary">
                                         <i class="fa fa-arrow-left"></i> Volver al Listado
                                     </a>
                                     <button type="button" class="btn btn-primary" onclick="window.print()">
@@ -261,23 +284,119 @@
     color: #0c5460;
 }
 
+/* ESTILOS MEJORADOS PARA IMPRESIÓN */
 @media print {
-    .btn, .x_title .col-sm-2 {
+    @page {
+        size: A4;
+        margin: 1cm;
+    }
+    
+    /* Ocultar elementos que no deben imprimirse */
+    .no-print, .btn, .x_title .col-sm-2 {
         display: none !important;
     }
     
-    .badge {
-        color: #000 !important;
-        border: 1px solid #000 !important;
+    /* Asegurar que todo el contenido se vea */
+    body {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+        font-size: 12px;
+        line-height: 1.3;
     }
     
+    /* Ajustar columnas para impresión */
+    .col-print-6 {
+        width: 50%;
+        float: left;
+    }
+    
+    /* Mejorar badges para impresión */
+    .badge {
+        color: #000 !important;
+        background-color: transparent !important;
+        border: 1px solid #000 !important;
+        border-radius: 3px;
+        padding: 2px 6px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+    
+    /* Mejorar paneles para impresión */
     .x_panel {
         box-shadow: none !important;
         border: 1px solid #ddd !important;
+        page-break-inside: avoid;
+        margin-bottom: 15px;
     }
     
-    .alert {
-        border: 1px solid #000 !important;
+    /* Mejorar tablas para impresión */
+    .print-table {
+        width: 100% !important;
+        border-collapse: collapse !important;
     }
+    
+    .print-table th,
+    .print-table td {
+        border: 1px solid #000 !important;
+        padding: 4px !important;
+        font-size: 11px !important;
+        page-break-inside: avoid;
+    }
+    
+    .print-table th {
+        background-color: #f0f0f0 !important;
+        color: #000 !important;
+        font-weight: bold !important;
+        text-align: center;
+    }
+    
+    /* Mejorar alert para impresión */
+    .print-info {
+        border: 1px solid #000 !important;
+        background-color: #f9f9f9 !important;
+        color: #000 !important;
+        page-break-inside: avoid;
+    }
+    
+    /* Asegurar que los títulos no se separen del contenido */
+    .x_title {
+        page-break-after: avoid;
+    }
+    
+    /* Evitar que las filas de la tabla se corten */
+    .print-table tr {
+        page-break-inside: avoid;
+    }
+    
+    /* Mejorar texto para impresión */
+    h2, h3, h4 {
+        color: #000 !important;
+        page-break-after: avoid;
+        margin-bottom: 10px;
+    }
+    
+    .text-center {
+        text-align: center !important;
+    }
+    
+    /* Asegurar contraste en iconos */
+    .fa {
+        color: #000 !important;
+    }
+    
+    /* Forzar salto de página antes del detalle si es necesario */
+    .print-table thead {
+        display: table-header-group;
+    }
+    
+    /* Evitar que elementos importantes se corten */
+    .table-responsive {
+        overflow: visible !important;
+    }
+}
+
+/* Estilos adicionales para mejorar la visualización */
+.print-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
 }
 </style>
