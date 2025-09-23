@@ -79,10 +79,13 @@
                                                                 <i class="fa fa-eye"></i>
                                                             </button>
 
-                                                            <a href="devoluciones_editar.php?id=<?php echo $devolucion['id_devolucion']; ?>" 
-                                                               class="btn btn-warning btn-sm" 
-                                                               title="Editar">
-                                                                <i class="fa fa-edit"></i>
+                                                            <a href="<?php echo ($devolucion['est_devolucion'] == 1) 
+                                                                            ? 'devoluciones_editar.php?id='.$devolucion['id_devolucion'] 
+                                                                            : '#'; ?>" 
+                                                            class="btn btn-warning btn-sm" 
+                                                            title="Editar"
+                                                            <?php echo ($devolucion['est_devolucion'] != 1) ? 'onclick="return false;" style="pointer-events:none; opacity:0.65;"' : ''; ?>>
+                                                            <i class="fa fa-edit"></i>
                                                             </a>
 
                                                             <a href="devoluciones_pdf.php?id=<?php echo $devolucion['id_devolucion']; ?>" 
@@ -91,6 +94,23 @@
                                                                target="_blank">
                                                                 <i class="fa fa-file-pdf-o"></i>
                                                             </a>
+
+                                                            <form method="post" action="devoluciones_mostrar.php" style="display:inline;">
+                                                                <input type="hidden" name="id_devolucion" value="<?php echo $devolucion['id_devolucion']; ?>">
+                                                                <button type="button" name="confirmar" class="btn btn-success btn-sm btn-confirmar" title="Confirmar Devolución"
+                                                                    <?php echo ($devolucion['est_devolucion'] != 1) ? 'disabled' : ''; ?>>
+                                                                    <i class="fa fa-check"></i>
+                                                                </button>
+                                                            </form>
+
+                                                            <form method="post" action="devoluciones_mostrar.php" style="display:inline;">
+                                                                <input type="hidden" name="id_devolucion" value="<?php echo $devolucion['id_devolucion']; ?>">
+                                                                <button type="button" name="anular" class="btn btn-danger btn-sm btn-anular" title="Anular Devolución"
+                                                                    <?php echo ($devolucion['est_devolucion'] != 1) ? 'disabled' : ''; ?>>
+                                                                    <i class="fa fa-times"></i>
+                                                                </button>
+                                                            </form>
+
                                                         </div>
                                                     </td>
                                                 </tr>

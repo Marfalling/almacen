@@ -71,7 +71,7 @@ function MostrarDevoluciones()
             INNER JOIN almacen a ON d.id_almacen = a.id_almacen
             INNER JOIN ubicacion u ON d.id_ubicacion = u.id_ubicacion
             INNER JOIN personal p ON d.id_personal = p.id_personal
-            WHERE d.est_devolucion = 1
+            /*WHERE d.est_devolucion = 1*/
             ORDER BY d.fec_devolucion DESC";
 
     $res = mysqli_query($con, $sql);
@@ -281,10 +281,46 @@ function ValidarDevolucionAntesDeProcesar($id_material_tipo, $id_almacen, $id_ub
     return $errores;
 }
 
+////////////////////funciones para anular y confirmar///////////////////////////////////
 
+function AnularDevolucion($id_devolucion) {
+    include("../_conexion/conexion.php");
 
-// Función corregida para obtener productos con stock, excluyendo "NA"
+    // 1. Marcar devolución como anulada
+    $sql = "UPDATE devolucion 
+            SET est_devolucion = 0 
+            WHERE id_devolucion = $id_devolucion";
+    mysqli_query($con, $sql);
 
-?>
+    // 2. Marcar detalles como anulados
+    $sql_det = "UPDATE devolucion_detalle 
+                SET est_devolucion_detalle = 0 
+                WHERE id_devolucion = $id_devolucion";
+    mysqli_query($con, $sql_det);
+
+    // 3. Invalidar movimientos de SALIDA
+    $sql_mov = "UPDATE movimiento 
+                SET est_movimiento = 0 
+                WHERE id_orden = $id_devolucion 
+                  AND tipo_orden = 3";
+    mysqli_query($con, $sql_mov);
+
+    mysqli_close($con);
+    return "SI";
+}
+
+function ConfirmarDevolucion($id_devolucion) {
+    include("../_conexion/conexion.php");
+
+    // Solo cambiamos el estado, no tocamos stock
+    $sql = "UPDATE devolucion 
+            SET est_devolucion = 2 
+            WHERE id_devolucion = $id_devolucion";
+    mysqli_query($con, $sql);
+
+    mysqli_close($con);
+    return "SI";
+}
+
 
 ?>

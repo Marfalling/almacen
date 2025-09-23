@@ -77,9 +77,9 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
                 
                 // 2. Movimiento de INGRESO en almacén destino (suma stock)
                 $sql_mov_ingreso = "INSERT INTO movimiento (
-                                     id_personal, $id_salida, $id_producto, $id_almacen_destino, 
-                                     $id_ubicacion_destino, 2, 1, 
-                                     $cantidad, NOW(), 1
+                                     id_personal, id_orden, id_producto, id_almacen, 
+                                     id_ubicacion, tipo_orden, tipo_movimiento, 
+                                     cant_movimiento, fec_movimiento, est_movimiento
                                    ) VALUES (
                                      $id_personal, $id_salida, $id_producto, $id_almacen_destino, 
                                      $id_ubicacion_destino, 2, 1, 
