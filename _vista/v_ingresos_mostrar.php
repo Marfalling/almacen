@@ -1,10 +1,7 @@
 <?php 
 //=======================================================================
-// VISTA: v_ingresos_mostrar.php - MEJORADA CON NAVEGACIÓN CORREGIDA
+// VISTA: v_ingresos_mostrar.php - CON TAB POR DEFECTO Y FORMATO CORREGIDO
 //=======================================================================
-
-// Detectar el tab activo desde la URL
-$tabActivo = isset($_GET['tab']) ? $_GET['tab'] : 'ordenes-compra';
 ?>
 <!-- page content -->
 <div class="right_col" role="main">
@@ -33,32 +30,40 @@ $tabActivo = isset($_GET['tab']) ? $_GET['tab'] : 'ordenes-compra';
                     </div>
 
                     <div class="x_content">
-                        <!-- Nav tabs -->
-                        <ul class="nav nav-tabs" role="tablist">
-                            <li role="presentation" class="<?php echo ($tabActivo == 'ordenes-compra') ? 'active' : ''; ?>">
-                                <a href="#ordenes-compra" aria-controls="ordenes-compra" role="tab" data-toggle="tab">
-                                    <i class="fa fa-shopping-cart"></i> Órdenes de Compra 
-                                    <span class="badge badge-warning badge_size"><?php echo count(array_filter($ingresos, function($ing) { return $ing['tipo'] == 'COMPRA' || !isset($ing['tipo']); })); ?></span>
-                                </a>
-                            </li>
-                            <li role="presentation" class="<?php echo ($tabActivo == 'ingresos-directos') ? 'active' : ''; ?>">
-                                <a href="#ingresos-directos" aria-controls="ingresos-directos" role="tab" data-toggle="tab">
-                                    <i class="fa fa-plus-circle"></i> Ingresos Directos
-                                    <span class="badge badge-info badge_size"><?php echo count(array_filter($ingresos, function($ing) { return isset($ing['tipo']) && $ing['tipo'] == 'DIRECTO'; })); ?></span>
-                                </a>
-                            </li>
-                            <li role="presentation" class="<?php echo ($tabActivo == 'todos-ingresos') ? 'active' : ''; ?>">
+                        <!-- Nav tabs -->   
+
+                          <ul class="nav nav-tabs" role="tablist">
+
+                          
+                            <li role="presentation" class="active">
                                 <a href="#todos-ingresos" aria-controls="todos-ingresos" role="tab" data-toggle="tab">
                                     <i class="fa fa-list"></i> Todos los Ingresos
                                     <span class="badge badge-primary badge_size"><?php echo count($ingresos); ?></span>
                                 </a>
                             </li>
+
+                      
+                            <li role="presentation">
+                                <a href="#ordenes-compra" aria-controls="ordenes-compra" role="tab" data-toggle="tab">
+                                    <i class="fa fa-shopping-cart"></i> Órdenes de Compra 
+                                    <span class="badge badge-warning badge_size"><?php echo count(array_filter($ingresos, function($ing) { return $ing['tipo'] == 'COMPRA' || !isset($ing['tipo']); })); ?></span>
+                                </a>
+                            </li>
+                            <li role="presentation">
+                                <a href="#ingresos-directos" aria-controls="ingresos-directos" role="tab" data-toggle="tab">
+                                    <i class="fa fa-plus-circle"></i> Ingresos Directos
+                                    <span class="badge badge-info badge_size"><?php echo count(array_filter($ingresos, function($ing) { return isset($ing['tipo']) && $ing['tipo'] == 'DIRECTO'; })); ?></span>
+                                </a>
+                            </li>
+                            <!-- CAMBIO: Este tab ahora es el activo por defecto -->
+
                         </ul>
 
                         <!-- Tab panes -->
                         <div class="tab-content" style="margin-top: 15px;">
                             <!-- TAB 1: ÓRDENES DE COMPRA -->
-                            <div role="tabpanel" class="tab-pane <?php echo ($tabActivo == 'ordenes-compra') ? 'active' : ''; ?>" id="ordenes-compra">
+                            <!-- CAMBIO: Ya no es activo por defecto -->
+                            <div role="tabpanel" class="tab-pane" id="ordenes-compra">
                                 <div class="row">
                                     <div class="col-sm-12">
                                         <div class="card-box table-responsive">
@@ -153,7 +158,7 @@ $tabActivo = isset($_GET['tab']) ? $_GET['tab'] : 'ordenes-compra';
                             </div>
 
                             <!-- TAB 2: INGRESOS DIRECTOS -->
-                            <div role="tabpanel" class="tab-pane <?php echo ($tabActivo == 'ingresos-directos') ? 'active' : ''; ?>" id="ingresos-directos">
+                            <div role="tabpanel" class="tab-pane" id="ingresos-directos">
                                 <div class="row">
                                     <div class="col-sm-12">
                                         <div class="card-box table-responsive">
@@ -193,9 +198,9 @@ $tabActivo = isset($_GET['tab']) ? $_GET['tab'] : 'ordenes-compra';
                                                             </td>
                                                             <td>
                                                                 <?php if ($ingreso['estado'] == 0) { ?>
-                                                                    <span class="badge badge-danger badge_size">ANULADO</span>
+                                                                    <span class="badge badge-danger badge_size">Anulado</span>
                                                                 <?php } else { ?>
-                                                                    <span class="badge badge-success badge_size">REGISTRADO</span>
+                                                                    <span class="badge badge-success badge_size">Registrado</span>
                                                                 <?php } ?>
                                                             </td>
                                                             <td>
@@ -231,7 +236,8 @@ $tabActivo = isset($_GET['tab']) ? $_GET['tab'] : 'ordenes-compra';
                             </div>
 
                             <!-- TAB 3: TODOS LOS INGRESOS -->
-                            <div role="tabpanel" class="tab-pane <?php echo ($tabActivo == 'todos-ingresos') ? 'active' : ''; ?>" id="todos-ingresos">
+                            <!-- CAMBIO: Ahora este es el tab activo por defecto -->
+                            <div role="tabpanel" class="tab-pane active" id="todos-ingresos">
                                 <div class="row">
                                     <div class="col-sm-12">
                                         <div class="card-box table-responsive">
@@ -293,10 +299,11 @@ $tabActivo = isset($_GET['tab']) ? $_GET['tab'] : 'ordenes-compra';
                                                                         <span class="badge badge-warning badge_size">Pendiente</span>
                                                                     <?php } ?>
                                                                 <?php } else { ?>
-                                                                    <?php if ($ingreso['estado'] == 0) { ?>
-                                                                        <span class="badge badge-danger badge_size">ANULADO</span>
+                                                                     <?php if ($ingreso['estado'] == 0) { ?>
+                                                                        <span class="badge badge-danger badge_size">Anulado</span>
                                                                     <?php } else { ?>
-                                                                        <span class="badge badge-success badge_size">REGISTRADO</span>
+                                                                        <!-- CAMBIO: Formato correcto con mayúscula inicial -->
+                                                                        <span class="badge badge-success badge_size">Registrado</span>
                                                                     <?php } ?>
                                                                 <?php } ?>
                                                             </td>
@@ -447,6 +454,59 @@ function procesarAnulacion(idIngreso) {
 
 // Esperar a que jQuery y el DOM estén listos
 document.addEventListener('DOMContentLoaded', function() {
+    // DETECTAR SI SE REGISTRÓ UN INGRESO DIRECTO EXITOSAMENTE (PRIMERO)
+    const urlParams = new URLSearchParams(window.location.search);
+    const registradoDirecto = urlParams.get('registrado_directo');
+    const idIngreso = urlParams.get('id_ingreso');
+    const tab = urlParams.get('tab');
+    
+    // Si se registró un ingreso directo exitosamente
+    if (registradoDirecto === 'true' && idIngreso) {
+        console.log('Detectado registro exitoso de ingreso:', idIngreso);
+        
+        // Mostrar alerta de éxito
+        if (typeof mostrarAlerta === 'function') {
+            mostrarAlerta('success', '¡Registro Exitoso!', 
+                'El ingreso directo ING-' + idIngreso + ' ha sido registrado correctamente.');
+        } else if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Registro Exitoso!',
+                text: 'El ingreso directo ING-' + idIngreso + ' ha sido registrado correctamente.',
+                confirmButtonText: 'Aceptar'
+            });
+        } else {
+            alert('¡Registro Exitoso! El ingreso directo ING-' + idIngreso + ' ha sido registrado correctamente.');
+        }
+        
+        // Activar el tab correcto si se especificó
+        if (tab) {
+            setTimeout(function() {
+                // Remover clase active de todos los tabs
+                document.querySelectorAll('.nav-tabs li').forEach(function(li) {
+                    li.classList.remove('active');
+                });
+                document.querySelectorAll('.tab-pane').forEach(function(pane) {
+                    pane.classList.remove('active');
+                });
+                
+                // Activar el tab especificado
+                const targetTab = document.querySelector('a[href="#' + tab + '"]');
+                if (targetTab) {
+                    targetTab.closest('li').classList.add('active');
+                    const targetPane = document.getElementById(tab);
+                    if (targetPane) {
+                        targetPane.classList.add('active');
+                    }
+                }
+            }, 100);
+        }
+        
+        // Limpiar la URL para evitar mostrar la alerta al recargar
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl + (tab ? '?tab=' + tab : ''));
+    }
+    
     // Verificar si jQuery está cargado
     if (typeof jQuery === 'undefined') {
         console.error('jQuery no está cargado');
@@ -503,17 +563,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
             }
         });
-
-        // Mostrar mensaje de confirmación si se registró un ingreso directo
-        <?php if (isset($_GET['registrado_directo']) && $_GET['registrado_directo'] == 'true'): ?>
-        setTimeout(function() {
-            if (typeof mostrarAlerta === 'function') {
-                mostrarAlerta('success', '¡Proceso Completado!', 'El ingreso directo se ha registrado correctamente y aparece en la lista.');
-            } else {
-                alert('¡Proceso Completado! El ingreso directo se ha registrado correctamente.');
-            }
-        }, 500);
-        <?php endif; ?>
     });
 });
 </script>

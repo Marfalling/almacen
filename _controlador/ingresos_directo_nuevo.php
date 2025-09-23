@@ -3,7 +3,6 @@ require_once("../_conexion/sesion.php");
 ?>
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta charset="utf-8">
@@ -30,8 +29,14 @@ require_once("../_conexion/sesion.php");
             $almacenes = MostrarAlmacenesActivos();
             $ubicaciones = MostrarUbicacionesActivas();
 
+            // Variables para alertas
+            $mostrar_alerta = false;
+            $tipo_alerta = '';
+            $titulo_alerta = '';
+            $mensaje_alerta = '';
+
             //=======================================================================
-            // CONTROLADOR PARA INGRESO DIRECTO - MEJORADO CON SWEETALERT2
+            // CONTROLADOR PARA INGRESO DIRECTO
             //=======================================================================
             if (isset($_REQUEST['registrar'])) {
                 // Recibir datos del formulario
@@ -41,100 +46,68 @@ require_once("../_conexion/sesion.php");
                 
                 // Validar datos básicos
                 if (empty($id_almacen) || empty($id_ubicacion)) {
-                    ?>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            mostrarAlerta('error', 'Error de Validación', 'Debe seleccionar almacén y ubicación.', function() {
-                                window.history.back();
-                            });
-                        });
-                    </script>
-                    <?php
-                    exit;
-                }
-                
-                // Procesar productos
-                $productos = array();
-                $errores = array();
-                
-                if (isset($_REQUEST['id_producto']) && is_array($_REQUEST['id_producto'])) {
-                    for ($i = 0; $i < count($_REQUEST['id_producto']); $i++) {
-                        $id_producto = intval($_REQUEST['id_producto'][$i]);
-                        $cantidad = floatval($_REQUEST['cantidad'][$i]);
-                        
-                        // Validaciones
-                        if (empty($id_producto)) {
-                            $errores[] = "Producto en posición " . ($i + 1) . " no seleccionado";
-                            continue;
+                    $mostrar_alerta = true;
+                    $tipo_alerta = 'error';
+                    $titulo_alerta = 'Error de Validación';
+                    $mensaje_alerta = 'Debe seleccionar almacén y ubicación.';
+                } else {
+                    // Procesar productos
+                    $productos = array();
+                    $errores = array();
+                    
+                    if (isset($_REQUEST['id_producto']) && is_array($_REQUEST['id_producto'])) {
+                        for ($i = 0; $i < count($_REQUEST['id_producto']); $i++) {
+                            $id_producto = intval($_REQUEST['id_producto'][$i]);
+                            $cantidad = floatval($_REQUEST['cantidad'][$i]);
+                            
+                            if (empty($id_producto)) {
+                                $errores[] = "Producto en posición " . ($i + 1) . " no seleccionado";
+                                continue;
+                            }
+                            
+                            if ($cantidad <= 0) {
+                                $errores[] = "Cantidad inválida en producto " . ($i + 1);
+                                continue;
+                            }
+                            
+                            $productos[] = array(
+                                'id_producto' => $id_producto,
+                                'cantidad' => $cantidad
+                            );
                         }
+                    }
+                    
+                    if (empty($productos)) {
+                        $errores[] = "Debe agregar al menos un producto";
+                    }
+                    
+                    if (!empty($errores)) {
+                        $mostrar_alerta = true;
+                        $tipo_alerta = 'error';
+                        $titulo_alerta = 'Errores de Validación';
+                        $mensaje_alerta = implode("\\n• ", $errores);
+                    } else {
+                        // Procesar el ingreso directo
+                        $resultado = ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal_ingreso, $productos);
                         
-                        if ($cantidad <= 0) {
-                            $errores[] = "Cantidad inválida en producto " . ($i + 1);
-                            continue;
+                        if ($resultado['success']) {
+                            // Redirección exitosa con JavaScript inmediato
+                            ?>
+                            <script Language="JavaScript">
+                                setTimeout(function() {
+                                    window.location.href = 'ingresos_mostrar.php?tab=todos-ingresos&registrado_directo=true&id_ingreso=<?php echo $resultado["id_ingreso"]; ?>';
+                                }, 100);
+                            </script>
+                            <?php
+                            exit();
+                        } else {
+                            $mostrar_alerta = true;
+                            $tipo_alerta = 'error';
+                            $titulo_alerta = 'Error al Registrar Ingreso';
+                            $mensaje_alerta = str_replace("'", "\'", $resultado['message']);
                         }
-                        
-                        $productos[] = array(
-                            'id_producto' => $id_producto,
-                            'cantidad' => $cantidad
-                        );
                     }
                 }
-                
-                // Validar que hay al menos un producto
-                if (empty($productos)) {
-                    $errores[] = "Debe agregar al menos un producto";
-                }
-                
-                // Si hay errores, mostrarlos
-                if (!empty($errores)) {
-                    $mensaje_error = implode("\\n• ", $errores);
-                    ?>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            mostrarAlerta('error', 'Errores de Validación', 'Se encontraron los siguientes errores:\\n• <?php echo $mensaje_error; ?>', function() {
-                                window.history.back();
-                            });
-                        });
-                    </script>
-                    <?php
-                    exit;
-                }
-                
-                // Procesar el ingreso directo sin observaciones
-                $resultado = ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal_ingreso, $productos);
-                
-                if ($resultado['success']) {
-                    // Mostrar mensaje de éxito con detalles
-                    ?>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            <?php if (isset($resultado['id_ingreso'])) { ?>
-                                mostrarAlerta('success', '¡Ingreso Registrado Exitosamente!', 
-                                    'ID de Ingreso: ING-<?php echo $resultado["id_ingreso"]; ?>\\nProductos registrados: <?php echo count($productos); ?>', 
-                                    function() {
-                                        window.location.href = 'ingresos_mostrar.php?tab=todos-ingresos&registrado_directo=true';
-                                    });
-                            <?php } else { ?>
-                                mostrarAlerta('success', 'Ingreso Completado', '<?php echo addslashes($resultado["message"]); ?>', 
-                                    function() {
-                                        window.location.href = 'ingresos_mostrar.php?tab=todos-ingresos&registrado_directo=true';
-                                    });
-                            <?php } ?>
-                        });
-                    </script>
-                    <?php
-                } else {
-                    ?>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            mostrarAlerta('error', 'Error al Registrar Ingreso', '<?php echo addslashes($resultado["message"]); ?>', function() {
-                                window.history.back();
-                            });
-                        });
-                    </script>
-                    <?php
-                }
-                exit;
             }
             //-------------------------------------------
 
@@ -147,6 +120,28 @@ require_once("../_conexion/sesion.php");
     <?php
     require_once("../_vista/v_script.php");
     require_once("../_vista/v_alertas.php");
+
+    if ($mostrar_alerta) {
+        ?>
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof mostrarAlerta === 'function') {
+                mostrarAlerta('<?php echo $tipo_alerta; ?>', '<?php echo $titulo_alerta; ?>', '<?php echo $mensaje_alerta; ?>');
+            } else if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: '<?php echo $tipo_alerta; ?>',
+                    title: '<?php echo $titulo_alerta; ?>',
+                    text: '<?php echo str_replace("\\n• ", "\n• ", $mensaje_alerta); ?>',
+                    confirmButtonText: 'Entendido',
+                    confirmButtonColor: '<?php echo ($tipo_alerta == "error") ? "#d33" : "#3085d6"; ?>'
+                });
+            } else {
+                alert('<?php echo $titulo_alerta . ": " . str_replace("\\n• ", "\n• ", $mensaje_alerta); ?>');
+            }
+        });
+        </script>
+        <?php
+    }
     ?>
 </body>
 </html>

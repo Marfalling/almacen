@@ -217,57 +217,49 @@ document.addEventListener('DOMContentLoaded', function() {
         actualizarEventosEliminar();
     });
     
-    // Validación del formulario con SweetAlert2
-    document.getElementById('form-ingreso-directo').addEventListener('submit', function(e) {
-        const productosItems = document.querySelectorAll('.producto-item');
-        let hayProductosValidos = false;
-        let errores = [];
+// Validación del formulario
+document.getElementById('form-ingreso-directo').addEventListener('submit', function(e) {
+    const productosItems = document.querySelectorAll('.producto-item');
+    let hayProductosValidos = false;
+    let errores = [];
+    
+    // Validar almacén y ubicación
+    const almacen = document.querySelector('select[name="id_almacen"]').value;
+    const ubicacion = document.querySelector('select[name="id_ubicacion"]').value;
+    
+    if (!almacen) {
+        errores.push('Debe seleccionar un almacén');
+    }
+    
+    if (!ubicacion) {
+        errores.push('Debe seleccionar una ubicación');
+    }
+    
+    // Validar productos
+    productosItems.forEach((item, index) => {
+        const idProducto = item.querySelector('input[name="id_producto[]"]').value;
+        const cantidad = item.querySelector('input[name="cantidad[]"]').value;
         
-        // Validar almacén y ubicación
-        const almacen = document.querySelector('select[name="id_almacen"]').value;
-        const ubicacion = document.querySelector('select[name="id_ubicacion"]').value;
-        
-        if (!almacen) {
-            errores.push('Debe seleccionar un almacén');
+        if (idProducto && cantidad && parseFloat(cantidad) > 0) {
+            hayProductosValidos = true;
+        } else if (idProducto || cantidad) {
+            errores.push(`Producto ${index + 1}: Complete todos los campos obligatorios`);
         }
-        
-        if (!ubicacion) {
-            errores.push('Debe seleccionar una ubicación');
-        }
-        
-        // Validar productos
-        productosItems.forEach((item, index) => {
-            const idProducto = item.querySelector('input[name="id_producto[]"]').value;
-            const cantidad = item.querySelector('input[name="cantidad[]"]').value;
-            
-            if (idProducto && cantidad && parseFloat(cantidad) > 0) {
-                hayProductosValidos = true;
-            } else if (idProducto || cantidad) {
-                errores.push(`Producto ${index + 1}: Complete todos los campos obligatorios`);
-            }
-        });
-        
-        if (!hayProductosValidos) {
-            errores.push('Debe agregar al menos un producto válido');
-        }
-        
-        if (errores.length > 0) {
-            e.preventDefault();
-            mostrarAlerta('error', 'Errores de Validación', errores.join('\n• '));
-            return false;
-        }
-        
-        // Mostrar confirmación antes de enviar
-        e.preventDefault();
-        confirmarAccion(
-            '¿Confirmar Registro?',
-            '¿Está seguro que desea registrar este ingreso directo? Esta acción no se puede deshacer.',
-            () => {
-                mostrarCargando('Registrando ingreso...');
-                document.getElementById('form-ingreso-directo').submit();
-            }
-        );
     });
+    
+    if (!hayProductosValidos) {
+        errores.push('Debe agregar al menos un producto válido');
+    }
+    
+    if (errores.length > 0) {
+        e.preventDefault();
+        mostrarAlerta('error', 'Errores de Validación', errores.join('\n• '));
+        return false;
+    }
+    
+    return true;
+});
+
 });
 
 function buscarMaterial(button) {
@@ -380,34 +372,6 @@ function actualizarEventosEliminar() {
         };
     });
 }
-
-// Validación del formulario
-document.querySelector('form').addEventListener('submit', function(e) {
-    const productosItems = document.querySelectorAll('.producto-item');
-    let hayProductosValidos = false;
-    
-    productosItems.forEach(item => {
-        const idProducto = item.querySelector('input[name="id_producto[]"]').value;
-        const cantidad = item.querySelector('input[name="cantidad[]"]').value;
-        
-        if (idProducto && cantidad && parseFloat(cantidad) > 0) {
-            hayProductosValidos = true;
-        }
-    });
-    
-    if (!hayProductosValidos) {
-        e.preventDefault();
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                icon: 'error',
-                title: 'Productos requeridos',
-                text: 'Debe agregar al menos un producto con cantidad válida.'
-            });
-        } else {
-            alert('Debe agregar al menos un producto con cantidad válida.');
-        }
-    }
-});
 
 // Limpiar referencia cuando se cierre modal
 $('#buscar_material').on('hidden.bs.modal', function () {

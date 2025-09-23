@@ -500,7 +500,7 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
     $sql = "INSERT INTO compra (
                 id_pedido, id_proveedor, id_moneda, id_personal, id_personal_aprueba, obs_compra, denv_compra, plaz_compra, port_compra, fec_compra, est_compra
             ) VALUES (
-                $id_pedido, $proveedor, $moneda, $id_personal, NULL, '$observacion', '$direccion', '$plazo_entrega', '$porte', '$fecha_orden', 1
+                $id_pedido, $proveedor, $moneda, $id_personal, NULL, '$observacion', '$direccion', '$plazo_entrega', '$porte', NOW(), 1
             )";
 
     if (mysqli_query($con, $sql)) {
