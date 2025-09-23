@@ -545,7 +545,6 @@ function AnularIngresoDirecto($id_ingreso, $id_personal)
         $productos_sin_stock = [];
         
         foreach ($productos_ingreso as $producto) {
-            // Calcular stock actual del producto en el almacén y ubicación
             $sql_stock = "SELECT 
                             COALESCE(SUM(
                                 CASE 
@@ -564,7 +563,6 @@ function AnularIngresoDirecto($id_ingreso, $id_personal)
             $stock_data = mysqli_fetch_array($res_stock, MYSQLI_ASSOC);
             $stock_actual = floatval($stock_data['stock_actual']);
             
-            // Verificar si hay suficiente stock para restar la cantidad ingresada
             if ($stock_actual < $producto['cant_ingreso_detalle']) {
                 $productos_sin_stock[] = [
                     'producto' => $producto['nom_producto'],
@@ -593,29 +591,20 @@ function AnularIngresoDirecto($id_ingreso, $id_personal)
         }
         
         // 5. Proceder con la anulación
+        // 5a. Anular movimientos originales del ingreso
+        $sql_anular_movimientos = "UPDATE movimiento 
+                                   SET est_movimiento = 0 
+                                   WHERE id_orden = '$id_ingreso' 
+                                   AND tipo_orden = 1 
+                                   AND est_movimiento = 1";
         
-        // 5a. Crear movimientos de salida (restar del stock)
-        $movimientos_creados = [];
-        
-        foreach ($productos_ingreso as $producto) {
-            $sql_movimiento = "INSERT INTO movimiento 
-                              (id_personal, id_orden, id_producto, id_almacen, id_ubicacion, 
-                               tipo_orden, tipo_movimiento, cant_movimiento, fec_movimiento, est_movimiento)
-                              VALUES 
-                              ('$id_personal', '$id_ingreso', '" . $producto['id_producto'] . "', 
-                               '" . $ingreso_info['id_almacen'] . "', '" . $ingreso_info['id_ubicacion'] . "', 
-                               '5', '2', '" . $producto['cant_ingreso_detalle'] . "', NOW(), '1')";
-            
-            if (!mysqli_query($con, $sql_movimiento)) {
-                mysqli_rollback($con);
-                mysqli_close($con);
-                return [
-                    'success' => false,
-                    'message' => 'Error al crear movimiento para el producto: ' . $producto['nom_producto']
-                ];
-            }
-            
-            $movimientos_creados[] = mysqli_insert_id($con);
+        if (!mysqli_query($con, $sql_anular_movimientos)) {
+            mysqli_rollback($con);
+            mysqli_close($con);
+            return [
+                'success' => false,
+                'message' => 'Error al anular los movimientos del ingreso.'
+            ];
         }
         
         // 5b. Anular detalles del ingreso
@@ -664,6 +653,7 @@ function AnularIngresoDirecto($id_ingreso, $id_personal)
         ];
     }
 }
+
 
 /**
  * Obtiene el stock actual de un producto en un almacén y ubicación específicos

@@ -204,10 +204,11 @@ foreach($pedidos as $pedido) {
                                 <thead class="thead-dark">
                                     <tr>
                                         <th>#</th>
-                                        <th>Descripción/Material</th>
+                                        <th>Material/Servicio</th>
+                                        <th>Unidad de Medida</th>
                                         <th>Cantidad</th>
-                                        <th>Comentarios</th>
-                                        <th>Requisitos</th>
+                                        <th>Observaciones</th>
+                                        <th>Descripción SST/MA/CA</th>
                                         <th>Archivos</th>
                                     </tr>
                                 </thead>
@@ -215,28 +216,101 @@ foreach($pedidos as $pedido) {
                                     <?php 
                                     $contador_detalle = 1;
                                     foreach ($pedido_detalle as $detalle) { 
+                                        // Parsear comentarios para extraer unidad y observaciones
+                                        $comentario = $detalle['com_pedido_detalle'];
+                                        $unidad_nombre = '';
+                                        $observaciones = '';
+                                        
+                                        // Extraer unidad de medida del comentario
+                                        if (preg_match('/Unidad:\s*([^|]*)\s*\|/', $comentario, $matches)) {
+                                            $unidad_nombre = trim($matches[1]);
+                                        }
+                                        
+                                        // Extraer observaciones del comentario
+                                        if (preg_match('/Obs:\s*(.*)$/', $comentario, $matches)) {
+                                            $observaciones = trim($matches[1]);
+                                        }
+                                        
+                                        // La descripción SST/MA/CA está en req_pedido
+                                        $sst_descripcion = $detalle['req_pedido'];
                                     ?>
                                         <tr>
                                             <td><?php echo $contador_detalle; ?></td>
-                                            <td><?php echo $detalle['prod_pedido_detalle']; ?></td>
-                                            <td><?php echo $detalle['cant_pedido_detalle']; ?></td>
-                                            <td><?php echo $detalle['com_pedido_detalle']; ?></td>
                                             <td>
-                                                <small><?php echo str_replace('|', '<br>', $detalle['req_pedido']); ?></small>
+                                                <strong><?php echo $detalle['prod_pedido_detalle']; ?></strong>
+                                                <?php if (!empty($detalle['nom_producto'])) { ?>
+                                                    <br><small class="text-muted">Código: <?php echo $detalle['nom_producto']; ?></small>
+                                                <?php } ?>
                                             </td>
-                                           <td>
+                                            <td>
+                                                <span class="badge badge-secondary"><?php echo $unidad_nombre; ?></span>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-primary"><?php echo $detalle['cant_pedido_detalle']; ?></span>
+                                                <?php if ($detalle['cant_fin_pedido_detalle'] !== null) { ?>
+                                                    <br><small class="text-success">Verificado: <?php echo $detalle['cant_fin_pedido_detalle']; ?></small>
+                                                <?php } ?>
+                                            </td>
+                                            <td>
+                                                <?php if (!empty($observaciones)) { ?>
+                                                    <small><?php echo $observaciones; ?></small>
+                                                <?php } else { ?>
+                                                    <small class="text-muted">Sin observaciones</small>
+                                                <?php } ?>
+                                            </td>
+                                            <td>
+                                                <?php if (!empty($sst_descripcion)) { ?>
+                                                    <small><?php echo nl2br($sst_descripcion); ?></small>
+                                                <?php } else { ?>
+                                                    <small class="text-muted">Sin descripción SST/MA/CA</small>
+                                                <?php } ?>
+                                            </td>
+                                            <td>
                                                 <?php 
                                                 $archivos_activos = ObtenerArchivosActivosDetalle($detalle['id_pedido_detalle']);
                                                 
                                                 if (!empty($archivos_activos)) { 
-                                                    foreach ($archivos_activos as $archivo) { ?>
+                                                    foreach ($archivos_activos as $archivo) { 
+                                                        // Determinar el icono según la extensión
+                                                        $extension = strtolower(pathinfo($archivo, PATHINFO_EXTENSION));
+                                                        $icono = 'fa-file';
+                                                        $clase_color = 'text-info';
+                                                        
+                                                        switch ($extension) {
+                                                            case 'pdf':
+                                                                $icono = 'fa-file-pdf-o';
+                                                                $clase_color = 'text-danger';
+                                                                break;
+                                                            case 'jpg':
+                                                            case 'jpeg':
+                                                            case 'png':
+                                                            case 'gif':
+                                                                $icono = 'fa-file-image-o';
+                                                                $clase_color = 'text-success';
+                                                                break;
+                                                            case 'doc':
+                                                            case 'docx':
+                                                                $icono = 'fa-file-word-o';
+                                                                $clase_color = 'text-primary';
+                                                                break;
+                                                            case 'xls':
+                                                            case 'xlsx':
+                                                                $icono = 'fa-file-excel-o';
+                                                                $clase_color = 'text-warning';
+                                                                break;
+                                                        }
+                                                ?>
                                                         <a href="../_archivos/pedidos/<?php echo $archivo; ?>" 
-                                                        target="_blank" class="btn btn-sm btn-outline-primary mb-1">
-                                                            <i class="fa fa-download"></i> <?php echo $archivo; ?>
-                                                        </a><br>
+                                                        target="_blank" 
+                                                        class="btn btn-sm btn-outline-primary mb-1 d-block text-left <?php echo $clase_color; ?>"
+                                                        title="Ver <?php echo $archivo; ?>"
+                                                        style="font-size: 11px;">
+                                                            <i class="fa <?php echo $icono; ?>"></i> 
+                                                            <?php echo strlen($archivo) > 20 ? substr($archivo, 0, 20) . '...' : $archivo; ?>
+                                                        </a>
                                                 <?php } 
                                                 } else { ?>
-                                                    <span class="text-muted">Sin archivos</span>
+                                                    <small class="text-muted">Sin archivos adjuntos</small>
                                                 <?php } ?>
                                             </td>
                                         </tr>
