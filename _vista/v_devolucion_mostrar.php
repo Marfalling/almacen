@@ -118,7 +118,7 @@
                                                                         <i class="fa fa-check"></i>
                                                                     </button>
                                                                 <?php } else { ?>
-                                                                    <button type="submit" 
+                                                                    <button type="button" 
                                                                             name="confirmar" 
                                                                             class="btn btn-success btn-sm btn-confirmar" 
                                                                             title="Confirmar Devolución">
@@ -126,6 +126,7 @@
                                                                     </button>
                                                                 <?php } ?>
                                                             </form>
+
 
                                                             <form method="post" action="devoluciones_mostrar.php" style="display:inline;">
                                                                 <input type="hidden" name="id_devolucion" value="<?php echo $devolucion['id_devolucion']; ?>">
@@ -139,7 +140,7 @@
                                                                         <i class="fa fa-times"></i>
                                                                     </button>
                                                                 <?php } else { ?>
-                                                                    <button type="submit" 
+                                                                    <button type="button" 
                                                                             name="anular" 
                                                                             class="btn btn-danger btn-sm btn-anular" 
                                                                             title="Anular Devolución">

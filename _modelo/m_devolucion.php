@@ -291,12 +291,6 @@ function AnularDevolucion($id_devolucion) {
             WHERE id_devolucion = $id_devolucion";
     mysqli_query($con, $sql);
 
-    // 2. Marcar detalles como anulados
-    $sql_det = "UPDATE devolucion_detalle 
-                SET est_devolucion_detalle = 0 
-                WHERE id_devolucion = $id_devolucion";
-    mysqli_query($con, $sql_det);
-
     // 3. Invalidar movimientos de SALIDA
     $sql_mov = "UPDATE movimiento 
                 SET est_movimiento = 0 
