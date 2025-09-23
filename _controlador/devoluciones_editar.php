@@ -9,6 +9,7 @@ require_once("../_conexion/sesion.php");
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    
     <title>Editar Devolución</title>
     
     <?php require_once("../_vista/v_estilo.php"); ?>
@@ -81,7 +82,7 @@ require_once("../_conexion/sesion.php");
             if (isset($_REQUEST['actualizar'])) {
                 $id_almacen = intval($_REQUEST['id_almacen']);
                 $id_ubicacion = intval($_REQUEST['id_ubicacion']);
-                $obs_salida = mysqli_real_escape_string($con, $_REQUEST['obs_devolucion']);
+                $obs_devolucion = mysqli_real_escape_string($con, $_REQUEST['obs_devolucion']);
                 
                 // Procesar materiales
                 $materiales = array();
