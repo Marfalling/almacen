@@ -122,8 +122,7 @@ function ConsultarDevolucionDetalle($id_devolucion)
             FROM devolucion_detalle dd
             INNER JOIN producto pr ON dd.id_producto = pr.id_producto
             INNER JOIN unidad_medida um ON pr.id_unidad_medida = um.id_unidad_medida
-            WHERE dd.id_devolucion = $id_devolucion 
-              AND dd.est_devolucion_detalle = 1
+            WHERE dd.id_devolucion = $id_devolucion
             ORDER BY dd.id_devolucion_detalle";
 
     $res = mysqli_query($con, $sql);

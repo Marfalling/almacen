@@ -71,6 +71,7 @@
                                                     </td>
                                                     <td>
                                                         <div class="d-flex flex-wrap gap-2">
+
                                                             <button type="button" 
                                                                     class="btn btn-info btn-sm" 
                                                                     data-toggle="modal" 
@@ -79,14 +80,24 @@
                                                                 <i class="fa fa-eye"></i>
                                                             </button>
 
-                                                            <a href="<?php echo ($devolucion['est_devolucion'] == 1) 
+                                                            <?php if ($devolucion['est_devolucion'] != 1) { ?>
+                                                                <a href="#"
+                                                                class="btn btn-outline-secondary btn-sm disabled"
+                                                                title="Editar"
+                                                                tabindex="-1"
+                                                                aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a href="<?php echo ($devolucion['est_devolucion'] == 1) 
                                                                             ? 'devoluciones_editar.php?id='.$devolucion['id_devolucion'] 
                                                                             : '#'; ?>" 
-                                                            class="btn btn-warning btn-sm" 
-                                                            title="Editar"
-                                                            <?php echo ($devolucion['est_devolucion'] != 1) ? 'onclick="return false;" style="pointer-events:none; opacity:0.65;"' : ''; ?>>
-                                                            <i class="fa fa-edit"></i>
-                                                            </a>
+                                                                class="btn btn-warning btn-sm" 
+                                                                title="Editar"
+                                                                <?php echo ($devolucion['est_devolucion'] != 1) ? 'onclick="return false;" style="pointer-events:none; opacity:0.65;"' : ''; ?>>
+                                                                <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } ?>
 
                                                             <a href="devoluciones_pdf.php?id=<?php echo $devolucion['id_devolucion']; ?>" 
                                                                class="btn btn-secondary btn-sm" 
@@ -97,18 +108,44 @@
 
                                                             <form method="post" action="devoluciones_mostrar.php" style="display:inline;">
                                                                 <input type="hidden" name="id_devolucion" value="<?php echo $devolucion['id_devolucion']; ?>">
-                                                                <button type="button" name="confirmar" class="btn btn-success btn-sm btn-confirmar" title="Confirmar Devolución"
-                                                                    <?php echo ($devolucion['est_devolucion'] != 1) ? 'disabled' : ''; ?>>
-                                                                    <i class="fa fa-check"></i>
-                                                                </button>
+                                                                <input type="hidden" name="confirmar" value="1">
+
+                                                                <?php if ($devolucion['est_devolucion'] != 1) { ?>
+                                                                    <button type="button" 
+                                                                            class="btn btn-outline-secondary btn-sm disabled" 
+                                                                            title="Confirmar Devolución" 
+                                                                            disabled>
+                                                                        <i class="fa fa-check"></i>
+                                                                    </button>
+                                                                <?php } else { ?>
+                                                                    <button type="submit" 
+                                                                            name="confirmar" 
+                                                                            class="btn btn-success btn-sm btn-confirmar" 
+                                                                            title="Confirmar Devolución">
+                                                                        <i class="fa fa-check"></i>
+                                                                    </button>
+                                                                <?php } ?>
                                                             </form>
 
                                                             <form method="post" action="devoluciones_mostrar.php" style="display:inline;">
                                                                 <input type="hidden" name="id_devolucion" value="<?php echo $devolucion['id_devolucion']; ?>">
-                                                                <button type="button" name="anular" class="btn btn-danger btn-sm btn-anular" title="Anular Devolución"
-                                                                    <?php echo ($devolucion['est_devolucion'] != 1) ? 'disabled' : ''; ?>>
-                                                                    <i class="fa fa-times"></i>
-                                                                </button>
+                                                                <input type="hidden" name="anular" value="1">
+
+                                                                <?php if ($devolucion['est_devolucion'] != 1) { ?>
+                                                                    <button type="button" 
+                                                                            class="btn btn-outline-secondary btn-sm disabled" 
+                                                                            title="Anular Devolución" 
+                                                                            disabled>
+                                                                        <i class="fa fa-times"></i>
+                                                                    </button>
+                                                                <?php } else { ?>
+                                                                    <button type="submit" 
+                                                                            name="anular" 
+                                                                            class="btn btn-danger btn-sm btn-anular" 
+                                                                            title="Anular Devolución">
+                                                                        <i class="fa fa-times"></i>
+                                                                    </button>
+                                                                <?php } ?>
                                                             </form>
 
                                                         </div>
@@ -225,9 +262,13 @@ foreach($devoluciones as $devolucion) {
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
-                <a href="devoluciones_editar.php?id=<?php echo $devolucion['id_devolucion']; ?>" class="btn btn-warning">
-                    <i class="fa fa-edit"></i> Editar Devolución
-                </a>
+                <form method="get" action="devoluciones_editar.php" style="display:inline;">
+                    <input type="hidden" name="id" value="<?php echo $devolucion['id_devolucion']; ?>">
+                    <button type="submit" class="btn btn-warning text-white" 
+                        <?php echo ($devolucion['est_devolucion'] != 1) ? 'disabled' : ''; ?>>
+                        <i class="fa fa-edit"></i> Editar Devolución
+                    </button>
+                </form>
             </div>
         </div>
     </div>

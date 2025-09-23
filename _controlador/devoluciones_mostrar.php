@@ -108,7 +108,7 @@ if (isset($_REQUEST['anular'])) {
     ?>
 
     <script>
-    // Enganchar botones de Confirmar y Anular con confirmarAccion()
+    // Unir botones de Confirmar y Anular con confirmarAccion()
     document.addEventListener('DOMContentLoaded', function() {
         // Confirmar devolución
         document.querySelectorAll('.btn-confirmar').forEach(function(btn) {
@@ -116,7 +116,7 @@ if (isset($_REQUEST['anular'])) {
                 let form = this.closest('form');
                 confirmarAccion(
                     "¿Está seguro de confirmar la devolución?",
-                    "El stock ya no estará disponible en almacén.",
+                    "Ya no se podrá editar esta devolución.",
                     function() {
                         form.submit();
                     }
