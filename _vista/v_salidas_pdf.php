@@ -12,12 +12,6 @@ $html = '
             size: A4;
         }
         
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
         body {
             font-family: Arial, sans-serif;
             font-size: 8pt;
@@ -328,41 +322,17 @@ $html = '
         </div>
 
         <!-- INFORMACIÓN GENERAL - REORGANIZADA -->
+
         <div class="info-general">
-            <!-- PRIMERA FILA -->
             <div class="info-row">
                 <div class="info-left">
-                    <div class="mb-5">
-                        <span class="field-label">N° DOCUMENTO:</span> 
-                        <span class="field-value">' . $ndoc_salida . '</span>
-                    </div>
-                    <div class="mb-5">
-                        <span class="field-label">TIPO DE MATERIAL:</span> 
-                        <span class="field-value">' . $tipo_material . '</span>
-                    </div>
+                    <div><strong>N° DOCUMENTO:</strong> ' . $ndoc_salida . '</div>
+                    <div><strong>TIPO DE MATERIAL:</strong> ' .$tipo_material. '</div>
                 </div>
                 <div class="info-right">
-                    <div class="mb-5">
-                        <span class="field-label">FECHA DE SALIDA:</span> 
-                        <span class="field-value">' . $fecha_salida . '</span>
-                    </div>
-                    <div class="mb-5">
-                        <span class="field-label">FECHA REQUERIDA:</span> 
-                        <span class="field-value">' . $fecha_requerida . '</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- SEGUNDA FILA -->
-            <div class="info-row">
-                <div class="info-left">
-                    <div class="mb-5">
-                        <span class="field-label">REGISTRADO POR:</span> 
-                        <span class="field-value">' . $nom_personal . '</span>
-                    </div>
-                </div>
-                <div class="info-right">
-                    <!-- Espacio para futuros campos si es necesario -->
+                    <div><strong>FECHA DE SALIDA:</strong> ' .$fecha_salida. '</div>
+                    <div><strong>FECHA REQUERIDA:</strong> ' .$fecha_requerida. '</div>
+                    <div><strong>REGISTRADO POR:</strong> ' .$nom_personal. '</div>
                 </div>
             </div>
         </div>
