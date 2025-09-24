@@ -138,6 +138,17 @@ require_once("../_conexion/sesion.php");
               </li>
               <?php endif; ?>
 
+              <!-- Movimientos -->
+              
+              <li>
+                <a>Movimientos<span class="fa fa-chevron-down"></span></a>
+                <ul class="nav child_menu">
+                  
+                  <li><a href="movimientos.php">Lista de Movimientos</a></li>
+                  
+                </ul>
+              </li>
+
             </ul>
           </li>
           <?php endif; ?>
