@@ -32,8 +32,8 @@
                             <input type="date" id="fecha_fin" name="fecha_fin" class="form-control mr-2"
                                    value="<?php echo htmlspecialchars($fecha_fin ?? date('Y-m-d')); ?>">
 
-                            <button type="submit" class="btn btn-primary">Filtrar</button>
-                            <a href="movimientos.php" class="btn btn-secondary ml-2">Hoy</a>
+                          <button type="submit" class="btn btn-primary">Consultar</button>
+                           <!--  <a href="movimientos.php" class="btn btn-secondary ml-2">Hoy</a> -->
                         </form>
 
                         <!-- Tabla de Movimientos -->

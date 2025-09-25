@@ -65,8 +65,10 @@
                                                     <td>
                                                         <?php if($devolucion['est_devolucion'] == 1) { ?>
                                                             <span class="badge badge-success badge_size">Activo</span>
-                                                        <?php } else { ?>
-                                                            <span class="badge badge-danger badge_size">Inactivo</span>
+                                                        <?php } elseif($devolucion['est_devolucion'] == 2) { ?>
+                                                            <span class="badge badge-success badge_size">Confirmado</span>
+                                                          <?php } else { ?>
+                                                            <span class="badge badge-danger badge_size">Anulado</span>
                                                         <?php } ?>
                                                     </td>
                                                     <td>
