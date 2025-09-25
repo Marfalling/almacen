@@ -2,6 +2,20 @@
 //-----------------------------------------------------------------------
 function MostrarAuditoria($fecha_inicio, $fecha_fin)
 {
+	// Función temporal vacía - siempre retorna un array vacío
+    return array();
+}
+
+//-----------------------------------------------------------------------
+function GrabarAuditoria($id_usuario, $nom_usuario, $accion, $modulo, $descripcion)
+{
+	// Función temporal vacía - siempre retorna "SI"
+    return "SI";
+}
+/*
+//-----------------------------------------------------------------------
+function MostrarAuditoria($fecha_inicio, $fecha_fin)
+{
 	include("../_conexion/conexion.php");
 
 	$sqla = "SELECT * FROM auditoria WHERE DATE(fecha) BETWEEN '$fecha_inicio' AND '$fecha_fin' ORDER BY fecha DESC";
@@ -37,3 +51,6 @@ function GrabarAuditoria($id_usuario, $nom_usuario, $accion, $modulo, $descripci
     
 	return $rpta;
 }
+*/
+
+?>
