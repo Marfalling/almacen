@@ -162,7 +162,26 @@ function MostrarPedidos()
     mysqli_close($con);
     return $resultado;
 }
-
+//-----------------------------------------------------------------------
+function ObtenerPedidosConComprasAnuladas() {
+    include("../_conexion/conexion.php");
+    
+    $pedidos_rechazados = array();
+    $sql = "SELECT DISTINCT id_pedido 
+            FROM compra 
+            WHERE est_compra = 0";
+    
+    $resultado = mysqli_query($con, $sql);
+    
+    if ($resultado) {
+        while ($row = mysqli_fetch_assoc($resultado)) {
+            $pedidos_rechazados[] = $row['id_pedido'];
+        }
+    }
+    
+    mysqli_close($con);
+    return $pedidos_rechazados;
+}
 
 //-----------------------------------------------------------------------
 function ConsultarPedido($id_pedido)

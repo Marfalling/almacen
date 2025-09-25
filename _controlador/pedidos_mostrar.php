@@ -29,6 +29,7 @@ require_once("../_modelo/m_pedidos.php");
             require_once("../_vista/v_menu_user.php");
 
             $pedidos = MostrarPedidos();
+            $pedidos_rechazados = ObtenerPedidosConComprasAnuladas();
             
             require_once("../_vista/v_pedidos_mostrar.php");
             require_once("../_vista/v_footer.php");

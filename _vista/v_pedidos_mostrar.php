@@ -67,12 +67,18 @@
                                                     <td><?php echo date('d/m/Y H:i', strtotime($pedido['fec_pedido'])); ?></td>
                                                     <td><?php echo date('d/m/Y', strtotime($pedido['fec_req_pedido'])); ?></td>
                                                     <td>
-                                                        <?php if($pedido['est_pedido_calc'] == 1) { ?>
+                                                        <?php 
+                                                        // Verificar si este pedido está en la lista de rechazados
+                                                        $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
+                                                        
+                                                        if ($pedido['est_pedido_calc'] == 1 && $es_rechazado) { ?>
+                                                            <span class="badge badge-danger badge_size">Rechazado</span>
+                                                        <?php } elseif($pedido['est_pedido_calc'] == 1) { ?>
                                                             <span class="badge badge-warning badge_size">Pendiente</span>
                                                         <?php } elseif($pedido['est_pedido_calc'] == 2) { ?>
                                                             <span class="badge badge-success badge_size">Completado</span>
-                                                          <?php } elseif($pedido['est_pedido_calc'] == 0) { ?>
-                                                            <span class="badge badge-danger badge_size">Anulado</span>
+                                                        <?php } elseif($pedido['est_pedido_calc'] == 0) { ?>
+                                                            <span class="badge badge-secondary badge_size">Anulado</span>
                                                         <?php } ?>
                                                     </td>
                                                     <td>
@@ -86,9 +92,13 @@
                                                             </button>
 
                                                             <?php
-                                                            // Si tiene detalles verificados (cant_fin_pedido_detalle no es NULL), deshabilitar botón de editar
-                                                            if ($pedido['tiene_verificados'] == 1 || $pedido['est_pedido_calc'] == 0 || $pedido['est_pedido_calc'] == 2) { ?>
-                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="No se puede editar - Pedido verificado" tabindex="-1" aria-disabled="true">
+                                                            $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
+                                                            
+                                                            // Si tiene detalles verificados, está en estado final, o está rechazado
+                                                            if ($pedido['tiene_verificados'] == 1 || $pedido['est_pedido_calc'] == 0 || $pedido['est_pedido_calc'] == 2 || $es_rechazado) { 
+                                                                $titulo_editar = $es_rechazado ? "No se puede editar - Pedido rechazado" : "No se puede editar - Pedido verificado";
+                                                            ?>
+                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="<?php echo $titulo_editar; ?>" tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-edit"></i>
                                                                 </a>
                                                             <?php } else { ?>
@@ -99,8 +109,10 @@
                                                                 </a>
                                                             <?php } ?>
 
-                                                            <?php if ($pedido['est_pedido_calc'] == 0 || $pedido['est_pedido_calc'] == 2) { ?>
-                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="No se puede verificar" tabindex="-1" aria-disabled="true">
+                                                            <?php if ($pedido['est_pedido_calc'] == 0 || $pedido['est_pedido_calc'] == 2 || $es_rechazado) { 
+                                                                $titulo_verificar = $es_rechazado ? "No se puede verificar - Pedido rechazado" : "No se puede verificar";
+                                                            ?>
+                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="<?php echo $titulo_verificar; ?>" tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-check"></i>
                                                                 </a>
                                                             <?php } else { ?>
@@ -333,11 +345,18 @@ foreach($pedidos as $pedido) {
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
                 <?php
-                // Aplicar la misma lógica al botón del modal
-                if ($pedido['tiene_verificados'] == 1) { ?>
-                    <a href="#" class="btn btn-outline-secondary disabled" tabindex="-1" aria-disabled="true">
-                        <i class="fa fa-edit"></i> No se puede editar
-                    </a>
+                $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
+                // Si tiene detalles verificados o está rechazado, no se puede editar
+                if ($pedido['tiene_verificados'] == 1 || $es_rechazado) { 
+                    if ($es_rechazado) { ?>
+                        <a href="#" class="btn btn-outline-secondary disabled" title="No se puede editar - Pedido rechazado" tabindex="-1" aria-disabled="true">
+                            <i class="fa fa-edit"></i> Pedido rechazado
+                        </a>
+                    <?php } else { ?>
+                        <a href="#" class="btn btn-outline-secondary disabled" title="No se puede editar - Pedido verificado" tabindex="-1" aria-disabled="true">
+                            <i class="fa fa-edit"></i> No se puede editar
+                        </a>
+                    <?php } ?>
                 <?php } else { ?>
                     <a href="pedidos_editar.php?id=<?php echo $pedido['id_pedido']; ?>" class="btn btn-warning">
                         <i class="fa fa-edit"></i> Editar Pedido
