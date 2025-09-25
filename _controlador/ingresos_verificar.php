@@ -1,5 +1,16 @@
 <?php
+//=======================================================================
+// INGRESOS - VER (ingresos_verificar.php)
+//=======================================================================
 require_once("../_conexion/sesion.php");
+
+if (!verificarPermisoEspecifico('ver_ingresos')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'INGRESOS', 'VER');
+    header("location: bienvenido.php?permisos=true");
+    exit;
+}
+
 require_once("../_modelo/m_ingreso.php");
 
 // Verificar si se recibió el ID de compra

@@ -1,7 +1,13 @@
 <?php
-// Activar reporte de errores para debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+require_once("../_conexion/sesion.php");
+
+// Para procesar_ingresos.php
+if (!verificarPermisoEspecifico('crear_ingresos') && !verificarPermisoEspecifico('editar_ingresos')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'INGRESOS', 'PROCESAR');
+    header("location: bienvenido.php?permisos=true");
+    exit;
+}
 
 header('Content-Type: application/json; charset=utf-8');
 

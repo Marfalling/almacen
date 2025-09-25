@@ -1,6 +1,15 @@
 <?php
+//=======================================================================
+// PEDIDOS - EDITAR (pedidos_editar.php)
+//=======================================================================
 require_once("../_conexion/sesion.php");
 
+if (!verificarPermisoEspecifico('editar_pedidos')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'EDITAR');
+    header("location: bienvenido.php?permisos=true");
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">

@@ -1,5 +1,5 @@
 <?php
-// v_menu.php - Sidebar dinámico basado en permisos CORREGIDO
+// v_menu.php - Sidebar dinámico basado en permisos ACTUALIZADO
 require_once("../_conexion/sesion.php");
 ?>
 
@@ -40,10 +40,12 @@ require_once("../_conexion/sesion.php");
             <a href="dashboard.php"><i class="fa fa-tachometer"></i> Dashboard</a>
           </li>
           <?php endif; ?>
+          
           <!-- SECCIÓN PROCESO -->
           <?php if (tieneAccesoModulo('uso de material') || tieneAccesoModulo('pedidos') || 
                    tieneAccesoModulo('compras') || tieneAccesoModulo('ingresos') || 
-                   tieneAccesoModulo('devoluciones')): ?>
+                   tieneAccesoModulo('salidas') || tieneAccesoModulo('devoluciones') ||
+                   tieneAccesoModulo('movimientos')): ?>
           <li>
             <a><i class="fa fa-cogs"></i> Proceso <span class="fa fa-chevron-down"></span></a>
             <ul class="nav child_menu">
@@ -108,15 +110,15 @@ require_once("../_conexion/sesion.php");
               </li>
               <?php endif; ?>
 
-               <!-- Salidas -->
-              <?php if (tieneAccesoModulo('ingresos')): ?>
+              <!-- Salidas - NUEVO MÓDULO -->
+              <?php if (tieneAccesoModulo('salidas')): ?>
               <li>
                 <a>Salidas<span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
-                  <?php if (verificarPermisoEspecifico('ver_ingresos')): ?>
+                  <?php if (verificarPermisoEspecifico('ver_salidas')): ?>
                   <li><a href="salidas_mostrar.php">Lista de salidas</a></li>
                   <?php endif; ?>
-                  <?php if (verificarPermisoEspecifico('crear_ingresos')): ?>
+                  <?php if (verificarPermisoEspecifico('crear_salidas')): ?>
                   <li><a href="salidas_nuevo.php">Nueva salida</a></li>
                   <?php endif; ?>
                 </ul>
@@ -138,16 +140,17 @@ require_once("../_conexion/sesion.php");
               </li>
               <?php endif; ?>
 
-              <!-- Movimientos -->
-              
+              <!-- Movimientos - NUEVO MÓDULO (solo lectura) -->
+              <?php if (tieneAccesoModulo('movimientos')): ?>
               <li>
                 <a>Movimientos<span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
-                  
-                  <li><a href="movimientos.php">Lista de Movimientos</a></li>
-                  
+                  <?php if (verificarPermisoEspecifico('ver_movimientos')): ?>
+                  <li><a href="movimientos_mostrar.php">Lista de Movimientos</a></li>
+                  <?php endif; ?>
                 </ul>
               </li>
+              <?php endif; ?>
 
             </ul>
           </li>
@@ -168,19 +171,6 @@ require_once("../_conexion/sesion.php");
               <!-- Almacén Clientes -->
               <?php if (tieneAccesoModulo('almacen clientes')): ?>
               <li><a href="almacen_clientes_mostrar.php">Almacén Clientes</a></li>
-              <!--
-              <li>
-                <a>Almacén Clientes<span class="fa fa-chevron-down"></span></a>
-                <ul class="nav child_menu">
-                  <?php if (verificarPermisoEspecifico('ver_almacen clientes')): ?>
-                  <li><a href="almacen_clientes_mostrar.php">Lista de almacenes</a></li>
-                  <?php endif; ?>
-                  <?php if (verificarPermisoEspecifico('crear_almacen clientes')): ?>
-                  <li><a href="almacen_clientes_nuevo.php">Nuevo almacén cliente</a></li>
-                  <?php endif; ?>
-                </ul>
-              </li>
-              -->
               <?php endif; ?>
 
             </ul>
@@ -366,4 +356,3 @@ require_once("../_conexion/sesion.php");
     <!-- /sidebar menu -->
   </div>
 </div>
-

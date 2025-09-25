@@ -1,6 +1,18 @@
 <?php
+
+// DEVOLUCIONES - VER (devoluciones_mostrar.php)
+//=======================================================================
+
 require_once("../_conexion/sesion.php");
-require_once("../_modelo/m_devolucion.php"); // cambiamos al modelo de devoluciones
+
+if (!verificarPermisoEspecifico('ver_devoluciones')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'DEVOLUCIONES', 'VER');
+    header("location: bienvenido.php?permisos=true");
+    exit;
+}
+
+require_once("../_modelo/m_devolucion.php");
 
 // ========================================================================
 // VARIABLES DE ALERTA

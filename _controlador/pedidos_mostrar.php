@@ -1,5 +1,13 @@
 <?php
 require_once("../_conexion/sesion.php");
+
+if (!verificarPermisoEspecifico('ver_pedidos')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'VER');
+    header("location: bienvenido.php?permisos=true");
+    exit;
+}
+
 require_once("../_modelo/m_pedidos.php");
 ?>
 
@@ -10,9 +18,7 @@ require_once("../_modelo/m_pedidos.php");
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
     <title>Pedidos Mostrar</title>
-
     <?php require_once("../_vista/v_estilo.php"); ?>
 </head>
 <body class="nav-md">
@@ -22,12 +28,9 @@ require_once("../_modelo/m_pedidos.php");
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
 
-            // Obtener lista de pedidos
             $pedidos = MostrarPedidos();
             
-            // Incluir la vista
             require_once("../_vista/v_pedidos_mostrar.php");
-
             require_once("../_vista/v_footer.php");
             ?>
         </div>

@@ -1,5 +1,5 @@
 <?php
-// sesion.php - Versión mejorada con mapeo completo
+// sesion.php - Versión actualizada con mapeo completo
 session_start();
 date_default_timezone_set('America/Lima');
 include("seguridad.php");
@@ -9,8 +9,6 @@ $id_personal = $_SESSION['id_personal'];
 $usuario_sesion = $_SESSION['usuario_sesion'];
 $cargo_sesion = $_SESSION['cargo_sesion'];
 $area_sesion = $_SESSION['area_sesion'] ?? '';
-
-
 
 /**
  * Función para verificar permiso específico (compatibilidad con código existente)
@@ -49,7 +47,7 @@ function verificarYRedireccionar($permiso_key, $modulo_nombre = '', $accion_nomb
  * @param string $nombre_controlador Nombre del controlador (ej: 'usuario_mostrar')
  */
 function verificarAccesoControlador($nombre_controlador) {
-    // MAPEO COMPLETO DE CONTROLADORES A PERMISOS (basado en tus permisos reales)
+    // MAPEO COMPLETO Y ACTUALIZADO DE CONTROLADORES A PERMISOS
     $mapeo_permisos = [
         // ==================== DASHBOARD ====================
         'dashboard' => 'ver_dashboard',
@@ -107,10 +105,18 @@ function verificarAccesoControlador($nombre_controlador) {
         'ingresos_nuevo' => 'crear_ingresos',
         'ingresos_editar' => 'editar_ingresos',
         
+        // ==================== SALIDAS ====================
+        'salidas_mostrar' => 'ver_salidas',
+        'salidas_nuevo' => 'crear_salidas',
+        'salidas_editar' => 'editar_salidas',
+        
         // ==================== DEVOLUCIONES ====================
         'devoluciones_mostrar' => 'ver_devoluciones',
         'devoluciones_nuevo' => 'crear_devoluciones',
         'devoluciones_editar' => 'editar_devoluciones',
+        
+        // ==================== MOVIMIENTOS ====================
+        'movimientos_mostrar' => 'ver_movimientos',
         
         // ==================== ALMACÉN ARCE ====================
         'almacen_arce_mostrar' => 'ver_almacen arce',
@@ -206,6 +212,7 @@ function verificarPermisoFlexible($modulo, $accion) {
     
     return false;
 }
+
 function tieneAccesoModulo($modulo) {
     if (!isset($_SESSION['permisos'][0])) {
         return false;

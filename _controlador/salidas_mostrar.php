@@ -1,9 +1,17 @@
 <?php
+//=======================================================================
+// SALIDAS - VER (salidas_mostrar.php)
+//=======================================================================
 require_once("../_conexion/sesion.php");
+
+if (!verificarPermisoEspecifico('ver_salidas')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'SALIDAS', 'VER');
+    header("location: bienvenido.php?permisos=true");
+    exit;
+}
+
 require_once("../_modelo/m_salidas.php");
-
-
-
 ?>
 
 

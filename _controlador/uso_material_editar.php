@@ -1,6 +1,16 @@
 <?php
+//=======================================================================
+// uso_material_editar.php - CONTROLADOR CORREGIDO
+//=======================================================================
 require_once("../_conexion/sesion.php");
 
+// VERIFICACIÓN DE PERMISOS
+if (!verificarPermisoEspecifico('editar_uso de material')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'USO DE MATERIAL', 'EDITAR');
+    header("location: bienvenido.php?permisos=true");
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">

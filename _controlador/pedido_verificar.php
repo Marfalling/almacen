@@ -1,5 +1,13 @@
 <?php
 require_once("../_conexion/sesion.php");
+
+
+if (!verificarPermisoEspecifico('ver_pedidos')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'VERIFICAR');
+    header("location: bienvenido.php?permisos=true");
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">

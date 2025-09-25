@@ -1,7 +1,20 @@
 <?php
+// ====================================================================
+// CONTROLADORES DE SEGURIDAD PARA PEDIDOS
+// ====================================================================
+
+// PEDIDOS - CREAR (pedidos_nuevo.php)
+
 require_once("../_conexion/sesion.php");
 
+if (!verificarPermisoEspecifico('crear_pedidos')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'CREAR');
+    header("location: bienvenido.php?permisos=true");
+    exit;
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 

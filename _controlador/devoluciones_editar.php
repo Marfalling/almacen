@@ -1,6 +1,15 @@
 <?php
+//=======================================================================
+// DEVOLUCIONES - EDITAR (devoluciones_editar.php)
+//=======================================================================
 require_once("../_conexion/sesion.php");
 
+if (!verificarPermisoEspecifico('editar_devoluciones')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'DEVOLUCIONES', 'EDITAR');
+    header("location: bienvenido.php?permisos=true");
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">

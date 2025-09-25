@@ -222,108 +222,7 @@
         </div>
     </div>
 </div>
-<!-- /page content -->
-<style>
-/* Estilos para badges más grandes y consistentes */
-.badge-lg {
-    font-size: 14px;
-    padding: 8px 12px;
-}
 
-/* Estilos generales para badges con mejor tamaño */
-.badge_size {
-    font-size: 12px;
-    padding: 6px 10px;
-    font-weight: 600;
-    border-radius: 4px;
-}
-
-/* Estilos específicos para cada tipo de badge */
-.badge-secondary {
-    background-color: #6c757d;
-    color: white;
-}
-
-.badge-success {
-    background-color: #28a745;
-    color: white;
-}
-
-.badge-warning {
-    background-color: #ffc107;
-    color: #212529;
-}
-
-.badge-primary {
-    background-color: #007bff;
-    color: white;
-}
-
-.badge-info {
-    background-color: #17a2b8;
-    color: white;
-}
-
-/* Estilos para la tabla */
-.table th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-}
-
-.thead-dark th {
-    background-color: #343a40;
-    color: white;
-}
-
-/* Estilos para inputs de cantidad */
-.cantidad-input {
-    text-align: center;
-    font-weight: bold;
-    border: 2px solid #28a745;
-    background-color: #ced4da;
-}
-
-.cantidad-input:focus {
-    border-color: #20c997;
-    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
-}
-
-/* Estilos responsive para impresión */
-@media print {
-    .btn, .x_title .col-sm-2, .title_right {
-        display: none !important;
-    }
-    
-    .badge {
-        color: #000 !important;
-        border: 1px solid #000 !important;
-    }
-    
-    .x_panel {
-        box-shadow: none !important;
-        border: 1px solid #ddd !important;
-    }
-}
-
-/* Mejora visual para checkboxes */
-.checkbox label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 30px;
-}
-
-/* Hover effects para mejorar UX */
-.badge:hover {
-    opacity: 0.8;
-    transition: opacity 0.2s ease;
-}
-
-.producto-checkbox:hover {
-    transform: scale(1.1);
-    transition: transform 0.2s ease;
-}
-</style>
 <script>
 function toggleProducto(checkbox) {
     const productId = checkbox.dataset.producto;
@@ -335,7 +234,7 @@ function toggleProducto(checkbox) {
         cantidadInput.focus();
     } else {
         cantidadInput.value = '';
-        cantidadInput.style.backgroundColor = '#adb5bd';
+        cantidadInput.style.backgroundColor = '#f8f9fa';
     }
 }
 

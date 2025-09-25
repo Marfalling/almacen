@@ -1,5 +1,4 @@
 <?php
-
 function MostrarUsoMaterial() 
 {
     include("../_conexion/conexion.php");
@@ -17,12 +16,12 @@ function MostrarUsoMaterial()
             LEFT JOIN obra o ON alm.id_obra = o.id_obra 
             LEFT JOIN cliente c ON alm.id_cliente = c.id_cliente 
             LEFT JOIN ubicacion u ON usm.id_ubicacion = u.id_ubicacion 
-            LEFT JOIN personal per1 ON usm.id_personal = per1.id_personal 
-            LEFT JOIN personal per2 ON usm.id_solicitante = per2.id_personal 
+            LEFT JOIN personal per1 ON usm.id_personal = per1.id_personal     -- quien registra
+            LEFT JOIN personal per2 ON usm.id_solicitante = per2.id_personal -- solicitante
             WHERE usm.est_uso_material <> 99 
             ORDER BY usm.fec_uso_material DESC";
     
-    $resc = mysqli_query($con, $sql);
+    $resc = mysqli_query($con, $sql) or die("Error en consulta: " . mysqli_error($con));
     $resultado = array();
     
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
@@ -32,6 +31,8 @@ function MostrarUsoMaterial()
     mysqli_close($con);
     return $resultado;
 }
+
+
 
 function ConsultarUsoMaterial($id_uso_material)
 {
@@ -111,7 +112,7 @@ function ConsultarUsoMaterialDetalle($id_uso_material)
 function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_personal, $materiales, $archivos_subidos) 
 {
     include("../_conexion/conexion.php");
-
+    $id_personal = $_SESSION['id_personal'];
     // Iniciar transacción ANTES de hacer cualquier cosa
     mysqli_autocommit($con, false);
 
@@ -240,7 +241,7 @@ function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_pers
 function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante, $materiales, $archivos_subidos) 
 {
     include("../_conexion/conexion.php");
-
+    
     // Obtener datos actuales del uso de material
     $sql_actual = "SELECT id_almacen, id_personal, id_ubicacion as ubicacion_anterior FROM uso_material WHERE id_uso_material = $id_uso_material";
     $result_actual = mysqli_query($con, $sql_actual);
@@ -410,7 +411,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante,
     }
 }
 
-function AnularUsoMaterial($id_uso_material, $id_personal)
+function AnularUsoMaterial($id_uso_material)
 {
     include("../_conexion/conexion.php");
 

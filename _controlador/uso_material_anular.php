@@ -1,6 +1,18 @@
 <?php
+//=======================================================================
+// uso_material_anular.php - CONTROLADOR CORREGIDO
+//=======================================================================
 require_once("../_conexion/sesion.php");
 require_once("../_conexion/conexion.php");
+
+// VERIFICACIÓN DE PERMISOS - Usar permiso de editar para anular
+if (!verificarPermisoEspecifico('editar_uso de material')) {
+    echo json_encode([
+        'tipo_mensaje' => 'error',
+        'mensaje' => 'No tiene permisos para anular uso de material'
+    ]);
+    exit;
+}
 
 // Configurar la respuesta JSON
 header('Content-Type: application/json');
@@ -67,7 +79,7 @@ try {
         throw new Exception('Error al obtener detalles del uso de material');
     }
     
-    // ✅ SOLUCIÓN: Marcar como inactivos los movimientos del uso de material en lugar de crear movimientos de reversión
+    // SOLUCIÓN: Marcar como inactivos los movimientos del uso de material en lugar de crear movimientos de reversión
     $sql_desactivar_movimientos = "UPDATE movimiento SET est_movimiento = 0 
                                   WHERE id_orden = $id_uso_material 
                                   AND tipo_orden = 4 
