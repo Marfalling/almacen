@@ -1,8 +1,11 @@
+<?php
+$html = '
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Devolución N° <?php echo $numero_devolucion; ?></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documento de Salida/Traslado</title>
     <style>
         @page {
             margin: 15mm 10mm 15mm 10mm;
@@ -21,8 +24,8 @@
             max-width: 100%;
             margin: 0 auto;
         }
-
-        /* HEADER */
+        
+        /* HEADER SECTION */
         .header {
             border: 2px solid #000;
             padding: 10px;
@@ -41,6 +44,7 @@
         
         .logo {
             width: 80px;
+            margin-right: 15px;
             margin-bottom: 5px;
         }
 
@@ -48,6 +52,18 @@
             max-width: 100%;
             max-height: 60px;
             object-fit: contain;
+        }
+        
+        .logo-placeholder {
+            width: 100%;
+            height: 60px;
+            border: 1px solid #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8pt;
+            font-weight: bold;
+            background-color: #f9f9f9;
         }
 
         .header-right {
@@ -59,17 +75,19 @@
             line-height: 1.3;
         }
 
-        /* CUADROS */
+        /* CONTENEDOR PARA ALINEAR CUADROS */
         .cuadros-container {
             position: relative;
             margin-bottom: 20px;
             min-height: 70px;
         }
 
+        /* ESTADO DE LA SALIDA */
         .estado-section {
             position: absolute;
             top: 0;
             left: 0;
+            width: auto;
         }
         
         .estado-box {
@@ -82,10 +100,12 @@
             min-width: 150px;
         }
 
+        /* TÍTULO Y NÚMERO DE SALIDA */
         .titulo-section {
             position: absolute;
             top: 0;
             right: 0;
+            width: auto;
         }
 
         .titulo-devolucion {
@@ -98,7 +118,7 @@
             min-width: 180px;
         }
 
-        /* INFORMACIÓN GENERAL */
+        /* INFORMACIÓN GENERAL - REORGANIZADA EN DOS FILAS */
         .info-general {
             border: 1px solid #000;
             padding: 10px;
@@ -115,7 +135,42 @@
             width: 48%;
         }
 
-        /* TABLA DE DETALLES */
+        /* SECCIÓN ORIGEN Y DESTINO */
+        .origen-destino-section {
+            margin-bottom: 15px;
+        }
+
+        .origen-destino-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .origen-box, .destino-box {
+            width: 48%;
+            border: 1px solid #000;
+            padding: 10px;
+            min-height: 120px;
+        }
+
+        .origen-header, .destino-header {
+            background-color: #e8f4f8;
+            padding: 5px;
+            margin: -10px -10px 10px -10px;
+            border-bottom: 1px solid #000;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .origen-header {
+            background-color: #fff2e8;
+        }
+
+        .destino-header {
+            background-color: #e8f8e8;
+        }
+
+        /* TABLA DE MATERIALES */
         .detalles-table {
             width: 100%;
             border-collapse: collapse;
@@ -129,6 +184,7 @@
             padding: 6px 4px;
             text-align: center;
             font-weight: bold;
+            font-size: 8pt;
         }
         
         .detalles-table td {
@@ -136,7 +192,11 @@
             padding: 4px 6px;
             vertical-align: top;
         }
-
+        
+        .text-center { text-align: center; }
+        .text-left { text-align: left; }
+        .text-right { text-align: right; }
+        
         .col-item { width: 10%; }
         .col-descripcion { width: 60%; }
         .col-cantidad { width: 15%; }
@@ -157,7 +217,7 @@
             padding-bottom: 3px;
         }
 
-        /* FIRMAS */
+        /* SECCIÓN DE FIRMAS */
         .firmas-section {
             margin-top: 30px;
             margin-bottom: 20px;
@@ -179,7 +239,6 @@
             margin-top: 50px;
             display: block;
         }
-        
 
         /* FOOTER */
         .footer {
@@ -191,8 +250,44 @@
             padding-top: 10px;
         }
 
-        .estado-activo { color: #006600; font-weight: bold; }
-        .estado-inactivo { color: #cc0000; font-weight: bold; }
+        /* UTILIDADES */
+        .field-label {
+            font-weight: bold;
+            display: inline-block;
+            min-width: 120px;
+        }
+
+        .field-value {
+            display: inline-block;
+        }
+
+        .mb-5 { margin-bottom: 5px; }
+        .mb-10 { margin-bottom: 10px; }
+        .mb-15 { margin-bottom: 15px; }
+        .mb-20 { margin-bottom: 20px; }
+
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        /* ESTADO */
+        .estado-activo {
+            color: #006600;
+            font-weight: bold;
+        }
+
+        .estado-anulado {
+            color: #cc0000;
+            font-weight: bold;
+        }
+
+        .estado-confirmado {
+            color: #cc0000;
+            font-weight: bold;
+        }
+
     </style>
 </head>
 <body>
@@ -201,7 +296,7 @@
         <div class="header">
             <div class="header-left">
                 <div class="logo">
-                    <?php echo ($imagenLogoBase64 ? '<img src="'.$imagenLogoBase64.'" alt="Logo">' : '<div style="border:1px solid #000; height:60px; text-align:center; line-height:60px;">LOGO</div>'); ?>
+                    ' . ($imagenLogoBase64 ? '<img src="' . $imagenLogoBase64 . '" alt="Logo">' : '<div class="logo-placeholder">LOGO</div>') . '
                 </div>
                 <div>MONTAJES E INGENIERÍA ARCE PERÚ S.A.C.</div>
             </div>
@@ -212,40 +307,40 @@
             </div>
         </div>
 
-        <!-- CUADROS -->
+        <!-- CONTENEDOR PARA CUADROS ALINEADOS -->
         <div class="cuadros-container">
+            <!-- ESTADO DE DEVOLUCION -->
             <div class="estado-section">
                 <div class="estado-box">
                     ESTADO:<br>
-                    <span class="<?php echo ($estado_texto == 'ACTIVO' ? 'estado-activo' : 'estado-inactivo'); ?>">
-                        <?php echo $estado_texto; ?>
-                    </span>
+                    <span class="' . ($estado_texto == 'ACTIVO' ? 'estado-activo' : 'estado-anulado') . '">' . $estado_texto . '</span>
                 </div>
             </div>
 
+            <!-- TÍTULO DE DEVOLUCION -->
             <div class="titulo-section">
                 <div class="titulo-devolucion">
                     DEVOLUCIÓN<br>
-                    Nº <?php echo $numero_devolucion; ?>
+                    Nº ' . $numero_devolucion . '
                 </div>
             </div>
         </div>
 
-        <!-- INFORMACIÓN GENERAL -->
+        <!-- INFORMACIÓN GENERAL - REORGANIZADA -->
         <div class="info-general">
             <div class="info-row">
                 <div class="info-left">
-                    <div><strong>Fecha de Devolución:</strong> <?php echo $fecha_devolucion; ?></div>
-                    <div><strong>Registrado por:</strong> <?php echo htmlspecialchars($nom_personal); ?></div>
+                    <div><strong>FECHA DE DEVOLUCIÓN:</strong> ' . $fecha_devolucion . '</div>
+                    <div><strong>REGISTRADO POR:</strong> ' .$nom_personal. '</div>
                 </div>
                 <div class="info-right">
-                    <div><strong>Almacén:</strong> <?php echo htmlspecialchars($almacen); ?></div>
-                    <div><strong>Ubicación:</strong> <?php echo htmlspecialchars($ubicacion); ?></div>
+                    <div><strong>ALMACÉN:</strong> ' .$almacen. '</div>
+                    <div><strong>UBICACIÓN:</strong> ' .$ubicacion. '</div>
                 </div>
             </div>
         </div>
 
-        <!-- TABLA DE DETALLES -->
+        <!-- TABLA DE MATERIALES -->
         <table class="detalles-table">
             <thead>
                 <tr>
@@ -256,19 +351,23 @@
                 </tr>
             </thead>
             <tbody>
-                <?php echo $detalles_html; ?>
+                ' . $detalles_html . '
             </tbody>
         </table>
 
         <!-- OBSERVACIONES -->
         <div class="observaciones-section">
             <div class="observaciones-header">OBSERVACIONES:</div>
-            <div><?php echo htmlspecialchars($observaciones); ?></div>
+            <div>' . $observaciones . '</div>
         </div>
+
+
+        
+        <div class="clearfix"></div>
 
         <!-- FOOTER CON FIRMAS -->
         <div class="footer">
-            <div class="firmas-section">
+            <div class="firmas-section clearfix">
                 <div class="firma-box">
                     <span class="firma-label">ENTREGADO POR</span>
                 </div>
@@ -281,9 +380,11 @@
             </div>
 
             <div style="margin-top:20px; font-size:7pt; color:#666;">
-                Fecha <?php echo $fecha_formateada; ?>
+                Fecha ' . $fecha_formateada . '
             </div>
         </div>
+
     </div>
 </body>
-</html>
+</html>';
+?>

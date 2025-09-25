@@ -12,12 +12,6 @@ $html = '
             size: A4;
         }
         
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
         body {
             font-family: Arial, sans-serif;
             font-size: 8pt;
@@ -81,6 +75,47 @@ $html = '
             line-height: 1.3;
         }
 
+        /* CUADROS */
+
+        .cuadros-container {
+            position: relative;
+            margin-bottom: 20px;
+            min-height: 70px;
+        }
+
+        .estado-section {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        .estado-box {
+            border: 2px solid #000;
+            padding: 8px 15px;
+            text-align: center;
+            font-size: 12pt;
+            font-weight: bold;
+            background-color: #f0f0f0;
+            min-width: 150px;
+        }
+
+        .titulo-section {
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+
+        .titulo-compra {
+            border: 2px solid #000;
+            padding: 8px 15px;
+            text-align: center;
+            font-size: 12pt;
+            font-weight: bold;
+            background-color: #f0f0f0;
+            min-width: 180px;
+        }
+
+
         /* TÍTULO Y NÚMERO DE ORDEN - ESTILO DEL PRIMER CÓDIGO */
         .titulo-orden {
             position: absolute;
@@ -92,14 +127,6 @@ $html = '
             font-size: 12pt;
             text-align: center;
             background-color: #f0f0f0;
-        }
-
-        .titulo-section {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            position: relative;
         }
 
         .titulo-left {
@@ -154,6 +181,7 @@ $html = '
         .obra-right {
             width: 35%;
             text-align: right;
+            align-self: flex-start;
         }
 
         /* TABLA DE PRODUCTOS */
@@ -241,6 +269,23 @@ $html = '
             width: 40%;
         }
 
+        /* INFORMACIÓN GENERAL */
+        .info-general {
+            border: 1px solid #000;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .info-left, .info-right {
+            width: 48%;
+        }
+
         /* INFORMACIÓN ADICIONAL DE LA COMPRA */
         .info-compra {
             border: 1px solid #000;
@@ -258,11 +303,27 @@ $html = '
             width: 48%;
         }
 
-        /* SECCIÓN DE FIRMAS - 3 COLUMNAS */
+        /* SECCIÓN DE FIRMAS */
         .firmas-section {
             margin-top: 30px;
             margin-bottom: 20px;
-            overflow: hidden; /* Para limpiar los floats */
+            overflow: hidden;
+        }
+
+        .firma-box {
+            float: left;
+            width: 33.3%;
+            padding: 10px;
+            text-align: center;
+            height: 80px;
+            border-top: 1px solid #000;
+        }
+
+        .firma-label {
+            font-size: 8pt;
+            font-weight: bold;
+            margin-top: 50px;
+            display: block;
         }
 
         .columnA {
@@ -290,13 +351,6 @@ $html = '
             text-align: center;
             height: 80px;
             border-top: 1px solid #000;
-        }
-
-        .firma-label {
-            font-size: 8pt;
-            font-weight: bold;
-            margin-top: 50px;
-            display: block;
         }
 
         /* FOOTER */
@@ -344,25 +398,35 @@ $html = '
         </div>
 
         <!-- TÍTULO DE ORDEN - ESTILO DEL PRIMER CÓDIGO -->
-        <div class="titulo-section">
-            <div class="titulo-left"></div>
-            <div class="titulo-orden">
-                ORDEN COMPRA<br>
-                C' . $numero_orden . '
+
+        <div class="cuadros-container">
+            <!-- ESTADO DE DEVOLUCION -->
+            <div class="estado-section">
+                <div class="estado-box">
+                    ESTADO:<br>
+                    <span class="' . ($estado_texto == 'ACTIVO' ? 'estado-activo' : 'estado-anulado') . '">' . $estado_texto . '</span>
+                </div>
+            </div>
+
+            <!-- TÍTULO DE COMPRA -->
+            <div class="titulo-section">
+                <div class="titulo-compra">
+                    ORDEN COMPRA<br>
+                    C' . $numero_orden . '
+                </div>
             </div>
         </div>
 
         <!-- INFORMACIÓN DEL PROVEEDOR -->
-        <div class="proveedor-section">
-            <div class="proveedor-row">
-                <div class="proveedor-left">
-                    <div class="mb-5"><span class="field-label">PROVEEDOR:</span> ' . $nom_proveedor . '</div>
-                    <div class="mb-5"><span class="field-label">RUC:</span> ' . $ruc_proveedor . '</div>
-                    <div class="mb-5"><span class="field-label">CONTACTO:</span> ' . $cont_proveedor . '</div>
-                </div>
-                <div class="proveedor-right">
-                    <div class="mb-5"><span class="field-label">TELÉFONO:</span> ' . $tel_proveedor . '</div>
-                    <div class="mb-5"><span class="field-label">DIRECCIÓN:</span> ' . $dir_proveedor . '</div>
+
+        <div class="info-general">
+            <div class="info-row">
+                <div class="info-left">
+                    <div><strong>PROVEEDOR:</strong> ' . $nom_proveedor . '</div>
+                    <div><strong>RUC:</strong> ' .$ruc_proveedor. '</div>
+                    <div><strong>CONTACTO:</strong> ' .$cont_proveedor. '</div>
+                    <div><strong>TELÉFONO:</strong> ' .$tel_proveedor. '</div>
+                    <div><strong>DIRECCIÓN:</strong> ' .$dir_proveedor. '</div>
                 </div>
             </div>
         </div>
@@ -374,18 +438,13 @@ $html = '
         </div>
 
         <!-- INFORMACIÓN DE LA OBRA Y FECHA -->
-        <div class="obra-info">
-            <div class="obra-left">
-                <div class="mb-10">
-                    <span class="field-label">REFERENCIA DE LA OBRA:</span> ' . $nombre_obra . '
-                </div>
-                <div class="mb-10">
-                    <span class="field-label">OBSERVACIONES:</span> ' . $observaciones . '
-                </div>
-            </div>
-            <div class="obra-left">
-                <div class="mb-10">
-                    <span class="field-label">FECHA:</span> ' . $fecha_compra . '
+
+        <div class="info-general">
+            <div class="info-row">
+                <div class="info-left">
+                    <div><strong>REFERENCIA DE LA OBRA:</strong> ' . $nombre_obra . '</div>
+                    <div><strong>OBSERVACIONES:</strong> ' .$observaciones. '</div>
+                    <div><strong>FECHA:</strong> ' .$fecha_compra. '</div>
                 </div>
             </div>
         </div>
@@ -431,41 +490,41 @@ $html = '
         <div class="clearfix"></div>
 
         <!-- INFORMACIÓN ADICIONAL DE LA COMPRA -->
-        <div class="info-compra">
-            <div class="info-compra-row">
-                <div class="info-compra-left">
-                    <div class="mb-5"><span class="field-label">DIRECCIÓN DE ENVÍO:</span> ' . $lugar_entrega . '</div>
-                    <div class="mb-5"><span class="field-label">REFERENCIA:</span> ' . $aclaraciones . '</div>
-                    <div class="mb-5"><span class="field-label">PLAZO DE ENTREGA:</span> ' . $plazo_entrega . '</div>
-                    <div class="mb-5"><span class="field-label">SOLICITADO POR:</span> ' . $nom_personal . '</div>
+
+        <div class="info-general">
+            <div class="info-row">
+                <div class="info-left">
+                    <div><strong>DIRECCIÓN DE ENVÍO:</strong> ' . $lugar_entrega . '</div>
+                    <div><strong>REFERENCIA:</strong> ' .$aclaraciones. '</div>
+                    <div><strong>PLAZO DE ENTREGA:</strong> ' . $plazo_entrega . '</div>
+                    <div><strong>SOLICITADO POR:</strong> ' .$nom_personal. '</div>
                 </div>
-                <div class="info-compra-right">
-                    <div class="mb-5"><span class="field-label">MONEDA:</span> ' . $moneda . '</div>
-                    <div class="mb-5"><span class="field-label">FECHA REQ.:</span> ' . $fecha_requerida . '</div>
-                    <div class="mb-5"><span class="field-label">CONDICIONES DE PAGO:</span> ' . $portes . '</div>
-                    <div class="mb-5"><span class="field-label">TELÉFONO:</span> ' . $telefono . '</div>
+                <div class="info-right">
+                    <div><strong>MONEDA:</strong> ' .$moneda. '</div>
+                    <div><strong>FECHA REQ.:</strong> ' .$fecha_requerida. '</div>
+                    <div><strong>CONDICIONES DE PAGO:</strong> ' .$portes. '</div>
+                    <div><strong>TELÉFONO:</strong> ' .$telefono. '</div>
                 </div>
             </div>
         </div>
 
         <!-- SECCIÓN DE FIRMAS - 3 COLUMNAS -->
-        <div class="firmas-section">
-            <div class="firmas-container">
-                <div class="columnA">
-                    <span class="firma-label">V°B° GERENCIA</span>
+        <div class="footer">
+            <div class="firmas-section clearfix">
+                <div class="firma-box">
+                    <span class="firma-label">ENTREGADO POR</span>
                 </div>
-                <div class="columnB">
-                    <span class="firma-label">V°B° DPTO. COMPRAS</span>
+                <div class="firma-box">
+                    <span class="firma-label">RECIBIDO POR</span>
                 </div>
-                <div class="columnC">
-                    <span class="firma-label">V°B° ADMINISTRACIÓN</span>
+                <div class="firma-box">
+                    <span class="firma-label">V°B° SUPERVISIÓN</span>
                 </div>
             </div>
-        </div>
 
-        <!-- FOOTER -->
-        <div class="footer">
-            Generado el ' . $fecha_formateada . '
+            <div style="margin-top:20px; font-size:7pt; color:#666;">
+                Fecha ' . $fecha_formateada . '
+            </div>
         </div>
     </div>
 </body>
