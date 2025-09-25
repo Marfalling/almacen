@@ -146,7 +146,7 @@ require_once("../_conexion/sesion.php");
                 <a>Movimientos<span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
                   <?php if (verificarPermisoEspecifico('ver_movimientos')): ?>
-                  <li><a href="movimientos_mostrar.php">Lista de Movimientos</a></li>
+                  <li><a href="movimientos.php">Lista de Movimientos</a></li>
                   <?php endif; ?>
                 </ul>
               </li>
