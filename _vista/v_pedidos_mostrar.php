@@ -238,15 +238,17 @@ foreach($pedidos as $pedido) {
                                             <td><?php echo $contador_detalle; ?></td>
                                             <td>
                                                 <strong><?php echo $detalle['prod_pedido_detalle']; ?></strong>
-                                                <?php if (!empty($detalle['nom_producto'])) { ?>
-                                                    <br><small class="text-muted">Código: <?php echo $detalle['nom_producto']; ?></small>
+                                                <?php if (!empty($detalle['cod_material'])) { ?>
+                                                    <br><small class="text-muted">Código: <?php echo $detalle['cod_material']; ?></small>
+                                                <?php } elseif (!empty($detalle['nom_producto'])) { ?>
+                                                    <br><small class="text-muted">Producto: <?php echo $detalle['nom_producto']; ?></small>
                                                 <?php } ?>
                                             </td>
                                             <td>
-                                                <span class="badge badge-secondary"><?php echo $unidad_nombre; ?></span>
+                                                <span class="badge badge-secondary badge_size"><?php echo $unidad_nombre; ?></span>
                                             </td>
                                             <td>
-                                                <span class="badge badge-primary"><?php echo $detalle['cant_pedido_detalle']; ?></span>
+                                                <span class="badge badge-primary badge_size"><?php echo $detalle['cant_pedido_detalle']; ?></span>
                                                 <?php if ($detalle['cant_fin_pedido_detalle'] !== null) { ?>
                                                     <br><small class="text-success">Verificado: <?php echo $detalle['cant_fin_pedido_detalle']; ?></small>
                                                 <?php } ?>

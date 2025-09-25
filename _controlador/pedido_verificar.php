@@ -1,6 +1,5 @@
 <?php
 require_once("../_conexion/sesion.php");
-
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -30,30 +29,34 @@ require_once("../_conexion/sesion.php");
 
             $id_pedido = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : 0;
 
+            // variable para pasar mensajes a JS
+            $alerta = null;
+
+            // VERIFICAR ITEM
             if (isset($_REQUEST['verificar_item'])) {
                 $id_pedido_detalle = $_REQUEST['id_pedido_detalle'];
                 $new_cant_fin = $_REQUEST['fin_cant_pedido_detalle'];
                 $rpta = verificarItem($id_pedido_detalle, $new_cant_fin);
-                
+
                 if ($rpta == "SI") {
-            ?>
-                    <script Language="JavaScript">
-                        alert('Pedido verificado exitosamente');
-                        location.href = 'pedido_verificar.php?id=<?php echo $id_pedido; ?>';
-                    </script>
-                <?php
+                    $alerta = [
+                        "icon" => "success",
+                        "title" => "¡Éxito!",
+                        "text" => "Item verificado correctamente",
+                        "redirect" => "pedido_verificar.php?id=$id_pedido",
+                        "timer" => 1500
+                    ];
                 } else {
-                ?>
-                    <script Language="JavaScript">
-                        alert('Error al finalizar la verificación del pedido: <?php echo $rpta; ?>');
-                    </script>
-            <?php
+                    $alerta = [
+                        "icon" => "error",
+                        "title" => "Error",
+                        "text" => "Error al verificar: $rpta"
+                    ];
                 }
             }
 
-            if (isset($_REQUEST['crear_orden'])){
-                //var_dump($_REQUEST);
-                //exit;
+            // CREAR ORDEN
+            if (isset($_REQUEST['crear_orden'])) {
                 $id_pedido = $_REQUEST['id'];
                 $proveedor = $_REQUEST['proveedor_orden'];
                 $moneda = $_REQUEST['moneda_orden'];
@@ -64,25 +67,27 @@ require_once("../_conexion/sesion.php");
                 $porte = $_REQUEST['tipo_porte'];
                 $fecha_orden = $_REQUEST['fecha_orden'];
                 $items = $_REQUEST['items_orden'];
-                
+
                 $rpta = CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items);
 
                 if ($rpta == "SI") {
-            ?>
-                    <script Language="JavaScript">
-                        alert('Pedido verificado exitosamente');
-                        location.href = 'pedido_verificar.php?id=<?php echo $id_pedido; ?>';
-                    </script>
-                <?php
+                    $alerta = [
+                        "icon" => "success",
+                        "title" => "¡Orden Creada!",
+                        "text" => "La orden de compra se ha creado exitosamente",
+                        "redirect" => "pedido_verificar.php?id=$id_pedido",
+                        "timer" => 2000
+                    ];
                 } else {
-                ?>
-                    <script Language="JavaScript">
-                        alert('Error al finalizar la verificación del pedido: <?php echo $rpta; ?>');
-                    </script>
-            <?php
+                    $alerta = [
+                        "icon" => "error",
+                        "title" => "Error",
+                        "text" => "Error al crear orden: $rpta"
+                    ];
                 }
             }
 
+            // CARGAR PEDIDO
             if ($id_pedido > 0) {
                 $pedido_data = ConsultarPedido($id_pedido);
                 $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
@@ -90,15 +95,27 @@ require_once("../_conexion/sesion.php");
                 $proveedor = MostrarProveedores();
                 $moneda = MostrarMoneda();
                 $obras = MostrarObrasActivas();
-                
+
                 if (!empty($pedido_data)) {
                     $pedido = $pedido_data[0];
                     require_once("../_vista/v_pedido_verificar.php");
                 } else {
-                    echo "<script>alert('Pedido no encontrado'); location.href='pedidos_mostrar.php';</script>";
+                    $alerta = [
+                        "icon" => "error",
+                        "title" => "Error",
+                        "text" => "Pedido no encontrado",
+                        "redirect" => "pedidos_mostrar.php",
+                        "timer" => 2000
+                    ];
                 }
             } else {
-                echo "<script>alert('ID de pedido no válido'); location.href='pedidos_mostrar.php';</script>";
+                $alerta = [
+                    "icon" => "error",
+                    "title" => "Error",
+                    "text" => "ID de pedido no válido",
+                    "redirect" => "pedidos_mostrar.php",
+                    "timer" => 2000
+                ];
             }
 
             require_once("../_vista/v_footer.php");
@@ -110,5 +127,26 @@ require_once("../_conexion/sesion.php");
     require_once("../_vista/v_script.php");
     require_once("../_vista/v_alertas.php");
     ?>
+
+    <?php if ($alerta): ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const alerta = <?php echo json_encode($alerta, JSON_UNESCAPED_UNICODE); ?>;
+
+        Swal.fire({
+            icon: alerta.icon,
+            title: alerta.title,
+            text: alerta.text,
+            showConfirmButton: !alerta.timer,
+            timer: alerta.timer || null,
+            allowOutsideClick: false
+        }).then(() => {
+            if (alerta.redirect) {
+                window.location.href = alerta.redirect;
+            }
+        });
+    });
+    </script>
+    <?php endif; ?>
 </body>
 </html>

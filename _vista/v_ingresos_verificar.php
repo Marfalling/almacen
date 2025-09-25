@@ -280,6 +280,7 @@
     text-align: center;
     font-weight: bold;
     border: 2px solid #28a745;
+    background-color: #ced4da;
 }
 
 .cantidad-input:focus {
@@ -334,7 +335,7 @@ function toggleProducto(checkbox) {
         cantidadInput.focus();
     } else {
         cantidadInput.value = '';
-        cantidadInput.style.backgroundColor = '#f8f9fa';
+        cantidadInput.style.backgroundColor = '#adb5bd';
     }
 }
 

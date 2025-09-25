@@ -224,6 +224,7 @@ function ConsultarPedidoDetalle($id_pedido)
                 END
              ) as archivos,
              p.nom_producto,
+             p.cod_material,  
              p.id_producto as id_producto,
              COALESCE(
                 (SELECT SUM(CASE
@@ -275,7 +276,6 @@ function ConsultarPedidoDetalle($id_pedido)
     mysqli_close($con);
     return $resultado;
 }
-
 function ActualizarPedido($id_pedido, $id_ubicacion, $nom_pedido, $fecha_necesidad, $num_ot, 
                          $contacto, $lugar_entrega, $aclaraciones, $materiales, $archivos_subidos) 
 {

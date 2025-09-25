@@ -241,15 +241,23 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                                     <td><?php echo $fecha_formateada; ?></td>
                                                     <td><span class="badge badge-<?php echo $estado_clase; ?>"><?php echo $estado_texto; ?></span></td>
                                                     <td>
-                                                        <button class="btn btn-info btn-xs" title="Ver Detalles">
+                                                        <button class="btn btn-info btn-xs btn-ver-detalle" 
+                                                                title="Ver Detalles"
+                                                                data-id-compra="<?php echo $compra['id_compra']; ?>"
+                                                                data-proveedor="<?php echo htmlspecialchars($compra['nom_proveedor']); ?>">
                                                             <i class="fa fa-eye"></i>
                                                         </button>
                                                         <?php if ($compra['est_compra'] == 1) { ?>
-                                                            <button class="btn btn-warning btn-xs ml-1" title="Editar">
-                                                                <i class="fa fa-edit"></i>
-                                                            </button>
+                                                    <button class="btn btn-warning btn-xs ml-1" 
+                                                            title="Editar Verificación"
+                                                            onclick="">
+                                                        <i class="fa fa-edit"></i>
+                                                    </button>
+
                                                         <?php } else { ?>
-                                                            <button class="btn btn-outline-secondary btn-xs ml-1" title="Editar">
+                                                            <button class="btn btn-outline-secondary btn-xs ml-1" 
+                                                                    title="No se puede editar orden aprobada"
+                                                                    disabled>
                                                                 <i class="fa fa-edit"></i>
                                                             </button>
                                                         <?php } ?>
@@ -637,22 +645,37 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Confirmación para finalizar verificación con SweetAlert
     document.getElementById('btn-finalizar-verificacion').addEventListener('click', function() {
+        const itemsVerificados = document.querySelectorAll('.item-verificado').length;
+        const totalItems = <?php echo count($pedido_detalle); ?>;
+        
         if (itemsVerificados === totalItems) {
-            if (confirm('¿Está seguro que desea finalizar la verificación de este pedido?')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '';
-                
-                const inputFinalizar = document.createElement('input');
-                inputFinalizar.type = 'hidden';
-                inputFinalizar.name = 'finalizar_verificacion';
-                inputFinalizar.value = '1';
-                
-                form.appendChild(inputFinalizar);
-                document.body.appendChild(form);
-                form.submit();
-            }
+            Swal.fire({
+                title: '¿Finalizar verificación?',
+                text: 'Esta acción completará la verificación del pedido',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, finalizar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '';
+                    
+                    const inputFinalizar = document.createElement('input');
+                    inputFinalizar.type = 'hidden';
+                    inputFinalizar.name = 'finalizar_verificacion';
+                    inputFinalizar.value = '1';
+                    
+                    form.appendChild(inputFinalizar);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
         }
     });
     
@@ -933,22 +956,40 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Confirmación para cancelar orden con SweetAlert
     btnCancelarOrden.addEventListener('click', function() {
-        if (confirm('¿Está seguro que desea cancelar? Se perderán los datos ingresados.')) {
-            limpiarItemsOrden();
-            formNuevaOrden.reset();
-            mostrarTablaOrdenes();
-        }
+        Swal.fire({
+            title: '¿Está seguro?',
+            text: 'Se perderán los datos ingresados',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, cancelar',
+            cancelButtonText: 'No, continuar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                limpiarItemsOrden();
+                formNuevaOrden.reset();
+                mostrarTablaOrdenes();
+            }
+        });
     });
     
-    formNuevaOrden.addEventListener('submit', function(e) {
+        formNuevaOrden.addEventListener('submit', function(e) {
         const fecha = document.getElementById('fecha_orden').value;
         const proveedor = document.getElementById('proveedor_orden').value;
         const moneda = document.getElementById('moneda_orden').value;
         
         if (!fecha || !proveedor || !moneda) {
             e.preventDefault();
-            alert('Por favor complete los campos obligatorios (Fecha, Proveedor y Moneda).');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campos Obligatorios',
+                text: 'Por favor complete los campos obligatorios (Fecha, Proveedor y Moneda).',
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'Entendido'
+            });
             return false;
         }
         
@@ -957,7 +998,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (itemsOrden.length === 0) {
             e.preventDefault();
-            alert('Debe agregar al menos un ítem a la orden antes de guardar.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Sin Items',
+                text: 'Debe agregar al menos un ítem a la orden antes de guardar.',
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'Entendido'
+            });
             return false;
         }
         

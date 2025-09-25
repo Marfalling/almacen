@@ -309,9 +309,6 @@
                                                             </td>
                                                             <td>
                                                                 <span class="badge badge-primary badge_size"><?php echo $ingreso['total_productos']; ?></span>
-                                                                <?php if ($tipo == 'COMPRA' && $ingreso['productos_ingresados'] != $ingreso['total_productos']) { ?>
-                                                                    / <span class="badge badge-secondary badge_size"><?php echo $ingreso['productos_ingresados']; ?></span>
-                                                                <?php } ?>
                                                             </td>
                                                             <td>
                                                                 <div class="d-flex flex-wrap gap-2">
