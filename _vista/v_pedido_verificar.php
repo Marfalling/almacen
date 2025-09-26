@@ -243,20 +243,19 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                                     <td>
                                                         <button class="btn btn-info btn-xs btn-ver-detalle" 
                                                                 title="Ver Detalles"
-                                                                data-id-compra="<?php echo $compra['id_compra']; ?>"
-                                                                data-proveedor="<?php echo htmlspecialchars($compra['nom_proveedor']); ?>">
+                                                                data-id-compra="<?php echo $compra['id_compra']; ?>">
                                                             <i class="fa fa-eye"></i>
                                                         </button>
+                                                        
                                                         <?php if ($compra['est_compra'] == 1) { ?>
-                                                    <button class="btn btn-warning btn-xs ml-1" 
-                                                            title="Editar Verificación"
-                                                            onclick="">
-                                                        <i class="fa fa-edit"></i>
-                                                    </button>
-
+                                                            <a href="pedido_verificar_editar.php?id_compra=<?php echo $compra['id_compra']; ?>" 
+                                                            class="btn btn-warning btn-xs ml-1" 
+                                                            title="Editar Orden">
+                                                                <i class="fa fa-edit"></i>
+                                                            </a>
                                                         <?php } else { ?>
                                                             <button class="btn btn-outline-secondary btn-xs ml-1" 
-                                                                    title="No se puede editar orden aprobada"
+                                                                    title="No se puede editar orden aprobada" 
                                                                     disabled>
                                                                 <i class="fa fa-edit"></i>
                                                             </button>
@@ -434,7 +433,242 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
         </div>
     </div>
 </div>
+<!-- Modal para Ver Detalles de Orden de Compra -->
+<div class="modal fade" id="modalDetalleCompra" tabindex="-1" role="dialog" aria-labelledby="modalDetalleCompraLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #f8f9fa; padding: 15px;">
+                <h5 class="modal-title" id="modalDetalleCompraLabel">
+                    <i class="fa fa-file-text-o text-primary"></i> 
+                    Detalles de Orden de Compra
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
+                <!-- Spinner de carga -->
+                <div id="loading-spinner" class="text-center" style="padding: 40px;">
+                    <i class="fa fa-spinner fa-spin fa-3x text-primary"></i>
+                    <p class="mt-2">Cargando detalles...</p>
+                </div>
+                
+                <!-- Contenido del detalle -->
+                <div id="contenido-detalle-compra" style="display: none;">
+                    <!-- Información general de la orden -->
+                    <div class="card mb-3">
+                        <div class="card-header" style="background-color: #e3f2fd; padding: 10px 15px;">
+                            <h6 class="mb-0">
+                                <i class="fa fa-info-circle text-primary"></i> 
+                                Información General
+                            </h6>
+                        </div>
+                        <div class="card-body" style="padding: 15px;">
+                            <div class="row" id="info-general-compra">
+                                <!-- Contenido será cargado dinámicamente -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Detalles de productos -->
+                    <div class="card">
+                        <div class="card-header" style="background-color: #e8f5e8; padding: 10px 15px;">
+                            <h6 class="mb-0">
+                                <i class="fa fa-list-alt text-success"></i> 
+                                Productos de la Orden
+                            </h6>
+                        </div>
+                        <div class="card-body" style="padding: 15px;">
+                            <div class="table-responsive">
+                                <table class="table table-striped table-sm" style="font-size: 12px;">
+                                    <thead style="background-color: #f8f9fa;">
+                                        <tr>
+                                            <th style="width: 10%;">#</th>
+                                            <th style="width: 15%;">Código</th>
+                                            <th style="width: 40%;">Descripción</th>
+                                            <th style="width: 10%;">Cantidad</th>
+                                            <th style="width: 12%;">Precio Unit.</th>
+                                            <th style="width: 13%;">Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tabla-productos-compra">
+                                        <!-- Contenido será cargado dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Total de la orden -->
+                            <div class="row mt-3">
+                                <div class="col-md-12">
+                                    <div id="total-compra" class="alert alert-info text-center" style="font-size: 16px; font-weight: bold; margin: 0;">
+                                        <!-- Total será cargado dinámicamente -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mensaje de error -->
+                <div id="error-detalle-compra" style="display: none;" class="text-center">
+                    <i class="fa fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5 class="text-warning">Error al cargar detalles</h5>
+                    <p class="text-muted">No se pudieron cargar los detalles de la orden.</p>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 15px;">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fa fa-times"></i> Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Event listener para botones de ver detalle
+    document.addEventListener('click', function(event) {
+        const btnVerDetalle = event.target.closest('.btn-ver-detalle');
+        if (btnVerDetalle) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const idCompra = btnVerDetalle.getAttribute('data-id-compra');
+            mostrarDetalleCompra(idCompra);
+        }
+    });
+    
+    function mostrarDetalleCompra(idCompra) {
+        // Mostrar modal
+        $('#modalDetalleCompra').modal('show');
+        
+        // Mostrar spinner y ocultar contenido
+        document.getElementById('loading-spinner').style.display = 'block';
+        document.getElementById('contenido-detalle-compra').style.display = 'none';
+        document.getElementById('error-detalle-compra').style.display = 'none';
+        
+        // Realizar petición AJAX
+        const formData = new FormData();
+        formData.append('accion', 'obtener_detalle');
+        formData.append('id_compra', idCompra);
+        
+        fetch('compra_detalles.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('loading-spinner').style.display = 'none';
+            
+            if (data.success) {
+                mostrarContenidoDetalle(data.compra, data.detalles);
+            } else {
+                mostrarError(data.message || 'Error desconocido');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('loading-spinner').style.display = 'none';
+            mostrarError('Error de conexión');
+        });
+    }
+    
+    function mostrarContenidoDetalle(compra, detalles) {
+        // Actualizar título del modal
+        const titulo = document.getElementById('modalDetalleCompraLabel');
+        titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de Compra - ORD-${compra.id_compra}`;
+        
+        // Llenar información general
+        const infoGeneral = document.getElementById('info-general-compra');
+        const fechaFormateada = new Date(compra.fec_compra).toLocaleDateString('es-PE');
+        const estadoTexto = (compra.est_compra == 2) ? 'Aprobada' : 'Pendiente';
+        const estadoClase = (compra.est_compra == 2) ? 'success' : 'warning';
+        
+        infoGeneral.innerHTML = `
+            <div class="col-md-6">
+                <p style="margin: 5px 0; font-size: 13px;">
+                    <strong>N° Orden:</strong> ORD-${compra.id_compra}
+                </p>
+                <p style="margin: 5px 0; font-size: 13px;">
+                    <strong>Proveedor:</strong> ${compra.nom_proveedor || 'No especificado'}
+                </p>
+                <p style="margin: 5px 0; font-size: 13px;">
+                    <strong>RUC:</strong> ${compra.ruc_proveedor || 'No especificado'}
+                </p>
+                <p style="margin: 5px 0; font-size: 13px;">
+                    <strong>Moneda:</strong> ${compra.nom_moneda || 'No especificada'}
+                </p>
+            </div>
+            <div class="col-md-6">
+                <p style="margin: 5px 0; font-size: 13px;">
+                    <strong>Fecha:</strong> ${fechaFormateada}
+                </p>
+                <p style="margin: 5px 0; font-size: 13px;">
+                    <strong>Estado:</strong> 
+                    <span class="badge badge-${estadoClase}">${estadoTexto}</span>
+                </p>
+                <p style="margin: 5px 0; font-size: 13px;">
+                    <strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'} ${compra.ape_personal || ''}
+                </p>
+                <p style="margin: 5px 0; font-size: 13px;">
+                    <strong>Plazo Entrega:</strong> ${compra.plaz_compra || 'No especificado'}
+                </p>
+            </div>
+        `;
+        
+        // Agregar información adicional si existe
+        if (compra.denv_compra || compra.obs_compra || compra.port_compra) {
+            infoGeneral.innerHTML += `
+                <div class="col-md-12 mt-3">
+                    <div class="border-top pt-2">
+                        ${compra.denv_compra ? `<p style="margin: 5px 0; font-size: 13px;"><strong>Dirección de Envío:</strong> ${compra.denv_compra}</p>` : ''}
+                        ${compra.obs_compra ? `<p style="margin: 5px 0; font-size: 13px;"><strong>Observaciones:</strong> ${compra.obs_compra}</p>` : ''}
+                        ${compra.port_compra ? `<p style="margin: 5px 0; font-size: 13px;"><strong>Tipo de Porte:</strong> ${compra.port_compra}</p>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Llenar tabla de productos
+        const tablaProductos = document.getElementById('tabla-productos-compra');
+        let htmlProductos = '';
+        let total = 0;
+        const simboloMoneda = compra.sim_moneda || (compra.id_moneda == 1 ? 'S/.' : 'US$');
+        
+        detalles.forEach((detalle, index) => {
+            const subtotal = parseFloat(detalle.cant_compra_detalle) * parseFloat(detalle.prec_compra_detalle);
+            total += subtotal;
+            
+            htmlProductos += `
+                <tr>
+                    <td style="font-weight: bold;">${index + 1}</td>
+                    <td>${detalle.cod_material || 'N/A'}</td>
+                    <td>${detalle.nom_producto}</td>
+                    <td class="text-center">${detalle.cant_compra_detalle}</td>
+                    <td class="text-right">${simboloMoneda} ${parseFloat(detalle.prec_compra_detalle).toFixed(2)}</td>
+                    <td class="text-right" style="font-weight: bold;">${simboloMoneda} ${subtotal.toFixed(2)}</td>
+                </tr>
+            `;
+        });
+        
+        tablaProductos.innerHTML = htmlProductos;
+        
+        // Mostrar total
+        const totalCompra = document.getElementById('total-compra');
+        totalCompra.innerHTML = `<i class="fa fa-calculator"></i> TOTAL: ${simboloMoneda} ${total.toFixed(2)}`;
+        
+        // Mostrar contenido
+        document.getElementById('contenido-detalle-compra').style.display = 'block';
+    }
+    
+    function mostrarError(mensaje) {
+        const errorDiv = document.getElementById('error-detalle-compra');
+        errorDiv.querySelector('p').textContent = mensaje;
+        errorDiv.style.display = 'block';
+    }
+});
+</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const esAutoOrden = <?php echo ($pedido['id_producto_tipo'] == 2) ? 'true' : 'false'; ?>;

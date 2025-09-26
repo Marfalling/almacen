@@ -569,20 +569,91 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
 }
 
 //-----------------------------------------------------------------------
-function ActualizarVerificacionPedido($id_pedido, $id_personal_verifica, $nuevo_estado) {
+function ObtenerOrdenPorId($id_compra) {
     include("../_conexion/conexion.php");
-
-    $sql = "UPDATE pedido 
-            SET id_personal_verifica = ?, 
-                est_pedido = ? 
-            WHERE id_pedido = ?";
+    
+    $sql = "SELECT c.*, p.id_pedido 
+            FROM compra c 
+            INNER JOIN pedido p ON c.id_pedido = p.id_pedido 
+            WHERE c.id_compra = ?";
     $stmt = mysqli_prepare($con, $sql);
-    mysqli_stmt_bind_param($stmt, "iii", $id_personal_verifica, $nuevo_estado, $id_pedido);
-    $ok = mysqli_stmt_execute($stmt);
-
+    mysqli_stmt_bind_param($stmt, "i", $id_compra);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $orden = mysqli_fetch_assoc($result);
+    
     mysqli_stmt_close($stmt);
     mysqli_close($con);
+    
+    return $orden;
+}
 
-    return $ok ? "SI" : "NO";
+function ObtenerDetalleOrden($id_compra) {
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT cd.*, p.nom_producto 
+            FROM compra_detalle cd 
+            INNER JOIN producto p ON cd.id_producto = p.id_producto 
+            WHERE cd.id_compra = ?";
+    $stmt = mysqli_prepare($con, $sql);
+    mysqli_stmt_bind_param($stmt, "i", $id_compra);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    
+    $detalles = array();
+    while ($row = mysqli_fetch_assoc($result)) {
+        $detalles[] = $row;
+    }
+    
+    mysqli_stmt_close($stmt);
+    mysqli_close($con);
+    
+    return $detalles;
+}
+
+function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items) {
+    include("../_conexion/conexion.php");
+    
+    // Escapar caracteres especiales
+    $observacion = mysqli_real_escape_string($con, $observacion);
+    $direccion = mysqli_real_escape_string($con, $direccion);
+    $plazo_entrega = mysqli_real_escape_string($con, $plazo_entrega);
+    $porte = mysqli_real_escape_string($con, $porte);
+    
+    // Actualizar cabecera de la orden
+    $sql = "UPDATE compra SET 
+            id_proveedor = $proveedor, 
+            id_moneda = $moneda, 
+            obs_compra = '$observacion', 
+            denv_compra = '$direccion', 
+            plaz_compra = '$plazo_entrega', 
+            port_compra = '$porte', 
+            fec_compra = '$fecha_orden' 
+            WHERE id_compra = $id_compra";
+    
+    if (mysqli_query($con, $sql)) {
+        // Actualizar detalles
+        foreach ($items as $id_detalle => $item) {
+            $id_detalle = intval($id_detalle);
+            $precio_unitario = floatval($item['precio_unitario']);
+            
+            $sql_detalle = "UPDATE compra_detalle 
+                           SET prec_compra_detalle = $precio_unitario 
+                           WHERE id_compra_detalle = $id_detalle";
+            
+            if (!mysqli_query($con, $sql_detalle)) {
+                $error = mysqli_error($con);
+                mysqli_close($con);
+                return "ERROR en detalle: " . $error;
+            }
+        }
+        
+        mysqli_close($con);
+        return "SI";
+    } else {
+        $error = mysqli_error($con);
+        mysqli_close($con);
+        return "ERROR: " . $error;
+    }
 }
 ?>
