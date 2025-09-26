@@ -117,14 +117,14 @@ function ConsultarDevolucionDetalle($id_devolucion)
     include("../_conexion/conexion.php");
 
     $sql = "SELECT dd.*, 
-                   pr.nom_producto, 
-                   um.nom_unidad_medida
-            FROM devolucion_detalle dd
-            INNER JOIN producto pr ON dd.id_producto = pr.id_producto
-            INNER JOIN unidad_medida um ON pr.id_unidad_medida = um.id_unidad_medida
-            WHERE dd.id_devolucion = $id_devolucion
-            AND dd.est_devolucion_detalle = 1
-            ORDER BY dd.id_devolucion_detalle";
+               pr.nom_producto, 
+               um.nom_unidad_medida
+        FROM devolucion_detalle dd
+        INNER JOIN producto pr ON dd.id_producto = pr.id_producto
+        INNER JOIN unidad_medida um ON pr.id_unidad_medida = um.id_unidad_medida
+        WHERE dd.id_devolucion = $id_devolucion
+          AND dd.est_devolucion_detalle = 1
+        ORDER BY dd.id_devolucion_detalle";
 
     $res = mysqli_query($con, $sql);
     $resultado = array();
@@ -174,8 +174,8 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion,
         mysqli_query($con, $sql_del_mov);
         
         // Eliminar detalles anteriores
-        $sql_del_det = "UPDATE devolucion_detalle SET est_devolucion_detalle = 0 
-                        WHERE id_devolucion = $id_devolucion";
+        $sql_del_det = "DELETE FROM devolucion_detalle 
+                WHERE id_devolucion = $id_devolucion";
         mysqli_query($con, $sql_del_det);
         
         // Insertar nuevos detalles y movimientos

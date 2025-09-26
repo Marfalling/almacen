@@ -8,7 +8,7 @@ $html = '
     <title>Pedido Interno de Compra</title>
     <style>
         @page {
-            margin: 20mm 15mm 20mm 15mm; /* top right bottom left */
+            margin: 15mm 10mm 15mm 10mm; /* top right bottom left */
             size: A4;
         }
         
@@ -17,14 +17,13 @@ $html = '
             font-size: 10pt;
             line-height: 1.3;
             color: #000;
-            padding: 10px; /* Padding adicional al body */
+            padding: 5px; /* Padding adicional al body */
             max-width: 100%;
         }
         
         .container {
             max-width: 100%;
             margin: 0 auto;
-            padding: 0 5px; /* Espaciado interno del contenedor */
         }
         
         .header {

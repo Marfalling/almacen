@@ -469,6 +469,18 @@ function obtenerPermisosUsuario($id_usuario) {
                     $permisos_formateados[0]['ver_auditoria'] = 1;
                 }
                 break;
+            case 'movimientos':
+                if ($accion == 'crear') {
+                    $permisos_formateados[0]['crear_movimientos'] = 1;
+                }
+                if ($accion == 'editar') {
+                    $permisos_formateados[0]['editar_movimientos'] = 1;
+                    $permisos_formateados[0]['edi_movimientos'] = 1; // compatibilidad
+                }
+                if ($accion == 'ver') {
+                    $permisos_formateados[0]['ver_movimientos'] = 1;
+                }
+                break;
         }
     }
     
