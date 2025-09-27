@@ -284,7 +284,7 @@ $html = '
         }
 
         .estado-confirmado {
-            color: #cc0000;
+            color: #006600;
             font-weight: bold;
         }
 
@@ -313,7 +313,8 @@ $html = '
             <div class="estado-section">
                 <div class="estado-box">
                     ESTADO:<br>
-                    <span class="' . ($estado_texto == 'ACTIVO' ? 'estado-activo' : 'estado-anulado') . '">' . $estado_texto . '</span>
+                    <span class="' . ($estado_texto == 'ACTIVO' ? 'estado-activo' :
+    ($estado_texto == 'CONFIRMADO' ? 'estado-confirmado' : 'estado-anulado')) . '">' . $estado_texto . '</span>
                 </div>
             </div>
 

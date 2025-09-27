@@ -169,4 +169,30 @@ function ConsultarCompraDetalle($id_compra)
     mysqli_close($con);
     return $resultado;
 }
+
+function AnularPedido($id_pedido, $id_personal)
+{
+    include("../_conexion/conexion.php");
+
+    // Verificar si el pedido ya está anulado
+    $sql_check = "SELECT est_pedido FROM pedido WHERE id_pedido = '$id_pedido'";
+    $res_check = mysqli_query($con, $sql_check);
+    $row_check = mysqli_fetch_array($res_check, MYSQLI_ASSOC);
+
+    if ($row_check && $row_check['est_pedido'] == 0) {
+        // El pedido ya está anulado
+        mysqli_close($con);
+        return false;
+    }
+
+    // Actualizar el estado del pedido a anulado (0)
+    $sql_update = "UPDATE pedido 
+                   SET est_pedido = 0
+                   WHERE id_pedido = '$id_pedido'";
+
+    $res_update = mysqli_query($con, $sql_update);
+
+    mysqli_close($con);
+    return $res_update;
+}
 ?>

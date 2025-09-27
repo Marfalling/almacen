@@ -32,6 +32,9 @@ if (!verificarPermisoEspecifico('editar_proveedor')) {
             require_once("../_vista/v_menu_user.php");
 
             require_once("../_modelo/m_proveedor.php");
+            require_once("../_modelo/m_moneda.php");
+
+            $monedas = MostrarMoneda();
 
             //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
@@ -41,9 +44,15 @@ if (!verificarPermisoEspecifico('editar_proveedor')) {
                 $dir = strtoupper($_REQUEST['dir']);
                 $tel = strtoupper($_REQUEST['tel']);
                 $cont = strtoupper($_REQUEST['cont']);
+                $email = strtoupper($_REQUEST['email']);
+                $item = $_REQUEST['item'];
+                $banco = strtoupper($_REQUEST['banco']);
+                $id_moneda = $_REQUEST['id_moneda'];
+                $nro_cuenta_corriente = $_REQUEST['nro_cuenta_corriente'];
+                $nro_cuenta_interbancaria = $_REQUEST['nro_cuenta_interbancaria'];
                 $est = isset($_REQUEST['est']) ? 1 : 0;
 
-                $rpta = ActualizarProveedor($id_proveedor, $nom, $ruc, $dir, $tel, $cont, $est);
+                $rpta = ActualizarProveedor($id_proveedor, $nom, $ruc, $dir, $tel, $cont, $est, $email, $item, $banco, $id_moneda, $nro_cuenta_corriente, $nro_cuenta_interbancaria);
 
                 if ($rpta == "SI") {
                 ?>
@@ -86,6 +95,12 @@ if (!verificarPermisoEspecifico('editar_proveedor')) {
                 $dir = $proveedor_data['dir_proveedor'];
                 $tel = $proveedor_data['tel_proveedor'];
                 $cont = $proveedor_data['cont_proveedor'];
+                $email = $proveedor_data['mail_proveedor'];
+                $item = $proveedor_data['item_proveedor'];
+                $banco = $proveedor_data['banco_proveedor'];
+                $id_moneda = $proveedor_data['id_moneda'];
+                $nro_cuenta_corriente = $proveedor_data['nro_cuenta_corriente'];
+                $nro_cuenta_interbancaria = $proveedor_data['nro_cuenta_interbancaria'];
                 $est = ($proveedor_data['est_proveedor'] == 1) ? "checked" : "";
             } else {
             ?>

@@ -58,8 +58,63 @@
                                 </div>
                             </div>
 
+                            <!-- Email -->
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Estado:</label>
+                                <label class="control-label col-md-3 col-sm-3">Email </label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="email" name="email" class="form-control" placeholder="Correo electrónico">
+                                </div>
+                            </div>
+
+                            <!-- Item -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Item </label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="number" name="item" class="form-control" placeholder="Item">
+                                </div>
+                            </div>
+
+                            <!-- Banco -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Banco </label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" name="banco" class="form-control" placeholder="Nombre del banco">
+                                </div>
+                            </div>
+
+                            <!-- Moneda (selecta) -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Moneda </label>
+                                <div class="col-md-9 col-sm-9">
+                                    <select name="id_moneda" class="form-control">
+                                        <option value="">-- Seleccione Moneda --</option>
+                                        <?php foreach ($monedas as $m) { ?>
+                                            <option value="<?php echo $m['id_moneda']; ?>">
+                                                <?php echo $m['nom_moneda']; ?>
+                                            </option>
+                                        <?php } ?>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Nro Cuenta Corriente -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Cuenta Corriente </label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" name="nro_cuenta_corriente" class="form-control" placeholder="Número de cuenta corriente">
+                                </div>
+                            </div>
+
+                            <!-- Nro Cuenta Interbancaria -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Cuenta Interbancaria </label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" name="nro_cuenta_interbancaria" class="form-control" placeholder="Número de cuenta interbancaria">
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Estado </label>
                                 <div class="col-md-9 col-sm-9">
                                     <div class="">
                                         <label>

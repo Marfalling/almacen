@@ -34,6 +34,9 @@ if (!verificarPermisoEspecifico('crear_proveedor')) {
             require_once("../_vista/v_menu_user.php");
 
             require_once("../_modelo/m_proveedor.php");
+            require_once("../_modelo/m_moneda.php");
+
+            $monedas = MostrarMoneda();
 
             //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
@@ -44,7 +47,15 @@ if (!verificarPermisoEspecifico('crear_proveedor')) {
                 $cont = strtoupper($_REQUEST['cont']);
                 $est = isset($_REQUEST['est']) ? 1 : 0;
 
-                $rpta = GrabarProveedor($nom, $ruc, $dir, $tel, $cont, $est);
+                // Nuevos campos
+                $email = strtolower(trim($_REQUEST['email']));
+                $item = isset($_REQUEST['item']) ? (int) $_REQUEST['item'] : null;
+                $banco = strtoupper(trim($_REQUEST['banco']));
+                $id_moneda = !empty($_REQUEST['id_moneda']) ? (int) $_REQUEST['id_moneda'] : null;
+                $nro_cuenta_corriente = trim($_REQUEST['nro_cuenta_corriente']);
+                $nro_cuenta_interbancaria= trim($_REQUEST['nro_cuenta_interbancaria']);
+
+                $rpta = GrabarProveedor($nom, $ruc, $dir, $tel, $cont, $est, $email, $item, $banco, $id_moneda, $nro_cuenta_corriente, $nro_cuenta_interbancaria);
 
                 if ($rpta == "SI") {
             ?>

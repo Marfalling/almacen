@@ -39,6 +39,12 @@
                                                 <th>Dirección</th>
                                                 <th>Telefono</th>
                                                 <th>Contacto</th>
+                                                <th>Email</th>
+                                                <th>Item</th>
+                                                <th>Banco</th>
+                                                <th>Moneda</th>
+                                                <th>Cuenta Corriente</th>
+                                                <th>Cuenta Interbancaria</th>
                                                 <th>Estado</th>
                                                 <th>Editar</th> 
                                             </tr>
@@ -55,6 +61,12 @@
                                                 $dir_proveedor = $value['dir_proveedor'];
                                                 $tel_proveedor = $value['tel_proveedor'];
                                                 $cont_proveedor = $value['cont_proveedor'];
+                                                $mail_proveedor = $value['mail_proveedor'];
+                                                $item_proveedor = $value['item_proveedor'];
+                                                $banco_proveedor = $value['banco_proveedor'];
+                                                $nom_moneda = $value['nom_moneda'];
+                                                $nro_cuenta_corriente = $value['nro_cuenta_corriente'];
+                                                $nro_cuenta_interbancaria = $value['nro_cuenta_interbancaria'];
                                                 $est_proveedor = $value['est_proveedor'];
                                                 $estado = ($est_proveedor == 1) ? "ACTIVO" : "INACTIVO";
                                                 
@@ -66,6 +78,12 @@
                                                     <td><?php echo $dir_proveedor; ?></td>
                                                     <td><?php echo $tel_proveedor; ?></td>
                                                     <td><?php echo $cont_proveedor; ?></td>
+                                                    <td><?php echo $mail_proveedor; ?></td>
+                                                    <td><?php echo $item_proveedor; ?></td>
+                                                    <td><?php echo $banco_proveedor; ?></td>
+                                                    <td><?php echo $nom_moneda; ?></td>
+                                                    <td><?php echo $nro_cuenta_corriente; ?></td>
+                                                    <td><?php echo $nro_cuenta_interbancaria; ?></td>
                                                     <td><?php echo $estado; ?></td>
                                                     <td>
                                                         <center><a class="btn btn-warning"  href="proveedor_editar.php?id_proveedor=<?php echo $id_proveedor; ?>"><i class="fa fa-edit"></i></a></center>

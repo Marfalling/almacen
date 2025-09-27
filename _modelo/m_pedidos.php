@@ -656,4 +656,5 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
         return "ERROR: " . $error;
     }
 }
+
 ?>

@@ -50,46 +50,56 @@ function AprobarCompra(id_compra) {
         }
     });
 }
-function AnularCompra(id_compra) {
+function AnularCompra(id_compra, id_pedido) {
     Swal.fire({
-        title: '¿Deseas anular esta compra?',
-        text: "Esta acción no se puede deshacer.",
+        title: '¿Qué deseas anular?',
+        text: "Selecciona una opción:",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Sí, anular',
+        showDenyButton: true,
+        confirmButtonColor: '#d33',
+        denyButtonColor: '#3085d6',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Solo O/C',
+        denyButtonText: 'O/C y Pedido',
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
+            // 🔹 Anular solo la orden de compra
             $.ajax({
                 url: 'compras_anular.php',
                 type: 'POST',
                 data: { id_compra: id_compra },
-                dataType: 'json', // 👈 importante
+                dataType: 'json',
                 success: function(response) {
                     if (response.tipo_mensaje === 'success') {
-                        Swal.fire(
-                            '¡Anulado!',
-                            response.mensaje,
-                            'success'
-                        ).then(() => {
-                            location.reload(); // Recargar cambios
-                        });
+                        Swal.fire('¡Anulado!', response.mensaje, 'success')
+                        .then(() => { location.reload(); });
                     } else {
-                        Swal.fire(
-                            'Error',
-                            response.mensaje,
-                            'error'
-                        );
+                        Swal.fire('Error', response.mensaje, 'error');
                     }
                 },
                 error: function() {
-                    Swal.fire(
-                        'Error',
-                        'No se pudo conectar con el servidor.',
-                        'error'
-                    );
+                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+                }
+            });
+        } else if (result.isDenied) {
+            // 🔹 Anular la orden y también el pedido
+            $.ajax({
+                url: 'compras_pedido_anular.php',
+                type: 'POST',
+                data: { id_compra: id_compra, id_pedido: id_pedido },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.tipo_mensaje === 'success') {
+                        Swal.fire('¡Anulado!', response.mensaje, 'success')
+                        .then(() => { location.reload(); });
+                    } else {
+                        Swal.fire('Error', response.mensaje, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
                 }
             });
         }
@@ -195,7 +205,7 @@ function AnularCompra(id_compra) {
                                                                title="Verificar">
                                                                 <i class="fa fa-check"></i>
                                                             </a>
-                                                            <a href="#" onclick="AnularCompra(<?php echo $compra['id_compra']; ?>)"
+                                                            <a href="#" onclick="AnularCompra(<?php echo $compra['id_compra']; ?>, <?php echo $compra['id_pedido']; ?>)"
                                                                class="btn btn-danger btn-sm"
                                                                title="Anular">
                                                                 <i class="fa fa-times"></i>

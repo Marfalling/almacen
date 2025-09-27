@@ -1,7 +1,7 @@
 <?php
 
 //-----------------------------------------------------------------------
-function GrabarProveedor($nom, $ruc, $dir, $tel, $cont, $est) 
+function GrabarProveedor($nom, $ruc, $dir, $tel, $cont, $est, $email, $item, $banco, $id_moneda, $nro_cuenta_corriente, $nro_cuenta_interbancaria) 
 {
     include("../_conexion/conexion.php");
     
@@ -16,8 +16,8 @@ function GrabarProveedor($nom, $ruc, $dir, $tel, $cont, $est)
     }
     
     // Insertar nuevo proveedor
-    $sql = "INSERT INTO proveedor (nom_proveedor, ruc_proveedor, dir_proveedor, tel_proveedor, cont_proveedor, est_proveedor) 
-            VALUES ('$nom', '$ruc', '$dir', '$tel', '$cont', $est)";
+    $sql = "INSERT INTO proveedor (nom_proveedor, ruc_proveedor, dir_proveedor, tel_proveedor, cont_proveedor, est_proveedor, mail_proveedor, item_proveedor, banco_proveedor, id_moneda, nro_cuenta_corriente, nro_cuenta_interbancaria) 
+            VALUES ('$nom', '$ruc', '$dir', '$tel', '$cont', $est, '$email', $item, '$banco', $id_moneda, '$nro_cuenta_corriente', '$nro_cuenta_interbancaria')";
     
     if (mysqli_query($con, $sql)) {
         mysqli_close($con);
@@ -33,7 +33,10 @@ function MostrarProveedores()
 {
     include("../_conexion/conexion.php");
 
-    $sqlc = "SELECT * FROM proveedor ORDER BY nom_proveedor ASC";
+    $sqlc = "SELECT p.*, m.nom_moneda 
+            FROM proveedor p
+            LEFT JOIN moneda m ON p.id_moneda = m.id_moneda
+            ORDER BY p.nom_proveedor ASC";
     $resc = mysqli_query($con, $sqlc);
 
     $resultado = array();
@@ -84,7 +87,7 @@ function ObtenerProveedor($id)
 }
 
 //-----------------------------------------------------------------------
-function ActualizarProveedor($id, $nom, $ruc, $dir, $tel, $cont, $est)
+function ActualizarProveedor($id, $nom, $ruc, $dir, $tel, $cont, $est, $email, $item, $banco, $id_moneda, $nro_cuenta_corriente, $nro_cuenta_interbancaria)
 {
     include("../_conexion/conexion.php");
     
@@ -105,6 +108,12 @@ function ActualizarProveedor($id, $nom, $ruc, $dir, $tel, $cont, $est)
             dir_proveedor = '$dir',
             tel_proveedor = '$tel',
             cont_proveedor = '$cont',
+            mail_proveedor = '$email',
+            item_proveedor = $item,
+            banco_proveedor = '$banco',
+            id_moneda = $id_moneda,
+            nro_cuenta_corriente = '$nro_cuenta_corriente',
+            nro_cuenta_interbancaria = '$nro_cuenta_interbancaria',
             est_proveedor = $est 
             WHERE id_proveedor = $id";
     

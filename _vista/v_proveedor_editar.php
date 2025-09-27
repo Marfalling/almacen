@@ -60,6 +60,62 @@
                                 </div>
                             </div>
 
+                            <!-- Email -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Email <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="email" name="email" value="<?php echo $email; ?>" class="form-control" placeholder="Correo electrónico" required="required">
+                                </div>
+                            </div>
+
+                            <!-- Item -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Item <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="number" name="item" value="<?php echo $item; ?>" class="form-control" placeholder="Item" required="required">
+                                </div>
+                            </div>
+
+                            <!-- Banco -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Banco <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" name="banco" value="<?php echo $banco; ?>" class="form-control" placeholder="Nombre del banco" required="required">
+                                </div>
+                            </div>
+
+                            <!-- Moneda -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Moneda <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <select name="id_moneda" class="form-control" required="required">
+                                        <option value="">-- Seleccione Moneda --</option>
+                                        <?php
+                                        foreach ($monedas as $m) {
+                                            $selected = ($m['id_moneda'] == $id_moneda) ? "selected" : "";
+                                            echo "<option value='{$m['id_moneda']}' {$selected}>{$m['nom_moneda']}</option>";
+                                        }
+                                        ?>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Cuenta Corriente -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Cuenta Corriente <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" name="nro_cuenta_corriente" value="<?php echo $nro_cuenta_corriente; ?>" class="form-control" placeholder="Número de cuenta corriente" required="required">
+                                </div>
+                            </div>
+
+                            <!-- Cuenta Interbancaria -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Cuenta Interbancaria <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" name="nro_cuenta_interbancaria" value="<?php echo $nro_cuenta_interbancaria; ?>" class="form-control" placeholder="Número de cuenta interbancaria" required="required">
+                                </div>
+                            </div>
+
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Estado:</label>
                                 <div class="col-md-9 col-sm-9">
