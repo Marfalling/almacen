@@ -54,11 +54,12 @@ function AprobarCompra($id_compra, $id_personal)
     return $res_update;
 }
 
+
 function AnularCompra($id_compra, $id_personal)
 {
     include("../_conexion/conexion.php");
 
-    // Primero, verificar si la compra ya está anulada
+    // verificar si la compra ya está anulada
     $sql_check = "SELECT est_compra FROM compra WHERE id_compra = '$id_compra'";
     $res_check = mysqli_query($con, $sql_check);
     $row_check = mysqli_fetch_array($res_check, MYSQLI_ASSOC);
@@ -69,7 +70,52 @@ function AnularCompra($id_compra, $id_personal)
         return false;
     }
 
-    // Actualizar el estado de la compra a anulada (3)
+    // Obtener el id_pedido asociado a esta compra
+    $sql_pedido = "SELECT id_pedido FROM compra WHERE id_compra = '$id_compra'";
+    $res_pedido = mysqli_query($con, $sql_pedido);
+    $row_pedido = mysqli_fetch_array($res_pedido, MYSQLI_ASSOC);
+    $id_pedido = $row_pedido['id_pedido'];
+
+    //Obtener los productos que estaban en esta orden de compra
+    $sql_productos = "SELECT id_producto FROM compra_detalle 
+                      WHERE id_compra = '$id_compra' AND est_compra_detalle = 1";
+    $res_productos = mysqli_query($con, $sql_productos);
+    
+    $productos_en_compra = array();
+    while ($row_prod = mysqli_fetch_array($res_productos, MYSQLI_ASSOC)) {
+        $productos_en_compra[] = $row_prod['id_producto'];
+    }
+
+    //Revertir el estado de los items del pedido que estaban en esta orden
+    // Solo si no están en otra orden de compra activa
+    if (!empty($productos_en_compra)) {
+        foreach ($productos_en_compra as $id_producto) {
+            // Verificar si este producto está en otra orden de compra activa del mismo pedido
+            $sql_check_otras = "SELECT COUNT(*) as total 
+                               FROM compra_detalle cd
+                               INNER JOIN compra c ON cd.id_compra = c.id_compra
+                               WHERE cd.id_producto = '$id_producto' 
+                               AND c.id_pedido = '$id_pedido'
+                               AND c.id_compra != '$id_compra'
+                               AND c.est_compra != 0
+                               AND cd.est_compra_detalle = 1";
+            
+            $res_check_otras = mysqli_query($con, $sql_check_otras);
+            $row_check_otras = mysqli_fetch_array($res_check_otras, MYSQLI_ASSOC);
+            
+            // Si NO está en otra orden activa, revertir su estado a 1 (disponible)
+            if ($row_check_otras['total'] == 0) {
+                $sql_revertir = "UPDATE pedido_detalle 
+                                SET est_pedido_detalle = 1 
+                                WHERE id_pedido = '$id_pedido' 
+                                AND id_producto = '$id_producto'
+                                AND est_pedido_detalle = 2";
+                mysqli_query($con, $sql_revertir);
+            }
+        }
+    }
+
+    // Actualizar el estado de la compra a anulada (0)
     $sql_update = "UPDATE compra 
                    SET est_compra = 0
                    WHERE id_compra = '$id_compra'";
@@ -79,6 +125,7 @@ function AnularCompra($id_compra, $id_personal)
     mysqli_close($con);
     return $res_update;
 }
+
 
 function ConsultarCompra($id_compra)
 {

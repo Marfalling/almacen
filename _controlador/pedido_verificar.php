@@ -1,7 +1,6 @@
 <?php
 require_once("../_conexion/sesion.php");
 
-
 if (!verificarPermisoEspecifico('ver_pedidos')) {
     require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'VERIFICAR');
@@ -36,6 +35,8 @@ if (!verificarPermisoEspecifico('ver_pedidos')) {
             require_once("../_modelo/m_moneda.php");
 
             $id_pedido = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : 0;
+            $id_compra_editar = isset($_REQUEST['id_compra']) ? intval($_REQUEST['id_compra']) : 0;
+            $modo_editar = ($id_compra_editar > 0);
 
             // variable para pasar mensajes a JS
             $alerta = null;
@@ -63,8 +64,63 @@ if (!verificarPermisoEspecifico('ver_pedidos')) {
                 }
             }
 
+            // ACTUALIZAR ORDEN
+            else if (isset($_REQUEST['actualizar_orden'])) {
+                $id_compra = $_REQUEST['id_compra'];
+                $proveedor_sel = $_REQUEST['proveedor_orden'];
+                $moneda_sel = $_REQUEST['moneda_orden'];
+                $observacion = $_REQUEST['observaciones_orden'];
+                $direccion = $_REQUEST['direccion_envio'];
+                $plazo_entrega = $_REQUEST['plazo_entrega'];
+                $porte = $_REQUEST['tipo_porte'];
+                $fecha_orden = $_REQUEST['fecha_orden'];
+                $items = $_REQUEST['items_orden'] ?? [];
+
+                if (empty($proveedor_sel) || empty($moneda_sel) || empty($fecha_orden)) {
+                    $alerta = [
+                        "icon" => "error",
+                        "title" => "Error",
+                        "text" => "Complete todos los campos obligatorios (Fecha, Proveedor y Moneda)"
+                    ];
+                } elseif (empty($items)) {
+                    $alerta = [
+                        "icon" => "error",
+                        "title" => "Error",
+                        "text" => "Debe tener al menos un item en la orden"
+                    ];
+                } else {
+                    $rpta = ActualizarOrdenCompra(
+                        $id_compra,
+                        $proveedor_sel,
+                        $moneda_sel,
+                        $observacion,
+                        $direccion,
+                        $plazo_entrega,
+                        $porte,
+                        $fecha_orden,
+                        $items
+                    );
+
+                    if ($rpta == "SI") {
+                        $alerta = [
+                            "icon" => "success",
+                            "title" => "¡Orden Actualizada!",
+                            "text" => "La orden de compra se ha actualizado exitosamente",
+                            "redirect" => "pedido_verificar.php?id=$id_pedido",
+                            "timer" => 2000
+                        ];
+                    } else {
+                        $alerta = [
+                            "icon" => "error",
+                            "title" => "Error",
+                            "text" => "Error al actualizar orden: $rpta"
+                        ];
+                    }
+                }
+            }
+
             // CREAR ORDEN
-            if (isset($_REQUEST['crear_orden'])) {
+            else if (isset($_REQUEST['crear_orden'])) {
                 $id_pedido = $_REQUEST['id'];
                 $proveedor = $_REQUEST['proveedor_orden'];
                 $moneda = $_REQUEST['moneda_orden'];
@@ -94,15 +150,32 @@ if (!verificarPermisoEspecifico('ver_pedidos')) {
                     ];
                 }
             }
+            
 
             // CARGAR PEDIDO
             if ($id_pedido > 0) {
-                $pedido_data = ConsultarPedido($id_pedido);
-                $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
-                $pedido_compra = ConsultarCompra($id_pedido);
-                $proveedor = MostrarProveedores();
-                $moneda = MostrarMoneda();
-                $obras = MostrarObrasActivas();
+            // Primero intenta cargar el pedido activo
+            $pedido_data = ConsultarPedido($id_pedido);
+            
+            // Si no encuentra el pedido activo, busca también los anulados
+            if (empty($pedido_data)) {
+                $pedido_data = ConsultarPedidoAnulado($id_pedido);
+            }
+            
+            $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
+            $pedido_compra = ConsultarCompra($id_pedido);
+            $proveedor = MostrarProveedores();
+            $moneda = MostrarMoneda();
+            $obras = MostrarObrasActivas();
+
+
+                // Cargar datos de la orden si estamos editando
+                $orden_data = null;
+                $orden_detalle = null;
+                if ($modo_editar) {
+                    $orden_data = ObtenerOrdenPorId($id_compra_editar);
+                    $orden_detalle = ObtenerDetalleOrden($id_compra_editar);
+                }
 
                 if (!empty($pedido_data)) {
                     $pedido = $pedido_data[0];

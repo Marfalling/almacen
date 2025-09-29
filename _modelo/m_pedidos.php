@@ -142,7 +142,7 @@ function MostrarPedidos()
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion AND u.est_ubicacion = 1
              LEFT JOIN personal pr ON p.id_personal = pr.id_personal AND pr.est_personal = 1
              LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
-             WHERE p.est_pedido = 1
+             WHERE p.est_pedido IN (0, 1)
              ORDER BY p.fec_pedido DESC";
 
     $resc = mysqli_query($con, $sqlc);
@@ -204,7 +204,7 @@ function ConsultarPedido($id_pedido)
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion
              LEFT JOIN personal pr ON p.id_personal = pr.id_personal
              LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
-             WHERE p.id_pedido = ? AND p.est_pedido = 1";
+             WHERE p.id_pedido = ? ";
     
     // Usar prepared statement para seguridad
     $stmt = mysqli_prepare($con, $sqlc);
@@ -630,7 +630,7 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
             port_compra = '$porte', 
             fec_compra = '$fecha_orden' 
             WHERE id_compra = $id_compra";
-    
+    echo $sql;
     if (mysqli_query($con, $sql)) {
         // Actualizar detalles
         foreach ($items as $id_detalle => $item) {
@@ -656,5 +656,66 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
         return "ERROR: " . $error;
     }
 }
+function AnularPedido($id_pedido, $id_personal)
+{
+    include("../_conexion/conexion.php");
+
+    // Verificar si el pedido ya está anulado
+    $sql_check = "SELECT est_pedido FROM pedido WHERE id_pedido = '$id_pedido'";
+    $res_check = mysqli_query($con, $sql_check);
+    $row_check = mysqli_fetch_array($res_check, MYSQLI_ASSOC);
+
+    if ($row_check && $row_check['est_pedido'] == 0) {
+        // El pedido ya está anulado
+        mysqli_close($con);
+        return false;
+    }
+
+    // Actualizar el estado del pedido a anulado (0)
+    $sql_update = "UPDATE pedido 
+                   SET est_pedido = 0
+                   WHERE id_pedido = '$id_pedido'";
+
+    $res_update = mysqli_query($con, $sql_update);
+
+    mysqli_close($con);
+    return $res_update;
+}
+function ConsultarPedidoAnulado($id_pedido)
+{
+    include("../_conexion/conexion.php");
+
+    $sqlc = "SELECT p.*, 
+                COALESCE(ob.nom_obra, 'N/A') as nom_obra,
+                COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
+                COALESCE(u.nom_ubicacion, 'N/A') as nom_ubicacion,
+                COALESCE(a.nom_almacen, 'N/A') as nom_almacen,
+                COALESCE(pr.nom_personal, 'Sin asignar') as nom_personal,
+                COALESCE(pr.ape_personal, '') as ape_personal,
+                COALESCE(pt.nom_producto_tipo, 'N/A') as nom_producto_tipo
+             FROM pedido p 
+             LEFT JOIN almacen a ON p.id_almacen = a.id_almacen
+             LEFT JOIN obra ob ON a.id_obra = ob.id_obra
+             LEFT JOIN cliente c ON a.id_cliente = c.id_cliente
+             LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion
+             LEFT JOIN personal pr ON p.id_personal = pr.id_personal
+             LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
+             WHERE p.id_pedido = ?";
+    
+    $stmt = mysqli_prepare($con, $sqlc);
+    mysqli_stmt_bind_param($stmt, "i", $id_pedido);
+    mysqli_stmt_execute($stmt);
+    $resc = mysqli_stmt_get_result($stmt);
+    
+    $resultado = array();
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $resultado[] = $rowc;
+    }
+
+    mysqli_stmt_close($stmt);
+    mysqli_close($con);
+    return $resultado;
+}
+
 
 ?>

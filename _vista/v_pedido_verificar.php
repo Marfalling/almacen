@@ -1,21 +1,25 @@
 <?php 
 //=======================================================================
-// VISTA: v_pedidos_verificar.php - VERSIÓN COMPACTA
+// VISTA: v_pedidos_verificar.php -  CON EDICIÓN INTEGRADA
 //=======================================================================
-$pedido = $pedido_data[0]; // Datos del pedido principal
+$pedido = $pedido_data[0];
+$pedido_anulado = ($pedido['est_pedido'] == 0);
 ?>
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
         <div class="page-title">
             <div class="title_left">
-                <h3>Verificar Pedido</h3>
+                <h3>Verificar Pedido <?php 
+                    echo $modo_editar ? '- Editando Orden' : ''; 
+                    echo $pedido_anulado ? ' - PEDIDO ANULADO' : '';
+                ?></h3>
             </div>
         </div>
 
         <div class="clearfix"></div>
 
-        <!-- Información básica del pedido - MÁS COMPACTA -->
+        <!-- Información básica del pedido -->
         <div class="row mb-2">
             <div class="col-md-12">
                 <div class="x_panel">
@@ -48,8 +52,13 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                 <div class="x_panel">
                     <div class="x_title" style="padding: 8px 15px;">
                         <h2 style="margin: 0; font-size: 16px;">Items Pendientes <small id="contador-pendientes">(<?php echo count($pedido_detalle); ?> items)</small></h2>
+                        <?php if ($pedido_anulado): ?>
+                                <span class="badge badge-danger ml-2">PEDIDO ANULADO</span>
+                            <?php endif; ?>
+                        </h2>
                         <div class="clearfix"></div>
                     </div>
+                        
                     <div class="x_content" style="max-height: 650px; overflow-y: auto; padding: 5px;">
                         <div id="contenedor-pendientes">
                             <?php 
@@ -83,6 +92,9 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                 $esVerificado = !is_null($detalle['cant_fin_pedido_detalle']);
                                 $stockInsuficiente = $detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle'];
 
+                                // CORRECCIÓN: Verificar si el pedido está anulado
+                                $pedidoAnulado = ($pedido['est_pedido'] == 0);
+
                                 $esAutoOrden = ($pedido['id_producto_tipo'] == 2);
                                 if ($esAutoOrden) {
                                     $esVerificado = true;
@@ -111,6 +123,17 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                     $icono = 'fa-clock-o';
                                     $estadoTexto = 'Pendiente';
                                 }
+
+                                // Verificar si este item ya está en la orden que estamos editando
+                                $enOrdenActual = false;
+                                if ($modo_editar && !empty($orden_detalle)) {
+                                    foreach ($orden_detalle as $item_orden) {
+                                        if ($item_orden['id_producto'] == $detalle['id_producto']) {
+                                            $enOrdenActual = true;
+                                            break;
+                                        }
+                                    }
+                                }
                             ?>
                             <div class="item-pendiente border mb-2" 
                                 style="background-color: <?php echo $colorFondo; ?>; border-left: 4px solid <?php echo $colorBorde; ?> !important; padding: 8px 12px; border-radius: 4px;" 
@@ -132,7 +155,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                             data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
                                             data-cantidad="<?php echo $detalle['cant_pedido_detalle']; ?>">
                                         </div>
-                                    <?php } elseif (!$esVerificado && $stockInsuficiente) { ?>
+                                    <?php } elseif (!$esVerificado && $stockInsuficiente && !$pedidoAnulado) { ?>
                                         <button type="button" class="btn btn-success btn-xs verificar-btn"
                                                 data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
                                                 data-cantidad-actual="<?php echo $detalle['cant_pedido_detalle']; ?>"
@@ -141,7 +164,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                             Verificar
                                         </button>
                                         
-                                    <?php } elseif ($esVerificado && $stockInsuficiente && $detalle['est_pedido_detalle'] != 2) { ?>
+                                    <?php } elseif ($esVerificado && $stockInsuficiente && $detalle['est_pedido_detalle'] != 2 && !$modo_editar  && !$pedidoAnulado) { ?>
                                         <button type="button" 
                                                 class="btn btn-primary btn-xs btn-agregarOrden" 
                                                 data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
@@ -152,6 +175,23 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                                 style="padding: 2px 8px; font-size: 11px;">
                                             <i class="fa fa-check"></i> Agregar a Orden
                                         </button>
+                                        
+                                    <?php } elseif ($esVerificado && $stockInsuficiente && $detalle['est_pedido_detalle'] != 2 && $modo_editar && !$enOrdenActual && !$pedidoAnulado) { ?>
+                                        <button type="button" 
+                                                class="btn btn-primary btn-xs btn-agregarOrden" 
+                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                                                data-cantidad-verificada="<?php echo htmlspecialchars($detalle['cant_fin_pedido_detalle']); ?>"
+                                                title="Agregar a Orden" 
+                                                style="padding: 2px 8px; font-size: 11px;">
+                                            <i class="fa fa-plus"></i> Agregar
+                                        </button>
+                                        
+                                    <?php } elseif ($enOrdenActual) { ?>
+                                        <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px;">
+                                            <i class="fa fa-check"></i> En Orden
+                                        </span>
                                         
                                     <?php } elseif ($esVerificado && !$stockInsuficiente) { ?>
                                         <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">
@@ -205,18 +245,21 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                     <div class="x_title" style="padding: 8px 15px;">
                         <div class="d-flex justify-content-between align-items-center">
                             <h2 style="margin: 0; font-size: 16px;">
-                                Items Verificados 
+                                <?php echo $modo_editar ? 'Editando Orden' : 'Items Verificados'; ?>
                                 <small id="contador-verificados">(0 items)</small>
                             </h2>
+                            <?php if (!$modo_editar && !$pedido_anulado): ?>
                             <button type="button" class="btn btn-primary btn-sm" id="btn-nueva-orden" style="padding: 4px 8px; font-size: 12px;">
                                 <i class="fa fa-plus"></i> Nueva Orden
                             </button>
+                            <?php endif; ?>
                         </div>
                         <div class="clearfix"></div>
                     </div>
                     
                     <div class="x_content" style="max-height: 650px; overflow-y: auto; padding: 5px;">
-                        <div id="contenedor-tabla-ordenes">
+                        <!-- TABLA DE ÓRDENES EXISTENTES -->
+                        <div id="contenedor-tabla-ordenes" <?php echo $modo_editar ? 'style="display: none;"' : ''; ?>>
                             <div class="table-responsive">
                                 <table class="table table-striped table-bordered" style="font-size: 12px;">
                                     <thead style="background-color: #f8f9fa;">
@@ -231,8 +274,19 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                     <tbody id="tbody-ordenes">
                                         <?php if (!empty($pedido_compra)) { ?>
                                             <?php foreach ($pedido_compra as $compra) {
-                                                $estado_texto = ($compra['est_compra'] == 2) ? 'Aprobada' : 'Pendiente';
-                                                $estado_clase = ($compra['est_compra'] == 2) ? 'success' : 'warning';
+                                                //Mostrar correctamente los estados incluyendo "Anulada"
+                                                $estado_texto = '';
+                                                $estado_clase = '';
+                                                if ($compra['est_compra'] == 0) {
+                                                    $estado_texto = 'Anulada';
+                                                    $estado_clase = 'danger';
+                                                } elseif ($compra['est_compra'] == 2) {
+                                                    $estado_texto = 'Aprobada';
+                                                    $estado_clase = 'success';
+                                                } else {
+                                                    $estado_texto = 'Pendiente';
+                                                    $estado_clase = 'warning';
+                                                }
                                                 $fecha_formateada = date('d/m/Y', strtotime($compra['fec_compra']));
                                             ?>
                                                 <tr>
@@ -248,16 +302,32 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                                         </button>
                                                         
                                                         <?php if ($compra['est_compra'] == 1) { ?>
-                                                            <a href="pedido_verificar_editar.php?id_compra=<?php echo $compra['id_compra']; ?>" 
-                                                            class="btn btn-warning btn-xs ml-1" 
-                                                            title="Editar Orden">
+                                                            <button class="btn btn-warning btn-xs ml-1 btn-editar-orden" 
+                                                                    title="Editar Orden"
+                                                                    data-id-compra="<?php echo $compra['id_compra']; ?>">
                                                                 <i class="fa fa-edit"></i>
-                                                            </a>
+                                                            </button>
                                                         <?php } else { ?>
                                                             <button class="btn btn-outline-secondary btn-xs ml-1" 
                                                                     title="No se puede editar orden aprobada" 
                                                                     disabled>
                                                                 <i class="fa fa-edit"></i>
+                                                            </button>
+                                                        <?php } ?>
+
+                                                        <!-- NUEVO: Botón para anular -->
+                                                        <?php if ($compra['est_compra'] != 0) { ?>
+                                                            <button class="btn btn-danger btn-xs ml-1 btn-anular-orden" 
+                                                                    title="Anular Orden"
+                                                                    data-id-compra="<?php echo $compra['id_compra']; ?>"
+                                                                    data-id-pedido="<?php echo $id_pedido; ?>">
+                                                                <i class="fa fa-times"></i>
+                                                            </button>
+                                                        <?php } else { ?>
+                                                            <button class="btn btn-outline-secondary btn-xs ml-1" 
+                                                                    title="Orden anulada" 
+                                                                    disabled>
+                                                                <i class="fa fa-times"></i>
                                                             </button>
                                                         <?php } ?>
                                                     </td>
@@ -283,16 +353,22 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                             </div>
                         </div>
 
-                        <div id="contenedor-nueva-orden" style="display: none;">
+                        <!-- FORMULARIO PARA CREAR/EDITAR ORDEN -->
+                        <div id="contenedor-nueva-orden" <?php echo $modo_editar ? 'style="display: block;"' : 'style="display: none;"'; ?>>
                             <form id="form-nueva-orden" method="POST" action="">
+                                <?php if ($modo_editar): ?>
+                                <input type="hidden" name="actualizar_orden" value="1">
+                                <input type="hidden" name="id_compra" value="<?php echo $id_compra_editar; ?>">
+                                <?php else: ?>
                                 <input type="hidden" name="crear_orden" value="1">
+                                <?php endif; ?>
                                 <input type="hidden" name="id" value="<?php echo $id_pedido; ?>">
                                 
                                 <div class="card">
-                                    <div class="card-header" style="padding: 8px 12px; background-color: #e3f2fd;">
+                                    <div class="card-header" style="padding: 8px 12px; background-color: <?php echo $modo_editar ? '#fff3cd' : '#e3f2fd'; ?>;">
                                         <h6 class="mb-0">
-                                            <i class="fa fa-plus-circle text-primary"></i>
-                                            Nueva Orden de Compra
+                                            <i class="fa <?php echo $modo_editar ? 'fa-edit text-warning' : 'fa-plus-circle text-primary'; ?>"></i>
+                                            <?php echo $modo_editar ? 'Editar Orden de Compra ORD-' . $id_compra_editar : 'Nueva Orden de Compra'; ?>
                                         </h6>
                                     </div>
                                     <div class="card-body" style="padding: 12px;">
@@ -300,6 +376,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                             <div class="col-md-6">
                                                 <label style="font-size: 11px; font-weight: bold;">Fecha: <span class="text-danger">*</span></label>
                                                 <input type="date" class="form-control form-control-sm" id="fecha_orden" name="fecha_orden" 
+                                                    value="<?php echo $modo_editar && $orden_data ? date('Y-m-d', strtotime($orden_data['fec_compra'])) : date('Y-m-d'); ?>" 
                                                     style="font-size: 12px;" required>
                                             </div>
                                             <div class="col-md-6">
@@ -309,7 +386,8 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                                     <option value="">Seleccionar proveedor...</option>
                                                     <?php
                                                     foreach ($proveedor as $prov) {
-                                                        echo '<option value="' . htmlspecialchars($prov['id_proveedor']) . '">' . htmlspecialchars($prov['nom_proveedor']) . '</option>';
+                                                        $selected = ($modo_editar && $orden_data && $orden_data['id_proveedor'] == $prov['id_proveedor']) ? 'selected' : '';
+                                                        echo '<option value="' . htmlspecialchars($prov['id_proveedor']) . '" ' . $selected . '>' . htmlspecialchars($prov['nom_proveedor']) . '</option>';
                                                     }
                                                     ?>
                                                 </select>
@@ -323,7 +401,8 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                                     <option value="">Seleccionar moneda...</option>
                                                     <?php
                                                     foreach ($moneda as $mon) {
-                                                        echo '<option value="' . htmlspecialchars($mon['id_moneda']) . '">' . htmlspecialchars($mon['nom_moneda']) . '</option>';
+                                                        $selected = ($modo_editar && $orden_data && $orden_data['id_moneda'] == $mon['id_moneda']) ? 'selected' : '';
+                                                        echo '<option value="' . htmlspecialchars($mon['id_moneda']) . '" ' . $selected . '>' . htmlspecialchars($mon['nom_moneda']) . '</option>';
                                                     }
                                                     ?>
                                                 </select>
@@ -331,6 +410,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                             <div class="col-md-6">
                                                 <label style="font-size: 11px; font-weight: bold;">Plazo de Entrega:</label>
                                                 <input type="text" class="form-control form-control-sm" id="plazo_entrega" name="plazo_entrega"
+                                                    value="<?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['plaz_compra']) : ''; ?>"
                                                     placeholder="Ej. 15 días hábiles" style="font-size: 12px;">
                                             </div>
                                         </div>
@@ -339,7 +419,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                                 <label style="font-size: 11px; font-weight: bold;">Dirección de Envío:</label>
                                                 <textarea class="form-control form-control-sm" id="direccion_envio" name="direccion_envio"
                                                         rows="2" placeholder="Ingrese la dirección de envío..." 
-                                                        style="font-size: 12px; resize: none;"></textarea>
+                                                        style="font-size: 12px; resize: none;"><?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['denv_compra']) : ''; ?></textarea>
                                             </div>
                                         </div>
                                         <div class="row mb-2">
@@ -347,27 +427,84 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                                 <label style="font-size: 11px; font-weight: bold;">Observaciones:</label>
                                                 <textarea class="form-control form-control-sm" id="observaciones_orden" name="observaciones_orden"
                                                         rows="2" placeholder="Observaciones adicionales..." 
-                                                        style="font-size: 12px; resize: none;"></textarea>
+                                                        style="font-size: 12px; resize: none;"><?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['obs_compra']) : ''; ?></textarea>
                                             </div>
                                         </div>
                                         <div class="row mb-2">
                                             <div class="col-md-12">
                                                 <label style="font-size: 11px; font-weight: bold;">Tipo de Porte:</label>
                                                 <input type="text" class="form-control form-control-sm" id="tipo_porte" name="tipo_porte"
+                                                    value="<?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['port_compra']) : ''; ?>"
                                                     placeholder="Ej. Marítimo, Terrestre, Aéreo" style="font-size: 12px;">
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                                 <div id="contenedor-items-orden" class="mb-3">
+                                    <?php if ($modo_editar && !empty($orden_detalle)): ?>
+                                        <?php foreach ($orden_detalle as $item): ?>
+                                        <div class="alert alert-light p-2 mb-2" id="item-orden-<?php echo $item['id_compra_detalle']; ?>">
+                                            <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_compra_detalle]" value="<?php echo $item['id_compra_detalle']; ?>">
+                                            <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_producto]" value="<?php echo $item['id_producto']; ?>">
+                                            <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][cantidad]" value="<?php echo $item['cant_compra_detalle']; ?>">
+                                            
+                                            <div class="row align-items-center">
+                                                <div class="col-md-8">
+                                                    <div style="font-size: 12px;">
+                                                        <div class="mb-1">
+                                                            <strong>Descripción:</strong> <?php echo htmlspecialchars($item['nom_producto']); ?>
+                                                        </div>
+                                                        <div>
+                                                            <strong>Cantidad:</strong> <?php echo $item['cant_compra_detalle']; ?>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label style="font-size: 11px; font-weight: bold;">Precio Unit.:</label>
+                                                    <div class="input-group input-group-sm">
+                                                        <div class="input-group-prepend">
+                                                            <span class="input-group-text" style="font-size: 11px;">
+                                                                <?php echo ($orden_data['id_moneda'] == 1) ? 'S/.' : 'US$'; ?>
+                                                            </span>
+                                                        </div>
+                                                        <input type="number" 
+                                                            class="form-control form-control-sm precio-item" 
+                                                            name="items_orden[<?php echo $item['id_compra_detalle']; ?>][precio_unitario]"
+                                                            value="<?php echo $item['prec_compra_detalle']; ?>"
+                                                            step="0.01" 
+                                                            min="0"
+                                                            style="font-size: 11px;"
+                                                            required>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-1">
+                                                    <button type="button" class="btn btn-danger btn-sm btn-remover-item" 
+                                                            data-id-detalle="<?php echo $item['id_compra_detalle']; ?>"
+                                                            data-id-compra-detalle="<?php echo $item['id_compra_detalle']; ?>">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="row mt-2">
+                                                <div class="col-md-12">
+                                                    <div class="subtotal-item text-right" id="subtotal-<?php echo $item['id_compra_detalle']; ?>" 
+                                                         style="font-size: 12px; font-weight: bold; color: #007bff;">
+                                                        Subtotal: <?php echo ($orden_data['id_moneda'] == 1) ? 'S/.' : 'US$'; ?> 
+                                                        <?php echo number_format($item['cant_compra_detalle'] * $item['prec_compra_detalle'], 2); ?>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </div>
                                 
                                 <div class="text-center mt-2" style="padding: 8px;">
-                                    <button type="button" class="btn btn-secondary btn-sm mr-2" id="btn-cancelar-orden">
+                                    <a href="pedido_verificar.php?id=<?php echo $id_pedido; ?>" class="btn btn-secondary btn-sm mr-2">
                                         <i class="fa fa-times"></i> Cancelar
-                                    </button>
-                                    <button type="submit" class="btn btn-primary btn-sm">
-                                        <i class="fa fa-save"></i> Guardar Orden
+                                    </a>
+                                    <button type="submit" class="btn btn-<?php echo $modo_editar ? 'warning' : 'primary'; ?> btn-sm">
+                                        <i class="fa fa-save"></i> <?php echo $modo_editar ? 'Actualizar Orden' : 'Guardar Orden'; ?>
                                     </button>
                                 </div>
                             </form>
@@ -406,6 +543,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
     </div>
 </div>
 
+<!-- MODAL DE VERIFICACIÓN -->
 <div class="modal fade" id="verificarModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
@@ -433,7 +571,8 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
         </div>
     </div>
 </div>
-<!-- Modal para Ver Detalles de Orden de Compra -->
+
+<!-- MODAL PARA VER DETALLES DE ORDEN -->
 <div class="modal fade" id="modalDetalleCompra" tabindex="-1" role="dialog" aria-labelledby="modalDetalleCompraLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -447,69 +586,15 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                 </button>
             </div>
             <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
-                <!-- Spinner de carga -->
                 <div id="loading-spinner" class="text-center" style="padding: 40px;">
                     <i class="fa fa-spinner fa-spin fa-3x text-primary"></i>
                     <p class="mt-2">Cargando detalles...</p>
                 </div>
                 
-                <!-- Contenido del detalle -->
                 <div id="contenido-detalle-compra" style="display: none;">
-                    <!-- Información general de la orden -->
-                    <div class="card mb-3">
-                        <div class="card-header" style="background-color: #e3f2fd; padding: 10px 15px;">
-                            <h6 class="mb-0">
-                                <i class="fa fa-info-circle text-primary"></i> 
-                                Información General
-                            </h6>
-                        </div>
-                        <div class="card-body" style="padding: 15px;">
-                            <div class="row" id="info-general-compra">
-                                <!-- Contenido será cargado dinámicamente -->
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Detalles de productos -->
-                    <div class="card">
-                        <div class="card-header" style="background-color: #e8f5e8; padding: 10px 15px;">
-                            <h6 class="mb-0">
-                                <i class="fa fa-list-alt text-success"></i> 
-                                Productos de la Orden
-                            </h6>
-                        </div>
-                        <div class="card-body" style="padding: 15px;">
-                            <div class="table-responsive">
-                                <table class="table table-striped table-sm" style="font-size: 12px;">
-                                    <thead style="background-color: #f8f9fa;">
-                                        <tr>
-                                            <th style="width: 10%;">#</th>
-                                            <th style="width: 15%;">Código</th>
-                                            <th style="width: 40%;">Descripción</th>
-                                            <th style="width: 10%;">Cantidad</th>
-                                            <th style="width: 12%;">Precio Unit.</th>
-                                            <th style="width: 13%;">Subtotal</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="tabla-productos-compra">
-                                        <!-- Contenido será cargado dinámicamente -->
-                                    </tbody>
-                                </table>
-                            </div>
-                            
-                            <!-- Total de la orden -->
-                            <div class="row mt-3">
-                                <div class="col-md-12">
-                                    <div id="total-compra" class="alert alert-info text-center" style="font-size: 16px; font-weight: bold; margin: 0;">
-                                        <!-- Total será cargado dinámicamente -->
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Contenido del detalle -->
                 </div>
                 
-                <!-- Mensaje de error -->
                 <div id="error-detalle-compra" style="display: none;" class="text-center">
                     <i class="fa fa-exclamation-triangle fa-3x text-warning mb-3"></i>
                     <h5 class="text-warning">Error al cargar detalles</h5>
@@ -527,158 +612,522 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Event listener para botones de ver detalle
-    document.addEventListener('click', function(event) {
-        const btnVerDetalle = event.target.closest('.btn-ver-detalle');
-        if (btnVerDetalle) {
-            event.preventDefault();
-            event.stopPropagation();
-            
-            const idCompra = btnVerDetalle.getAttribute('data-id-compra');
-            mostrarDetalleCompra(idCompra);
-        }
-    });
-    
-    function mostrarDetalleCompra(idCompra) {
-        // Mostrar modal
-        $('#modalDetalleCompra').modal('show');
-        
-        // Mostrar spinner y ocultar contenido
-        document.getElementById('loading-spinner').style.display = 'block';
-        document.getElementById('contenido-detalle-compra').style.display = 'none';
-        document.getElementById('error-detalle-compra').style.display = 'none';
-        
-        // Realizar petición AJAX
-        const formData = new FormData();
-        formData.append('accion', 'obtener_detalle');
-        formData.append('id_compra', idCompra);
-        
-        fetch('compra_detalles.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('loading-spinner').style.display = 'none';
-            
-            if (data.success) {
-                mostrarContenidoDetalle(data.compra, data.detalles);
-            } else {
-                mostrarError(data.message || 'Error desconocido');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            document.getElementById('loading-spinner').style.display = 'none';
-            mostrarError('Error de conexión');
-        });
-    }
-    
-    function mostrarContenidoDetalle(compra, detalles) {
-        // Actualizar título del modal
-        const titulo = document.getElementById('modalDetalleCompraLabel');
-        titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de Compra - ORD-${compra.id_compra}`;
-        
-        // Llenar información general
-        const infoGeneral = document.getElementById('info-general-compra');
-        const fechaFormateada = new Date(compra.fec_compra).toLocaleDateString('es-PE');
-        const estadoTexto = (compra.est_compra == 2) ? 'Aprobada' : 'Pendiente';
-        const estadoClase = (compra.est_compra == 2) ? 'success' : 'warning';
-        
-        infoGeneral.innerHTML = `
-            <div class="col-md-6">
-                <p style="margin: 5px 0; font-size: 13px;">
-                    <strong>N° Orden:</strong> ORD-${compra.id_compra}
-                </p>
-                <p style="margin: 5px 0; font-size: 13px;">
-                    <strong>Proveedor:</strong> ${compra.nom_proveedor || 'No especificado'}
-                </p>
-                <p style="margin: 5px 0; font-size: 13px;">
-                    <strong>RUC:</strong> ${compra.ruc_proveedor || 'No especificado'}
-                </p>
-                <p style="margin: 5px 0; font-size: 13px;">
-                    <strong>Moneda:</strong> ${compra.nom_moneda || 'No especificada'}
-                </p>
-            </div>
-            <div class="col-md-6">
-                <p style="margin: 5px 0; font-size: 13px;">
-                    <strong>Fecha:</strong> ${fechaFormateada}
-                </p>
-                <p style="margin: 5px 0; font-size: 13px;">
-                    <strong>Estado:</strong> 
-                    <span class="badge badge-${estadoClase}">${estadoTexto}</span>
-                </p>
-                <p style="margin: 5px 0; font-size: 13px;">
-                    <strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'} ${compra.ape_personal || ''}
-                </p>
-                <p style="margin: 5px 0; font-size: 13px;">
-                    <strong>Plazo Entrega:</strong> ${compra.plaz_compra || 'No especificado'}
-                </p>
-            </div>
-        `;
-        
-        // Agregar información adicional si existe
-        if (compra.denv_compra || compra.obs_compra || compra.port_compra) {
-            infoGeneral.innerHTML += `
-                <div class="col-md-12 mt-3">
-                    <div class="border-top pt-2">
-                        ${compra.denv_compra ? `<p style="margin: 5px 0; font-size: 13px;"><strong>Dirección de Envío:</strong> ${compra.denv_compra}</p>` : ''}
-                        ${compra.obs_compra ? `<p style="margin: 5px 0; font-size: 13px;"><strong>Observaciones:</strong> ${compra.obs_compra}</p>` : ''}
-                        ${compra.port_compra ? `<p style="margin: 5px 0; font-size: 13px;"><strong>Tipo de Porte:</strong> ${compra.port_compra}</p>` : ''}
-                    </div>
-                </div>
-            `;
-        }
-        
-        // Llenar tabla de productos
-        const tablaProductos = document.getElementById('tabla-productos-compra');
-        let htmlProductos = '';
-        let total = 0;
-        const simboloMoneda = compra.sim_moneda || (compra.id_moneda == 1 ? 'S/.' : 'US$');
-        
-        detalles.forEach((detalle, index) => {
-            const subtotal = parseFloat(detalle.cant_compra_detalle) * parseFloat(detalle.prec_compra_detalle);
-            total += subtotal;
-            
-            htmlProductos += `
-                <tr>
-                    <td style="font-weight: bold;">${index + 1}</td>
-                    <td>${detalle.cod_material || 'N/A'}</td>
-                    <td>${detalle.nom_producto}</td>
-                    <td class="text-center">${detalle.cant_compra_detalle}</td>
-                    <td class="text-right">${simboloMoneda} ${parseFloat(detalle.prec_compra_detalle).toFixed(2)}</td>
-                    <td class="text-right" style="font-weight: bold;">${simboloMoneda} ${subtotal.toFixed(2)}</td>
-                </tr>
-            `;
-        });
-        
-        tablaProductos.innerHTML = htmlProductos;
-        
-        // Mostrar total
-        const totalCompra = document.getElementById('total-compra');
-        totalCompra.innerHTML = `<i class="fa fa-calculator"></i> TOTAL: ${simboloMoneda} ${total.toFixed(2)}`;
-        
-        // Mostrar contenido
-        document.getElementById('contenido-detalle-compra').style.display = 'block';
-    }
-    
-    function mostrarError(mensaje) {
-        const errorDiv = document.getElementById('error-detalle-compra');
-        errorDiv.querySelector('p').textContent = mensaje;
-        errorDiv.style.display = 'block';
-    }
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
     const esAutoOrden = <?php echo ($pedido['id_producto_tipo'] == 2) ? 'true' : 'false'; ?>;
-    if (esAutoOrden) {
+    const modoEditar = <?php echo $modo_editar ? 'true' : 'false'; ?>;
+    let itemsAgregadosOrden = new Set();
+
+    // Si es auto-orden, preparar formulario automático
+    if (esAutoOrden && !modoEditar) {
         setTimeout(function() {
             mostrarFormularioNuevaOrdenAuto();
             autoAgregarItemsAOrden();
         }, 800);
     }
+
+    // Si estamos en modo edición, configurar eventos específicos
+    if (modoEditar) {
+        configurarEventosEdicion();
+        actualizarTotalOrden();
+    }
+
+    // Configurar eventos generales
+    configurarEventListeners();
+
+    function configurarEventosEdicion() {
+        // Configurar eventos para items existentes en edición
+        document.querySelectorAll('.precio-item').forEach(function(input) {
+            input.addEventListener('input', function() {
+                const idDetalle = this.closest('[id^="item-orden-"]').id.replace('item-orden-', '');
+                const cantidad = this.closest('.alert').querySelector('input[name$="[cantidad]"]').value;
+                actualizarSubtotalItem(idDetalle, cantidad);
+                actualizarTotalOrden();
+            });
+        });
+
+        // Configurar botones de remover en edición
+        document.addEventListener('click', function(event) {
+            const btnRemover = event.target.closest('.btn-remover-item');
+            if (btnRemover && btnRemover.hasAttribute('data-id-compra-detalle')) {
+                event.preventDefault();
+                const idCompraDetalle = btnRemover.getAttribute('data-id-compra-detalle');
+                removerItemDeOrdenEdicion(idCompraDetalle);
+            }
+        });
+    }
+
+    function removerItemDeOrdenEdicion(idCompraDetalle) {
+        Swal.fire({
+            title: '¿Está seguro?',
+            text: 'Este item se eliminará de la orden',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const itemElement = document.getElementById(`item-orden-${idCompraDetalle}`);
+                if (itemElement) {
+                    itemElement.remove();
+                    actualizarTotalOrden();
+                    
+                    // Mostrar mensaje de éxito
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Item eliminado',
+                        text: 'El item ha sido removido de la orden',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+            }
+        });
+    }
+
+    function configurarEventListeners() {
+
+                    document.addEventListener('click', function(event) {
+            const btnAnular = event.target.closest('.btn-anular-orden');
+            if (btnAnular) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const idCompra = btnAnular.getAttribute('data-id-compra');
+                const idPedido = btnAnular.getAttribute('data-id-pedido');
+                AnularCompra(idCompra, idPedido);
+            }
+        });
+        // Botón Nueva Orden / Ver Órdenes
+        const btnNuevaOrden = document.getElementById('btn-nueva-orden');
+        if (btnNuevaOrden) {
+            btnNuevaOrden.addEventListener('click', toggleFormularioOrden);
+        }
+
+        // Botón Editar Orden
+        document.addEventListener('click', function(event) {
+            const btnEditar = event.target.closest('.btn-editar-orden');
+            if (btnEditar) {
+                event.preventDefault();
+                const idCompra = btnEditar.getAttribute('data-id-compra');
+                window.location.href = `pedido_verificar.php?id=<?php echo $id_pedido; ?>&id_compra=${idCompra}`;
+            }
+        });
+
+        // Listener para cambios en moneda
+        const selectMoneda = document.getElementById('moneda_orden');
+        if (selectMoneda) {
+            selectMoneda.addEventListener('change', function() {
+                actualizarEtiquetasMoneda(this.value);
+                actualizarTotalOrden();
+            });
+        }
+
+        // Botones agregar a orden
+        document.addEventListener('click', function(event) {
+            const btnAgregar = event.target.closest('.btn-agregarOrden');
+            if (btnAgregar) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const idDetalle = btnAgregar.dataset.idDetalle;
+                const idProducto = btnAgregar.dataset.idProducto;
+                const descripcion = btnAgregar.dataset.descripcion;
+                const cantidadVerificada = btnAgregar.dataset.cantidadVerificada;
+                
+                // Si estamos en modo edición, asegurar que el formulario esté visible
+                if (modoEditar) {
+                    const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
+                    if (contenedorNuevaOrden.style.display === 'none') {
+                        contenedorNuevaOrden.style.display = 'block';
+                    }
+                } else {
+                    const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
+                    if (contenedorTabla.style.display !== 'none') {
+                        mostrarFormularioNuevaOrden();
+                    }
+                }
+                
+                agregarItemAOrden({
+                    idDetalle: idDetalle,
+                    idProducto: idProducto,
+                    descripcion: descripcion,
+                    cantidadVerificada: cantidadVerificada,
+                    botonOriginal: btnAgregar
+                });
+            }
+        });
+
+        // Modal verificar
+        const verificarBtns = document.querySelectorAll('.verificar-btn');
+        verificarBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const idDetalle = this.getAttribute('data-id-detalle');
+                const cantidadActual = this.getAttribute('data-cantidad-actual');
+                const cantidadAlmacen = parseFloat(this.getAttribute('data-cantidad-almacen'));
+                const diferencia = cantidadActual - cantidadAlmacen;
+
+                document.getElementById('id_pedido_detalle_input').value = idDetalle;
+                document.getElementById('fin_cant_pedido_detalle').value = diferencia;
+
+                $('#verificarModal').modal('show');
+            });
+        });
+
+        // Botón ver detalle
+        document.addEventListener('click', function(event) {
+            const btnVerDetalle = event.target.closest('.btn-ver-detalle');
+            if (btnVerDetalle) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                const idCompra = btnVerDetalle.getAttribute('data-id-compra');
+                mostrarDetalleCompra(idCompra);
+            }
+        });
+
+        // Validación del formulario
+        const formNuevaOrden = document.getElementById('form-nueva-orden');
+        if (formNuevaOrden) {
+            formNuevaOrden.addEventListener('submit', validarFormularioOrden);
+        }
+    }
+
     
+    function toggleFormularioOrden() {
+        const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
+        const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
+        
+        if (contenedorTabla.style.display === 'none') {
+            mostrarTablaOrdenes();
+        } else {
+            mostrarFormularioNuevaOrden();
+        }
+    }
+
+    function mostrarFormularioNuevaOrden() {
+        const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
+        const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
+        const btnNuevaOrden = document.getElementById('btn-nueva-orden');
+        
+        contenedorTabla.style.display = 'none';
+        contenedorNuevaOrden.style.display = 'block';
+        
+        if (btnNuevaOrden) {
+            btnNuevaOrden.innerHTML = '<i class="fa fa-table"></i> Ver Órdenes';
+            btnNuevaOrden.classList.remove('btn-primary');
+            btnNuevaOrden.classList.add('btn-secondary');
+        }
+        
+        document.getElementById('fecha_orden').value = new Date().toISOString().split('T')[0];
+    }
+
+    function mostrarTablaOrdenes() {
+        const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
+        const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
+        const btnNuevaOrden = document.getElementById('btn-nueva-orden');
+        
+        contenedorTabla.style.display = 'block';
+        contenedorNuevaOrden.style.display = 'none';
+        
+        if (btnNuevaOrden) {
+            btnNuevaOrden.innerHTML = '<i class="fa fa-plus"></i> Nueva Orden';
+            btnNuevaOrden.classList.remove('btn-secondary');
+            btnNuevaOrden.classList.add('btn-primary');
+        }
+    }
+
+    function agregarItemAOrden(item) {
+        const idMonedaSeleccionada = document.getElementById('moneda_orden').value;
+        const simboloMoneda = idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
+        
+        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
+        const itemElement = document.createElement('div');
+        
+        // Generar ID único para el item
+        const itemId = modoEditar ? 'nuevo-' + Date.now() : item.idDetalle;
+        itemElement.id = `item-orden-${itemId}`;
+        itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
+        
+        itemElement.innerHTML = `
+            <input type="hidden" name="items_orden[${itemId}][id_detalle]" value="${item.idDetalle}">
+            <input type="hidden" name="items_orden[${itemId}][id_producto]" value="${item.idProducto}">
+            <input type="hidden" name="items_orden[${itemId}][cantidad]" value="${item.cantidadVerificada}">
+            
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div style="font-size: 12px;">
+                        <div class="mb-1">
+                            <strong>Descripción:</strong> ${item.descripcion}
+                        </div>
+                        <div>
+                            <strong>Cantidad:</strong> ${item.cantidadVerificada}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label style="font-size: 11px; font-weight: bold;">Precio Unit.:</label>
+                    <div class="input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" style="font-size: 11px;">${simboloMoneda}</span>
+                        </div>
+                        <input type="number" 
+                            class="form-control form-control-sm precio-item" 
+                            name="items_orden[${itemId}][precio_unitario]"
+                            data-id-detalle="${itemId}"
+                            step="0.01" 
+                            min="0"
+                            placeholder="0.00"
+                            style="font-size: 11px;"
+                            required>
+                    </div>
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-danger btn-sm btn-remover-item" data-id-detalle="${itemId}">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-12">
+                    <div class="subtotal-item text-right" id="subtotal-${itemId}" style="font-size: 12px; font-weight: bold; color: #007bff;">
+                        Subtotal: ${simboloMoneda} 0.00
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        contenedorItemsOrden.appendChild(itemElement);
+        itemsAgregadosOrden.add(itemId);
+        
+        if (item.botonOriginal) {
+            item.botonOriginal.disabled = true;
+            item.botonOriginal.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
+            item.botonOriginal.classList.remove('btn-primary');
+            item.botonOriginal.classList.add('btn-success');
+        }
+        
+        const inputPrecio = itemElement.querySelector('.precio-item');
+        inputPrecio.addEventListener('input', function() {
+            actualizarSubtotalItem(itemId, item.cantidadVerificada);
+            actualizarTotalOrden();
+        });
+
+        // Configurar botón remover
+        const btnRemover = itemElement.querySelector('.btn-remover-item');
+        btnRemover.addEventListener('click', function() {
+            removerItemDeOrden(itemId, item.botonOriginal);
+        });
+    }
+
+    function removerItemDeOrden(idDetalle, botonOriginal) {
+        const itemElement = document.getElementById(`item-orden-${idDetalle}`);
+        if (itemElement) {
+            itemElement.remove();
+        }
+        itemsAgregadosOrden.delete(idDetalle);
+        
+        if (botonOriginal) {
+            botonOriginal.disabled = false;
+            botonOriginal.innerHTML = '<i class="fa fa-check"></i> Agregar a Orden';
+            botonOriginal.classList.remove('btn-success');
+            botonOriginal.classList.add('btn-primary');
+        }
+        
+        actualizarTotalOrden();
+    }
+
+    function actualizarSubtotalItem(idDetalle, cantidad) {
+        const inputPrecio = document.querySelector(`input[data-id-detalle="${idDetalle}"]`);
+        const subtotalElement = document.getElementById(`subtotal-${idDetalle}`);
+        
+        if (inputPrecio && subtotalElement) {
+            const precio = parseFloat(inputPrecio.value) || 0;
+            const subtotal = (parseFloat(cantidad) * precio).toFixed(2);
+            const simboloMoneda = obtenerSimboloMoneda();
+            subtotalElement.textContent = `Subtotal: ${simboloMoneda} ${subtotal}`;
+        }
+    }
+
+    function actualizarTotalOrden() {
+        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
+        const items = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
+        let total = 0;
+        
+        items.forEach(item => {
+            const cantidadInput = item.querySelector('input[name$="[cantidad]"]');
+            const inputPrecio = item.querySelector('.precio-item');
+            
+            if (cantidadInput && inputPrecio) {
+                const cantidad = parseFloat(cantidadInput.value) || 0;
+                const precio = parseFloat(inputPrecio.value) || 0;
+                total += cantidad * precio;
+            }
+        });
+        
+        let totalElement = document.getElementById('total-orden');
+        let totalInput = document.getElementById('total_orden_input');
+        
+        if (!totalElement && items.length > 0) {
+            totalElement = document.createElement('div');
+            totalElement.id = 'total-orden';
+            totalElement.className = 'alert alert-success text-center';
+            totalElement.style.fontSize = '16px';
+            totalElement.style.fontWeight = 'bold';
+            
+            totalInput = document.createElement('input');
+            totalInput.type = 'hidden';
+            totalInput.name = 'total_orden';
+            totalInput.id = 'total_orden_input';
+        }
+        
+        if (totalElement && items.length > 0) {
+            const simboloMoneda = obtenerSimboloMoneda();
+            totalElement.innerHTML = `<i class="fa fa-calculator"></i> TOTAL DE LA ORDEN: ${simboloMoneda} ${total.toFixed(2)}`;
+            if (totalInput) {
+                totalInput.value = total.toFixed(2);
+            }
+            
+            if (!totalElement.parentNode) {
+                contenedorItemsOrden.appendChild(totalElement);
+                if (totalInput) {
+                    contenedorItemsOrden.appendChild(totalInput);
+                }
+            }
+        } else if (totalElement && items.length === 0) {
+            totalElement.remove();
+            if (totalInput) totalInput.remove();
+        }
+    }
+
+    function obtenerSimboloMoneda() {
+        const selectMoneda = document.getElementById('moneda_orden');
+        if (!selectMoneda || !selectMoneda.value) return 'S/.';
+        
+        const idMonedaSeleccionada = selectMoneda.value;
+        return idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
+    }
+
+    function actualizarEtiquetasMoneda(idMoneda) {
+        const simboloMoneda = idMoneda == '1' ? 'S/.' : (idMoneda == '2' ? 'US$' : 'S/.');
+        
+        document.querySelectorAll('.input-group-text').forEach(etiqueta => {
+            if (etiqueta.textContent === 'S/.' || etiqueta.textContent === 'US$') {
+                etiqueta.textContent = simboloMoneda;
+            }
+        });
+        
+        const itemsOrden = document.querySelectorAll('[id^="item-orden-"]');
+        itemsOrden.forEach(item => {
+            const cantidadInput = item.querySelector('input[name$="[cantidad]"]');
+            if (cantidadInput) {
+                const idDetalle = item.id.replace('item-orden-', '');
+                const cantidad = parseFloat(cantidadInput.value);
+                actualizarSubtotalItem(idDetalle, cantidad);
+            }
+        });
+        
+        actualizarTotalOrden();
+    }
+
+    function validarFormularioOrden(e) {
+        const fecha = document.getElementById('fecha_orden').value;
+        const proveedor = document.getElementById('proveedor_orden').value;
+        const moneda = document.getElementById('moneda_orden').value;
+        
+        if (!fecha || !proveedor || !moneda) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campos Obligatorios',
+                text: 'Por favor complete los campos obligatorios (Fecha, Proveedor y Moneda).',
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'Entendido'
+            });
+            return false;
+        }
+        
+        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
+        const itemsOrden = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
+        
+        if (itemsOrden.length === 0) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'warning',
+                title: 'Sin Items',
+                text: 'Debe agregar al menos un ítem a la orden antes de guardar.',
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'Entendido'
+            });
+            return false;
+        }
+        
+        return true;
+    }
+
+    // Función para anular órdenes de compra
+    function AnularCompra(id_compra, id_pedido) {
+        Swal.fire({
+            title: '¿Qué deseas anular?',
+            text: "Selecciona una opción:",
+            icon: 'warning',
+            showCancelButton: true,
+            showDenyButton: true,
+            confirmButtonColor: '#d33',
+            denyButtonColor: '#3085d6',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Solo O/C',
+            denyButtonText: 'O/C y Pedido',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // 🔹 Anular solo la orden de compra
+                $.ajax({
+                    url: 'compras_anular.php',
+                    type: 'POST',
+                    data: { id_compra: id_compra },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.tipo_mensaje === 'success') {
+                            Swal.fire('¡Anulado!', response.mensaje, 'success')
+                            .then(() => { 
+                                // Recargar la página actual para reflejar los cambios
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error', response.mensaje, 'error');
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+                    }
+                });
+            } else if (result.isDenied) {
+                // 🔹 Anular la orden y también el pedido
+                $.ajax({
+                    url: 'compras_pedido_anular.php',
+                    type: 'POST',
+                    data: { id_compra: id_compra, id_pedido: id_pedido },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.tipo_mensaje === 'success') {
+                            Swal.fire('¡Anulado!', response.mensaje, 'success')
+                            .then(() => { 
+                                // Recargar la página actual para reflejar los cambios
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error', response.mensaje, 'error');
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+                    }
+                });
+            }
+        });
+    }
+
     function mostrarFormularioNuevaOrdenAuto() {
         const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
         const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
@@ -698,7 +1147,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-    
+
     function autoAgregarItemsAOrden() {
         const itemsAutoOrden = document.querySelectorAll('.datos-auto-orden');
         let itemsAgregados = 0;
@@ -726,7 +1175,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-    
+
     function agregarItemAOrdenAutomatico(item) {
         const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
         const itemElement = document.createElement('div');
@@ -790,619 +1239,183 @@ document.addEventListener('DOMContentLoaded', function() {
             actualizarTotalOrden();
         });
     }
-});
 
-document.addEventListener('DOMContentLoaded', function() {
-    let itemsVerificados = 0;
-    const totalItems = <?php echo count($pedido_detalle); ?>;
-    
-    function actualizarContadores() {
-        const itemsPendientes = totalItems - itemsVerificados;
-        document.getElementById('contador-pendientes').textContent = `(${itemsPendientes} items)`;
-        document.getElementById('contador-verificados').textContent = `(${itemsVerificados} items)`;
+    function mostrarDetalleCompra(idCompra) {
+        $('#modalDetalleCompra').modal('show');
         
-        const contenedorPendientes = document.getElementById('contenedor-pendientes');
-        const mensajeSinPendientes = document.getElementById('mensaje-sin-pendientes');
-        const mensajeSinVerificados = document.getElementById('mensaje-sin-verificados');
+        document.getElementById('loading-spinner').style.display = 'block';
+        document.getElementById('contenido-detalle-compra').style.display = 'none';
+        document.getElementById('error-detalle-compra').style.display = 'none';
         
-        if (itemsPendientes === 0) {
-            contenedorPendientes.style.display = 'none';
-            mensajeSinPendientes.style.display = 'block';
-        } else {
-            mensajeSinPendientes.style.display = 'none';
-        }
+        const formData = new FormData();
+        formData.append('accion', 'obtener_detalle');
+        formData.append('id_compra', idCompra);
         
-        if (itemsVerificados === 0) {
-            mensajeSinVerificados.style.display = 'block';
-        } else {
-            mensajeSinVerificados.style.display = 'none';
-        }
-        
-        const btnFinalizar = document.getElementById('btn-finalizar-verificacion');
-        if (itemsVerificados === totalItems && totalItems > 0) {
-            btnFinalizar.disabled = false;
-            btnFinalizar.classList.remove('btn-outline-success');
-            btnFinalizar.classList.add('btn-success');
-        } else {
-            btnFinalizar.disabled = true;
-            btnFinalizar.classList.remove('btn-success');
-            btnFinalizar.classList.add('btn-outline-success');
-        }
-    }
-    
-    function verificarItem(numeroItem) {
-        const itemPendiente = document.querySelector(`.item-pendiente[data-item="${numeroItem}"]`);
-        
-        if (!itemPendiente) return;
-        
-        const itemVerificado = itemPendiente.cloneNode(true);
-        itemVerificado.className = 'item-verificado border mb-2';
-        itemVerificado.style.cssText = 'background-color: #d4edda; border-left: 4px solid #28a745 !important; padding: 8px 12px; border-radius: 4px;';
-        
-        const titulo = itemVerificado.querySelector('span');
-        titulo.className = 'text-success';
-        titulo.innerHTML = `<i class="fa fa-check-circle"></i> Item ${numeroItem}`;
-        
-        const btnVerificar = itemVerificado.querySelector('.btn-verificar');
-        btnVerificar.outerHTML = '<span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">✓ Verificado</span>';
-        
-        const timestamp = new Date().toLocaleString('es-PE', {
-            day: '2-digit',
-            month: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-        
-        const timestampElement = document.createElement('div');
-        timestampElement.style.cssText = 'font-size: 10px; color: #666; margin-top: 4px;';
-        timestampElement.innerHTML = `<i class="fa fa-clock-o"></i> ${timestamp}`;
-        itemVerificado.appendChild(timestampElement);
-        
-        const contenedorVerificados = document.getElementById('contenedor-verificados');
-        contenedorVerificados.insertBefore(itemVerificado, contenedorVerificados.firstChild);
-        
-        itemPendiente.style.transition = 'all 0.3s ease';
-        itemPendiente.style.opacity = '0';
-        itemPendiente.style.transform = 'translateX(20px)';
-        
-        setTimeout(() => {
-            itemPendiente.remove();
-            itemsVerificados++;
-            actualizarContadores();
-        }, 300);
-    }
-    
-    document.addEventListener('click', function(e) {
-        if (e.target.closest('.btn-verificar')) {
-            const numeroItem = e.target.closest('.btn-verificar').getAttribute('data-item');
-            verificarItem(numeroItem);
-        }
-    });
-    
-    // Confirmación para finalizar verificación con SweetAlert
-    document.getElementById('btn-finalizar-verificacion').addEventListener('click', function() {
-        const itemsVerificados = document.querySelectorAll('.item-verificado').length;
-        const totalItems = <?php echo count($pedido_detalle); ?>;
-        
-        if (itemsVerificados === totalItems) {
-            Swal.fire({
-                title: '¿Finalizar verificación?',
-                text: 'Esta acción completará la verificación del pedido',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: 'Sí, finalizar',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = '';
-                    
-                    const inputFinalizar = document.createElement('input');
-                    inputFinalizar.type = 'hidden';
-                    inputFinalizar.name = 'finalizar_verificacion';
-                    inputFinalizar.value = '1';
-                    
-                    form.appendChild(inputFinalizar);
-                    document.body.appendChild(form);
-                    form.submit();
-                }
-            });
-        }
-    });
-    
-    actualizarContadores();
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    let itemsAgregadosOrden = new Set();
-    
-    document.addEventListener('click', function(event) {
-        const btnAgregar = event.target.closest('.btn-agregarOrden');
-        if (btnAgregar) {
-            event.preventDefault();
-            event.stopPropagation();
+        fetch('compra_detalles.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('loading-spinner').style.display = 'none';
             
-            const idDetalle = btnAgregar.dataset.idDetalle;
-            const idProducto = btnAgregar.dataset.idProducto;
-            const descripcion = btnAgregar.dataset.descripcion;
-            const cantidadVerificada = btnAgregar.dataset.cantidadVerificada;
-            const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
-            if (contenedorTabla.style.display !== 'none') {
-                mostrarFormularioNuevaOrden();
+            if (data.success) {
+                mostrarContenidoDetalle(data.compra, data.detalles);
+            } else {
+                mostrarErrorDetalle(data.message || 'Error desconocido');
             }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('loading-spinner').style.display = 'none';
+            mostrarErrorDetalle('Error de conexión');
+        });
+    }
+
+    function mostrarContenidoDetalle(compra, detalles) {
+        const titulo = document.getElementById('modalDetalleCompraLabel');
+        titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de Compra - ORD-${compra.id_compra}`;
+        
+        const contenido = document.getElementById('contenido-detalle-compra');
+        const fechaFormateada = new Date(compra.fec_compra).toLocaleDateString('es-PE');
+            const estadoCompra = parseInt(compra.est_compra);
+            let estadoTexto = 'Pendiente';
+            let estadoClase = 'warning';
             
-            agregarItemAOrden({
-                idDetalle: idDetalle,
-                idProducto: idProducto,
-                descripcion: descripcion,
-                cantidadVerificada: cantidadVerificada,
-                botonOriginal: btnAgregar
-            });
+            if (estadoCompra === 0) {
+                estadoTexto = 'Anulada';
+                estadoClase = 'danger';
+            } else if (estadoCompra === 2) {
+                estadoTexto = 'Aprobada';
+                estadoClase = 'success';
+            } 
+        
+        let html = `
+            <div class="card mb-3">
+                <div class="card-header" style="background-color: #e3f2fd; padding: 10px 15px;">
+                    <h6 class="mb-0">
+                        <i class="fa fa-info-circle text-primary"></i> 
+                        Información General
+                    </h6>
+                </div>
+                <div class="card-body" style="padding: 15px;">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p style="margin: 5px 0; font-size: 13px;">
+                                <strong>N° Orden:</strong> ORD-${compra.id_compra}
+                            </p>
+                            <p style="margin: 5px 0; font-size: 13px;">
+                                <strong>Proveedor:</strong> ${compra.nom_proveedor || 'No especificado'}
+                            </p>
+                            <p style="margin: 5px 0; font-size: 13px;">
+                                <strong>RUC:</strong> ${compra.ruc_proveedor || 'No especificado'}
+                            </p>
+                            <p style="margin: 5px 0; font-size: 13px;">
+                                <strong>Moneda:</strong> ${compra.nom_moneda || 'No especificada'}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p style="margin: 5px 0; font-size: 13px;">
+                                <strong>Fecha:</strong> ${fechaFormateada}
+                            </p>
+                            <p style="margin: 5px 0; font-size: 13px;">
+                                <strong>Estado:</strong> 
+                                <span class="badge badge-${estadoClase}">${estadoTexto}</span>
+                            </p>
+                            <p style="margin: 5px 0; font-size: 13px;">
+                                <strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'} ${compra.ape_personal || ''}
+                            </p>
+                            <p style="margin: 5px 0; font-size: 13px;">
+                                <strong>Plazo Entrega:</strong> ${compra.plaz_compra || 'No especificado'}
+                            </p>
+                        </div>
+                    </div>
+        `;
+        
+        if (compra.denv_compra || compra.obs_compra || compra.port_compra) {
+            html += `
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <div class="border-top pt-2">
+                                ${compra.denv_compra ? `<p style="margin: 5px 0; font-size: 13px;"><strong>Dirección de Envío:</strong> ${compra.denv_compra}</p>` : ''}
+                                ${compra.obs_compra ? `<p style="margin: 5px 0; font-size: 13px;"><strong>Observaciones:</strong> ${compra.obs_compra}</p>` : ''}
+                                ${compra.port_compra ? `<p style="margin: 5px 0; font-size: 13px;"><strong>Tipo de Porte:</strong> ${compra.port_compra}</p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+            `;
         }
         
-        const btnRemover = event.target.closest('.btn-remover-item');
-        if (btnRemover) {
-            event.preventDefault();
-            event.stopPropagation();
-            const idDetalle = btnRemover.dataset.idDetalle;
-            removerItemDeOrden(idDetalle);
-        }
-    });
-    
-    function agregarItemAOrden(item) {
-        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-        const itemElement = document.createElement('div');
-        itemElement.id = `item-orden-${item.idDetalle}`;
-        itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
-        itemElement.innerHTML = `
-            <input type="hidden" name="items_orden[${item.idDetalle}][id_detalle]" value="${item.idDetalle}">
-            <input type="hidden" name="items_orden[${item.idDetalle}][id_producto]" value="${item.idProducto}">
-            <input type="hidden" name="items_orden[${item.idDetalle}][cantidad]" value="${item.cantidadVerificada}">
-            
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <div style="font-size: 12px;">
-                        <div class="mb-1">
-                            <strong>Descripción:</strong> ${item.descripcion}
-                        </div>
-                        <div>
-                            <strong>Cantidad:</strong> ${item.cantidadVerificada}
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <label style="font-size: 11px; font-weight: bold;">Precio Unit.:</label>
-                    <div class="input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text" style="font-size: 11px;">S/.</span>
-                        </div>
-                        <input type="number" 
-                            class="form-control form-control-sm precio-item" 
-                            name="items_orden[${item.idDetalle}][precio_unitario]"
-                            data-id-detalle="${item.idDetalle}"
-                            step="0.01" 
-                            min="0"
-                            placeholder="0.00"
-                            style="font-size: 11px;"
-                            required>
-                    </div>
-                </div>
-                <div class="col-md-1">
-                    <button type="button" class="btn btn-danger btn-sm btn-remover-item" data-id-detalle="${item.idDetalle}">
-                        <i class="fa fa-trash"></i>
-                    </button>
+        html += `
                 </div>
             </div>
-            <div class="row mt-2">
-                <div class="col-md-12">
-                    <div class="subtotal-item text-right" id="subtotal-${item.idDetalle}" style="font-size: 12px; font-weight: bold; color: #007bff;">
-                        Subtotal: S/. 0.00
+            
+            <div class="card">
+                <div class="card-header" style="background-color: #e8f5e8; padding: 10px 15px;">
+                    <h6 class="mb-0">
+                        <i class="fa fa-list-alt text-success"></i> 
+                        Productos de la Orden
+                    </h6>
+                </div>
+                <div class="card-body" style="padding: 15px;">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm" style="font-size: 12px;">
+                            <thead style="background-color: #f8f9fa;">
+                                <tr>
+                                    <th style="width: 10%;">#</th>
+                                    <th style="width: 15%;">Código</th>
+                                    <th style="width: 40%;">Descripción</th>
+                                    <th style="width: 10%;">Cantidad</th>
+                                    <th style="width: 12%;">Precio Unit.</th>
+                                    <th style="width: 13%;">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+        `;
+        
+        let total = 0;
+        const simboloMoneda = compra.sim_moneda || (compra.id_moneda == 1 ? 'S/.' : 'US$');
+        
+        detalles.forEach((detalle, index) => {
+            const subtotal = parseFloat(detalle.cant_compra_detalle) * parseFloat(detalle.prec_compra_detalle);
+            total += subtotal;
+            
+            html += `
+                                <tr>
+                                    <td style="font-weight: bold;">${index + 1}</td>
+                                    <td>${detalle.cod_material || 'N/A'}</td>
+                                    <td>${detalle.nom_producto}</td>
+                                    <td class="text-center">${detalle.cant_compra_detalle}</td>
+                                    <td class="text-right">${simboloMoneda} ${parseFloat(detalle.prec_compra_detalle).toFixed(2)}</td>
+                                    <td class="text-right" style="font-weight: bold;">${simboloMoneda} ${subtotal.toFixed(2)}</td>
+                                </tr>
+            `;
+        });
+        
+        html += `
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <div class="alert alert-info text-center" style="font-size: 16px; font-weight: bold; margin: 0;">
+                                <i class="fa fa-calculator"></i> TOTAL: ${simboloMoneda} ${total.toFixed(2)}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         `;
         
-        contenedorItemsOrden.appendChild(itemElement);
-        itemsAgregadosOrden.add(item.idDetalle);
-        item.botonOriginal.disabled = true;
-        item.botonOriginal.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
-        item.botonOriginal.classList.remove('btn-primary');
-        item.botonOriginal.classList.add('btn-success');
-        const inputPrecio = itemElement.querySelector('.precio-item');
-        inputPrecio.addEventListener('input', function() {
-            actualizarSubtotalItem(item.idDetalle, item.cantidadVerificada);
-            actualizarTotalOrden();
-        });
-    }
-    
-    function removerItemDeOrden(idDetalle) {
-        const itemElement = document.getElementById(`item-orden-${idDetalle}`);
-        itemElement.remove();
-        itemsAgregadosOrden.delete(idDetalle);
-        const originalBtn = document.querySelector(`.btn-agregarOrden[data-id-detalle="${idDetalle}"]`);
-        if (originalBtn) {
-            originalBtn.disabled = false;
-            originalBtn.innerHTML = '<i class="fa fa-check"></i> Agregar a Orden';
-            originalBtn.classList.remove('btn-success');
-            originalBtn.classList.add('btn-primary');
-        }
-        actualizarTotalOrden();
+        contenido.innerHTML = html;
+        contenido.style.display = 'block';
     }
 
-    function obtenerSimboloMoneda() {
-        const selectMoneda = document.getElementById('moneda_orden');
-        if (!selectMoneda || !selectMoneda.value) return 'S/.';
-        
-        const idMonedaSeleccionada = selectMoneda.value;
-        return idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
+    function mostrarErrorDetalle(mensaje) {
+        const errorDiv = document.getElementById('error-detalle-compra');
+        errorDiv.querySelector('p').textContent = mensaje;
+        errorDiv.style.display = 'block';
     }
-
-    function actualizarSubtotalItem(idDetalle, cantidad) {
-        const inputPrecio = document.querySelector(`input[data-id-detalle="${idDetalle}"]`);
-        const subtotalElement = document.getElementById(`subtotal-${idDetalle}`);
-        
-        if (inputPrecio && subtotalElement) {
-            const precio = parseFloat(inputPrecio.value) || 0;
-            const subtotal = (cantidad * precio).toFixed(2);
-            const simboloMoneda = obtenerSimboloMoneda();
-            subtotalElement.textContent = `Subtotal: ${simboloMoneda} ${subtotal}`;
-        }
-    }
-    
-    function actualizarTotalOrden() {
-        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-        const items = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
-        let total = 0;
-        
-        items.forEach(item => {
-            const cantidad = parseFloat(item.querySelector('input[name$="[cantidad]"]').value);
-            const inputPrecio = item.querySelector('input[name$="[precio_unitario]"]');
-            const precio = parseFloat(inputPrecio.value) || 0;
-            total += cantidad * precio;
-        });
-        
-        let totalElement = document.getElementById('total-orden');
-        let totalInput = document.getElementById('total_orden_input');
-        
-        if (!totalElement && items.length > 0) {
-            totalElement = document.createElement('div');
-            totalElement.id = 'total-orden';
-            totalElement.className = 'alert alert-success text-center';
-            totalElement.style.fontSize = '16px';
-            totalElement.style.fontWeight = 'bold';
-            
-            totalInput = document.createElement('input');
-            totalInput.type = 'hidden';
-            totalInput.name = 'total_orden';
-            totalInput.id = 'total_orden_input';
-        }
-        
-        if (totalElement && items.length > 0) {
-            const simboloMoneda = obtenerSimboloMoneda();
-            totalElement.innerHTML = `<i class="fa fa-calculator"></i> TOTAL DE LA ORDEN: ${simboloMoneda} ${total.toFixed(2)}`;
-            totalInput.value = total.toFixed(2);
-            
-            if (!totalElement.parentNode) {
-                contenedorItemsOrden.appendChild(totalElement);
-                contenedorItemsOrden.appendChild(totalInput);
-            }
-        } else if (totalElement && items.length === 0) {
-            totalElement.remove();
-            if (totalInput) totalInput.remove();
-        }
-    }
-    
-    function mostrarFormularioNuevaOrden() {
-        const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
-        const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
-        const btnNuevaOrden = document.getElementById('btn-nueva-orden');
-        
-        contenedorTabla.style.display = 'none';
-        contenedorNuevaOrden.style.display = 'block';
-        btnNuevaOrden.innerHTML = '<i class="fa fa-table"></i> Ver Órdenes';
-        btnNuevaOrden.classList.remove('btn-primary');
-        btnNuevaOrden.classList.add('btn-secondary');
-        document.getElementById('fecha_orden').value = new Date().toISOString().split('T')[0];
-    }
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const verificarBtns = document.querySelectorAll('.verificar-btn');
-    const verificarModal = document.getElementById('verificarModal');
-    const idDetalleInput = document.getElementById('id_pedido_detalle_input');
-    const cantidadInput = document.getElementById('fin_cant_pedido_detalle');
-
-    verificarBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const idDetalle = this.getAttribute('data-id-detalle');
-            const cantidadActual = this.getAttribute('data-cantidad-actual');
-            const cantidadAlmacen = parseFloat(this.getAttribute('data-cantidad-almacen'));
-            const diferencia = cantidadActual - cantidadAlmacen;
-
-            idDetalleInput.value = idDetalle;
-            cantidadInput.value = diferencia;
-
-            $(verificarModal).modal('show');
-        });
-    });
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const btnNuevaOrden = document.getElementById('btn-nueva-orden');
-    const btnCancelarOrden = document.getElementById('btn-cancelar-orden');
-    const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
-    const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
-    const formNuevaOrden = document.getElementById('form-nueva-orden');
-    
-    function mostrarFormularioNuevaOrden() {
-        contenedorTabla.style.display = 'none';
-        contenedorNuevaOrden.style.display = 'block';
-        
-        btnNuevaOrden.innerHTML = '<i class="fa fa-table"></i> Ver Órdenes';
-        btnNuevaOrden.classList.remove('btn-primary');
-        btnNuevaOrden.classList.add('btn-secondary');
-        
-        document.getElementById('fecha_orden').value = new Date().toISOString().split('T')[0];
-        
-        formNuevaOrden.reset();
-        document.getElementById('fecha_orden').value = new Date().toISOString().split('T')[0];
-    }
-    
-    function mostrarTablaOrdenes() {
-        contenedorTabla.style.display = 'block';
-        contenedorNuevaOrden.style.display = 'none';
-        
-        btnNuevaOrden.innerHTML = '<i class="fa fa-plus"></i> Nueva Orden';
-        btnNuevaOrden.classList.remove('btn-secondary');
-        btnNuevaOrden.classList.add('btn-primary');
-    }
-    
-    function limpiarItemsOrden() {
-        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-        const itemsOrden = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
-        itemsOrden.forEach(item => {
-            const idDetalle = item.id.replace('item-orden-', '');
-            const originalBtn = document.querySelector(`.btn-agregarOrden[data-id-detalle="${idDetalle}"]`);
-            if (originalBtn) {
-                originalBtn.disabled = false;
-                originalBtn.innerHTML = '<i class="fa fa-check"></i> Agregar a Orden';
-                originalBtn.classList.remove('btn-success');
-                originalBtn.classList.add('btn-primary');
-            }
-            if (typeof itemsAgregadosOrden !== 'undefined') {
-                itemsAgregadosOrden.delete(idDetalle);
-            }
-        });
-        contenedorItemsOrden.innerHTML = '';
-    }
-    
-    btnNuevaOrden.addEventListener('click', function() {
-        if (contenedorTabla.style.display === 'none') {
-            mostrarTablaOrdenes();
-        } else {
-            mostrarFormularioNuevaOrden();
-        }
-    });
-    
-    // Confirmación para cancelar orden con SweetAlert
-    btnCancelarOrden.addEventListener('click', function() {
-        Swal.fire({
-            title: '¿Está seguro?',
-            text: 'Se perderán los datos ingresados',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Sí, cancelar',
-            cancelButtonText: 'No, continuar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                limpiarItemsOrden();
-                formNuevaOrden.reset();
-                mostrarTablaOrdenes();
-            }
-        });
-    });
-    
-        formNuevaOrden.addEventListener('submit', function(e) {
-        const fecha = document.getElementById('fecha_orden').value;
-        const proveedor = document.getElementById('proveedor_orden').value;
-        const moneda = document.getElementById('moneda_orden').value;
-        
-        if (!fecha || !proveedor || !moneda) {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'warning',
-                title: 'Campos Obligatorios',
-                text: 'Por favor complete los campos obligatorios (Fecha, Proveedor y Moneda).',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'Entendido'
-            });
-            return false;
-        }
-        
-        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-        const itemsOrden = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
-        
-        if (itemsOrden.length === 0) {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'warning',
-                title: 'Sin Items',
-                text: 'Debe agregar al menos un ítem a la orden antes de guardar.',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'Entendido'
-            });
-            return false;
-        }
-        
-        return true;
-    });
-});
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const selectMoneda = document.getElementById('moneda_orden');
-    function actualizarEtiquetasMoneda(idMoneda) {
-        const simboloMoneda = idMoneda == '1' ? 'S/.' : (idMoneda == '2' ? 'US$' : 'S/.');
-        
-        const etiquetasMoneda = document.querySelectorAll('.input-group-text');
-        etiquetasMoneda.forEach(etiqueta => {
-            if (etiqueta.textContent === 'S/.' || etiqueta.textContent === 'US$') {
-                etiqueta.textContent = simboloMoneda;
-            }
-        });
-        
-        const itemsOrden = document.querySelectorAll('[id^="item-orden-"]');
-        itemsOrden.forEach(item => {
-            const idDetalle = item.id.replace('item-orden-', '');
-            const cantidad = parseFloat(item.querySelector('input[name$="[cantidad]"]').value);
-            actualizarSubtotalItem(idDetalle, cantidad);
-        });
-        
-        actualizarTotalOrden();
-    }
-    
-    selectMoneda.addEventListener('change', function() {
-        const idMonedaSeleccionada = this.value;
-        actualizarEtiquetasMoneda(idMonedaSeleccionada);
-    });
-    
-    const originalAgregarItemAOrden = window.agregarItemAOrden || function() {};
-    
-    window.agregarItemAOrden = function(item) {
-        const idMonedaSeleccionada = document.getElementById('moneda_orden').value;
-        const simboloMoneda = idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
-        
-        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-        const itemElement = document.createElement('div');
-        itemElement.id = `item-orden-${item.idDetalle}`;
-        itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
-        itemElement.innerHTML = `
-            <input type="hidden" name="items_orden[${item.idDetalle}][id_detalle]" value="${item.idDetalle}">
-            <input type="hidden" name="items_orden[${item.idDetalle}][id_producto]" value="${item.idProducto}">
-            <input type="hidden" name="items_orden[${item.idDetalle}][cantidad]" value="${item.cantidadVerificada}">
-            
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <div style="font-size: 12px;">
-                        <div class="mb-1">
-                            <strong>Descripción:</strong> ${item.descripcion}
-                        </div>
-                        <div>
-                            <strong>Cantidad:</strong> ${item.cantidadVerificada}
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <label style="font-size: 11px; font-weight: bold;">Precio Unit.:</label>
-                    <div class="input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text" style="font-size: 11px;">${simboloMoneda}</span>
-                        </div>
-                        <input type="number" 
-                            class="form-control form-control-sm precio-item" 
-                            name="items_orden[${item.idDetalle}][precio_unitario]"
-                            data-id-detalle="${item.idDetalle}"
-                            step="0.01" 
-                            min="0"
-                            placeholder="0.00"
-                            style="font-size: 11px;"
-                            required>
-                    </div>
-                </div>
-                <div class="col-md-1">
-                    <button type="button" class="btn btn-danger btn-sm btn-remover-item" data-id-detalle="${item.idDetalle}">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="row mt-2">
-                <div class="col-md-12">
-                    <div class="subtotal-item text-right" id="subtotal-${item.idDetalle}" style="font-size: 12px; font-weight: bold; color: #007bff;">
-                        Subtotal: ${simboloMoneda} 0.00
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        contenedorItemsOrden.appendChild(itemElement);
-        if (typeof itemsAgregadosOrden !== 'undefined') {
-            itemsAgregadosOrden.add(item.idDetalle);
-        }
-        item.botonOriginal.disabled = true;
-        item.botonOriginal.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
-        item.botonOriginal.classList.remove('btn-primary');
-        item.botonOriginal.classList.add('btn-success');
-        
-        const inputPrecio = itemElement.querySelector('.precio-item');
-        inputPrecio.addEventListener('input', function() {
-            actualizarSubtotalItem(item.idDetalle, item.cantidadVerificada);
-            actualizarTotalOrden();
-        });
-    };
-    
-    window.actualizarSubtotalItem = function(idDetalle, cantidad) {
-        const inputPrecio = document.querySelector(`input[data-id-detalle="${idDetalle}"]`);
-        const subtotalElement = document.getElementById(`subtotal-${idDetalle}`);
-        
-        if (inputPrecio && subtotalElement) {
-            const precio = parseFloat(inputPrecio.value) || 0;
-            const subtotal = (cantidad * precio).toFixed(2);
-            const idMonedaSeleccionada = document.getElementById('moneda_orden').value;
-            const simboloMoneda = idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
-            subtotalElement.textContent = `Subtotal: ${simboloMoneda} ${subtotal}`;
-        }
-    };
-    
-    window.actualizarTotalOrden = function() {
-        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-        const items = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
-        let total = 0;
-        
-        items.forEach(item => {
-            const cantidad = parseFloat(item.querySelector('input[name$="[cantidad]"]').value);
-            const inputPrecio = item.querySelector('input[name$="[precio_unitario]"]');
-            const precio = parseFloat(inputPrecio.value) || 0;
-            total += cantidad * precio;
-        });
-        
-        let totalElement = document.getElementById('total-orden');
-        let totalInput = document.getElementById('total_orden_input');
-        
-        if (!totalElement && items.length > 0) {
-            totalElement = document.createElement('div');
-            totalElement.id = 'total-orden';
-            totalElement.className = 'alert alert-success text-center';
-            totalElement.style.fontSize = '16px';
-            totalElement.style.fontWeight = 'bold';
-            
-            totalInput = document.createElement('input');
-            totalInput.type = 'hidden';
-            totalInput.name = 'total_orden';
-            totalInput.id = 'total_orden_input';
-        }
-        
-        if (totalElement && items.length > 0) {
-            const idMonedaSeleccionada = document.getElementById('moneda_orden').value;
-            const simboloMoneda = idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
-            totalElement.innerHTML = `<i class="fa fa-calculator"></i> TOTAL DE LA ORDEN: ${simboloMoneda} ${total.toFixed(2)}`;
-            totalInput.value = total.toFixed(2);
-            
-            if (!totalElement.parentNode) {
-                contenedorItemsOrden.appendChild(totalElement);
-                contenedorItemsOrden.appendChild(totalInput);
-            }
-        } else if (totalElement && items.length === 0) {
-            totalElement.remove();
-            if (totalInput) totalInput.remove();
-        }
-    };
 });
 </script>
