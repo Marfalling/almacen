@@ -86,6 +86,7 @@ $moneda = $compra['nom_moneda'] ?? 'SOLES';
 $estado_texto = '';
 switch($compra['est_compra']) {
     case 1: $estado_texto = 'PENDIENTE'; break;
+    case 2: $estado_texto = 'APROBADO'; break;
     case 3: $estado_texto = 'APROBADO'; break;
     case 0: $estado_texto = 'ANULADO'; break;
     default: $estado_texto = 'DESCONOCIDO';

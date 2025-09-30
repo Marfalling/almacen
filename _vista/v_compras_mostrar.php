@@ -177,6 +177,80 @@ function AnularCompra(id_compra, id_pedido) {
     });
 }
 
+function SubirDocumento(id_compra) {
+    Swal.fire({
+        title: 'Subir documento',
+        html: '<input type="file" id="documento" class="swal2-file">',
+        showCancelButton: true,
+        confirmButtonText: 'Subir'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const archivo = document.getElementById('documento').files[0];
+            if (!archivo) {
+                Swal.fire('Error', 'Debes seleccionar un archivo', 'error');
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append("id_compra", id_compra);
+            formData.append("documento", archivo);
+
+            $.ajax({
+                url: 'compras_subir_documentos.php',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.tipo_mensaje === 'success') {
+                        Swal.fire('¡Éxito!', response.mensaje, 'success')
+                        .then(() => location.reload());
+                    } else {
+                        Swal.fire('Error', response.mensaje, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+                }
+            });
+        }
+    });
+}
+
+function EliminarDocumento(id_doc) {
+    Swal.fire({
+        title: '¿Eliminar documento?',
+        text: "Esta acción no se puede deshacer.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: 'compras_eliminar_documento.php',
+                type: 'POST',
+                data: { id_doc: id_doc },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.tipo_mensaje === 'success') {
+                        Swal.fire('Eliminado', response.mensaje, 'success')
+                        .then(() => location.reload());
+                    } else {
+                        Swal.fire('Error', response.mensaje, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+                }
+            });
+        }
+    });
+}
+
 </script>
 
 <!-- page content -->
@@ -224,6 +298,7 @@ function AnularCompra(id_compra, id_pedido) {
                                                 <th>Aprob. Técnica Por</th>
                                                 <th>Aprob. Financiera Por</th>
                                                 <th>Estado</th>
+                                                <th>Documento</th>
                                                 <th>Acciones</th>
                                             </tr>
                                         </thead>
@@ -273,6 +348,29 @@ function AnularCompra(id_compra, id_pedido) {
                                                         <?php } else { ?>
                                                             <span class="badge badge-danger badge_size">Anulado</span>
                                                         <?php } ?>
+                                                    </td>
+                                                    <td>
+                                                        <?php 
+                                                        $documentos = MostrarDocumentosCompra($compra['id_compra']);
+                                                        if (!empty($documentos)) {
+                                                            foreach ($documentos as $doc) { ?>
+                                                                <div class="d-flex align-items-center mb-1">
+                                                                    <a href="../uploads/compras/<?php echo $doc['documento']; ?>" target="_blank" class="btn btn-sm btn-outline-info">
+                                                                        <i class="fa fa-file"></i> Ver
+                                                                    </a>
+                                                                    <button class="btn btn-sm btn-outline-danger" 
+                                                                            onclick="EliminarDocumento(<?php echo $doc['id_doc']; ?>)">
+                                                                        <i class="fa fa-trash"></i>
+                                                                    </button>
+                                                                </div>
+                                                            <?php }
+                                                        } else {
+                                                            echo '<span class="text-muted">Sin documentos</span>';
+                                                        }
+                                                        ?>
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="SubirDocumento(<?php echo $compra['id_compra']; ?>)">
+                                                            <i class="fa fa-upload"></i> Subir
+                                                        </button>
                                                     </td>
                                                     <td>
                                                         <div class="d-flex flex-wrap gap-2">
