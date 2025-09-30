@@ -1,5 +1,6 @@
 <?php
-function MostrarCompras()
+
+/*function MostrarCompras()
 {
     include("../_conexion/conexion.php");
 
@@ -19,6 +20,36 @@ function MostrarCompras()
 
     $resultado = array();
 
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $resultado[] = $rowc;
+    }
+
+    mysqli_close($con);
+    return $resultado;
+}*/
+
+function MostrarCompras()
+{
+    include("../_conexion/conexion.php");
+
+    $sql = "SELECT 
+                c.*,
+                pe.cod_pedido,
+                p.nom_proveedor,
+                per1.nom_personal AS nom_registrado,
+                COALESCE(per2.nom_personal, '-') AS nom_aprobado_tecnica,
+                COALESCE(per3.nom_personal, '-') AS nom_aprobado_financiera
+            FROM compra c
+            LEFT JOIN pedido pe ON c.id_pedido = pe.id_pedido
+            LEFT JOIN proveedor p ON c.id_proveedor = p.id_proveedor 
+            LEFT JOIN personal per1 ON c.id_personal = per1.id_personal
+            LEFT JOIN personal per2 ON c.id_personal_aprueba_tecnica = per2.id_personal
+            LEFT JOIN personal per3 ON c.id_personal_aprueba_financiera = per3.id_personal
+            ORDER BY c.id_compra DESC";
+
+    $resc = mysqli_query($con, $sql);
+
+    $resultado = [];
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
         $resultado[] = $rowc;
     }
@@ -49,6 +80,90 @@ function AprobarCompra($id_compra, $id_personal)
                    WHERE id_compra = '$id_compra'";
 
     $res_update = mysqli_query($con, $sql_update);
+
+    mysqli_close($con);
+    return $res_update;
+}
+
+// ===================================================================
+// Aprobar compra técnicamente
+// ===================================================================
+function AprobarCompraTecnica($id_compra, $id_personal)
+{
+    include("../_conexion/conexion.php");
+
+    // Verificar estado y aprobaciones previas
+    $sql_check = "SELECT est_compra, id_personal_aprueba_tecnica, id_personal_aprueba_financiera 
+                  FROM compra 
+                  WHERE id_compra = '$id_compra'";
+    $res_check = mysqli_query($con, $sql_check);
+    $row = mysqli_fetch_array($res_check, MYSQLI_ASSOC);
+
+    if (!$row || $row['est_compra'] == 0 || $row['est_compra'] == 3) {
+        mysqli_close($con);
+        return false; // no se puede aprobar
+    }
+
+    // Si ya estaba aprobado técnicamente 
+    if (!empty($row['id_personal_aprueba_tecnica'])) {
+        mysqli_close($con);
+        return false;
+    }
+
+    // Guardar aprobación técnica
+    $sql_update = "UPDATE compra 
+                   SET id_personal_aprueba_tecnica = '$id_personal'
+                   WHERE id_compra = '$id_compra'";
+    $res_update = mysqli_query($con, $sql_update);
+
+    // Verificar si ahora ya tiene ambas aprobaciones para cambiar estado
+    if ($res_update) {
+        if (!empty($row['id_personal_aprueba_financiera'])) {
+            mysqli_query($con, "UPDATE compra SET est_compra = 2 WHERE id_compra = '$id_compra'");
+        }
+    }
+
+    mysqli_close($con);
+    return $res_update;
+}
+
+// ===================================================================
+// Aprobar compra financieramente
+// ===================================================================
+function AprobarCompraFinanciera($id_compra, $id_personal)
+{
+    include("../_conexion/conexion.php");
+
+    // Verificar estado y aprobaciones previas
+    $sql_check = "SELECT est_compra, id_personal_aprueba_tecnica, id_personal_aprueba_financiera 
+                  FROM compra 
+                  WHERE id_compra = '$id_compra'";
+    $res_check = mysqli_query($con, $sql_check);
+    $row = mysqli_fetch_array($res_check, MYSQLI_ASSOC);
+
+    if (!$row || $row['est_compra'] == 0 || $row['est_compra'] == 3) {
+        mysqli_close($con);
+        return false; // no se puede aprobar
+    }
+
+    // Si ya estaba aprobado financieramente 
+    if (!empty($row['id_personal_aprueba_financiera'])) {
+        mysqli_close($con);
+        return false;
+    }
+
+    // Guardar aprobación financiera
+    $sql_update = "UPDATE compra 
+                   SET id_personal_aprueba_financiera = '$id_personal'
+                   WHERE id_compra = '$id_compra'";
+    $res_update = mysqli_query($con, $sql_update);
+
+    // Verificar si ahora ya tiene ambas aprobaciones para cambiar estado
+    if ($res_update) {
+        if (!empty($row['id_personal_aprueba_tecnica'])) {
+            mysqli_query($con, "UPDATE compra SET est_compra = 2 WHERE id_compra = '$id_compra'");
+        }
+    }
 
     mysqli_close($con);
     return $res_update;
