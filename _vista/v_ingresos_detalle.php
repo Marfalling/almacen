@@ -97,19 +97,19 @@
                                         <table class="table table-striped">
                                             <tr>
                                                 <td><strong>Total de Productos:</strong></td>
-                                                <td><span class="badge badge-primary badge-lg"><?php echo $detalle_ingreso['resumen']['total_productos']; ?></span></td>
+                                                <td><span class="badge badge-primary badge_size"><?php echo $detalle_ingreso['resumen']['total_productos']; ?></span></td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Completamente Ingresados:</strong></td>
-                                                <td><span class="badge badge-success badge-lg"><?php echo $detalle_ingreso['resumen']['productos_completos']; ?></span></td>
+                                                <td><span class="badge badge-success badge_size"><?php echo $detalle_ingreso['resumen']['productos_completos']; ?></span></td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Parcialmente Ingresados:</strong></td>
-                                                <td><span class="badge badge-warning badge-lg"><?php echo $detalle_ingreso['resumen']['productos_parciales']; ?></span></td>
+                                                <td><span class="badge badge-warning badge_size"><?php echo $detalle_ingreso['resumen']['productos_parciales']; ?></span></td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Pendientes:</strong></td>
-                                                <td><span class="badge badge-warning badge-lg"><?php echo $detalle_ingreso['resumen']['productos_pendientes']; ?></span></td>
+                                                <td><span class="badge badge-warning badge_size"><?php echo $detalle_ingreso['resumen']['productos_pendientes']; ?></span></td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Registrado Por:</strong></td>
