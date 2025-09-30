@@ -100,7 +100,11 @@
                                         <table class="table table-striped">
                                             <tr>
                                                 <td><strong>Total de Productos:</strong></td>
-                                                <td><span class="badge badge-primary badge-lg"><?php echo count($detalle_ingreso_directo['productos']); ?></span></td>
+                                                <td>
+                                                    <span class="badge badge-primary badge_size">
+                                                        <?php echo count($detalle_ingreso_directo['productos']); ?>
+                                                    </span>
+                                                </td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Cantidad Total Ingresada:</strong></td>
@@ -117,7 +121,7 @@
                                                     // Cambiar color del badge según si hay cantidad o no
                                                     $badge_class = $cantidad_total > 0 ? 'badge-success' : 'badge-secondary';
                                                     ?>
-                                                    <span class="badge <?php echo $badge_class; ?> badge-lg">
+                                                    <span class="badge <?php echo $badge_class; ?> badge_size">
                                                         <?php echo number_format($cantidad_total, 2); ?>
                                                     </span>
                                                 </td>

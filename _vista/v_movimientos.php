@@ -70,22 +70,22 @@
                                         <td>
                                             <?php
                                             switch (intval($mov['tipo_orden'])) {
-                                                case 1: echo '<span class="badge badge-info">INGRESO</span>'; break;
-                                                case 2: echo '<span class="badge badge-warning">SALIDA</span>'; break;
-                                                case 3: echo '<span class="badge badge-secondary">DEVOLUCIÓN</span>'; break;
-                                                case 4: echo '<span class="badge badge-primary">USO</span>'; break;
-                                                default: echo '<span class="badge badge-light">OTRO</span>';
+                                                case 1: echo '<span class="badge badge-info badge_size">INGRESO</span>'; break;
+                                                case 2: echo '<span class="badge badge-warning badge_size">SALIDA</span>'; break;
+                                                case 3: echo '<span class="badge badge-secondary badge_size">DEVOLUCIÓN</span>'; break;
+                                                case 4: echo '<span class="badge badge-primary badge_size">USO</span>'; break;
+                                                default: echo '<span class="badge badge-light badge_size">OTRO</span>';
                                             }
                                             ?>
                                         </td>
                                         <td>
                                             <?php 
                                             if ($mov['tipo_movimiento'] == 1) {
-                                                echo '<span class="badge badge-success">Ingreso</span>';
+                                                echo '<span class="badge badge-success badge_size">Ingreso</span>';
                                             } elseif ($mov['tipo_movimiento'] == 2) {
-                                                echo '<span class="badge badge-danger">Salida</span>';
+                                                echo '<span class="badge badge-danger badge_size">Salida</span>';
                                             } else {
-                                                echo '<span class="badge badge-secondary">Otro</span>';
+                                                echo '<span class="badge badge-secondary badge_size">Otro</span>';
                                             }
                                             ?>
                                         </td>
@@ -93,8 +93,8 @@
                                         <td>
                                             <?php 
                                             echo (intval($mov['est_movimiento']) === 1) 
-                                                ? '<span class="badge badge-success">Activo</span>'
-                                                : '<span class="badge badge-danger">Inactivo</span>';
+                                                ? '<span class="badge badge-success badge_size">Activo</span>'
+                                                : '<span class="badge badge-danger badge_size">Inactivo</span>';
                                             ?>
                                         </td>
                                     </tr>

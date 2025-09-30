@@ -97,19 +97,19 @@
                                         <table class="table table-striped">
                                             <tr>
                                                 <td><strong>Total de Productos:</strong></td>
-                                                <td><span class="badge badge-primary badge-lg"><?php echo $detalle_ingreso['resumen']['total_productos']; ?></span></td>
+                                                <td><span class="badge badge-primary badge_size"><?php echo $detalle_ingreso['resumen']['total_productos']; ?></span></td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Completamente Ingresados:</strong></td>
-                                                <td><span class="badge badge-success badge-lg"><?php echo $detalle_ingreso['resumen']['productos_completos']; ?></span></td>
+                                                <td><span class="badge badge-success badge_size"><?php echo $detalle_ingreso['resumen']['productos_completos']; ?></span></td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Parcialmente Ingresados:</strong></td>
-                                                <td><span class="badge badge-warning badge-lg"><?php echo $detalle_ingreso['resumen']['productos_parciales']; ?></span></td>
+                                                <td><span class="badge badge-warning badge_size"><?php echo $detalle_ingreso['resumen']['productos_parciales']; ?></span></td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Pendientes:</strong></td>
-                                                <td><span class="badge badge-warning badge-lg"><?php echo $detalle_ingreso['resumen']['productos_pendientes']; ?></span></td>
+                                                <td><span class="badge badge-warning badge_size"><?php echo $detalle_ingreso['resumen']['productos_pendientes']; ?></span></td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Registrado Por:</strong></td>
@@ -299,19 +299,130 @@
     color: white;
 }
 
+.alert-info {
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+    color: #0c5460;
+}
+
+/* ESTILOS MEJORADOS PARA IMPRESIÓN */
 @media print {
-    .btn, .x_title .col-sm-2 {
+    @page {
+        size: A4;
+        margin: 1cm;
+    }
+    
+    /* Ocultar elementos que no deben imprimirse */
+    .no-print, .btn, .x_title .col-sm-2 {
         display: none !important;
     }
     
-    .badge {
-        color: #000 !important;
-        border: 1px solid #000 !important;
+    /* Asegurar que todo el contenido se vea */
+    body {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+        font-size: 12px;
+        line-height: 1.3;
     }
     
+    /* Ajustar columnas para impresión */
+    .col-md-6 {
+        width: 50%;
+        float: left;
+    }
+    
+    /* Mejorar badges para impresión */
+    .badge {
+        color: #000 !important;
+        background-color: transparent !important;
+        border: 1px solid #000 !important;
+        border-radius: 3px;
+        padding: 2px 6px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+    
+    /* Mejorar paneles para impresión */
     .x_panel {
         box-shadow: none !important;
         border: 1px solid #ddd !important;
+        page-break-inside: avoid;
+        margin-bottom: 15px;
     }
+    
+    /* Mejorar tablas para impresión */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+    
+    table th,
+    table td {
+        border: 1px solid #000 !important;
+        padding: 4px !important;
+        font-size: 11px !important;
+        page-break-inside: avoid;
+    }
+    
+    table th {
+        background-color: #f0f0f0 !important;
+        color: #000 !important;
+        font-weight: bold !important;
+        text-align: center;
+    }
+    
+    /* Mejorar alert para impresión */
+    .alert {
+        border: 1px solid #000 !important;
+        background-color: #f9f9f9 !important;
+        color: #000 !important;
+        page-break-inside: avoid;
+    }
+    
+    /* Asegurar que los títulos no se separen del contenido */
+    .x_title {
+        page-break-after: avoid;
+    }
+    
+    /* Evitar que las filas de la tabla se corten */
+    table tr {
+        page-break-inside: avoid;
+    }
+    
+    /* Mejorar texto para impresión */
+    h2, h3, h4 {
+        color: #000 !important;
+        page-break-after: avoid;
+        margin-bottom: 10px;
+    }
+    
+    .text-center {
+        text-align: center !important;
+    }
+    
+    /* Asegurar contraste en iconos */
+    .fa {
+        color: #000 !important;
+    }
+    
+    /* Forzar salto de página antes del detalle si es necesario */
+    table thead {
+        display: table-header-group;
+    }
+    
+    /* Evitar que elementos importantes se corten */
+    .table-responsive {
+        overflow: visible !important;
+    }
+    
+    /* Asegurar que los rows se mantengan juntos */
+    .row {
+        page-break-inside: avoid;
+    }
+}
+
+/* Estilos adicionales para mejorar la visualización */
+table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
 }
 </style>

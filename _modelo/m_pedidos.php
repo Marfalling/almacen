@@ -5,60 +5,42 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $nom_pedido
 {
     include("../_conexion/conexion.php");
 
-    // Obtener información de la obra desde el almacén seleccionado
-    $sql_obra = "SELECT id_obra FROM almacen WHERE id_almacen = $id_almacen";
-    $resultado_obra = mysqli_query($con, $sql_obra);
-    $almacen_data = mysqli_fetch_assoc($resultado_obra);
-    $id_obra = $almacen_data['id_obra'];
-    
-    // Obtener nombre de la obra para generar el código
-    $sql_obra_nom = "SELECT nom_obra FROM obra WHERE id_obra = $id_obra";
-    $resultado_obra_nom = mysqli_query($con, $sql_obra_nom);
-    $obra = mysqli_fetch_assoc($resultado_obra_nom);
-    
-    // Obtener el siguiente número de pedido para este almacén
-    $sql_num = "SELECT COUNT(*) + 1 as siguiente FROM pedido p 
-                WHERE p.id_almacen = $id_almacen";
-    $resultado_num = mysqli_query($con, $sql_num);
-    $num_pedido = mysqli_fetch_assoc($resultado_num)['siguiente'];
-    
-    $cod_pedido = $obra['nom_obra'] . " " . $num_pedido;
-
-    // Insertar pedido principal - AHORA INCLUYE EL id_ubicacion RECIBIDO COMO PARÁMETRO
+    // INSERTAR PRIMERO el pedido SIN código para obtener el ID
     $sql = "INSERT INTO pedido (
                 id_producto_tipo, id_almacen, id_ubicacion, id_personal, 
                 cod_pedido, nom_pedido, ot_pedido, cel_pedido, lug_pedido, 
                 acl_pedido, fec_req_pedido, fec_pedido, est_pedido
             ) VALUES (
                 $id_producto_tipo, $id_almacen, $id_ubicacion, $id_personal, 
-                '$cod_pedido', '$nom_pedido', '$num_ot', '$contacto', '$lugar_entrega', 
+                'TEMP', '$nom_pedido', '$num_ot', '$contacto', '$lugar_entrega', 
                 '$aclaraciones', '$fecha_necesidad', NOW(), 1
             )";
 
     if (mysqli_query($con, $sql)) {
         $id_pedido = mysqli_insert_id($con);
         
+        // ACTUALIZAR con el código basado en el ID (P0001, P0012, P0123, etc.)
+        $cod_pedido = 'P' . str_pad($id_pedido, 4, '0', STR_PAD_LEFT);
+        $sql_update_codigo = "UPDATE pedido SET cod_pedido = '$cod_pedido' WHERE id_pedido = $id_pedido";
+        mysqli_query($con, $sql_update_codigo);
+        
         foreach ($materiales as $index => $material) {
             $id_producto = intval($material['id_producto']);
             $descripcion = mysqli_real_escape_string($con, $material['descripcion']);
             $cantidad = floatval($material['cantidad']);
-            $id_unidad = intval($material['unidad']); // Este es el ID de la unidad
+            $id_unidad = intval($material['unidad']);
             $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
             $sst_descripcion = mysqli_real_escape_string($con, $material['sst_descripcion']); 
             
-            // OBTENER EL NOMBRE DE LA UNIDAD POR SU ID
+            // Obtener el nombre de la unidad por su ID
             $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
             $resultado_unidad = mysqli_query($con, $sql_unidad);
             $unidad_data = mysqli_fetch_assoc($resultado_unidad);
             $nombre_unidad = $unidad_data ? $unidad_data['nom_unidad_medida'] : '';
             
-            // GUARDAR SOLO LA DESCRIPCIÓN DE SST
             $requisitos = $sst_descripcion;
-            
-            // GUARDAR TANTO EL ID COMO EL NOMBRE PARA FACILITAR LA EDICIÓN
             $comentario_detalle = "Unidad: $nombre_unidad | Unidad ID: $id_unidad | Obs: $observaciones";
             
-            // MODIFICACIÓN: cant_fin_pedido_detalle ahora es NULL
             $sql_detalle = "INSERT INTO pedido_detalle (
                                 id_pedido, id_producto, prod_pedido_detalle, 
                                 cant_pedido_detalle, cant_fin_pedido_detalle, 
@@ -77,7 +59,7 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $nom_pedido
                     foreach ($archivos_subidos[$index]['name'] as $key => $archivo_nombre) {
                         if (!empty($archivo_nombre)) {
                             $extension = pathinfo($archivo_nombre, PATHINFO_EXTENSION);
-                            $nuevo_nombre = "pedido_" . $id_pedido . "_detalle_" . $id_detalle . "_" . $key . "_" . uniqid() . "." . $extension;
+                            $nuevo_nombre = "pedido_" . $id_pedido . "detalle" . $id_detalle . "" . $key . "" . uniqid() . "." . $extension;
                             
                             $ruta_destino = "../_archivos/pedidos/" . $nuevo_nombre;
                             

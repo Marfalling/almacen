@@ -70,9 +70,9 @@
                                                 <td><strong>Estado:</strong></td>
                                                 <td>
                                                     <?php if ($producto['est_producto'] == 1) { ?>
-                                                        <span class="badge badge-success">ACTIVO</span>
+                                                        <span class="badge badge-success badge_size">ACTIVO</span>
                                                     <?php } else { ?>
-                                                        <span class="badge badge-danger">INACTIVO</span>
+                                                        <span class="badge badge-danger badge_size">INACTIVO</span>
                                                     <?php } ?>
                                                 </td>
                                             </tr>
@@ -147,11 +147,11 @@
                                                         $dias_restantes = (strtotime($producto['fpc_producto']) - time()) / (60 * 60 * 24);
                                                         
                                                         if ($dias_restantes < 0) {
-                                                            echo '<span class="text-danger">' . $fecha_proxima . ' <small>(Vencido)</small></span>';
+                                                            echo '<span class="badge badge-danger badge_size">' . $fecha_proxima . ' <small>(Vencido)</small></span>';
                                                         } elseif ($dias_restantes <= 30) {
-                                                            echo '<span class="text-warning">' . $fecha_proxima . ' <small>(Por vencer)</small></span>';
+                                                            echo '<span class="badge badge-warning badge_size">' . $fecha_proxima . ' <small>(Por vencer)</small></span>';
                                                         } else {
-                                                            echo '<span class="text-success">' . $fecha_proxima . '</span>';
+                                                            echo '<span class="badge badge-success badge_size">' . $fecha_proxima . '</span>';
                                                         }
                                                         ?>
                                                     <?php } else { ?>
@@ -216,11 +216,11 @@
                                                         $dias_restantes = (strtotime($producto['fpo_producto']) - time()) / (60 * 60 * 24);
                                                         
                                                         if ($dias_restantes < 0) {
-                                                            echo '<span class="text-danger">' . $fecha_proxima . ' <small>(Vencido)</small></span>';
+                                                            echo '<span class="badge badge-danger badge_size">' . $fecha_proxima . ' <small>(Vencido)</small></span>';
                                                         } elseif ($dias_restantes <= 30) {
-                                                            echo '<span class="text-warning">' . $fecha_proxima . ' <small>(Por vencer)</small></span>';
+                                                            echo '<span class="badge badge-warning badge_size">' . $fecha_proxima . ' <small>(Por vencer)</small></span>';
                                                         } else {
-                                                            echo '<span class="text-success">' . $fecha_proxima . '</span>';
+                                                            echo '<span class="badge badge-success badge_size">' . $fecha_proxima . '</span>';
                                                         }
                                                         ?>
                                                     <?php } else { ?>

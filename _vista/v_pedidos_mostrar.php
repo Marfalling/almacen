@@ -78,7 +78,7 @@
                                                         <?php } elseif($pedido['est_pedido_calc'] == 2) { ?>
                                                             <span class="badge badge-success badge_size">Completado</span>
                                                         <?php } elseif($pedido['est_pedido_calc'] == 0) { ?>
-                                                            <span class="badge badge-secondary badge_size">Anulado</span>
+                                                            <span class="badge badge-danger badge_size">Anulado</span>
                                                         <?php } ?>
                                                     </td>
                                                     <td>
