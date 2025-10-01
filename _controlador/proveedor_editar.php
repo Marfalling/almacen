@@ -39,39 +39,53 @@ if (!verificarPermisoEspecifico('editar_proveedor')) {
             //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
                 $id_proveedor = $_REQUEST['id_proveedor'];
-                $nom = strtoupper($_REQUEST['nom']);
-                $ruc = strtoupper($_REQUEST['ruc']);
-                $dir = strtoupper($_REQUEST['dir']);
-                $tel = strtoupper($_REQUEST['tel']);
-                $cont = strtoupper($_REQUEST['cont']);
-                $email = strtoupper($_REQUEST['email']);
-                $item = $_REQUEST['item'];
-                $banco = strtoupper($_REQUEST['banco']);
-                $id_moneda = $_REQUEST['id_moneda'];
-                $nro_cuenta_corriente = $_REQUEST['nro_cuenta_corriente'];
-                $nro_cuenta_interbancaria = $_REQUEST['nro_cuenta_interbancaria'];
+                $nom = strtoupper(trim($_REQUEST['nom']));
+                $ruc = strtoupper(trim($_REQUEST['ruc']));
+                $dir = strtoupper(trim($_REQUEST['dir']));
+                $tel = strtoupper(trim($_REQUEST['tel']));
+                $cont = strtoupper(trim($_REQUEST['cont']));
+                $email = strtolower(trim($_REQUEST['email']));
                 $est = isset($_REQUEST['est']) ? 1 : 0;
 
-                $rpta = ActualizarProveedor($id_proveedor, $nom, $ruc, $dir, $tel, $cont, $est, $email, $item, $banco, $id_moneda, $nro_cuenta_corriente, $nro_cuenta_interbancaria);
+                // Primero actualizamos los datos principales
+                $rpta = ActualizarProveedor($id_proveedor, $nom, $ruc, $dir, $tel, $cont, $est, $email);
 
                 if ($rpta == "SI") {
-                ?>
-                    <script Language="JavaScript">
-                        location.href = 'proveedor_mostrar.php?actualizado=true';
-                    </script>
-                <?php
+                    // --- Procesar las cuentas bancarias ---
+                    // Eliminar cuentas anteriores
+                    EliminarCuentasProveedor($id_proveedor);
+
+                    // Obtener arrays desde el formulario
+                    $lista_bancos = $_POST['banco'] ?? [];
+                    $lista_monedas = $_POST['id_moneda'] ?? [];
+                    $lista_corrientes = $_POST['cta_corriente'] ?? [];
+                    $lista_interbancarias = $_POST['cta_interbancaria'] ?? [];
+
+                    // Insertar cada cuenta
+                    for ($i = 0; $i < count($lista_bancos); $i++) {
+                        $banco = strtoupper(trim($lista_bancos[$i]));
+                        $moneda = intval($lista_monedas[$i]);
+                        $cta_corriente = trim($lista_corrientes[$i]);
+                        $cta_interbancaria = trim($lista_interbancarias[$i]);
+                        GrabarCuentaProveedor($id_proveedor, $banco, $moneda, $cta_corriente, $cta_interbancaria);
+                    }
+                    ?>
+                        <script Language="JavaScript">
+                            location.href = 'proveedor_mostrar.php?actualizado=true';
+                        </script>
+                    <?php
                 } else if ($rpta == "NO") {
-                ?>
-                    <script Language="JavaScript">
-                        location.href = 'proveedor_mostrar.php?existe=true';
-                    </script>
-                <?php
+                    ?>
+                        <script Language="JavaScript">
+                            location.href = 'proveedor_mostrar.php?existe=true';
+                        </script>
+                    <?php
                 } else {
-                ?>
-                    <script Language="JavaScript">
-                        location.href = 'proveedor_mostrar.php?error=true';
-                    </script>
-                <?php
+                    ?>
+                        <script Language="JavaScript">
+                            location.href = 'proveedor_mostrar.php?error=true';
+                        </script>
+                    <?php
                 }
             }
             //-------------------------------------------
@@ -96,12 +110,10 @@ if (!verificarPermisoEspecifico('editar_proveedor')) {
                 $tel = $proveedor_data['tel_proveedor'];
                 $cont = $proveedor_data['cont_proveedor'];
                 $email = $proveedor_data['mail_proveedor'];
-                $item = $proveedor_data['item_proveedor'];
-                $banco = $proveedor_data['banco_proveedor'];
-                $id_moneda = $proveedor_data['id_moneda'];
-                $nro_cuenta_corriente = $proveedor_data['nro_cuenta_corriente'];
-                $nro_cuenta_interbancaria = $proveedor_data['nro_cuenta_interbancaria'];
                 $est = ($proveedor_data['est_proveedor'] == 1) ? "checked" : "";
+
+                // Aquí obtenemos las cuentas bancarias
+                $cuentas = ObtenerCuentasProveedor($id_proveedor);
             } else {
             ?>
                 <script Language="JavaScript">

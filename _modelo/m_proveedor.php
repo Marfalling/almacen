@@ -1,27 +1,26 @@
 <?php
-
 //-----------------------------------------------------------------------
-function GrabarProveedor($nom, $ruc, $dir, $tel, $cont, $est, $email, $item, $banco, $id_moneda, $nro_cuenta_corriente, $nro_cuenta_interbancaria) 
-{
+// Insertar nuevo proveedor
+//-----------------------------------------------------------------------
+function GrabarProveedor($nom, $ruc, $dir, $tel, $cont, $est, $email) {
     include("../_conexion/conexion.php");
-    
-    // Verificar si ya existe un proveedor con el mismo nombre o RUC
+
     $sql_verificar = "SELECT COUNT(*) as total FROM proveedor WHERE nom_proveedor = '$nom' OR ruc_proveedor = '$ruc'";
     $resultado_verificar = mysqli_query($con, $sql_verificar);
     $fila = mysqli_fetch_assoc($resultado_verificar);
-    
+
     if ($fila['total'] > 0) {
         mysqli_close($con);
-        return "NO"; // Ya existe
+        return "NO";
     }
-    
-    // Insertar nuevo proveedor
-    $sql = "INSERT INTO proveedor (nom_proveedor, ruc_proveedor, dir_proveedor, tel_proveedor, cont_proveedor, est_proveedor, mail_proveedor, item_proveedor, banco_proveedor, id_moneda, nro_cuenta_corriente, nro_cuenta_interbancaria) 
-            VALUES ('$nom', '$ruc', '$dir', '$tel', '$cont', $est, '$email', $item, '$banco', $id_moneda, '$nro_cuenta_corriente', '$nro_cuenta_interbancaria')";
-    
+
+    $sql = "INSERT INTO proveedor (nom_proveedor, ruc_proveedor, dir_proveedor, tel_proveedor, cont_proveedor, est_proveedor, mail_proveedor) 
+            VALUES ('$nom', '$ruc', '$dir', '$tel', '$cont', $est, '$email')";
+
     if (mysqli_query($con, $sql)) {
+        $id_proveedor = mysqli_insert_id($con);
         mysqli_close($con);
-        return "SI";
+        return $id_proveedor;
     } else {
         mysqli_close($con);
         return "ERROR";
@@ -29,53 +28,25 @@ function GrabarProveedor($nom, $ruc, $dir, $tel, $cont, $est, $email, $item, $ba
 }
 
 //-----------------------------------------------------------------------
-function MostrarProveedores()
-{
+function MostrarProveedores() {
     include("../_conexion/conexion.php");
-
-    $sqlc = "SELECT p.*, m.nom_moneda 
-            FROM proveedor p
-            LEFT JOIN moneda m ON p.id_moneda = m.id_moneda
-            ORDER BY p.nom_proveedor ASC";
+    $sqlc = "SELECT * FROM proveedor ORDER BY nom_proveedor ASC";
     $resc = mysqli_query($con, $sqlc);
 
-    $resultado = array();
-
+    $resultado = [];
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
         $resultado[] = $rowc;
     }
-
     mysqli_close($con);
-    
     return $resultado;
 }
 
 //-----------------------------------------------------------------------
-function MostrarProveedoresActivos()
-{
+function ObtenerProveedor($id) {
     include("../_conexion/conexion.php");
-
-    $sqlc = "SELECT id_proveedor, nom_proveedor, ruc_proveedor FROM proveedor WHERE est_proveedor = 1 ORDER BY nom_proveedor ASC";
-    $resc = mysqli_query($con, $sqlc);
-
-    $resultado = array();
-
-    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
-        $resultado[] = $rowc;
-    }
-
-    mysqli_close($con);
-    
-    return $resultado;
-}
-
-function ObtenerProveedor($id)
-{
-    include("../_conexion/conexion.php");
-    
     $sql = "SELECT * FROM proveedor WHERE id_proveedor = $id";
     $resultado = mysqli_query($con, $sql);
-    
+
     if ($resultado && mysqli_num_rows($resultado) > 0) {
         $fila = mysqli_fetch_assoc($resultado);
         mysqli_close($con);
@@ -87,36 +58,29 @@ function ObtenerProveedor($id)
 }
 
 //-----------------------------------------------------------------------
-function ActualizarProveedor($id, $nom, $ruc, $dir, $tel, $cont, $est, $email, $item, $banco, $id_moneda, $nro_cuenta_corriente, $nro_cuenta_interbancaria)
-{
+function ActualizarProveedor($id, $nom, $ruc, $dir, $tel, $cont, $est, $email) {
     include("../_conexion/conexion.php");
-    
-    // Verificar si ya existe otro proveedor con el mismo nombre o RUC
-    $sql_verificar = "SELECT COUNT(*) as total FROM proveedor WHERE (nom_proveedor = '$nom' OR ruc_proveedor = '$ruc') AND id_proveedor != $id";
+
+    $sql_verificar = "SELECT COUNT(*) as total FROM proveedor 
+                      WHERE (nom_proveedor = '$nom' OR ruc_proveedor = '$ruc') AND id_proveedor != $id";
     $resultado_verificar = mysqli_query($con, $sql_verificar);
     $fila = mysqli_fetch_assoc($resultado_verificar);
-    
+
     if ($fila['total'] > 0) {
         mysqli_close($con);
-        return "NO"; // Ya existe otro con el mismo nombre o RUC
+        return "NO";
     }
-    
-    // Actualizar proveedor
+
     $sql = "UPDATE proveedor SET 
-            nom_proveedor = '$nom', 
+            nom_proveedor = '$nom',
             ruc_proveedor = '$ruc',
             dir_proveedor = '$dir',
             tel_proveedor = '$tel',
             cont_proveedor = '$cont',
             mail_proveedor = '$email',
-            item_proveedor = $item,
-            banco_proveedor = '$banco',
-            id_moneda = $id_moneda,
-            nro_cuenta_corriente = '$nro_cuenta_corriente',
-            nro_cuenta_interbancaria = '$nro_cuenta_interbancaria',
-            est_proveedor = $est 
+            est_proveedor = $est
             WHERE id_proveedor = $id";
-    
+
     if (mysqli_query($con, $sql)) {
         mysqli_close($con);
         return "SI";
@@ -124,5 +88,39 @@ function ActualizarProveedor($id, $nom, $ruc, $dir, $tel, $cont, $est, $email, $
         mysqli_close($con);
         return "ERROR";
     }
+}
+
+//-----------------------------------------------------------------------
+// Cuentas bancarias
+//-----------------------------------------------------------------------
+function ObtenerCuentasProveedor($id_proveedor) {
+    include("../_conexion/conexion.php");
+    $sql = "SELECT pc.*, m.nom_moneda 
+            FROM proveedor_cuenta pc
+            LEFT JOIN moneda m ON pc.id_moneda = m.id_moneda
+            WHERE pc.id_proveedor = $id_proveedor";
+    $resultado = mysqli_query($con, $sql);
+
+    $cuentas = [];
+    while ($row = mysqli_fetch_array($resultado, MYSQLI_ASSOC)) {
+        $cuentas[] = $row;
+    }
+    mysqli_close($con);
+    return $cuentas;
+}
+
+function EliminarCuentasProveedor($id_proveedor) {
+    include("../_conexion/conexion.php");
+    $sql = "DELETE FROM proveedor_cuenta WHERE id_proveedor = $id_proveedor";
+    mysqli_query($con, $sql);
+    mysqli_close($con);
+}
+
+function GrabarCuentaProveedor($id_proveedor, $banco, $id_moneda, $cta_corriente, $cta_interbancaria) {
+    include("../_conexion/conexion.php");
+    $sql = "INSERT INTO proveedor_cuenta (id_proveedor, banco_proveedor, id_moneda, nro_cuenta_corriente, nro_cuenta_interbancaria) 
+            VALUES ($id_proveedor, '$banco', $id_moneda, '$cta_corriente', '$cta_interbancaria')";
+    mysqli_query($con, $sql);
+    mysqli_close($con);
 }
 ?>

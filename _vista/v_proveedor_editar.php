@@ -18,130 +18,60 @@
             <div class="col-md-12">
                 <div class="x_panel">
                     <div class="x_title">
-                        <h2>Datos del Proveedor <small></small></h2>
+                        <h2>Datos del Proveedor</h2>
                         <div class="clearfix"></div>
                     </div>
                     <div class="x_content">
-                        <br>
                         <form class="form-horizontal form-label-left" action="proveedor_editar.php" method="post">
-                            
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Nombre <span class="text-danger">*</span> :</label>
-                                <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="nom" value="<?php echo $nom; ?>" class="form-control" placeholder="Nombre del proveedor" required="required">
-                                </div>
-                            </div>
+                            <!-- Datos principales -->
+                            <input type="text" name="nom" value="<?php echo $nom; ?>" class="form-control" placeholder="Nombre" required><br>
+                            <input type="text" name="ruc" value="<?php echo $ruc; ?>" class="form-control" placeholder="RUC" maxlength="11" required><br>
+                            <textarea name="dir" class="form-control" placeholder="Dirección" required><?php echo $dir; ?></textarea><br>
+                            <input type="text" name="tel" value="<?php echo $tel; ?>" class="form-control" placeholder="Teléfono" required><br>
+                            <input type="text" name="cont" value="<?php echo $cont; ?>" class="form-control" placeholder="Contacto" required><br>
+                            <input type="email" name="email" value="<?php echo $email; ?>" class="form-control" placeholder="Correo"><br>
 
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">RUC <span class="text-danger">*</span> :</label>
-                                <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="ruc" value="<?php echo $ruc; ?>" class="form-control" placeholder="RUC del proveedor" required="required" maxlength="11">
-                                </div>
-                            </div>
+                            <!-- Cuentas bancarias -->
+                            <h4>Cuentas Bancarias</h4>
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th>Banco</th>
+                                        <th>Moneda</th>
+                                        <th>Cuenta Corriente</th>
+                                        <th>Cuenta Interbancaria</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-cuentas">
+                                    <?php foreach ($cuentas as $c) { ?>
+                                        <tr>
+                                            <td><input type="text" name="banco[]" value="<?php echo $c['banco_proveedor']; ?>" class="form-control" required></td>
+                                            <td>
+                                                <select name="id_moneda[]" class="form-control" required>
+                                                    <option value="">-- Moneda --</option>
+                                                    <?php foreach ($monedas as $m) {
+                                                        $selected = ($m['id_moneda'] == $c['id_moneda']) ? "selected" : "";
+                                                        echo "<option value='{$m['id_moneda']}' {$selected}>{$m['nom_moneda']}</option>";
+                                                    } ?>
+                                                </select>
+                                            </td>
+                                            <td><input type="text" name="cta_corriente[]" value="<?php echo $c['nro_cuenta_corriente']; ?>" class="form-control" required></td>
+                                            <td><input type="text" name="cta_interbancaria[]" value="<?php echo $c['nro_cuenta_interbancaria']; ?>" class="form-control" required></td>
+                                            <td><button type="button" class="btn btn-danger btn-sm eliminar-fila">X</button></td>
+                                        </tr>
+                                    <?php } ?>
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn btn-success btn-sm" id="agregarCuenta">+ Agregar Cuenta</button><br><br>
 
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Dirección <span class="text-danger">*</span> :</label>
-                                <div class="col-md-9 col-sm-9">
-                                    <textarea name="dir" class="form-control" rows="3" placeholder="Dirección del proveedor" required="required"><?php echo $dir; ?></textarea>
-                                </div>
-                            </div>
+                            <!-- Estado -->
+                            <label><input type="checkbox" name="est" class="js-switch" <?php echo $est; ?>> Activo</label><br><br>
 
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Teléfono <span class="text-danger">*</span> :</label>
-                                <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="tel" value="<?php echo $tel; ?>" class="form-control" placeholder="Teléfono del proveedor" required="required">
-                                </div>
-                            </div>
+                            <!-- Botones -->
+                            <button type="submit" name="registrar" class="btn btn-warning">Actualizar</button>
 
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Contacto <span class="text-danger">*</span> :</label>
-                                <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="cont" value="<?php echo $cont; ?>" class="form-control" placeholder="Persona de contacto" required="required">
-                                </div>
-                            </div>
-
-                            <!-- Email -->
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Email <span class="text-danger">*</span> :</label>
-                                <div class="col-md-9 col-sm-9">
-                                    <input type="email" name="email" value="<?php echo $email; ?>" class="form-control" placeholder="Correo electrónico" required="required">
-                                </div>
-                            </div>
-
-                            <!-- Item -->
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Item <span class="text-danger">*</span> :</label>
-                                <div class="col-md-9 col-sm-9">
-                                    <input type="number" name="item" value="<?php echo $item; ?>" class="form-control" placeholder="Item" required="required">
-                                </div>
-                            </div>
-
-                            <!-- Banco -->
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Banco <span class="text-danger">*</span> :</label>
-                                <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="banco" value="<?php echo $banco; ?>" class="form-control" placeholder="Nombre del banco" required="required">
-                                </div>
-                            </div>
-
-                            <!-- Moneda -->
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Moneda <span class="text-danger">*</span> :</label>
-                                <div class="col-md-9 col-sm-9">
-                                    <select name="id_moneda" class="form-control" required="required">
-                                        <option value="">-- Seleccione Moneda --</option>
-                                        <?php
-                                        foreach ($monedas as $m) {
-                                            $selected = ($m['id_moneda'] == $id_moneda) ? "selected" : "";
-                                            echo "<option value='{$m['id_moneda']}' {$selected}>{$m['nom_moneda']}</option>";
-                                        }
-                                        ?>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Cuenta Corriente -->
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Cuenta Corriente <span class="text-danger">*</span> :</label>
-                                <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="nro_cuenta_corriente" value="<?php echo $nro_cuenta_corriente; ?>" class="form-control" placeholder="Número de cuenta corriente" required="required">
-                                </div>
-                            </div>
-
-                            <!-- Cuenta Interbancaria -->
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Cuenta Interbancaria <span class="text-danger">*</span> :</label>
-                                <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="nro_cuenta_interbancaria" value="<?php echo $nro_cuenta_interbancaria; ?>" class="form-control" placeholder="Número de cuenta interbancaria" required="required">
-                                </div>
-                            </div>
-
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Estado:</label>
-                                <div class="col-md-9 col-sm-9">
-                                    <div class="">
-                                        <label>
-                                            <input type="checkbox" name="est" class="js-switch" <?php echo $est; ?>> Activo
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="ln_solid"></div>
-
-                            <div class="form-group">
-                                <div class="col-md-2 col-sm-2 offset-md-10">
-                                    <button type="submit" name="registrar" class="btn btn-warning btn-block">Actualizar</button>
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <div class="col-md-12 col-sm-12">
-                                    <p><span class="text-danger">*</span> Los campos con (<span class="text-danger">*</span>) son obligatorios.</p>
-                                </div>
-                            </div>
-
-                            <!-- Campos ocultos -->
+                            <!-- Campo oculto -->
                             <input type="hidden" name="id_proveedor" value="<?php echo $id_proveedor; ?>">
                         </form>
                     </div>
@@ -151,3 +81,38 @@
     </div>
 </div>
 <!-- /page content -->
+
+<!-- Script dinámico para manejar cuentas bancarias -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const tablaCuentas = document.getElementById("tabla-cuentas");
+    const btnAgregar = document.getElementById("agregarCuenta");
+
+    // Acción para agregar nueva fila
+    btnAgregar.addEventListener("click", function() {
+        const nuevaFila = document.createElement("tr");
+        nuevaFila.innerHTML = `
+            <td><input type="text" name="banco[]" class="form-control" required></td>
+            <td>
+                <select name="id_moneda[]" class="form-control" required>
+                    <option value="">-- Moneda --</option>
+                    <?php foreach ($monedas as $m) { ?>
+                        <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
+                    <?php } ?>
+                </select>
+            </td>
+            <td><input type="text" name="cta_corriente[]" class="form-control" required></td>
+            <td><input type="text" name="cta_interbancaria[]" class="form-control" required></td>
+            <td><button type="button" class="btn btn-danger btn-sm eliminar-fila">X</button></td>
+        `;
+        tablaCuentas.appendChild(nuevaFila);
+    });
+
+    // Acción para eliminar fila
+    tablaCuentas.addEventListener("click", function(e) {
+        if (e.target.classList.contains("eliminar-fila")) {
+            e.target.closest("tr").remove();
+        }
+    });
+});
+</script>
