@@ -62,79 +62,86 @@ $pedido_anulado = ($pedido['est_pedido'] == 0);
                     <div class="x_content" style="max-height: 650px; overflow-y: auto; padding: 5px;">
                         <div id="contenedor-pendientes">
                             <?php 
-                            $contador_detalle = 1;
-                            foreach ($pedido_detalle as $detalle) { 
-                                $comentario = $detalle['com_pedido_detalle'];
-                                $unidad = '';
-                                $observaciones = '';
-                                
-                                if (preg_match('/Unidad:\s*([^|]*)\s*\|/', $comentario, $matches)) {
-                                    $unidad = trim($matches[1]);
-                                }
-                                if (preg_match('/Obs:\s*(.*)$/', $comentario, $matches)) {
-                                    $observaciones = trim($matches[1]);
-                                }
-                                
-                                // Parsear requisitos
-                                $requisitos = $detalle['req_pedido'];
-                                $sst = $ma = $ca = '';
-                                
-                                if (preg_match('/SST:\s*([^|]*)\s*\|/', $requisitos, $matches)) {
-                                    $sst = trim($matches[1]);
-                                }
-                                if (preg_match('/MA:\s*([^|]*)\s*\|/', $requisitos, $matches)) {
-                                    $ma = trim($matches[1]);
-                                }
-                                if (preg_match('/CA:\s*(.*)$/', $requisitos, $matches)) {
-                                    $ca = trim($matches[1]);
-                                }
+                                $contador_detalle = 1;
+                                foreach ($pedido_detalle as $detalle) { 
+                                    $comentario = $detalle['com_pedido_detalle'];
+                                    $unidad = '';
+                                    $observaciones = '';
+                                    
+                                    if (preg_match('/Unidad:\s*([^|]*)\s*\|/', $comentario, $matches)) {
+                                        $unidad = trim($matches[1]);
+                                    }
+                                    if (preg_match('/Obs:\s*(.*)$/', $comentario, $matches)) {
+                                        $observaciones = trim($matches[1]);
+                                    }
+                                    
+                                    // Parsear requisitos
+                                    $requisitos = $detalle['req_pedido'];
+                                    $sst = $ma = $ca = '';
+                                    
+                                    if (preg_match('/SST:\s*([^|]*)\s*\|/', $requisitos, $matches)) {
+                                        $sst = trim($matches[1]);
+                                    }
+                                    if (preg_match('/MA:\s*([^|]*)\s*\|/', $requisitos, $matches)) {
+                                        $ma = trim($matches[1]);
+                                    }
+                                    if (preg_match('/CA:\s*(.*)$/', $requisitos, $matches)) {
+                                        $ca = trim($matches[1]);
+                                    }
 
-                                $esVerificado = !is_null($detalle['cant_fin_pedido_detalle']);
-                                $stockInsuficiente = $detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle'];
+                                    $esVerificado = !is_null($detalle['cant_fin_pedido_detalle']);
+                                    $stockInsuficiente = $detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle'];
+                                    $pedidoAnulado = ($pedido['est_pedido'] == 0);
+                                    $esAutoOrden = ($pedido['id_producto_tipo'] == 2);
+                                    
+                                    // CORRECCIÓN DE LÓGICA: Determinar correctamente el estado del item
+                                    if ($esAutoOrden) {
+                                        $colorFondo = '#e3f2fd';
+                                        $colorBorde = '#2196f3';
+                                        $claseTexto = 'text-primary';
+                                        $icono = 'fa-cog';
+                                        $estadoTexto = 'Auto-Orden';
+                                    } else if ($detalle['est_pedido_detalle'] == 2) {
+                                        // Item cerrado manualmente
+                                        $colorFondo = '#f8d7da';
+                                        $colorBorde = '#dc3545';
+                                        $claseTexto = 'text-danger';
+                                        $icono = 'fa-times-circle';
+                                        $estadoTexto = 'Cerrado';
+                                    } else if ($esVerificado && $stockInsuficiente) {
+                                        // Item verificado y con stock insuficiente (listo para orden)
+                                        $colorFondo = '#d4edda';
+                                        $colorBorde = '#28a745';
+                                        $claseTexto = 'text-success';
+                                        $icono = 'fa-check-circle';
+                                        $estadoTexto = 'Verificado';
+                                    } else if (!$esVerificado && $stockInsuficiente) {
+                                        // Item pendiente de verificación (stock insuficiente, no verificado)
+                                        $colorFondo = '#fff3cd';
+                                        $colorBorde = '#ffc107';
+                                        $claseTexto = 'text-warning';
+                                        $icono = 'fa-clock-o';
+                                        $estadoTexto = 'Pendiente';
+                                    } else {
+                                        // Item con stock suficiente (completo)
+                                        $colorFondo = '#d4edda';
+                                        $colorBorde = '#28a745';
+                                        $claseTexto = 'text-success';
+                                        $icono = 'fa-check-circle';
+                                        $estadoTexto = 'Completo';
+                                    }
 
-                                // CORRECCIÓN: Verificar si el pedido está anulado
-                                $pedidoAnulado = ($pedido['est_pedido'] == 0);
-
-                                $esAutoOrden = ($pedido['id_producto_tipo'] == 2);
-                                if ($esAutoOrden) {
-                                    $esVerificado = true;
-                                    $cantidadVerificada = $detalle['cant_pedido_detalle'];
-                                    $colorFondo = '#e3f2fd';
-                                    $colorBorde = '#2196f3';
-                                    $claseTexto = 'text-primary';
-                                    $icono = 'fa-cog';
-                                    $estadoTexto = 'Auto-Orden';
-                                } else if ($esVerificado && $stockInsuficiente && $detalle['est_pedido_detalle'] != 2) {
-                                    $colorFondo = '#d4edda';
-                                    $colorBorde = '#28a745';
-                                    $claseTexto = 'text-success';
-                                    $icono = 'fa-check-circle';
-                                    $estadoTexto = 'Verificado';
-                                } else if ($detalle['est_pedido_detalle'] == 2) {
-                                    $colorFondo = '#f8d7da';
-                                    $colorBorde = '#dc3545';
-                                    $claseTexto = 'text-danger';
-                                    $icono = 'fa-times-circle';
-                                    $estadoTexto = 'Cerrado';
-                                } else {
-                                    $colorFondo = '#fff3cd';
-                                    $colorBorde = '#ffc107';
-                                    $claseTexto = 'text-warning';
-                                    $icono = 'fa-clock-o';
-                                    $estadoTexto = 'Pendiente';
-                                }
-
-                                // Verificar si este item ya está en la orden que estamos editando
-                                $enOrdenActual = false;
-                                if ($modo_editar && !empty($orden_detalle)) {
-                                    foreach ($orden_detalle as $item_orden) {
-                                        if ($item_orden['id_producto'] == $detalle['id_producto']) {
-                                            $enOrdenActual = true;
-                                            break;
+                                    // Verificar si este item ya está en la orden que estamos editando
+                                    $enOrdenActual = false;
+                                    if ($modo_editar && !empty($orden_detalle)) {
+                                        foreach ($orden_detalle as $item_orden) {
+                                            if ($item_orden['id_producto'] == $detalle['id_producto']) {
+                                                $enOrdenActual = true;
+                                                break;
+                                            }
                                         }
                                     }
-                                }
-                            ?>
+                                ?>
                             <div class="item-pendiente border mb-2" 
                                 style="background-color: <?php echo $colorFondo; ?>; border-left: 4px solid <?php echo $colorBorde; ?> !important; padding: 8px 12px; border-radius: 4px;" 
                                 data-item="<?php echo $contador_detalle; ?>">
@@ -381,16 +388,23 @@ $pedido_anulado = ($pedido['est_pedido'] == 0);
                                             </div>
                                             <div class="col-md-6">
                                                 <label style="font-size: 11px; font-weight: bold;">Proveedor: <span class="text-danger">*</span></label>
-                                                <select class="form-control form-control-sm" id="proveedor_orden" name="proveedor_orden" 
-                                                        style="font-size: 12px;" required>
-                                                    <option value="">Seleccionar proveedor...</option>
-                                                    <?php
-                                                    foreach ($proveedor as $prov) {
-                                                        $selected = ($modo_editar && $orden_data && $orden_data['id_proveedor'] == $prov['id_proveedor']) ? 'selected' : '';
-                                                        echo '<option value="' . htmlspecialchars($prov['id_proveedor']) . '" ' . $selected . '>' . htmlspecialchars($prov['nom_proveedor']) . '</option>';
-                                                    }
-                                                    ?>
-                                                </select>
+                                                <div class="input-group">
+                                                    <select class="form-control form-control-sm" id="proveedor_orden" name="proveedor_orden" 
+                                                            style="font-size: 12px;" required>
+                                                        <option value="">Seleccionar proveedor...</option>
+                                                        <?php
+                                                        foreach ($proveedor as $prov) {
+                                                            $selected = ($modo_editar && $orden_data && $orden_data['id_proveedor'] == $prov['id_proveedor']) ? 'selected' : '';
+                                                            echo '<option value="' . htmlspecialchars($prov['id_proveedor']) . '" ' . $selected . '>' . htmlspecialchars($prov['nom_proveedor']) . '</option>';
+                                                        }
+                                                        ?>
+                                                    </select>
+                                                    <div class="input-group-append" style="margin-left: 8px;">
+                                                        <button type="button" class="btn btn-info btn-sm" id="btn-agregar-proveedor" title="Agregar nuevo proveedor">
+                                                            <i class="fa fa-plus"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="row mb-2">
@@ -610,6 +624,134 @@ $pedido_anulado = ($pedido['est_pedido'] == 0);
     </div>
 </div>
 
+<!-- MODAL PARA AGREGAR PROVEEDOR -->
+<div class="modal fade" id="modalNuevoProveedor" tabindex="-1" role="dialog" aria-labelledby="modalNuevoProveedorLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #2a3f54; padding: 15px;">
+                <h5 class="modal-title" id="modalNuevoProveedorLabel" style="color: white;">
+                    <i class="fa fa-user-plus"></i> 
+                    Agregar Nuevo Proveedor
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 0.8;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height: 600px; overflow-y: auto; padding: 20px;">
+                <form id="form-nuevo-proveedor-modal" class="form-horizontal form-label-left">
+                    
+                    <!-- Nombre -->
+                    <div class="form-group row">
+                        <label class="control-label col-md-3 col-sm-3">Nombre <span class="text-danger">*</span>:</label>
+                        <div class="col-md-9 col-sm-9">
+                            <input type="text" name="nom_proveedor" class="form-control" placeholder="Nombre del proveedor" required>
+                        </div>
+                    </div>
+
+                    <!-- RUC -->
+                    <div class="form-group row">
+                        <label class="control-label col-md-3 col-sm-3">RUC <span class="text-danger">*</span>:</label>
+                        <div class="col-md-9 col-sm-9">
+                            <input type="text" name="ruc_proveedor" class="form-control" placeholder="RUC del proveedor" maxlength="11" pattern="[0-9]{11}" title="Ingrese exactamente 11 dígitos numéricos" required>
+                        </div>
+                    </div>
+
+                    <!-- Dirección -->
+                    <div class="form-group row">
+                        <label class="control-label col-md-3 col-sm-3">Dirección <span class="text-danger">*</span>:</label>
+                        <div class="col-md-9 col-sm-9">
+                            <textarea name="dir_proveedor" class="form-control" rows="3" placeholder="Dirección del proveedor" required></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Teléfono -->
+                    <div class="form-group row">
+                        <label class="control-label col-md-3 col-sm-3">Teléfono <span class="text-danger">*</span>:</label>
+                        <div class="col-md-9 col-sm-9">
+                            <input type="text" name="tel_proveedor" class="form-control" placeholder="Teléfono del proveedor" required>
+                        </div>
+                    </div>
+
+                    <!-- Contacto -->
+                    <div class="form-group row">
+                        <label class="control-label col-md-3 col-sm-3">Contacto <span class="text-danger">*</span>:</label>
+                        <div class="col-md-9 col-sm-9">
+                            <input type="text" name="cont_proveedor" class="form-control" placeholder="Persona de contacto" required>
+                        </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="form-group row">
+                        <label class="control-label col-md-3 col-sm-3">Email:</label>
+                        <div class="col-md-9 col-sm-9">
+                            <input type="email" name="email_proveedor" class="form-control" placeholder="Correo electrónico">
+                        </div>
+                    </div>
+
+                    <!-- Cuentas Bancarias -->
+                    <div class="x_panel" style="margin-top: 20px;">
+                        <div class="x_title">
+                            <h2 style="font-size: 16px;">Cuentas Bancarias (Opcional)</h2>
+                            <div class="clearfix"></div>
+                        </div>
+                        <div class="x_content">
+                            <table class="table table-bordered" style="font-size: 12px;">
+                                <thead style="background-color: #f8f9fa;">
+                                    <tr>
+                                        <th>Banco</th>
+                                        <th>Moneda</th>
+                                        <th>Cuenta Corriente</th>
+                                        <th>Cuenta Interbancaria</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-cuentas-modal">
+                                    <tr>
+                                        <td><input type="text" name="banco[]" class="form-control form-control-sm"></td>
+                                        <td>
+                                            <select name="id_moneda[]" class="form-control form-control-sm">
+                                                <option value="">-- Moneda --</option>
+                                                <?php foreach ($moneda as $m) { ?>
+                                                    <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
+                                                <?php } ?>
+                                            </select>
+                                        </td>
+                                        <td><input type="text" name="cta_corriente[]" class="form-control form-control-sm"></td>
+                                        <td><input type="text" name="cta_interbancaria[]" class="form-control form-control-sm"></td>
+                                        <td><button type="button" class="btn btn-danger btn-sm eliminar-fila-modal">X</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn btn-success btn-sm" id="agregarCuentaModal">
+                                <i class="fa fa-plus"></i> Agregar Cuenta
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="ln_solid"></div>
+
+                    <div class="form-group">
+                        <div class="col-md-12 col-sm-12">
+                            <p class="text-muted" style="font-size: 12px;">
+                                <span class="text-danger">*</span> Los campos con (<span class="text-danger">*</span>) son obligatorios.
+                            </p>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer" style="padding: 15px; background-color: #f8f9fa;">
+                <button type="button" class="btn btn-outline-danger" data-dismiss="modal">
+                    <i class="fa fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-success" id="btn-guardar-proveedor-modal">
+                    <i class="fa fa-save"></i> Registrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const esAutoOrden = <?php echo ($pedido['id_producto_tipo'] == 2) ? 'true' : 'false'; ?>;
@@ -632,6 +774,158 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Configurar eventos generales
     configurarEventListeners();
+
+    // ====================================================================
+    // NUEVO: CONFIGURAR MODAL DE PROVEEDOR
+    // ====================================================================
+    const tablaCuentasModal = document.getElementById("tabla-cuentas-modal");
+    const btnAgregarModal = document.getElementById("agregarCuentaModal");
+
+    // Acción para agregar nueva fila de cuenta bancaria
+    if (btnAgregarModal) {
+        btnAgregarModal.addEventListener("click", function() {
+            const nuevaFila = document.createElement("tr");
+            nuevaFila.innerHTML = `
+                <td><input type="text" name="banco[]" class="form-control form-control-sm"></td>
+                <td>
+                    <select name="id_moneda[]" class="form-control form-control-sm">
+                        <option value="">-- Moneda --</option>
+                        <?php foreach ($moneda as $m) { ?>
+                            <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
+                        <?php } ?>
+                    </select>
+                </td>
+                <td><input type="text" name="cta_corriente[]" class="form-control form-control-sm"></td>
+                <td><input type="text" name="cta_interbancaria[]" class="form-control form-control-sm"></td>
+                <td><button type="button" class="btn btn-danger btn-sm eliminar-fila-modal">X</button></td>
+            `;
+            tablaCuentasModal.appendChild(nuevaFila);
+        });
+    }
+
+    // Acción para eliminar fila de cuenta bancaria
+    if (tablaCuentasModal) {
+        tablaCuentasModal.addEventListener("click", function(e) {
+            if (e.target.classList.contains("eliminar-fila-modal")) {
+                const filas = tablaCuentasModal.querySelectorAll("tr");
+                if (filas.length > 1) {
+                    e.target.closest("tr").remove();
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Advertencia',
+                        text: 'Debe mantener al menos una fila'
+                    });
+                }
+            }
+        });
+    }
+
+    // Abrir modal de nuevo proveedor
+    const btnAgregarProveedor = document.getElementById('btn-agregar-proveedor');
+    if (btnAgregarProveedor) {
+        btnAgregarProveedor.addEventListener('click', function() {
+            $('#modalNuevoProveedor').modal('show');
+        });
+    }
+
+    // Guardar nuevo proveedor desde modal
+    const btnGuardarProveedorModal = document.getElementById('btn-guardar-proveedor-modal');
+    if (btnGuardarProveedorModal) {
+        btnGuardarProveedorModal.addEventListener('click', function() {
+            const form = document.getElementById('form-nuevo-proveedor-modal');
+            
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            
+            // Validar RUC manualmente
+            const rucInput = form.querySelector('input[name="ruc_proveedor"]');
+            const ruc = rucInput.value.trim();
+            
+            if (ruc.length !== 11 || !/^\d+$/.test(ruc)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'RUC inválido',
+                    text: 'El RUC debe contener exactamente 11 dígitos numéricos'
+                });
+                rucInput.focus();
+                return;
+            }
+            
+            const formData = new FormData(form);
+            formData.append('registrar_ajax', '1');
+            
+            // Deshabilitar botón durante el proceso
+            const btnGuardar = this;
+            btnGuardar.disabled = true;
+            btnGuardar.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Guardando...';
+            
+            fetch('proveedor_nuevo_directo.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Agregar nuevo proveedor al select
+                    const selectProveedor = document.getElementById('proveedor_orden');
+                    const newOption = new Option(data.nombre_proveedor, data.id_proveedor, true, true);
+                    selectProveedor.add(newOption);
+                    
+                    // Cerrar modal y limpiar formulario
+                    $('#modalNuevoProveedor').modal('hide');
+                    form.reset();
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Proveedor agregado!',
+                        text: data.message,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de conexión',
+                    text: 'No se pudo conectar con el servidor. Verifique su conexión.'
+                });
+            })
+            .finally(() => {
+                btnGuardar.disabled = false;
+                btnGuardar.innerHTML = '<i class="fa fa-save"></i> Registrar';
+            });
+        });
+    }
+
+    // Limpiar formulario al cerrar modal
+    $('#modalNuevoProveedor').on('hidden.bs.modal', function () {
+        const form = document.getElementById('form-nuevo-proveedor-modal');
+        if (form) {
+            form.reset();
+            // Limpiar tabla de cuentas dejando solo una fila
+            const tablaCuentas = document.getElementById('tabla-cuentas-modal');
+            if (tablaCuentas) {
+                const filas = tablaCuentas.querySelectorAll('tr');
+                for (let i = filas.length - 1; i > 0; i--) {
+                    filas[i].remove();
+                }
+            }
+        }
+    });
+    // ====================================================================
+    // FIN NUEVO: MODAL DE PROVEEDOR
+    // ====================================================================
 
     function configurarEventosEdicion() {
         // Configurar eventos para items existentes en edición
@@ -686,8 +980,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function configurarEventListeners() {
-
-                    document.addEventListener('click', function(event) {
+        document.addEventListener('click', function(event) {
             const btnAnular = event.target.closest('.btn-anular-orden');
             if (btnAnular) {
                 event.preventDefault();
@@ -698,6 +991,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 AnularCompra(idCompra, idPedido);
             }
         });
+        
         // Botón Nueva Orden / Ver Órdenes
         const btnNuevaOrden = document.getElementById('btn-nueva-orden');
         if (btnNuevaOrden) {
@@ -791,8 +1085,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (formNuevaOrden) {
             formNuevaOrden.addEventListener('submit', validarFormularioOrden);
         }
-    }
-
+    }        
     
     function toggleFormularioOrden() {
         const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
@@ -1081,7 +1374,6 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
-                // 🔹 Anular solo la orden de compra
                 $.ajax({
                     url: 'compras_anular.php',
                     type: 'POST',
@@ -1089,11 +1381,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     dataType: 'json',
                     success: function(response) {
                         if (response.tipo_mensaje === 'success') {
-                            Swal.fire('¡Anulado!', response.mensaje, 'success')
-                            .then(() => { 
-                                // Recargar la página actual para reflejar los cambios
-                                location.reload();
-                            });
+                            Swal.fire('¡Anulado!', response.mensaje, 'success').then(() => location.reload());
                         } else {
                             Swal.fire('Error', response.mensaje, 'error');
                         }
@@ -1103,7 +1391,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
             } else if (result.isDenied) {
-                // 🔹 Anular la orden y también el pedido
                 $.ajax({
                     url: 'compras_pedido_anular.php',
                     type: 'POST',
@@ -1111,11 +1398,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     dataType: 'json',
                     success: function(response) {
                         if (response.tipo_mensaje === 'success') {
-                            Swal.fire('¡Anulado!', response.mensaje, 'success')
-                            .then(() => { 
-                                // Recargar la página actual para reflejar los cambios
-                                location.reload();
-                            });
+                            Swal.fire('¡Anulado!', response.mensaje, 'success').then(() => location.reload());
                         } else {
                             Swal.fire('Error', response.mensaje, 'error');
                         }
@@ -1175,7 +1458,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-
+    
     function agregarItemAOrdenAutomatico(item) {
         const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
         const itemElement = document.createElement('div');
@@ -1278,17 +1561,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const contenido = document.getElementById('contenido-detalle-compra');
         const fechaFormateada = new Date(compra.fec_compra).toLocaleDateString('es-PE');
-            const estadoCompra = parseInt(compra.est_compra);
-            let estadoTexto = 'Pendiente';
-            let estadoClase = 'warning';
-            
-            if (estadoCompra === 0) {
-                estadoTexto = 'Anulada';
-                estadoClase = 'danger';
-            } else if (estadoCompra === 2) {
-                estadoTexto = 'Aprobada';
-                estadoClase = 'success';
-            } 
+        const estadoCompra = parseInt(compra.est_compra);
+        let estadoTexto = 'Pendiente';
+        let estadoClase = 'warning';
+        
+        if (estadoCompra === 0) {
+            estadoTexto = 'Anulada';
+            estadoClase = 'danger';
+        } else if (estadoCompra === 2) {
+            estadoTexto = 'Aprobada';
+            estadoClase = 'success';
+        } 
         
         let html = `
             <div class="card mb-3">
