@@ -169,64 +169,6 @@ function AprobarCompraFinanciera($id_compra, $id_personal)
     return $res_update;
 }
 
-function GuardarDocumentoCompra($id_compra, $nombre_archivo, $id_personal = null) {
-    include("../_conexion/conexion.php");
-
-    $id_compra = intval($id_compra); 
-    $nombre_archivo = mysqli_real_escape_string($con, $nombre_archivo);
-    $id_personal_val = $id_personal ? intval($id_personal) : "NULL";
-
-    $sql = "INSERT INTO documentos (id_compra, documento, id_personal)
-            VALUES ($id_compra, '$nombre_archivo', $id_personal_val)";
-    $res = mysqli_query($con, $sql);
-
-    mysqli_close($con);
-    return $res;
-}
-
-// Mostrar documentos por compra
-function MostrarDocumentosCompra($id_compra) {
-    include("../_conexion/conexion.php");
-
-    $sql = "SELECT * 
-            FROM documentos 
-            WHERE id_compra = $id_compra 
-            ORDER BY fec_subida DESC";
-    $res = mysqli_query($con, $sql);
-
-    $docs = [];
-    while ($row = mysqli_fetch_assoc($res)) {
-        $docs[] = $row;
-    }
-
-    mysqli_close($con);
-    return $docs;
-}
-
-// Eliminar documento
-function EliminarDocumentoCompra($id_doc) {
-    include("../_conexion/conexion.php");
-
-    // Buscar archivo físico antes de borrar el registro
-    $sql = "SELECT documento FROM documentos WHERE id_doc = $id_doc";
-    $res = mysqli_query($con, $sql);
-    $row = mysqli_fetch_assoc($res);
-
-    if ($row) {
-        $archivo = "../uploads/compras/" . $row['documento'];
-        if (file_exists($archivo)) {
-            unlink($archivo); // Borrar el archivo físico
-        }
-    }
-
-    // Borrar de la base de datos
-    $sql_del = "DELETE FROM documentos WHERE id_doc = $id_doc";
-    $res_del = mysqli_query($con, $sql_del);
-
-    mysqli_close($con);
-    return $res_del;
-}
-
 
 function AnularCompra($id_compra, $id_personal)
 {

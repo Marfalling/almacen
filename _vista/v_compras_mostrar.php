@@ -192,7 +192,8 @@ function SubirDocumento(id_compra) {
             }
 
             let formData = new FormData();
-            formData.append("id_compra", id_compra);
+            formData.append("entidad", "compras");
+            formData.append("id_entidad", id_compra);
             formData.append("documento", archivo);
 
             $.ajax({
@@ -351,7 +352,7 @@ function EliminarDocumento(id_doc) {
                                                     </td>
                                                     <td>
                                                         <?php 
-                                                        $documentos = MostrarDocumentosCompra($compra['id_compra']);
+                                                        $documentos = MostrarDocumentos('compras', $compra['id_compra']);
                                                         if (!empty($documentos)) {
                                                             foreach ($documentos as $doc) { ?>
                                                                 <div class="d-flex align-items-center mb-1">

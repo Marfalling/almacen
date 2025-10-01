@@ -12,6 +12,7 @@ if (!verificarPermisoEspecifico('ver_compras')) {
 }
 
 require_once("../_modelo/m_compras.php");
+require_once("../_modelo/m_documentos.php");
 ?>
 
 
