@@ -59,7 +59,13 @@
                                                         <center><?php echo $total_permisos; ?></center>
                                                     </td>
                                                     <td>
-                                                        <center><?php echo $estado; ?></center>
+                                                        <center>
+                                                            <?php if ($est_rol == 1) { ?>
+                                                                <span class="badge badge-success badge_size">ACTIVO</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge badge-danger badge_size">INACTIVO</span>
+                                                            <?php } ?>
+                                                        </center>
                                                     </td>
                                                     <td>
                                                         <center>
