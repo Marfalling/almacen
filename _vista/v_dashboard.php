@@ -1,4 +1,4 @@
-<!-- page content -->
+<!-- Vista Dashboard -->
 <div class="right_col" role="main">
   <div class="">
     <div class="page-title">
@@ -10,7 +10,7 @@
     <div class="clearfix"></div>
 
     <!-- Panel de Filtros -->
-    
+    <div class="row">
       <div class="col-md-12 col-sm-12">
         <div class="x_panel">
           <div class="x_title">
@@ -21,21 +21,40 @@
             <div class="clearfix"></div>
           </div>
           <div class="x_content">
-            <form id="formFiltros" class="form-horizontal">
-              <div class="form-group">
-                <div class="col-md-3">
-                  <label>Fecha Inicio:</label>
-                  <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio">
+            <form id="formFiltros" class="form-horizontal" method="GET" action="dashboard.php">
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Fecha Inicio:</label>
+                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" 
+                           value="<?php echo $fecha_inicio; ?>">
+                  </div>
                 </div>
-                <div class="col-md-3">
-                  <label>Fecha Fin:</label>
-                  <input type="date" class="form-control" id="fecha_fin" name="fecha_fin">
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Fecha Fin:</label>
+                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin"
+                           value="<?php echo $fecha_fin; ?>">
+                  </div>
                 </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Proveedor:</label>
+                    <select class="form-control" id="proveedor" name="proveedor">
+                      <option value="">Todos</option>
+                      <?php foreach($lista_proveedores as $prov): ?>
+                        <option value="<?php echo $prov['id_proveedor']; ?>"
+                                <?php echo ($proveedor == $prov['id_proveedor']) ? 'selected' : ''; ?>>
+                          <?php echo $prov['nom_proveedor']; ?>
+                        </option>
+                      <?php endforeach; ?>
+                    </select>
+                  </div>
                 </div>
               </div>
-              <div class="form-group">
+              <div class="row">
                 <div class="col-md-12 text-right">
-                  <button type="button" class="btn btn-primary" onclick="aplicarFiltros()">
+                  <button type="submit" class="btn btn-primary">
                     <i class="fa fa-search"></i> Aplicar Filtros
                   </button>
                   <button type="button" class="btn btn-default" onclick="limpiarFiltros()">
@@ -47,6 +66,7 @@
           </div>
         </div>
       </div>
+    </div>
 
     <!-- Cards de Resumen -->
     <div class="row">
@@ -55,29 +75,30 @@
           <div class="x_content">
             <div class="row">
               <div class="tile_count col-12">
-                <div class="col-md-2 col-sm-4 tile_stats_count">
+                <div class="col-md-2 col-sm-6 tile_stats_count">
                   <span class="count_top"><i class="fa fa-cube"></i> Total Productos</span>
                   <div class="count"><?php echo $cantidad_productos; ?></div>
+                  <span class="count_bottom">En el sistema</span>
                 </div>
-                <div class="col-md-2 col-sm-4 tile_stats_count">
-                  <span class="count_top"><i class="fa fa-users"></i> Total Usuarios</span>
-                  <div class="count"><?php echo $cantidad_usuarios; ?></div>
+                <div class="col-md-3 col-sm-6 tile_stats_count">
+                  <span class="count_top"><i class="fa fa-clipboard-list"></i> Pedidos</span>
+                  <div class="count green"><?php echo $cantidad_pedidos; ?></div>
+                  <span class="count_bottom"><i class="green">En el período</i></span>
                 </div>
-                <div class="col-md-2 col-sm-4 tile_stats_count">
-                  <span class="count_top"><i class="fa fa-clipboard-list"></i> Total Pedidos</span>
-                  <div class="count"><?php echo $cantidad_pedidos; ?></div>
+                <div class="col-md-2 col-sm-6 tile_stats_count">
+                  <span class="count_top"><i class="fa fa-shopping-cart"></i> Compras</span>
+                  <div class="count green"><?php echo $cantidad_compras; ?></div>
+                  <span class="count_bottom"><i class="green">En el período</i></span>
                 </div>
-                <div class="col-md-2 col-sm-4 tile_stats_count">
-                  <span class="count_top"><i class="fa fa-shopping-cart"></i> Total Compras</span>
-                  <div class="count"><?php echo $cantidad_compras; ?></div>
-                </div>
-                <div class="col-md-2 col-sm-4 tile_stats_count">
+                <div class="col-md-3 col-sm-6 tile_stats_count">
                   <span class="count_top"><i class="fa fa-warehouse"></i> Total Almacenes</span>
                   <div class="count"><?php echo $cantidad_almacenes; ?></div>
+                  <span class="count_bottom">En el sistema</span>
                 </div>
-                <div class="col-md-2 col-sm-4 tile_stats_count">
+                <div class="col-md-2 col-sm-6 tile_stats_count">
                   <span class="count_top"><i class="fa fa-truck"></i> Total Proveedores</span>
                   <div class="count"><?php echo $cantidad_proveedores; ?></div>
+                  <span class="count_bottom">Activos</span>
                 </div>
               </div>
             </div>
@@ -86,17 +107,16 @@
       </div>
     </div>
 
-    <!-- Dashboard 3.a: Ordenes Generadas, Atendidas, Pendientes -->
+    <!-- Dashboard 3.a: Estado General de Órdenes de Compra -->
     <div class="row">
       <div class="col-md-12 col-sm-12">
         <div class="x_panel">
           <div class="x_title">
-            <h2>Estado General de Órdenes <small>Resumen Global</small></h2>
+            <h2>Estado General de Órdenes de Compra <small>Resumen del Período</small></h2>
             <div class="clearfix"></div>
           </div>
           <div class="x_content">
             <?php 
-            $resumen_ordenes = obtenerResumenOrdenes($con);
             $porcentaje_atendidas = $resumen_ordenes['total_ordenes'] > 0 ? 
                 round(($resumen_ordenes['ordenes_atendidas'] / $resumen_ordenes['total_ordenes']) * 100, 2) : 0;
             $porcentaje_pendientes = $resumen_ordenes['total_ordenes'] > 0 ?
@@ -110,8 +130,7 @@
                   </div>
                   <div class="w_center w_55">
                     <div class="progress">
-                      <div class="progress-bar bg-blue" role="progressbar" style="width: 100%;">
-                      </div>
+                      <div class="progress-bar bg-blue" role="progressbar" style="width: 100%;"></div>
                     </div>
                   </div>
                   <div class="w_right w_20">
@@ -129,15 +148,14 @@
                   <div class="w_center w_55">
                     <div class="progress">
                       <div class="progress-bar bg-green" role="progressbar" 
-                           style="width: <?php echo $porcentaje_atendidas; ?>%;">
-                      </div>
+                           style="width: <?php echo $porcentaje_atendidas; ?>%;"></div>
                     </div>
                   </div>
                   <div class="w_right w_20">
                     <span><?php echo $resumen_ordenes['ordenes_atendidas']; ?></span>
                   </div>
                   <div class="clearfix"></div>
-                  <p class="text-center">Órdenes Atendidas (<?php echo $porcentaje_atendidas; ?>%)</p>
+                  <p class="text-center">Atendidas (<?php echo $porcentaje_atendidas; ?>%)</p>
                 </div>
               </div>
               <div class="col-md-4">
@@ -148,15 +166,14 @@
                   <div class="w_center w_55">
                     <div class="progress">
                       <div class="progress-bar bg-orange" role="progressbar" 
-                           style="width: <?php echo $porcentaje_pendientes; ?>%;">
-                      </div>
+                           style="width: <?php echo $porcentaje_pendientes; ?>%;"></div>
                     </div>
                   </div>
                   <div class="w_right w_20">
                     <span><?php echo $resumen_ordenes['ordenes_pendientes']; ?></span>
                   </div>
                   <div class="clearfix"></div>
-                  <p class="text-center">Órdenes Pendientes (<?php echo $porcentaje_pendientes; ?>%)</p>
+                  <p class="text-center">Pendientes (<?php echo $porcentaje_pendientes; ?>%)</p>
                 </div>
               </div>
             </div>
@@ -166,12 +183,12 @@
       </div>
     </div>
 
-    <!-- Dashboard 3.b: Ordenes por Centro de Costo -->
+    <!-- Dashboard 3.b: Ordenes de Compra por Almacén -->
     <div class="row">
       <div class="col-md-12 col-sm-12">
         <div class="x_panel">
           <div class="x_title">
-            <h2>Órdenes por Centro de Costo <small>Atendidas vs Pendientes</small></h2>
+            <h2>Órdenes de Compra por Almacén <small>Distribución</small></h2>
             <div class="clearfix"></div>
           </div>
           <div class="x_content">
@@ -179,47 +196,51 @@
               <table class="table table-striped jambo_table">
                 <thead>
                   <tr>
-                    <th>Centro de Costo</th>
+                    <th>Almacén</th>
                     <th>Total Órdenes</th>
                     <th>Atendidas</th>
                     <th>Pendientes</th>
                     <th>% Cumplimiento</th>
                   </tr>
                 </thead>
-                <tbody id="tabla_centro_costo">
-                  <?php
-                  $ordenes_centro = obtenerOrdenesPorCentroCosto($con);
-                  foreach($ordenes_centro as $centro) {
-                    $porcentaje = $centro['total_ordenes'] > 0 ? 
-                      round(($centro['ordenes_atendidas'] / $centro['total_ordenes']) * 100, 2) : 0;
-                    echo "<tr>";
-                    echo "<td>".$centro['centro_costo']."</td>";
-                    echo "<td>".$centro['total_ordenes']."</td>";
-                    echo "<td><span class='badge badge-success'>".$centro['ordenes_atendidas']."</span></td>";
-                    echo "<td><span class='badge badge-warning'>".$centro['ordenes_pendientes']."</span></td>";
-                    echo "<td>
-                            <div class='progress' style='margin:0'>
-                              <div class='progress-bar' style='width:".$porcentaje."%'>".$porcentaje."%</div>
-                            </div>
-                          </td>";
-                    echo "</tr>";
-                  }
-                  ?>
+                <tbody>
+                  <?php if (!empty($ordenes_por_almacen)): ?>
+                    <?php foreach($ordenes_por_almacen as $almacen): 
+                      $porcentaje = $almacen['total_ordenes'] > 0 ? 
+                        round(($almacen['ordenes_atendidas'] / $almacen['total_ordenes']) * 100, 2) : 0;
+                    ?>
+                    <tr>
+                      <td><?php echo $almacen['almacen']; ?></td>
+                      <td><?php echo $almacen['total_ordenes']; ?></td>
+                      <td><span class="badge badge-success"><?php echo $almacen['ordenes_atendidas']; ?></span></td>
+                      <td><span class="badge badge-warning"><?php echo $almacen['ordenes_pendientes']; ?></span></td>
+                      <td>
+                        <div class="progress" style="margin:0">
+                          <div class="progress-bar bg-green" style="width:<?php echo $porcentaje; ?>%">
+                            <?php echo $porcentaje; ?>%
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                    <?php endforeach; ?>
+                  <?php else: ?>
+                    <tr><td colspan="5" class="text-center">No hay datos para el período seleccionado</td></tr>
+                  <?php endif; ?>
                 </tbody>
               </table>
             </div>
-            <div id="chart_centro_costo" style="width:100%; height:400px;"></div>
+            <div id="chart_almacen" style="width:100%; height:400px;"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Dashboard 3.c: Pagos por Centro de Costo -->
+    <!-- Dashboard 3.c: Pagos por Almacén -->
     <div class="row">
       <div class="col-md-12 col-sm-12">
         <div class="x_panel">
           <div class="x_title">
-            <h2>Estado de Pagos por Centro de Costo <small>Análisis Financiero</small></h2>
+            <h2>Estado de Pagos por Almacén <small>Análisis Financiero</small></h2>
             <div class="clearfix"></div>
           </div>
           <div class="x_content">
@@ -227,32 +248,33 @@
               <table class="table table-striped jambo_table">
                 <thead>
                   <tr>
-                    <th>Centro de Costo</th>
-                    <th>Moneda</th>
+                    <th>Almacén</th>
                     <th>Total Órdenes</th>
                     <th>Pagadas</th>
                     <th>Pendientes</th>
-                    <th>Monto Total</th>
+                    <th>Monto Soles (S/)</th>
+                    <th>Monto Dólares ($)</th>
                   </tr>
                 </thead>
-                <tbody id="tabla_pagos_centro">
-                  <?php
-                  $pagos_centro = obtenerPagosPorCentroCosto($con);
-                  foreach($pagos_centro as $pago) {
-                    echo "<tr>";
-                    echo "<td>".$pago['centro_costo']."</td>";
-                    echo "<td>".$pago['moneda']."</td>";
-                    echo "<td>".$pago['total_ordenes']."</td>";
-                    echo "<td><span class='badge badge-success'>".$pago['ordenes_pagadas']."</span></td>";
-                    echo "<td><span class='badge badge-danger'>".$pago['pendientes_pago']."</span></td>";
-                    echo "<td><strong>".number_format($pago['monto_total'], 2)."</strong></td>";
-                    echo "</tr>";
-                  }
-                  ?>
+                <tbody>
+                  <?php if (!empty($pagos_almacen)): ?>
+                    <?php foreach($pagos_almacen as $pago): ?>
+                    <tr>
+                      <td><?php echo $pago['almacen']; ?></td>
+                      <td><?php echo $pago['total_ordenes']; ?></td>
+                      <td><span class="badge badge-success"><?php echo $pago['ordenes_pagadas']; ?></span></td>
+                      <td><span class="badge badge-danger"><?php echo $pago['pendientes_pago']; ?></span></td>
+                      <td><strong>S/ <?php echo number_format($pago['monto_total_soles'], 2); ?></strong></td>
+                      <td><strong>$ <?php echo number_format($pago['monto_total_dolares'], 2); ?></strong></td>
+                    </tr>
+                    <?php endforeach; ?>
+                  <?php else: ?>
+                    <tr><td colspan="6" class="text-center">No hay datos para el período seleccionado</td></tr>
+                  <?php endif; ?>
                 </tbody>
               </table>
             </div>
-            <div id="chart_pagos_centro" style="width:100%; height:400px;"></div>
+            <div id="chart_pagos_almacen" style="width:100%; height:400px;"></div>
           </div>
         </div>
       </div>
@@ -272,27 +294,28 @@
                 <thead>
                   <tr>
                     <th>Proveedor</th>
-                    <th>Moneda</th>
                     <th>Total Órdenes</th>
                     <th>Pagadas</th>
                     <th>Pendientes</th>
-                    <th>Monto Total</th>
+                    <th>Monto Soles (S/)</th>
+                    <th>Monto Dólares ($)</th>
                   </tr>
                 </thead>
-                <tbody id="tabla_pagos_proveedor">
-                  <?php
-                  $pagos_proveedor = obtenerPagosPorProveedor($con);
-                  foreach($pagos_proveedor as $pago) {
-                    echo "<tr>";
-                    echo "<td>".$pago['proveedor']."</td>";
-                    echo "<td>".$pago['moneda']."</td>";
-                    echo "<td>".$pago['total_ordenes']."</td>";
-                    echo "<td><span class='badge badge-success'>".$pago['ordenes_pagadas']."</span></td>";
-                    echo "<td><span class='badge badge-danger'>".$pago['pendientes_pago']."</span></td>";
-                    echo "<td><strong>".number_format($pago['monto_total'], 2)."</strong></td>";
-                    echo "</tr>";
-                  }
-                  ?>
+                <tbody>
+                  <?php if (!empty($pagos_proveedor)): ?>
+                    <?php foreach($pagos_proveedor as $pago): ?>
+                    <tr>
+                      <td><?php echo $pago['proveedor']; ?></td>
+                      <td><?php echo $pago['total_ordenes']; ?></td>
+                      <td><span class="badge badge-success"><?php echo $pago['ordenes_pagadas']; ?></span></td>
+                      <td><span class="badge badge-danger"><?php echo $pago['pendientes_pago']; ?></span></td>
+                      <td><strong>S/ <?php echo number_format($pago['monto_total_soles'], 2); ?></strong></td>
+                      <td><strong>$ <?php echo number_format($pago['monto_total_dolares'], 2); ?></strong></td>
+                    </tr>
+                    <?php endforeach; ?>
+                  <?php else: ?>
+                    <tr><td colspan="6" class="text-center">No hay datos para el período seleccionado</td></tr>
+                  <?php endif; ?>
                 </tbody>
               </table>
             </div>
@@ -331,36 +354,26 @@
                     <th>Total</th>
                   </tr>
                 </thead>
-                <tbody id="tabla_vencidas_mes">
-                  <?php
-                  $vencidas = obtenerOrdenesVencidasPorProveedorMes($con);
-                  $proveedores_mes = [];
-                  
-                  // Organizar datos por proveedor y mes
-                  foreach($vencidas as $row) {
-                    $prov = $row['proveedor'];
-                    $mes = $row['mes'];
-                    if (!isset($proveedores_mes[$prov])) {
-                      $proveedores_mes[$prov] = array_fill(1, 12, 0);
-                    }
-                    $proveedores_mes[$prov][$mes] = $row['ordenes_vencidas'];
-                  }
-                  
-                  // Mostrar tabla
-                  foreach($proveedores_mes as $proveedor => $meses) {
-                    echo "<tr>";
-                    echo "<td><strong>".$proveedor."</strong></td>";
-                    $total = 0;
-                    for($m = 1; $m <= 12; $m++) {
-                      $valor = $meses[$m];
-                      $total += $valor;
-                      $clase = $valor > 0 ? 'text-danger' : '';
-                      echo "<td class='".$clase."'>".$valor."</td>";
-                    }
-                    echo "<td><strong>".$total."</strong></td>";
-                    echo "</tr>";
-                  }
-                  ?>
+                <tbody>
+                  <?php if (!empty($proveedores_mes)): ?>
+                    <?php foreach($proveedores_mes as $proveedor => $meses): ?>
+                    <tr>
+                      <td><strong><?php echo $proveedor; ?></strong></td>
+                      <?php 
+                      $total = 0;
+                      for($m = 1; $m <= 12; $m++): 
+                        $valor = $meses[$m];
+                        $total += $valor;
+                        $clase = $valor > 0 ? 'text-danger' : '';
+                      ?>
+                        <td class="<?php echo $clase; ?>"><?php echo $valor; ?></td>
+                      <?php endfor; ?>
+                      <td><strong class="text-danger"><?php echo $total; ?></strong></td>
+                    </tr>
+                    <?php endforeach; ?>
+                  <?php else: ?>
+                    <tr><td colspan="14" class="text-center">No hay órdenes vencidas en <?php echo date('Y'); ?></td></tr>
+                  <?php endif; ?>
                 </tbody>
               </table>
             </div>
@@ -370,104 +383,32 @@
       </div>
     </div>
 
-    <!-- Gráficos originales -->
-    <div class="row">
-      <div class="col-md-6 col-sm-6">
-        <div class="x_panel">
-          <div class="x_title">
-            <h2>Productos por Tipo <small>Distribución actual</small></h2>
-            <div class="clearfix"></div>
-          </div>
-          <div class="x_content2">
-            <div id="chart_tipos_producto" style="width:100%; height:300px;"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-6 col-sm-6">
-        <div class="x_panel">
-          <div class="x_title">
-            <h2>Compras por Proveedor <small>Top 10</small></h2>
-            <div class="clearfix"></div>
-          </div>
-          <div class="x_content2">
-            <div id="chart_compras_proveedor" style="width:100%; height:300px;"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </div>
 </div>
-<!-- /page content -->
 
-<!-- Scripts para gráficos y funcionalidad -->
+<!-- Scripts para gráficos -->
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script type="text/javascript">
-// Cargar Google Charts
-google.charts.load('current', {'packages':['corechart', 'bar', 'table']});
+google.charts.load('current', {'packages':['corechart', 'bar']});
 google.charts.setOnLoadCallback(drawAllCharts);
 
-// Función para mostrar/ocultar filtros
-function toggleFiltros() {
-  var panel = document.getElementById('panelFiltros');
-  if (panel.style.display === 'none') {
-    panel.style.display = 'block';
-  } else {
-    panel.style.display = 'none';
-  }
-}
-
-// Función para aplicar filtros
-function aplicarFiltros() {
-  var formData = {
-    fecha_inicio: document.getElementById('fecha_inicio').value,
-    fecha_fin: document.getElementById('fecha_fin').value,
-    centro_costo: document.getElementById('centro_costo').value,
-    proveedor: document.getElementById('proveedor').value
-  };
-  
-  // Hacer petición AJAX para actualizar dashboard
-  $.ajax({
-    url: '../_controlador/ajax_dashboard.php',
-    type: 'POST',
-    data: formData,
-    success: function(response) {
-      // Actualizar contenido del dashboard
-      location.reload(); // Por simplicidad, recargar página
-    },
-    error: function() {
-      alert('Error al aplicar filtros');
-    }
-  });
-}
-
-// Función para limpiar filtros
 function limpiarFiltros() {
-  document.getElementById('formFiltros').reset();
-  location.reload();
+  window.location.href = 'dashboard.php';
 }
 
-// Dibujar todos los gráficos
 function drawAllCharts() {
   drawOrdenesGeneralesChart();
-  drawCentroCostoChart();
-  drawPagosCentroChart();
+  drawAlmacenChart();
+  drawPagosAlmacenChart();
   drawPagosProveedorChart();
   drawVencidasMesChart();
-  drawTiposProductoChart();
-  drawComprasProveedorChart();
 }
 
-// Gráfico 3.a: Estado general de órdenes
 function drawOrdenesGeneralesChart() {
   var data = google.visualization.arrayToDataTable([
     ['Estado', 'Cantidad'],
-    <?php 
-    $resumen = obtenerResumenOrdenes($con);
-    echo "['Atendidas', ".$resumen['ordenes_atendidas']."],";
-    echo "['Pendientes', ".$resumen['ordenes_pendientes']."],";
-    ?>
+    ['Atendidas', <?php echo $resumen_ordenes['ordenes_atendidas']; ?>],
+    ['Pendientes', <?php echo $resumen_ordenes['ordenes_pendientes']; ?>]
   ]);
 
   var options = {
@@ -482,72 +423,78 @@ function drawOrdenesGeneralesChart() {
   chart.draw(data, options);
 }
 
-// Gráfico 3.b: Órdenes por centro de costo
-function drawCentroCostoChart() {
+function drawAlmacenChart() {
   var data = google.visualization.arrayToDataTable([
-    ['Centro de Costo', 'Atendidas', 'Pendientes'],
-    <?php 
-    $ordenes = obtenerOrdenesPorCentroCosto($con);
-    foreach($ordenes as $centro) {
-      echo "['".$centro['centro_costo']."', ".$centro['ordenes_atendidas'].", ".$centro['ordenes_pendientes']."],";
-    }
-    ?>
+    ['Almacén', 'Atendidas', 'Pendientes']
+    <?php if (!empty($ordenes_por_almacen)): ?>
+      <?php foreach($ordenes_por_almacen as $almacen): ?>
+        ,['<?php echo addslashes($almacen['almacen']); ?>', 
+         <?php echo $almacen['ordenes_atendidas']; ?>, 
+         <?php echo $almacen['ordenes_pendientes']; ?>]
+      <?php endforeach; ?>
+    <?php else: ?>
+      ,['Sin datos', 0, 0]
+    <?php endif; ?>
   ]);
 
   var options = {
-    title: 'Órdenes por Centro de Costo',
+    title: 'Órdenes por Almacén',
     chartArea: {width: '70%'},
-    hAxis: { title: 'Centro de Costo' },
+    hAxis: { title: 'Almacén' },
     vAxis: { title: 'Cantidad de Órdenes' },
     colors: ['#26B99A', '#E74C3C'],
     isStacked: true
   };
 
-  var chart = new google.visualization.ColumnChart(document.getElementById('chart_centro_costo'));
+  var chart = new google.visualization.ColumnChart(document.getElementById('chart_almacen'));
   chart.draw(data, options);
 }
 
-// Gráfico 3.c: Pagos por centro de costo
-function drawPagosCentroChart() {
+function drawPagosAlmacenChart() {
   var data = google.visualization.arrayToDataTable([
-    ['Centro de Costo', 'Pagadas', 'Pendientes'],
-    <?php 
-    $pagos = obtenerPagosPorCentroCosto($con);
-    foreach($pagos as $pago) {
-      echo "['".$pago['centro_costo']."', ".$pago['ordenes_pagadas'].", ".$pago['pendientes_pago']."],";
-    }
-    ?>
+    ['Almacén', 'Pagadas', 'Pendientes']
+    <?php if (!empty($pagos_almacen)): ?>
+      <?php foreach($pagos_almacen as $pago): ?>
+        ,['<?php echo addslashes($pago['almacen']); ?>', 
+         <?php echo $pago['ordenes_pagadas']; ?>, 
+         <?php echo $pago['pendientes_pago']; ?>]
+      <?php endforeach; ?>
+    <?php else: ?>
+      ,['Sin datos', 0, 0]
+    <?php endif; ?>
   ]);
 
   var options = {
-    title: 'Estado de Pagos por Centro de Costo',
+    title: 'Estado de Pagos por Almacén',
     chartArea: {width: '70%'},
-    hAxis: { title: 'Centro de Costo' },
+    hAxis: { title: 'Almacén' },
     vAxis: { title: 'Cantidad de Órdenes' },
     colors: ['#26B99A', '#F39C12'],
     isStacked: true
   };
 
-  var chart = new google.visualization.ColumnChart(document.getElementById('chart_pagos_centro'));
+  var chart = new google.visualization.ColumnChart(document.getElementById('chart_pagos_almacen'));
   chart.draw(data, options);
 }
 
-// Gráfico 3.d: Pagos por proveedor
 function drawPagosProveedorChart() {
   var data = google.visualization.arrayToDataTable([
-    ['Proveedor', 'Pagadas', 'Pendientes'],
-    <?php 
-    $pagos = obtenerPagosPorProveedor($con);
-    foreach($pagos as $pago) {
-      echo "['".$pago['proveedor']."', ".$pago['ordenes_pagadas'].", ".$pago['pendientes_pago']."],";
-    }
-    ?>
+    ['Proveedor', 'Pagadas', 'Pendientes']
+    <?php if (!empty($pagos_proveedor)): ?>
+      <?php foreach($pagos_proveedor as $pago): ?>
+        ,['<?php echo addslashes($pago['proveedor']); ?>', 
+         <?php echo $pago['ordenes_pagadas']; ?>, 
+         <?php echo $pago['pendientes_pago']; ?>]
+      <?php endforeach; ?>
+    <?php else: ?>
+      ,['Sin datos', 0, 0]
+    <?php endif; ?>
   ]);
 
   var options = {
     title: 'Estado de Pagos por Proveedor',
     chartArea: {width: '70%'},
-    hAxis: { title: 'Proveedor', slantedText: true, slantedTextAngle: 45 },
+    hAxis: { title: 'Proveedor' },
     vAxis: { title: 'Cantidad de Órdenes' },
     colors: ['#26B99A', '#E74C3C'],
     isStacked: true
@@ -557,13 +504,13 @@ function drawPagosProveedorChart() {
   chart.draw(data, options);
 }
 
-// Gráfico 3.e: Órdenes vencidas por mes
 function drawVencidasMesChart() {
+  <?php if (!empty($proveedores_mes)): ?>
   var data = google.visualization.arrayToDataTable([
     ['Mes', <?php 
-      $proveedores_unicos = array_keys($proveedores_mes ?? []);
+      $proveedores_unicos = array_keys($proveedores_mes);
       foreach($proveedores_unicos as $p) {
-        echo "'".$p."', ";
+        echo "'".addslashes($p)."', ";
       }
     ?>],
     <?php
@@ -579,74 +526,28 @@ function drawVencidasMesChart() {
   ]);
 
   var options = {
-    title: 'Órdenes Vencidas por Proveedor y Mes',
+    title: 'Órdenes Vencidas por Mes',
     chartArea: {width: '80%'},
     hAxis: { title: 'Mes' },
     vAxis: { title: 'Órdenes Vencidas' },
-    seriesType: 'bars',
-    series: {5: {type: 'line'}}
+    seriesType: 'bars'
   };
 
   var chart = new google.visualization.ComboChart(document.getElementById('chart_vencidas_mes'));
   chart.draw(data, options);
-}
-
-// Gráfico de Tipos de Producto (original)
-function drawTiposProductoChart() {
+  <?php else: ?>
   var data = google.visualization.arrayToDataTable([
-    ['Tipo', 'Cantidad'],
-    <?php 
-    if (!empty($datos_tipos_producto)) {
-      foreach ($datos_tipos_producto as $dato) {
-        echo "['" . addslashes($dato[0]) . "', " . $dato[1] . "],";
-      }
-    } else {
-      echo "['Sin datos', 1],";
-    }
-    ?>
+    ['Mes', 'Sin datos'],
+    ['Ene', 0]
   ]);
-
   var options = {
-    title: 'Distribución de Productos por Tipo',
-    pieHole: 0.4,
-    colors: ['#26B99A', '#34495E', '#3498DB'],
-    legend: { position: 'bottom' },
-    chartArea: { width: '90%', height: '75%' }
+    title: 'Sin órdenes vencidas en el año actual'
   };
-
-  var chart = new google.visualization.PieChart(document.getElementById('chart_tipos_producto'));
+  var chart = new google.visualization.ComboChart(document.getElementById('chart_vencidas_mes'));
   chart.draw(data, options);
+  <?php endif; ?>
 }
 
-// Gráfico de Compras por Proveedor (original)
-function drawComprasProveedorChart() {
-  var data = google.visualization.arrayToDataTable([
-    ['Proveedor', 'Compras'],
-    <?php 
-    if (!empty($datos_compras_por_proveedor)) {
-      foreach ($datos_compras_por_proveedor as $dato) {
-        echo "['" . addslashes($dato[0]) . "', " . $dato[1] . "],";
-      }
-    } else {
-      echo "['Sin datos', 0],";
-    }
-    ?>
-  ]);
-
-  var options = {
-    title: 'Compras Registradas por Proveedor',
-    colors: ['#26B99A'],
-    hAxis: { title: 'Proveedores' },
-    vAxis: { title: 'Número de Compras', minValue: 0 },
-    legend: { position: 'none' },
-    chartArea: { left: 60, top: 40, width: '85%', height: '70%' }
-  };
-
-  var chart = new google.visualization.ColumnChart(document.getElementById('chart_compras_proveedor'));
-  chart.draw(data, options);
-}
-
-// Hacer los gráficos responsivos
 window.addEventListener('resize', function() {
   drawAllCharts();
 });
