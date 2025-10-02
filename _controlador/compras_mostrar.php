@@ -13,6 +13,16 @@ if (!verificarPermisoEspecifico('ver_compras')) {
 
 require_once("../_modelo/m_compras.php");
 require_once("../_modelo/m_documentos.php");
+
+// ========================================================================
+// Filtro de fechas
+// ========================================================================
+$fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : null;
+$fecha_fin    = isset($_GET['fecha_fin']) ? $_GET['fecha_fin'] : null;
+
+// Obtener compras (con filtro o solo fecha actual)
+$compras = MostrarComprasFecha($fecha_inicio, $fecha_fin);
+
 ?>
 
 
@@ -36,7 +46,7 @@ require_once("../_modelo/m_documentos.php");
             require_once("../_vista/v_menu_user.php");
 
             // Obtener lista de compras
-            $compras = MostrarCompras();
+            //$compras = MostrarCompras();
 
             // Incluir la vista
             require_once("../_vista/v_compras_mostrar.php");

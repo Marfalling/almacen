@@ -992,6 +992,93 @@ function MostrarTodosLosIngresos()
     return $todos_ingresos;
 }
 
+//******************************************/
+function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
+{
+    include("../_conexion/conexion.php");
+
+    $whereCompras = "";
+    $whereDirectos = "";
+
+    if ($fecha_inicio && $fecha_fin) {
+        $whereCompras   = " AND DATE(c.fec_compra) BETWEEN '$fecha_inicio' AND '$fecha_fin' ";
+        $whereDirectos  = " AND DATE(i.fec_ingreso) BETWEEN '$fecha_inicio' AND '$fecha_fin' ";
+    } else {
+        // Por defecto: solo la fecha actual
+        $whereCompras   = " AND DATE(c.fec_compra) = CURDATE() ";
+        $whereDirectos  = " AND DATE(i.fec_ingreso) = CURDATE() ";
+    }
+
+    $sql = "SELECT 
+                'COMPRA' as tipo,
+                c.id_compra as id_orden,
+                NULL as id_ingreso,
+                c.id_pedido,
+                c.fec_compra as fecha,
+                c.est_compra as estado,
+                p.cod_pedido,
+                pr.nom_proveedor as origen,
+                pe1.nom_personal as registrado_por,
+                pe2.nom_personal as aprobado_por,
+                al.nom_almacen,
+                ub.nom_ubicacion,
+                mon.nom_moneda,
+                (SELECT COUNT(*) FROM compra_detalle cd WHERE cd.id_compra = c.id_compra) as total_productos,
+                COALESCE((SELECT COUNT(DISTINCT id.id_producto) 
+                         FROM ingreso i 
+                         INNER JOIN ingreso_detalle id ON i.id_ingreso = id.id_ingreso 
+                         WHERE i.id_compra = c.id_compra), 0) as productos_ingresados
+            FROM compra c
+            INNER JOIN pedido p ON c.id_pedido = p.id_pedido
+            INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
+            INNER JOIN almacen al ON p.id_almacen = al.id_almacen
+            INNER JOIN ubicacion ub ON p.id_ubicacion = ub.id_ubicacion
+            INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
+            LEFT JOIN personal pe1 ON c.id_personal = pe1.id_personal
+            LEFT JOIN personal pe2 ON c.id_personal_aprueba = pe2.id_personal
+            WHERE c.est_compra IN (2, 3) $whereCompras
+
+            UNION ALL
+
+            SELECT 
+                'DIRECTO' as tipo,
+                NULL as id_orden,
+                i.id_ingreso,
+                NULL as id_pedido,
+                i.fec_ingreso as fecha,
+                i.est_ingreso as estado,
+                CAST(NULL AS CHAR) as cod_pedido, 
+                CONCAT(cl.nom_cliente, ' - ', ob.nom_obra) as origen,
+                pe.nom_personal as registrado_por,
+                NULL as aprobado_por,
+                al.nom_almacen,
+                ub.nom_ubicacion,
+                'N/A' as nom_moneda,
+                COALESCE((SELECT COUNT(*) FROM ingreso_detalle id WHERE id.id_ingreso = i.id_ingreso), 0) as total_productos,
+                COALESCE((SELECT COUNT(*) FROM ingreso_detalle id WHERE id.id_ingreso = i.id_ingreso), 0) as productos_ingresados
+            FROM ingreso i
+            INNER JOIN almacen al ON i.id_almacen = al.id_almacen
+            INNER JOIN ubicacion ub ON i.id_ubicacion = ub.id_ubicacion
+            INNER JOIN obra ob ON al.id_obra = ob.id_obra
+            INNER JOIN cliente cl ON al.id_cliente = cl.id_cliente
+            LEFT JOIN personal pe ON i.id_personal = pe.id_personal
+            WHERE i.id_compra IS NULL
+              AND i.est_ingreso IN (0, 1)
+              $whereDirectos
+
+            ORDER BY fecha DESC";
+
+    $resultado = mysqli_query($con, $sql);
+    $todos_ingresos = array();
+
+    while ($row = mysqli_fetch_array($resultado, MYSQLI_ASSOC)) {
+        $todos_ingresos[] = $row;
+    }
+
+    mysqli_close($con);
+    return $todos_ingresos;
+}
+
 
 ?>
 

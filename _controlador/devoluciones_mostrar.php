@@ -59,6 +59,15 @@ if (isset($_REQUEST['anular'])) {
     }
 }
 
+// ========================================================================
+// Filtro de fechas
+// ========================================================================
+$fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : null;
+$fecha_fin    = isset($_GET['fecha_fin']) ? $_GET['fecha_fin'] : null;
+
+// obtenemos devoluciones desde el modelo con filtro
+$devoluciones = MostrarDevolucionesFecha($fecha_inicio, $fecha_fin);
+
 ?>
 
 <!DOCTYPE html>
@@ -82,7 +91,7 @@ if (isset($_REQUEST['anular'])) {
             require_once("../_vista/v_menu_user.php");
 
             // obtenemos devoluciones desde el modelo
-            $devoluciones = MostrarDevoluciones();
+            //$devoluciones = MostrarDevoluciones();
 
             // cargamos la vista
             require_once("../_vista/v_devolucion_mostrar.php");

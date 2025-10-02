@@ -13,6 +13,16 @@ if (!verificarPermisoEspecifico('ver_uso de material')) {
 }
 
 require_once("../_modelo/m_uso_material.php");
+
+// ========================================================================
+// Filtro de fechas
+// ========================================================================
+$fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : null;
+$fecha_fin    = isset($_GET['fecha_fin']) ? $_GET['fecha_fin'] : null;
+
+// Obtener datos con filtro (o solo fecha actual si no se envía rango)
+$usos_material = MostrarUsoMaterial($fecha_inicio, $fecha_fin);
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -34,11 +44,9 @@ require_once("../_modelo/m_uso_material.php");
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-
-            require_once("../_modelo/m_uso_material.php");
             
             // Cargar datos para mostrar
-            $usos_material = MostrarUsoMaterial();
+            //$usos_material = MostrarUsoMaterial();
             
             require_once("../_vista/v_uso_material_mostrar.php");
             require_once("../_vista/v_footer.php");

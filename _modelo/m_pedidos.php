@@ -145,6 +145,79 @@ function MostrarPedidos()
     return $resultado;
 }
 //-----------------------------------------------------------------------
+function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
+{
+    include("../_conexion/conexion.php");
+
+    // ==========================
+    // Filtro por fechas
+    // ==========================
+    $where_fecha = "";
+    if ($fecha_inicio && $fecha_fin) {
+        $where_fecha = " AND DATE(p.fec_pedido) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
+    } else {
+        // por defecto, solo mostrar la fecha actual
+        $where_fecha = " AND DATE(p.fec_pedido) = CURDATE()";
+    }
+
+    // ==========================
+    // Consulta principal
+    // ==========================
+    $sqlc = "SELECT p.*, 
+                COALESCE(ob.nom_obra, 'N/A') as nom_obra,
+                COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
+                COALESCE(pr.nom_personal, 'Sin asignar') as nom_personal,
+                COALESCE(pr.ape_personal, '') as ape_personal,
+                COALESCE(a.nom_almacen, 'N/A') as nom_almacen,
+                COALESCE(u.nom_ubicacion, 'N/A') as nom_ubicacion,
+                COALESCE(pt.nom_producto_tipo, 'N/A') as nom_producto_tipo,
+                CASE 
+                    WHEN EXISTS (
+                        SELECT 1 
+                        FROM compra comp 
+                        WHERE comp.id_pedido = p.id_pedido 
+                        AND comp.est_compra <> 0
+                    ) THEN 2 
+                    ELSE p.est_pedido
+                END AS est_pedido_calc,
+                CASE 
+                    WHEN EXISTS (
+                        SELECT 1 
+                        FROM pedido_detalle pd 
+                        WHERE pd.id_pedido = p.id_pedido 
+                        AND pd.cant_fin_pedido_detalle IS NOT NULL 
+                        AND pd.est_pedido_detalle <> 0
+                    ) THEN 1 
+                    ELSE 0 
+                END AS tiene_verificados
+             FROM pedido p 
+             LEFT JOIN almacen a ON p.id_almacen = a.id_almacen AND a.est_almacen = 1
+             LEFT JOIN obra ob ON a.id_obra = ob.id_obra AND ob.est_obra = 1
+             LEFT JOIN cliente c ON a.id_cliente = c.id_cliente AND c.est_cliente = 1
+             LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion AND u.est_ubicacion = 1
+             LEFT JOIN personal pr ON p.id_personal = pr.id_personal AND pr.est_personal = 1
+             LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
+             WHERE p.est_pedido IN (0, 1)
+             $where_fecha
+             ORDER BY p.fec_pedido DESC";
+
+    $resc = mysqli_query($con, $sqlc);
+    
+    if (!$resc) {
+        error_log("Error en MostrarPedidos(): " . mysqli_error($con));
+        mysqli_close($con);
+        return array();
+    }
+    
+    $resultado = array();
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $resultado[] = $rowc;
+    }
+
+    mysqli_close($con);
+    return $resultado;
+}
+//-----------------------------------------------------------------------
 function ObtenerPedidosConComprasAnuladas() {
     include("../_conexion/conexion.php");
     

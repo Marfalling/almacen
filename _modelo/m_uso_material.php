@@ -1,7 +1,15 @@
 <?php
-function MostrarUsoMaterial() 
+function MostrarUsoMaterial($fecha_inicio = null, $fecha_fin = null) 
 {
     include("../_conexion/conexion.php");
+
+    $where = "WHERE usm.est_uso_material <> 99";
+    if ($fecha_inicio && $fecha_fin) {
+        $where .= " AND DATE(usm.fec_uso_material) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
+    } else {
+        // por defecto, solo fecha actual
+        $where .= " AND DATE(usm.fec_uso_material) = CURDATE()";
+    }
     
     $sql = "SELECT usm.*, 
                 alm.nom_almacen, 
@@ -18,7 +26,7 @@ function MostrarUsoMaterial()
             LEFT JOIN ubicacion u ON usm.id_ubicacion = u.id_ubicacion 
             LEFT JOIN personal per1 ON usm.id_personal = per1.id_personal     -- quien registra
             LEFT JOIN personal per2 ON usm.id_solicitante = per2.id_personal -- solicitante
-            WHERE usm.est_uso_material <> 99 
+            $where
             ORDER BY usm.fec_uso_material DESC";
     
     $resc = mysqli_query($con, $sql) or die("Error en consulta: " . mysqli_error($con));

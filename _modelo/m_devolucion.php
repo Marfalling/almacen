@@ -85,6 +85,42 @@ function MostrarDevoluciones()
     return $resultado;
 }
 
+//----------------------------------------------------------------------
+function MostrarDevolucionesFecha($fecha_inicio = null, $fecha_fin = null)
+{
+    include("../_conexion/conexion.php");
+
+    $where = "";
+    if ($fecha_inicio && $fecha_fin) {
+        $where = "WHERE DATE(d.fec_devolucion) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
+    } else {
+        // Por defecto, solo la fecha actual
+        $where = "WHERE DATE(d.fec_devolucion) = CURDATE()";
+    }
+
+    $sql = "SELECT d.*, 
+                   a.nom_almacen, 
+                   u.nom_ubicacion, 
+                   p.nom_personal, 
+                   p.ape_personal
+            FROM devolucion d
+            INNER JOIN almacen a ON d.id_almacen = a.id_almacen
+            INNER JOIN ubicacion u ON d.id_ubicacion = u.id_ubicacion
+            INNER JOIN personal p ON d.id_personal = p.id_personal
+            $where
+            ORDER BY d.fec_devolucion DESC";
+
+    $res = mysqli_query($con, $sql) or die("Error en consulta: " . mysqli_error($con));
+    $resultado = array();
+
+    while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC)) {
+        $resultado[] = $row;
+    }
+
+    mysqli_close($con);
+    return $resultado;
+}
+
 //-----------------------------------------------------------------------
 function ConsultarDevolucion($id_devolucion)
 {

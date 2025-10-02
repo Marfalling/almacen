@@ -284,6 +284,19 @@ function EliminarDocumento(id_doc) {
                     </div>
 
                     <div class="x_content">
+                        <form method="get" action="compras_mostrar.php" class="form-inline mb-3">
+                            <label for="fecha_inicio" class="mr-2">Desde:</label>
+                            <input type="date" id="fecha_inicio" name="fecha_inicio" class="form-control mr-2"
+                                   value="<?php echo htmlspecialchars($fecha_inicio ?? date('Y-m-d')); ?>">
+
+                            <label for="fecha_fin" class="mr-2">Hasta:</label>
+                            <input type="date" id="fecha_fin" name="fecha_fin" class="form-control mr-2"
+                                   value="<?php echo htmlspecialchars($fecha_fin ?? date('Y-m-d')); ?>">
+
+                          <button type="submit" class="btn btn-primary">Consultar</button>
+                           <!--  <a href="movimientos.php" class="btn btn-secondary ml-2">Hoy</a> -->
+                        </form>
+
                         <div class="row">
                             <div class="col-sm-12">
                                 <div class="card-box table-responsive">
@@ -351,27 +364,17 @@ function EliminarDocumento(id_doc) {
                                                         <?php } ?>
                                                     </td>
                                                     <td>
-                                                        <?php 
-                                                        $documentos = MostrarDocumentos('compras', $compra['id_compra']);
-                                                        if (!empty($documentos)) {
-                                                            foreach ($documentos as $doc) { ?>
-                                                                <div class="d-flex align-items-center mb-1">
-                                                                    <a href="../uploads/compras/<?php echo $doc['documento']; ?>" target="_blank" class="btn btn-sm btn-outline-info">
-                                                                        <i class="fa fa-file"></i> Ver
-                                                                    </a>
-                                                                    <button class="btn btn-sm btn-outline-danger" 
-                                                                            onclick="EliminarDocumento(<?php echo $doc['id_doc']; ?>)">
-                                                                        <i class="fa fa-trash"></i>
-                                                                    </button>
-                                                                </div>
-                                                            <?php }
-                                                        } else {
-                                                            echo '<span class="text-muted">Sin documentos</span>';
-                                                        }
-                                                        ?>
-                                                        <button class="btn btn-sm btn-outline-primary" onclick="SubirDocumento(<?php echo $compra['id_compra']; ?>)">
-                                                            <i class="fa fa-upload"></i> Subir
-                                                        </button>
+                                                        <?php if ($compra['est_compra'] == 0) { ?>
+                                                            <span class="text-muted">Bloqueado</span>
+                                                        <?php } else { ?>
+                                                            <!-- Botón que abre modal de documentos -->
+                                                            <button type="button" 
+                                                                    class="btn btn-info btn-sm" 
+                                                                    data-toggle="modal" 
+                                                                    data-target="#modalDocumentos<?php echo $compra['id_compra']; ?>">
+                                                                <i class="fa fa-folder-open"></i> Ver Documentos
+                                                            </button>
+                                                        <?php } ?>
                                                     </td>
                                                     <td>
                                                         <div class="d-flex flex-wrap gap-2">
@@ -461,3 +464,60 @@ function EliminarDocumento(id_doc) {
     </div>
 </div>
 <!-- /page content -->
+
+<!-- Modales de documentos -->
+<?php foreach($compras as $compra) { 
+    $documentos = MostrarDocumentos('compras', $compra['id_compra']); ?>
+<div class="modal fade" id="modalDocumentos<?php echo $compra['id_compra']; ?>" tabindex="-1" role="dialog" aria-labelledby="modalDocumentosLabel<?php echo $compra['id_compra']; ?>" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Documentos de la Compra #<?php echo $compra['id_compra']; ?></h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <?php if (!empty($documentos)) { ?>
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Documento</th>
+                                <th>Fecha</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php $i=1; foreach($documentos as $doc) { ?>
+                            <tr>
+                                <td><?php echo $i++; ?></td>
+                                <td><a href="../uploads/compras/<?php echo $doc['documento']; ?>" target="_blank"><i class="fa fa-file"></i> <?php echo $doc['documento']; ?></a></td>
+                                <td><?php echo date('d/m/Y H:i', strtotime($doc['fec_subida'])); ?></td>
+                                <td>
+                                    <?php if ($compra['est_compra'] != 0) { ?>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="EliminarDocumento(<?php echo $doc['id_doc']; ?>)">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    <?php } else { ?>
+                                        <span class="text-muted">Bloqueado</span>
+                                    <?php } ?>
+                                </td>
+                            </tr>
+                            <?php } ?>
+                        </tbody>
+                    </table>
+                <?php } else { ?>
+                    <div class="alert alert-info"><i class="fa fa-info-circle"></i> No hay documentos registrados.</div>
+                <?php } ?>
+            </div>
+            <div class="modal-footer">
+                <?php if ($compra['est_compra'] != 0) { ?>
+                    <button class="btn btn-primary" onclick="SubirDocumento(<?php echo $compra['id_compra']; ?>)">
+                        <i class="fa fa-upload"></i> Subir Documento
+                    </button>
+                <?php } ?>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<?php } ?>

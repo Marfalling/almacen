@@ -58,6 +58,45 @@ function MostrarCompras()
     return $resultado;
 }
 
+function MostrarComprasFecha($fecha_inicio = null, $fecha_fin = null)
+{
+    include("../_conexion/conexion.php");
+
+    $where = "";
+    if ($fecha_inicio && $fecha_fin) {
+        $where = "WHERE DATE(c.fec_compra) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
+    } else {
+        // Por defecto, solo la fecha actual
+        $where = "WHERE DATE(c.fec_compra) = CURDATE()";
+    }
+
+    $sql = "SELECT 
+                c.*,
+                pe.cod_pedido,
+                p.nom_proveedor,
+                per1.nom_personal AS nom_registrado,
+                COALESCE(per2.nom_personal, '-') AS nom_aprobado_tecnica,
+                COALESCE(per3.nom_personal, '-') AS nom_aprobado_financiera
+            FROM compra c
+            LEFT JOIN pedido pe ON c.id_pedido = pe.id_pedido
+            LEFT JOIN proveedor p ON c.id_proveedor = p.id_proveedor 
+            LEFT JOIN personal per1 ON c.id_personal = per1.id_personal
+            LEFT JOIN personal per2 ON c.id_personal_aprueba_tecnica = per2.id_personal
+            LEFT JOIN personal per3 ON c.id_personal_aprueba_financiera = per3.id_personal
+            $where
+            ORDER BY c.id_compra DESC";
+
+    $resc = mysqli_query($con, $sql) or die("Error en consulta: " . mysqli_error($con));
+
+    $resultado = [];
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $resultado[] = $rowc;
+    }
+
+    mysqli_close($con);
+    return $resultado;
+}
+
 function AprobarCompra($id_compra, $id_personal)
 {
     include("../_conexion/conexion.php");
