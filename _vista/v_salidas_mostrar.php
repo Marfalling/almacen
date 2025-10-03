@@ -220,7 +220,7 @@ foreach($salidas as $salida) {
                                             <td><?php echo $detalle['cant_salida_detalle']; ?></td>
                                             <td><?php echo $detalle['nom_unidad_medida']; ?></td>
                                             <td>
-                                                <span class="badge badge-info">
+                                                <span class="badge badge-info badge_size">
                                                     <?php echo $detalle['cantidad_disponible_origen']; ?>
                                                 </span>
                                             </td>
