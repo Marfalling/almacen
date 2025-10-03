@@ -80,6 +80,20 @@
                                 </div>
                             </div>
 
+                            <div class="form-group row">
+                                <label class="control-label col-md-3">Cliente destino <span class="text-danger">*</span>:</label>
+                                <div class="col-md-9">
+                                    <select id="id_cliente_destino" name="id_cliente_destino" class="form-control" required>
+                                        <option value="">Seleccionar Cliente</option>
+                                        <?php foreach ($clientes as $cliente) { ?>
+                                            <option value="<?php echo $cliente['id_cliente']; ?>">
+                                                <?php echo $cliente['nom_cliente']; ?>
+                                            </option>
+                                        <?php } ?>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div class="ln_solid"></div>
 
                             <!-- Materiales -->
@@ -317,6 +331,7 @@ $('#buscar_producto').on('hidden.bs.modal', function () {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
+
     let contadorMateriales = 1;
 
     // --- Agregar / eliminar materiales (clon)
@@ -498,6 +513,27 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const clienteSelect = document.getElementById('id_cliente_destino');
+    const almacenSelect = document.getElementById('id_almacen');
+    const ubicacionSelect = document.getElementById('id_ubicacion');
+
+    if (clienteSelect && almacenSelect && ubicacionSelect) {
+        clienteSelect.addEventListener('change', function () {
+            if (!almacenSelect.value || !ubicacionSelect.value) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Atención',
+                    text: 'Primero debes seleccionar un almacén y una ubicación.',
+                    confirmButtonText: 'Entendido'
+                });
+                clienteSelect.value = "";
+            }
+        });
+    }
+});
+
 </script>
 
 

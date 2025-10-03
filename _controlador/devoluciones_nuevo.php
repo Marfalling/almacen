@@ -37,12 +37,14 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
             require_once("../_modelo/m_ubicacion.php");
             require_once("../_modelo/m_personal.php");
             require_once("../_modelo/m_producto.php");
+            require_once("../_modelo/m_clientes.php"); // <--- Nuevo para clientes
 
             // Cargar datos para el formulario
             $almacenes = MostrarAlmacenesActivos();
             $ubicaciones = MostrarUbicacionesActivas();
             $personal = MostrarPersonalActivo();
             $productos = MostrarMaterialesActivos();
+            $clientes = MostrarClientesActivos(); // <--- Lista de clientes
 
             // Variables para alertas
             $mostrar_alerta = false;
@@ -60,47 +62,57 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
                 
                 // Usar el ID del personal en sesión
                 $id_personal = $_SESSION['id_personal'];
-                
-                // Procesar materiales
-                $materiales = array();
-                if (isset($_REQUEST['id_producto']) && is_array($_REQUEST['id_producto'])) {
-                    foreach ($_REQUEST['id_producto'] as $index => $id_producto) {
-                        if (!empty($id_producto) && !empty($_REQUEST['cantidad'][$index])) {
-                            $materiales[] = array(
-                                'id_producto' => intval($id_producto),
-                                'cantidad'    => floatval($_REQUEST['cantidad'][$index]),
-                                'detalle'     => mysqli_real_escape_string($con, $_REQUEST['descripcion'][$index])
-                            );
-                        }
-                    }
-                }
-                
-                // Validación
-                if (count($materiales) > 0) {
-                    $resultado = GrabarDevolucion(
-                        $id_almacen, $id_ubicacion, $id_personal, $obs_devolucion, $materiales
-                    );
-                    
-                    if ($resultado === "SI") {
-                        ?>
-                        <script Language="JavaScript">
-                            setTimeout(function() {
-                                window.location.href = 'devoluciones_mostrar.php?registrado=true';
-                            }, 100);
-                        </script>
-                        <?php
-                        exit();
-                    } else {
-                        $mostrar_alerta = true;
-                        $tipo_alerta = 'error';
-                        $titulo_alerta = 'Error al registrar';
-                        $mensaje_alerta = str_replace("'", "\'", $resultado);
-                    }
-                } else {
+
+                // Capturar cliente destino
+                $id_cliente_destino = isset($_REQUEST['id_cliente_destino']) ? intval($_REQUEST['id_cliente_destino']) : null;
+
+                // Validación obligatoria de cliente
+                if (!$id_cliente_destino) {
                     $mostrar_alerta = true;
                     $tipo_alerta = 'warning';
                     $titulo_alerta = 'Datos incompletos';
-                    $mensaje_alerta = 'Debe agregar al menos un material a la devolución';
+                    $mensaje_alerta = 'Debe seleccionar un cliente destino';
+                } else {
+                    // Procesar materiales
+                    $materiales = array();
+                    if (isset($_REQUEST['id_producto']) && is_array($_REQUEST['id_producto'])) {
+                        foreach ($_REQUEST['id_producto'] as $index => $id_producto) {
+                            if (!empty($id_producto) && !empty($_REQUEST['cantidad'][$index])) {
+                                $materiales[] = array(
+                                    'id_producto' => intval($id_producto),
+                                    'cantidad'    => floatval($_REQUEST['cantidad'][$index]),
+                                    'detalle'     => mysqli_real_escape_string($con, $_REQUEST['descripcion'][$index])
+                                );
+                            }
+                        }
+                    }
+                    
+                    // Validación materiales
+                    if (count($materiales) > 0) {
+                        // <--- Se agrega $id_cliente_destino como nuevo parámetro
+                        $resultado = GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $id_cliente_destino, $obs_devolucion, $materiales);
+                        
+                        if ($resultado === "SI") {
+                            ?>
+                            <script Language="JavaScript">
+                                setTimeout(function() {
+                                    window.location.href = 'devoluciones_mostrar.php?registrado=true';
+                                }, 100);
+                            </script>
+                            <?php
+                            exit();
+                        } else {
+                            $mostrar_alerta = true;
+                            $tipo_alerta = 'error';
+                            $titulo_alerta = 'Error al registrar';
+                            $mensaje_alerta = str_replace("'", "\'", $resultado);
+                        }
+                    } else {
+                        $mostrar_alerta = true;
+                        $tipo_alerta = 'warning';
+                        $titulo_alerta = 'Datos incompletos';
+                        $mensaje_alerta = 'Debe agregar al menos un material a la devolución';
+                    }
                 }
             }
             //-------------------------------------------

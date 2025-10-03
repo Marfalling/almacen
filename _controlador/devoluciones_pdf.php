@@ -63,6 +63,7 @@ $nom_personal = trim(($devolucion['nom_personal'] ?? '') . ' ' . ($devolucion['a
 $observaciones = $devolucion['obs_devolucion'] ?? 'Sin observaciones especiales';
 $almacen = $devolucion['nom_almacen'] ?? '';
 $ubicacion = $devolucion['nom_ubicacion'] ?? '';
+$cliente_destino = $devolucion['nom_cliente_destino'] ?? 'No especificado';
 
 $personal_encargado = '';
 if (!empty($devolucion['nom_personal']) && !empty($devolucion['ape_personal'])) {

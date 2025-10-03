@@ -337,6 +337,7 @@ $html = '
                 <div class="info-right">
                     <div><strong>ALMACÉN:</strong> ' .$almacen. '</div>
                     <div><strong>UBICACIÓN:</strong> ' .$ubicacion. '</div>
+                    <div><strong>CLIENTE DESTINO:</strong> ' .$cliente_destino. '</div>
                 </div>
             </div>
         </div>

@@ -53,6 +53,7 @@
                                                 <th>Nº Documento</th>
                                                 <th>Almacén</th>
                                                 <th>Ubicación</th>
+                                                <th>Cliente destino</th>
                                                 <th>Registrado por</th>
                                                 <th>Fecha de Devolución</th>
                                                 <th>Observaciones</th>
@@ -71,6 +72,7 @@
                                                     <td><?php echo $devolucion['id_devolucion']; ?></td>
                                                     <td><?php echo $devolucion['nom_almacen']; ?></td>
                                                     <td><?php echo $devolucion['nom_ubicacion']; ?></td>
+                                                    <td><?php echo $devolucion['nom_cliente_destino']; ?></td>
                                                     <td><?php echo $devolucion['nom_personal'] . ' ' . $devolucion['ape_personal']; ?></td>
                                                     <td><?php echo date('d/m/Y H:i', strtotime($devolucion['fec_devolucion'])); ?></td>
                                                     <td><?php echo $devolucion['obs_devolucion']; ?></td>
@@ -220,6 +222,10 @@ foreach($devoluciones as $devolucion) {
                                 <td><?php echo $dev_info['nom_almacen']; ?></td>
                                 <td><strong>Ubicación:</strong></td>
                                 <td><?php echo $dev_info['nom_ubicacion']; ?></td>
+                                <tr>
+                                    <td><strong>Cliente destino:</strong></td>
+                                    <td colspan="3"><?php echo $dev_info['nom_cliente']; ?></td>
+                                </tr>
                             </tr>
                             <tr>
                                 <td><strong>Registrado por:</strong></td>

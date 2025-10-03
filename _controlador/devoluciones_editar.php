@@ -37,6 +37,7 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
             require_once("../_modelo/m_ubicacion.php");
             require_once("../_modelo/m_personal.php");
             require_once("../_modelo/m_tipo_material.php");
+            require_once("../_modelo/m_clientes.php"); // <-- agregado para clientes
 
             // Variables para mostrar alertas
             $mostrar_alerta = false;
@@ -84,6 +85,7 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
             $ubicaciones = MostrarUbicacionesActivas();
             $personal = MostrarPersonalActivo();
             $material_tipos = MostrarMaterialTipoActivos();
+            $clientes = ObtenerClientes(); // <-- lista de clientes para el select
 
             //=======================================================================
             // CONTROLADOR 
@@ -91,6 +93,10 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
             if (isset($_REQUEST['actualizar'])) {
                 $id_almacen = intval($_REQUEST['id_almacen']);
                 $id_ubicacion = intval($_REQUEST['id_ubicacion']);
+                
+                // nuevo: capturar cliente destino (editable en el formulario)
+                $id_cliente_destino = isset($_REQUEST['id_cliente_destino']) ? intval($_REQUEST['id_cliente_destino']) : null;
+
                 $obs_devolucion = mysqli_real_escape_string($con, $_REQUEST['obs_devolucion']);
                 
                 // Procesar materiales
@@ -107,65 +113,74 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
                     }
                 }
                 
-                // Validar que haya al menos un material
-                if (count($materiales) > 0) {
-                    // Validar stocks antes de actualizar
-                    $errores_stock = array();
-                    
-                    foreach ($materiales as $material) {
-                        // Obtener stock actual del producto en la ubicación origen
-                        $stock_actual = ObtenerStockDisponible($material['id_producto'], $id_almacen, $id_ubicacion);
-                        
-                        // Obtener cantidad previamente asignada en esta salida para este producto
-                        $cantidad_previa = 0;
-                        foreach ($devolucion_detalles as $detalle_previo) {
-                            if ($detalle_previo['id_producto'] == $material['id_producto']) {
-                                $cantidad_previa = $detalle_previo['cant_devolucion_detalle'];
-                                break;
-                            }
-                        }
-                        
-                        // Stock disponible = stock actual + cantidad que se va a "devolver" por la edición
-                        $stock_disponible = $stock_actual + $cantidad_previa;
-                        
-                        // Verificar si la nueva cantidad excede el stock disponible
-                        if ($material['cantidad'] > $stock_disponible) {
-                            $errores_stock[] = "El producto '{$material['descripcion']}' no tiene suficiente stock. Disponible: {$stock_disponible}, solicitado: {$material['cantidad']}";
-                        }
-                    }
-                    
-                    // Si hay errores de stock, no proceder
-                    if (count($errores_stock) > 0) {
-                        $mostrar_alerta = true;
-                        $tipo_alerta = 'warning';
-                        $titulo_alerta = 'Stock insuficiente';
-                        $mensaje_alerta = implode('<br>', $errores_stock);
-                    } else {
-                        // Proceder con la actualización
-                        $resultado = ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion,  
-                                $obs_devolucion, $materiales);
-                        
-                        if ($resultado === "SI") {
-                            ?>
-                            <script Language="JavaScript">
-                                setTimeout(function() {
-                                    window.location.href = 'devoluciones_mostrar.php?actualizado=true';
-                                }, 100);
-                            </script>
-                            <?php
-                            exit();
-                        } else {
-                            $mostrar_alerta = true;
-                            $tipo_alerta = 'error';
-                            $titulo_alerta = 'Error al actualizar';
-                            $mensaje_alerta = str_replace("'", "\'", $resultado);
-                        }
-                    }
-                } else {
+                // Validar cliente destino
+                if (!$id_cliente_destino) {
                     $mostrar_alerta = true;
                     $tipo_alerta = 'warning';
                     $titulo_alerta = 'Datos incompletos';
-                    $mensaje_alerta = 'Debe tener al menos un material en la salida';
+                    $mensaje_alerta = 'Debe seleccionar un cliente destino.';
+                } else {
+                    // Validar que haya al menos un material
+                    if (count($materiales) > 0) {
+                        // Validar stocks antes de actualizar
+                        $errores_stock = array();
+                        
+                        foreach ($materiales as $material) {
+                            // Obtener stock actual del producto en la ubicación origen
+                            $stock_actual = ObtenerStockDisponible($material['id_producto'], $id_almacen, $id_ubicacion);
+                            
+                            // Obtener cantidad previamente asignada en esta salida para este producto
+                            $cantidad_previa = 0;
+                            foreach ($devolucion_detalles as $detalle_previo) {
+                                if ($detalle_previo['id_producto'] == $material['id_producto']) {
+                                    $cantidad_previa = $detalle_previo['cant_devolucion_detalle'];
+                                    break;
+                                }
+                            }
+                            
+                            // Stock disponible = stock actual + cantidad que se va a "devolver" por la edición
+                            $stock_disponible = $stock_actual + $cantidad_previa;
+                            
+                            // Verificar si la nueva cantidad excede el stock disponible
+                            if ($material['cantidad'] > $stock_disponible) {
+                                $errores_stock[] = "El producto '{$material['descripcion']}' no tiene suficiente stock. Disponible: {$stock_disponible}, solicitado: {$material['cantidad']}";
+                            }
+                        }
+                        
+                        // Si hay errores de stock, no proceder
+                        if (count($errores_stock) > 0) {
+                            $mostrar_alerta = true;
+                            $tipo_alerta = 'warning';
+                            $titulo_alerta = 'Stock insuficiente';
+                            $mensaje_alerta = implode('<br>', $errores_stock);
+                        } else {
+                            // Proceder con la actualización
+                            // NOTA: ActualizarDevolucion ahora espera id_cliente_destino como parámetro adicional
+                            $resultado = ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cliente_destino,
+                                    $obs_devolucion, $materiales);
+                            
+                            if ($resultado === "SI") {
+                                ?>
+                                <script Language="JavaScript">
+                                    setTimeout(function() {
+                                        window.location.href = 'devoluciones_mostrar.php?actualizado=true';
+                                    }, 100);
+                                </script>
+                                <?php
+                                exit();
+                            } else {
+                                $mostrar_alerta = true;
+                                $tipo_alerta = 'error';
+                                $titulo_alerta = 'Error al actualizar';
+                                $mensaje_alerta = str_replace("'", "\'", $resultado);
+                            }
+                        }
+                    } else {
+                        $mostrar_alerta = true;
+                        $tipo_alerta = 'warning';
+                        $titulo_alerta = 'Datos incompletos';
+                        $mensaje_alerta = 'Debe tener al menos un material en la salida';
+                    }
                 }
             }
             //-------------------------------------------

@@ -85,6 +85,21 @@
                                 </div>
                             </div>
 
+                            <div class="form-group row">
+                                <label class="control-label col-md-3">Cliente destino <span class="text-danger">*</span>:</label>
+                                <div class="col-md-9">
+                                    <select id="id_cliente_destino" name="id_cliente_destino" class="form-control" required>
+                                        <option value="">Seleccionar Cliente</option>
+                                        <?php foreach ($clientes as $cliente) { ?>
+                                            <option value="<?php echo $cliente['id_cliente']; ?>"
+                                                <?php echo ($cliente['id_cliente'] == $devolucion_datos[0]['id_cliente_destino']) ? 'selected' : ''; ?>>
+                                                <?php echo $cliente['nom_cliente']; ?>
+                                            </option>
+                                        <?php } ?>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div class="ln_solid"></div>
 
                             <!-- Materiales -->
@@ -123,7 +138,13 @@
                                                 <?php 
                                                 // Calcular stock disponible actual + cantidad ya asignada
                                                 $stock_actual = ObtenerStockDisponible($detalle['id_producto'], $devolucion_datos[0]['id_almacen'], $devolucion_datos[0]['id_ubicacion']);
-                                                $stock_con_devolucion = $stock_actual + $detalle['cant_devolucion_detalle'];
+                                                // si el cliente destino es ARCE (id = 1) no se suma la devolución
+                                                if ($devolucion_datos[0]['id_cliente_destino'] == 1) {
+                                                    $stock_con_devolucion = $stock_actual;
+                                                } else {
+                                                    // stock actual + cantidad previamente registrada
+                                                    $stock_con_devolucion = $stock_actual + $detalle['cant_devolucion_detalle'];
+                                                }
                                                 echo number_format($stock_con_devolucion, 2);
                                                 ?>
                                             </div>
@@ -517,4 +538,43 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+    const clienteSelect = document.getElementById('id_cliente_destino');
+    const almacenSelect = document.getElementById('id_almacen');
+    const ubicacionSelect = document.getElementById('id_ubicacion');
+
+    if (clienteSelect && almacenSelect && ubicacionSelect) {
+        // deshabilitar al inicio si no hay almacén/ubicación
+        if (!almacenSelect.value || !ubicacionSelect.value) {
+            clienteSelect.disabled = true;
+        }
+
+        function validarClienteSelect() {
+            if (!almacenSelect.value || !ubicacionSelect.value) {
+                clienteSelect.value = "";
+                clienteSelect.disabled = true;
+            } else {
+                clienteSelect.disabled = false;
+            }
+        }
+
+        almacenSelect.addEventListener('change', validarClienteSelect);
+        ubicacionSelect.addEventListener('change', validarClienteSelect);
+
+        clienteSelect.addEventListener('change', function() {
+            if (!almacenSelect.value || !ubicacionSelect.value) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Atención',
+                    text: 'Primero debes seleccionar un almacén y una ubicación antes de elegir cliente.',
+                    confirmButtonText: 'Entendido'
+                });
+                clienteSelect.value = "";
+                clienteSelect.disabled = true;
+            }
+        });
+    }
+});
+
 </script>

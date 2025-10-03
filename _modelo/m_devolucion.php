@@ -3,16 +3,16 @@
 // MODELO: m_devolucion.php
 //=======================================================================
 
-function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devolucion, $materiales) 
+function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $id_cliente_destino, $obs_devolucion, $materiales) 
 {
     include("../_conexion/conexion.php");
 
     // Insertar devolución principal
     $sql = "INSERT INTO devolucion (
-                id_almacen, id_ubicacion, id_personal, 
+                id_almacen, id_ubicacion, id_personal, id_cliente_destino,
                 obs_devolucion, fec_devolucion, est_devolucion
             ) VALUES (
-                $id_almacen, $id_ubicacion, $id_personal, 
+                $id_almacen, $id_ubicacion, $id_personal, $id_cliente_destino,
                 '$obs_devolucion', NOW(), 1
             )";
 
@@ -35,17 +35,48 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devoluc
                             )";
             
             if (mysqli_query($con, $sql_detalle)) {
-                // Movimiento de SALIDA (resta stock)
-                $sql_mov = "INSERT INTO movimiento (
-                                id_personal, id_orden, id_producto, id_almacen, 
-                                id_ubicacion, tipo_orden, tipo_movimiento, 
-                                cant_movimiento, fec_movimiento, est_movimiento
-                            ) VALUES (
-                                $id_personal, $id_devolucion, $id_producto, $id_almacen, 
-                                $id_ubicacion, 3, 2, 
-                                $cantidad, NOW(), 1
-                            )";
-                mysqli_query($con, $sql_mov);
+                
+                if ($id_cliente_destino == 1) {
+                    // DEVOLUCIÓN A ARCE → Genera 2 movimientos (traslado a base)
+                    
+                    // Movimiento 1: RESTA del almacén origen
+                    $sql_mov_resta = "INSERT INTO movimiento (
+                                        id_personal, id_orden, id_producto, id_almacen, 
+                                        id_ubicacion, tipo_orden, tipo_movimiento, 
+                                        cant_movimiento, fec_movimiento, est_movimiento
+                                    ) VALUES (
+                                        $id_personal, $id_devolucion, $id_producto, $id_almacen, 
+                                        $id_ubicacion, 3, 2, 
+                                        $cantidad, NOW(), 1
+                                    )";
+                    mysqli_query($con, $sql_mov_resta);
+                    
+                    // Movimiento 2: SUMA a ARCE BASE (id_almacen=1, id_ubicacion=1)
+                    $sql_mov_suma = "INSERT INTO movimiento (
+                                        id_personal, id_orden, id_producto, id_almacen, 
+                                        id_ubicacion, tipo_orden, tipo_movimiento, 
+                                        cant_movimiento, fec_movimiento, est_movimiento
+                                    ) VALUES (
+                                        $id_personal, $id_devolucion, $id_producto, 1, 
+                                        1, 3, 1, 
+                                        $cantidad, NOW(), 1
+                                    )";
+                    mysqli_query($con, $sql_mov_suma);
+                    
+                } else {
+                    // DEVOLUCIÓN A OTRO CLIENTE → Solo resta (sale del sistema)
+                    
+                    $sql_mov = "INSERT INTO movimiento (
+                                    id_personal, id_orden, id_producto, id_almacen, 
+                                    id_ubicacion, tipo_orden, tipo_movimiento, 
+                                    cant_movimiento, fec_movimiento, est_movimiento
+                                ) VALUES (
+                                    $id_personal, $id_devolucion, $id_producto, $id_almacen, 
+                                    $id_ubicacion, 3, 2, 
+                                    $cantidad, NOW(), 1
+                                )";
+                    mysqli_query($con, $sql_mov);
+                }
             }
         }
         
@@ -66,11 +97,13 @@ function MostrarDevoluciones()
     $sql = "SELECT d.*, 
                    a.nom_almacen, 
                    u.nom_ubicacion, 
-                   p.nom_personal, p.ape_personal
+                   p.nom_personal, p.ape_personal,
+                   c.nom_cliente as nom_cliente_destino
             FROM devolucion d
             INNER JOIN almacen a ON d.id_almacen = a.id_almacen
             INNER JOIN ubicacion u ON d.id_ubicacion = u.id_ubicacion
             INNER JOIN personal p ON d.id_personal = p.id_personal
+            INNER JOIN cliente c ON d.id_cliente_destino = c.id_cliente
             /*WHERE d.est_devolucion = 1*/
             ORDER BY d.fec_devolucion DESC";
 
@@ -94,7 +127,6 @@ function MostrarDevolucionesFecha($fecha_inicio = null, $fecha_fin = null)
     if ($fecha_inicio && $fecha_fin) {
         $where = "WHERE DATE(d.fec_devolucion) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
     } else {
-        // Por defecto, solo la fecha actual
         $where = "WHERE DATE(d.fec_devolucion) = CURDATE()";
     }
 
@@ -102,11 +134,13 @@ function MostrarDevolucionesFecha($fecha_inicio = null, $fecha_fin = null)
                    a.nom_almacen, 
                    u.nom_ubicacion, 
                    p.nom_personal, 
-                   p.ape_personal
+                   p.ape_personal,
+                   c.nom_cliente as nom_cliente_destino
             FROM devolucion d
             INNER JOIN almacen a ON d.id_almacen = a.id_almacen
             INNER JOIN ubicacion u ON d.id_ubicacion = u.id_ubicacion
             INNER JOIN personal p ON d.id_personal = p.id_personal
+            INNER JOIN cliente c ON d.id_cliente_destino = c.id_cliente
             $where
             ORDER BY d.fec_devolucion DESC";
 
@@ -129,11 +163,13 @@ function ConsultarDevolucion($id_devolucion)
     $sql = "SELECT d.*, 
                    a.nom_almacen, 
                    u.nom_ubicacion, 
-                   p.nom_personal, p.ape_personal
+                   p.nom_personal, p.ape_personal,
+                   c.nom_cliente as nom_cliente_destino
             FROM devolucion d
             INNER JOIN almacen a ON d.id_almacen = a.id_almacen
             INNER JOIN ubicacion u ON d.id_ubicacion = u.id_ubicacion
             INNER JOIN personal p ON d.id_personal = p.id_personal
+            INNER JOIN cliente c ON d.id_cliente_destino = c.id_cliente
             WHERE d.id_devolucion = $id_devolucion";
 
     $res = mysqli_query($con, $sql);
@@ -190,23 +226,24 @@ function MostrarMaterialesActivos() {
 }
 
 //-----------------------------------------------------------------------
-function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion,  
+function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cliente_destino,
                                 $obs_devolucion, $materiales) 
 {
     include("../_conexion/conexion.php");
 
-    // Actualizar salida principal
+    // Actualizar devolución principal
     $sql = "UPDATE devolucion SET 
                 id_almacen = $id_almacen,
                 id_ubicacion = $id_ubicacion,
+                id_cliente_destino = $id_cliente_destino,
                 obs_devolucion = '$obs_devolucion'
             WHERE id_devolucion = $id_devolucion";
 
     if (mysqli_query($con, $sql)) {
         
-        // Eliminar movimientos anteriores relacionados con esta salida
+        // Eliminar movimientos anteriores
         $sql_del_mov = "UPDATE movimiento SET est_movimiento = 0 
-                        WHERE id_orden  = $id_devolucion AND tipo_orden = 3";
+                        WHERE id_orden = $id_devolucion AND tipo_orden = 3";
         mysqli_query($con, $sql_del_mov);
         
         // Eliminar detalles anteriores
@@ -214,13 +251,18 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion,
                 WHERE id_devolucion = $id_devolucion";
         mysqli_query($con, $sql_del_det);
         
+        // Obtener el ID del personal
+        $sql_personal = "SELECT id_personal FROM devolucion WHERE id_devolucion = $id_devolucion";
+        $res_personal = mysqli_query($con, $sql_personal);
+        $row_personal = mysqli_fetch_assoc($res_personal);
+        $id_personal = $row_personal['id_personal'];
+        
         // Insertar nuevos detalles y movimientos
         foreach ($materiales as $material) {
             $id_producto = intval($material['id_producto']);
             $cantidad = floatval($material['cantidad']);
             $descripcion = mysqli_real_escape_string($con, $material['descripcion']);
             
-            // Insertar nuevo detalle
             $sql_detalle = "INSERT INTO devolucion_detalle (
                                 id_devolucion, id_producto,  
                                 det_devolucion_detalle, cant_devolucion_detalle, est_devolucion_detalle
@@ -230,26 +272,48 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion,
                             )";
             
             if (mysqli_query($con, $sql_detalle)) {
-                // Obtener el ID del personal que registra
-                $sql_personal = "SELECT id_personal FROM devolucion WHERE id_devolucion = $id_devolucion";
-                $res_personal = mysqli_query($con, $sql_personal);
-                $row_personal = mysqli_fetch_assoc($res_personal);
-                $id_personal = $row_personal['id_personal'];
                 
-                // Generar nuevos movimientos
-                
-                // 1. Movimiento de DEVOLUCION en almacén (resta stock)
-                $sql_mov_devolucion = "INSERT INTO movimiento (
-                                    id_personal, id_orden, id_producto, id_almacen, 
-                                    id_ubicacion, tipo_orden, tipo_movimiento, 
-                                    cant_movimiento, fec_movimiento, est_movimiento
-                                  ) VALUES (
-                                    $id_personal, $id_devolucion, $id_producto, $id_almacen, 
-                                    $id_ubicacion, 3, 2, 
-                                    $cantidad, NOW(), 1
-                                  )";
-                mysqli_query($con, $sql_mov_devolucion);
-
+                if ($id_cliente_destino == 1) {
+                    // DEVOLUCIÓN A ARCE
+                    
+                    // Resta origen
+                    $sql_mov_resta = "INSERT INTO movimiento (
+                                        id_personal, id_orden, id_producto, id_almacen, 
+                                        id_ubicacion, tipo_orden, tipo_movimiento, 
+                                        cant_movimiento, fec_movimiento, est_movimiento
+                                      ) VALUES (
+                                        $id_personal, $id_devolucion, $id_producto, $id_almacen, 
+                                        $id_ubicacion, 3, 2, 
+                                        $cantidad, NOW(), 1
+                                      )";
+                    mysqli_query($con, $sql_mov_resta);
+                    
+                    // Suma ARCE BASE
+                    $sql_mov_suma = "INSERT INTO movimiento (
+                                        id_personal, id_orden, id_producto, id_almacen, 
+                                        id_ubicacion, tipo_orden, tipo_movimiento, 
+                                        cant_movimiento, fec_movimiento, est_movimiento
+                                      ) VALUES (
+                                        $id_personal, $id_devolucion, $id_producto, 1, 
+                                        1, 3, 1, 
+                                        $cantidad, NOW(), 1
+                                      )";
+                    mysqli_query($con, $sql_mov_suma);
+                    
+                } else {
+                    // DEVOLUCIÓN A OTRO CLIENTE
+                    
+                    $sql_mov_devolucion = "INSERT INTO movimiento (
+                                        id_personal, id_orden, id_producto, id_almacen, 
+                                        id_ubicacion, tipo_orden, tipo_movimiento, 
+                                        cant_movimiento, fec_movimiento, est_movimiento
+                                      ) VALUES (
+                                        $id_personal, $id_devolucion, $id_producto, $id_almacen, 
+                                        $id_ubicacion, 3, 2, 
+                                        $cantidad, NOW(), 1
+                                      )";
+                    mysqli_query($con, $sql_mov_devolucion);
+                }
             }
         }
         
@@ -352,5 +416,28 @@ function ConfirmarDevolucion($id_devolucion) {
     return "SI";
 }
 
+//-----------------------------------------------------------------------
+// NUEVA: Obtener lista de clientes activos
+function ObtenerClientes() 
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT id_cliente, nom_cliente 
+            FROM cliente 
+            WHERE est_cliente = 1 
+            ORDER BY 
+                CASE WHEN id_cliente = 1 THEN 0 ELSE 1 END,
+                nom_cliente";
+    
+    $res = mysqli_query($con, $sql);
+    $resultado = array();
+    
+    while ($row = mysqli_fetch_assoc($res)) {
+        $resultado[] = $row;
+    }
+    
+    mysqli_close($con);
+    return $resultado;
+}
 
 ?>
