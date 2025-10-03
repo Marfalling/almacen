@@ -151,6 +151,30 @@ if (!verificarPermisoEspecifico('ver_pedidos')) {
                 }
             }
             
+            // FINALIZAR VERIFICACIÓN (cambiar pedido a completado)
+            if (isset($_REQUEST['finalizar_verificacion'])) {
+                $id_pedido = $_REQUEST['id'];
+                
+                // Llamar a la función del modelo que maneja todo
+                $resultado = FinalizarPedido($id_pedido);
+                
+                if ($resultado['success']) {
+                    $alerta = [
+                        "icon" => "success",
+                        "title" => "¡Pedido Completado!",
+                        "text" => $resultado['mensaje'],
+                        "redirect" => "pedidos_mostrar.php",
+                        "timer" => 2000
+                    ];
+                } else {
+                    $alerta = [
+                        "icon" => $resultado['tipo'],
+                        "title" => $resultado['success'] ? "Éxito" : "Error",
+                        "text" => $resultado['mensaje']
+                    ];
+                }
+            }
+            
 
             // CARGAR PEDIDO
             if ($id_pedido > 0) {

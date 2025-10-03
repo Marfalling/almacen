@@ -28,6 +28,8 @@ try {
     
     require_once("../_conexion/sesion.php");
     require_once("../_modelo/m_ingreso.php");
+    require_once("../_modelo/m_pedidos.php");
+
     
     // Verificar variables de sesión
     if (!isset($id_personal) || empty($id_personal)) {
@@ -97,6 +99,32 @@ try {
             } else {
                 $errores[] = "Producto ID $id_producto: " . ($resultado['message'] ?? 'Error desconocido');
             }
+        }
+    }
+
+    // Si hubo al menos un ingreso exitoso, intentar finalizar el pedido
+    if ($resultados_exitosos > 0 && $id_compra) {
+        // Obtener el pedido asociado a esta compra
+        include("../_conexion/conexion.php");
+        $sql_pedido = "SELECT id_pedido FROM compra WHERE id_compra = $id_compra";
+        $res_pedido = mysqli_query($con, $sql_pedido);
+        
+        if ($res_pedido && mysqli_num_rows($res_pedido) > 0) {
+            $pedido_data = mysqli_fetch_assoc($res_pedido);
+            $id_pedido_asociado = $pedido_data['id_pedido'];
+            mysqli_close($con); //  CERRAR CONEXIÓN ANTES
+            
+            // Intentar finalizar el pedido (esta función abre su propia conexión)
+            $resultado_finalizar = FinalizarPedido($id_pedido_asociado);
+            
+            // Log del resultado
+            if ($resultado_finalizar['success']) {
+                error_log("Pedido $id_pedido_asociado finalizado automáticamente tras ingreso de compra $id_compra");
+            } else {
+                error_log("Pedido $id_pedido_asociado aún pendiente: " . $resultado_finalizar['mensaje']);
+            }
+        } else {
+            mysqli_close($con); //  CERRAR si no hay resultados
         }
     }
 

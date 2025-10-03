@@ -197,7 +197,7 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion AND u.est_ubicacion = 1
              LEFT JOIN personal pr ON p.id_personal = pr.id_personal AND pr.est_personal = 1
              LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
-             WHERE p.est_pedido IN (0, 1)
+             WHERE p.est_pedido IN (0, 1,2)
              $where_fecha
              ORDER BY p.fec_pedido DESC";
 
@@ -559,6 +559,284 @@ function verificarItem($id_pedido_detalle, $new_cant_fin){
         mysqli_close($con);
         return "ERROR: Item no encontrado";
     }
+}
+function PedidoTieneTodoConStock($id_pedido)
+{
+    include("../_conexion/conexion.php");
+    
+    // Obtener almacén y ubicación del pedido
+    $sql_pedido = "SELECT id_almacen, id_ubicacion FROM pedido WHERE id_pedido = $id_pedido";
+    $res_pedido = mysqli_query($con, $sql_pedido);
+    $pedido_info = mysqli_fetch_assoc($res_pedido);
+    
+    if (!$pedido_info) {
+        mysqli_close($con);
+        return false;
+    }
+    
+    $id_almacen = $pedido_info['id_almacen'];
+    $id_ubicacion = $pedido_info['id_ubicacion'];
+    
+    // Verificar stock de todos los items activos
+    $sql_items = "SELECT 
+                    pd.id_producto,
+                    pd.cant_pedido_detalle,
+                    COALESCE(
+                        (SELECT SUM(CASE
+                            WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                            WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+                            ELSE 0
+                        END)
+                        FROM movimiento mov
+                        WHERE mov.id_producto = pd.id_producto 
+                        AND mov.id_almacen = $id_almacen
+                        AND mov.id_ubicacion = $id_ubicacion
+                        AND mov.est_movimiento = 1), 0
+                    ) AS stock_disponible
+                  FROM pedido_detalle pd
+                  WHERE pd.id_pedido = $id_pedido
+                  AND pd.est_pedido_detalle = 1";
+    
+    $res_items = mysqli_query($con, $sql_items);
+    
+    if (!$res_items || mysqli_num_rows($res_items) == 0) {
+        mysqli_close($con);
+        return false;
+    }
+    
+    $todos_con_stock = true;
+    
+    while ($item = mysqli_fetch_assoc($res_items)) {
+        if ($item['stock_disponible'] < $item['cant_pedido_detalle']) {
+            $todos_con_stock = false;
+            break;
+        }
+    }
+    
+    mysqli_close($con);
+    return $todos_con_stock;
+}
+function ObtenerItemsParaSalida($id_pedido)
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT 
+                pd.id_producto,
+                pd.prod_pedido_detalle as descripcion,
+                pd.cant_pedido_detalle as cantidad,
+                p.nom_producto,
+                COALESCE(
+                    (SELECT SUM(CASE
+                        WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+                        ELSE 0
+                    END)
+                    FROM movimiento mov
+                    INNER JOIN pedido ped ON pd.id_pedido = ped.id_pedido
+                    WHERE mov.id_producto = pd.id_producto 
+                    AND mov.id_almacen = ped.id_almacen
+                    AND mov.id_ubicacion = ped.id_ubicacion
+                    AND mov.est_movimiento = 1), 0
+                ) AS stock_disponible
+            FROM pedido_detalle pd
+            INNER JOIN producto p ON pd.id_producto = p.id_producto
+            WHERE pd.id_pedido = $id_pedido
+            AND pd.est_pedido_detalle = 1
+            ORDER BY pd.id_pedido_detalle";
+    
+    $resultado = mysqli_query($con, $sql);
+    $items = array();
+    
+    while ($row = mysqli_fetch_assoc($resultado)) {
+        $items[] = $row;
+    }
+    
+    mysqli_close($con);
+    return $items;
+}
+
+function FinalizarPedido($id_pedido)
+{
+    include("../_conexion/conexion.php");
+    
+    // Verificar que todos los items estén listos para finalizar
+    $puede_finalizar = verificarPedidoListo($id_pedido, $con);
+    
+    if (!$puede_finalizar['listo']) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo' => 'warning',
+            'mensaje' => $puede_finalizar['mensaje']
+        ];
+    }
+    
+    // Actualizar el pedido a completado (estado = 2)
+    $sql_finalizar = "UPDATE pedido SET est_pedido = 2 WHERE id_pedido = $id_pedido";
+    
+    if (mysqli_query($con, $sql_finalizar)) {
+        // Verificar que realmente se actualizó
+        $verificar = mysqli_affected_rows($con);
+        mysqli_close($con);
+        
+        if ($verificar > 0) {
+            return [
+                'success' => true,
+                'mensaje' => 'El pedido se ha marcado como completado exitosamente'
+            ];
+        } else {
+            return [
+                'success' => false,
+                'tipo' => 'warning',
+                'mensaje' => 'No se pudo actualizar el estado del pedido (ya podría estar completado)'
+            ];
+        }
+    } else {
+        $error = mysqli_error($con);
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo' => 'error',
+            'mensaje' => 'Error al actualizar el pedido: ' . $error
+        ];
+    }
+}
+//-----------------------------------------------------------------------
+// Verificar si un pedido está listo para finalizarse
+//-----------------------------------------------------------------------
+function verificarPedidoListo($id_pedido, $con = null)
+{
+    $cerrar_conexion = false;
+    
+    if ($con === null) {
+        include("../_conexion/conexion.php");
+        $cerrar_conexion = true;
+    }
+    
+    // Obtener información del pedido
+    $sql_pedido = "SELECT id_almacen, id_ubicacion, id_producto_tipo 
+                   FROM pedido 
+                   WHERE id_pedido = $id_pedido";
+    $res_pedido = mysqli_query($con, $sql_pedido);
+    $pedido_info = mysqli_fetch_assoc($res_pedido);
+    
+    if (!$pedido_info) {
+        if ($cerrar_conexion) mysqli_close($con);
+        return [
+            'listo' => false,
+            'mensaje' => 'Pedido no encontrado'
+        ];
+    }
+    
+    $id_almacen = $pedido_info['id_almacen'];
+    $id_ubicacion = $pedido_info['id_ubicacion'];
+    $es_auto_orden = ($pedido_info['id_producto_tipo'] == 2);
+    
+    // Si es auto-orden, verificar que tenga al menos una orden de compra activa
+    if ($es_auto_orden) {
+        $sql_compras = "SELECT COUNT(*) as total 
+                        FROM compra 
+                        WHERE id_pedido = $id_pedido 
+                        AND est_compra <> 0";
+        $res_compras = mysqli_query($con, $sql_compras);
+        $compras = mysqli_fetch_assoc($res_compras);
+        
+        if ($compras['total'] == 0) {
+            if ($cerrar_conexion) mysqli_close($con);
+            return [
+                'listo' => false,
+                'mensaje' => 'Debe crear al menos una orden de compra para este pedido tipo AUTO-ORDEN'
+            ];
+        }
+    }
+    
+    // Obtener todos los items activos del pedido
+    $sql_items = "SELECT 
+                    pd.id_pedido_detalle,
+                    pd.id_producto,
+                    pd.cant_pedido_detalle,
+                    pd.est_pedido_detalle,
+                    COALESCE(
+                        (SELECT SUM(CASE
+                            WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                            WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+                            ELSE 0
+                        END)
+                        FROM movimiento mov
+                        WHERE mov.id_producto = pd.id_producto 
+                        AND mov.id_almacen = $id_almacen
+                        AND mov.id_ubicacion = $id_ubicacion
+                        AND mov.est_movimiento = 1), 0
+                    ) AS stock_disponible
+                  FROM pedido_detalle pd
+                  WHERE pd.id_pedido = $id_pedido
+                  AND pd.est_pedido_detalle IN (1, 2) ";
+    
+    $res_items = mysqli_query($con, $sql_items);
+    
+    if (!$res_items || mysqli_num_rows($res_items) == 0) {
+        if ($cerrar_conexion) mysqli_close($con);
+        return [
+            'listo' => false,
+            'mensaje' => 'No hay items activos en el pedido'
+        ];
+    }
+    
+    $items_pendientes = [];
+    $todos_con_stock = true;
+    
+    while ($item = mysqli_fetch_assoc($res_items)) {
+        $tiene_stock_suficiente = ($item['stock_disponible'] >= $item['cant_pedido_detalle']);
+        
+        // Si NO tiene stock suficiente
+        if (!$tiene_stock_suficiente) {
+            $todos_con_stock = false;
+            
+            // Verificar si el item está en alguna orden de compra activa
+            $sql_en_compra = "SELECT COUNT(*) as en_compra
+                             FROM compra_detalle cd
+                             INNER JOIN compra c ON cd.id_compra = c.id_compra
+                             WHERE c.id_pedido = $id_pedido
+                             AND cd.id_producto = {$item['id_producto']}
+                             AND c.est_compra <> 0
+                             AND cd.est_compra_detalle = 1";
+            $res_en_compra = mysqli_query($con, $sql_en_compra);
+            $en_compra = mysqli_fetch_assoc($res_en_compra);
+            
+            $esta_en_orden = ($en_compra['en_compra'] > 0);
+            
+            // El item está pendiente si NO tiene stock Y NO está en ninguna orden
+            if (!$esta_en_orden) {
+                $items_pendientes[] = $item['id_pedido_detalle'];
+            }
+        }
+    }
+    
+    if ($cerrar_conexion) {
+        mysqli_close($con);
+    }
+    
+    // Si TODOS los items tienen stock suficiente, el pedido está listo
+    if ($todos_con_stock) {
+        return [
+            'listo' => true,
+            'mensaje' => 'Todos los items tienen stock disponible'
+        ];
+    }
+    
+    // Si hay items pendientes (sin stock y sin orden de compra)
+    if (!empty($items_pendientes)) {
+        return [
+            'listo' => false,
+            'mensaje' => 'Hay ' . count($items_pendientes) . ' item(s) pendiente(s) que necesitan una orden de compra'
+        ];
+    }
+    
+    // Si llegamos aquí, todos los items sin stock están en órdenes de compra
+    return [
+        'listo' => true,
+        'mensaje' => 'El pedido está listo para finalizarse'
+    ];
 }
 
 function ConsultarCompra($id_pedido){

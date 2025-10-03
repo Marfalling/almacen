@@ -44,11 +44,40 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
             $personal = MostrarPersonalActivo();
             $material_tipos = MostrarMaterialTipoActivos();
 
+            $desde_pedido = isset($_GET['desde_pedido']) ? intval($_GET['desde_pedido']) : 0;
+            $items_pedido = array();
+            $pedido_origen = null;
+            $id_material_tipo_pedido = 0;
+
+            if ($desde_pedido > 0) {
+                require_once("../_modelo/m_pedidos.php");
+                
+                // Obtener datos del pedido
+                $pedido_data = ConsultarPedido($desde_pedido);
+                if (!empty($pedido_data)) {
+                    $pedido_origen = $pedido_data[0];
+                    $items_pedido = ObtenerItemsParaSalida($desde_pedido);
+                    
+                    // Determinar el tipo de material predominante
+                    if (!empty($items_pedido)) {
+                        // Obtener el material_tipo del primer producto
+                        $primer_producto = $items_pedido[0]['id_producto'];
+                        $sql_tipo = "SELECT id_material_tipo FROM producto WHERE id_producto = $primer_producto";
+                        $res_tipo = mysqli_query($con, $sql_tipo);
+                        if ($res_tipo) {
+                            $tipo_data = mysqli_fetch_assoc($res_tipo);
+                            $id_material_tipo_pedido = $tipo_data['id_material_tipo'];
+                        }
+                    }
+                }
+            }
+
             // Variables para mostrar alertas
             $mostrar_alerta = false;
             $tipo_alerta = '';
             $titulo_alerta = '';
             $mensaje_alerta = '';
+            $redirigir_a = '';
 
             //=======================================================================
             // CONTROLADOR CON VALIDACIONES MEJORADAS
@@ -126,14 +155,36 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                         );
                         
                         if ($resultado === "SI") {
-                            ?>
-                            <script Language="JavaScript">
-                                setTimeout(function() {
-                                    window.location.href = 'salidas_mostrar.php?registrado=true';
-                                }, 100);
-                            </script>
-                            <?php
-                            exit();
+                            // ✅ Si la salida proviene de un pedido, marcar el pedido como completado
+                            $id_pedido_origen = isset($_REQUEST['id_pedido_origen']) ? intval($_REQUEST['id_pedido_origen']) : 0;
+                            
+                            if ($id_pedido_origen > 0) {
+                                require_once("../_modelo/m_pedidos.php");
+                                
+                                // Finalizar el pedido (cambiar estado a 2 = completado)
+                                $resultado_pedido = FinalizarPedido($id_pedido_origen);
+                                
+                                if ($resultado_pedido['success']) {
+                                    $mostrar_alerta = true;
+                                    $tipo_alerta = 'success';
+                                    $titulo_alerta = '¡Salida registrada!';
+                                    $mensaje_alerta = 'La salida se ha creado correctamente y el pedido ha sido marcado como completado.';
+                                    $redirigir_a = 'salidas_mostrar.php?registrado=true';
+                                } else {
+                                    $mostrar_alerta = true;
+                                    $tipo_alerta = 'warning';
+                                    $titulo_alerta = 'Salida registrada con advertencia';
+                                    $mensaje_alerta = 'La salida se ha creado correctamente. Advertencia: ' . $resultado_pedido["mensaje"];
+                                    $redirigir_a = 'salidas_mostrar.php?registrado=true';
+                                }
+                            } else {
+                                // Salida normal (no viene de pedido)
+                                $mostrar_alerta = true;
+                                $tipo_alerta = 'success';
+                                $titulo_alerta = '¡Salida registrada!';
+                                $mensaje_alerta = 'La salida se ha creado correctamente.';
+                                $redirigir_a = 'salidas_mostrar.php?registrado=true';
+                            }
                         } else {
                             $mostrar_alerta = true;
                             $tipo_alerta = 'error';
@@ -172,10 +223,20 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                     title: '<?php echo $titulo_alerta; ?>',
                     text: '<?php echo $mensaje_alerta; ?>',
                     confirmButtonText: 'Entendido',
-                    confirmButtonColor: '<?php echo ($tipo_alerta == "error") ? "#d33" : "#3085d6"; ?>'
+                    confirmButtonColor: '<?php echo ($tipo_alerta == "error") ? "#d33" : "#3085d6"; ?>',
+                    allowOutsideClick: false
+                }).then((result) => {
+                    <?php if (!empty($redirigir_a)) { ?>
+                        if (result.isConfirmed) {
+                            window.location.href = '<?php echo $redirigir_a; ?>';
+                        }
+                    <?php } ?>
                 });
             } else {
                 alert('<?php echo $titulo_alerta . ": " . $mensaje_alerta; ?>');
+                <?php if (!empty($redirigir_a)) { ?>
+                    window.location.href = '<?php echo $redirigir_a; ?>';
+                <?php } ?>
             }
         });
         </script>

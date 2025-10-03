@@ -24,6 +24,74 @@
                     <div class="x_content">
                         <br>
                         <form class="form-horizontal form-label-left" action="salidas_nuevo.php" method="post" enctype="multipart/form-data">
+                            <?php if ($desde_pedido > 0 && $pedido_origen): ?>
+                            <input type="hidden" name="id_pedido_origen" value="<?php echo $desde_pedido; ?>">
+
+                            <div class="alert alert-dismissible fade show" role="alert" 
+                                 style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                                        border: none; 
+                                        border-radius: 10px; 
+                                        color: white; 
+                                        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="color: white; opacity: 0.8;">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                                    <div style="background: rgba(255,255,255,0.2); 
+                                                border-radius: 50%; 
+                                                width: 50px; 
+                                                height: 50px; 
+                                                display: flex; 
+                                                align-items: center; 
+                                                justify-content: center; 
+                                                margin-right: 15px;">
+                                        <i class="fa fa-truck" style="font-size: 24px;"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-0" style="font-weight: 600; font-size: 18px;">
+                                            Generando Salida desde Pedido
+                                        </h5>
+                                        <small style="opacity: 0.9;">Los productos se han cargado automáticamente</small>
+                                    </div>
+                                </div>
+                                
+                                <div style="background: rgba(255,255,255,0.15); 
+                                            border-radius: 8px; 
+                                            padding: 12px; 
+                                            margin-top: 10px;">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-2">
+                                            <strong style="display: block; opacity: 0.9; font-size: 12px; margin-bottom: 4px;">
+                                                <i class="fa fa-barcode"></i> CÓDIGO DEL PEDIDO
+                                            </strong>
+                                            <span style="font-size: 16px; font-weight: 600;">
+                                                <?php echo $pedido_origen['cod_pedido']; ?>
+                                            </span>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <strong style="display: block; opacity: 0.9; font-size: 12px; margin-bottom: 4px;">
+                                                <i class="fa fa-tag"></i> NOMBRE DEL PEDIDO
+                                            </strong>
+                                            <span style="font-size: 16px; font-weight: 600;">
+                                                <?php echo $pedido_origen['nom_pedido']; ?>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div style="margin-top: 12px; 
+                                            padding: 10px; 
+                                            background: rgba(255,255,255,0.1); 
+                                            border-left: 3px solid rgba(255,255,255,0.5); 
+                                            border-radius: 5px;">
+                                    <i class="fa fa-lightbulb-o"></i>
+                                    <small style="opacity: 0.95;">
+                                        <strong>Importante:</strong> No puede agregar productos adicionales. 
+                                        Solo puede modificar cantidades o eliminar items según necesite.
+                                    </small>
+                                </div>
+                            </div>
+                            <?php endif; ?>
                             
                             <!-- Información básica del traslado -->
                             <div class="form-group row">
@@ -32,12 +100,13 @@
                                     <select name="id_material_tipo" class="form-control" required>
                                         <option value="">Seleccionar</option>
                                         <?php foreach ($material_tipos as $material_tipo) { 
-                                            // Excluir material tipo "NA" (id = 1) para salidas
-                                            if ($material_tipo['id_material_tipo'] != 1) { ?>
-                                            <option value="<?php echo $material_tipo['id_material_tipo']; ?>">
+                                            if ($material_tipo['id_material_tipo'] != 1) {
+                                                $selected = ($id_material_tipo_pedido > 0 && $id_material_tipo_pedido == $material_tipo['id_material_tipo']) ? 'selected' : '';
+                                            ?>
+                                            <option value="<?php echo $material_tipo['id_material_tipo']; ?>" <?php echo $selected; ?>>
                                                 <?php echo $material_tipo['nom_material_tipo']; ?>
                                             </option>
-                                        <?php } } ?>
+                                        <?php }} ?>
                                     </select>
                                 </div>
                                 <label class="control-label col-md-2 col-sm-2">Nº Documento de Salida <span class="text-danger">*</span>:</label>
@@ -77,10 +146,12 @@
 
                                     <div class="form-group">
                                         <label class="control-label">Almacén Origen <span class="text-danger">*</span>:</label>
-                                        <select name="id_almacen_origen" id="id_almacen_origen" class="form-control" required>
+                                       <select name="id_almacen_origen" id="id_almacen_origen" class="form-control" required>
                                             <option value="">Seleccionar</option>
-                                            <?php foreach ($almacenes as $almacen) { ?>
-                                                <option value="<?php echo $almacen['id_almacen']; ?>">
+                                            <?php foreach ($almacenes as $almacen) { 
+                                                $selected = ($pedido_origen && $pedido_origen['id_almacen'] == $almacen['id_almacen']) ? 'selected' : '';
+                                            ?>
+                                                <option value="<?php echo $almacen['id_almacen']; ?>" <?php echo $selected; ?>>
                                                     <?php echo $almacen['nom_almacen']; ?>
                                                 </option>
                                             <?php } ?>
@@ -91,8 +162,10 @@
                                         <label class="control-label">Ubicación Origen <span class="text-danger">*</span>:</label>
                                         <select name="id_ubicacion_origen" id="id_ubicacion_origen" class="form-control" required>
                                             <option value="">Seleccionar</option>
-                                            <?php foreach ($ubicaciones as $ubicacion) { ?>
-                                                <option value="<?php echo $ubicacion['id_ubicacion']; ?>">
+                                            <?php foreach ($ubicaciones as $ubicacion) { 
+                                                $selected = ($pedido_origen && $pedido_origen['id_ubicacion'] == $ubicacion['id_ubicacion']) ? 'selected' : '';
+                                            ?>
+                                                <option value="<?php echo $ubicacion['id_ubicacion']; ?>" <?php echo $selected; ?>>
                                                     <?php echo $ubicacion['nom_ubicacion']; ?>
                                                 </option>
                                             <?php } ?>
@@ -167,43 +240,99 @@
                             </div>
 
                             <div id="contenedor-materiales">
-                                <div class="material-item border p-3 mb-3">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <label>Material <span class="text-danger">*</span>:</label>
-                                            <div class="input-group">
-                                                <input type="text" name="descripcion[]" class="form-control" placeholder="Material" required>
-                                                <input type="hidden" name="id_producto[]" value="">
-                                                <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
-                                                    <i class="fa fa-search"></i>
+                                <?php if ($desde_pedido > 0 && !empty($items_pedido)): ?>
+                                    <?php foreach ($items_pedido as $index => $item): ?>
+                                    <div class="material-item border p-3 mb-3" style="background-color: #f0f8ff;">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label>Material <span class="text-danger">*</span>:</label>
+                                                <div class="input-group">
+                                                    <input type="text" name="descripcion[]" class="form-control" 
+                                                           value="<?php echo htmlspecialchars($item['descripcion']); ?>" 
+                                                           style="background-color: #e8f4f8;" required readonly>
+                                                    <input type="hidden" name="id_producto[]" value="<?php echo $item['id_producto']; ?>">
+                                                    <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button" disabled style="cursor: not-allowed;">
+                                                        <i class="fa fa-search"></i>
+                                                    </button>
+                                                </div>
+                                                <small class="text-muted">
+                                                    <i class="fa fa-tag"></i> Producto pre-cargado desde pedido
+                                                </small>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label>Cantidad <span class="text-danger">*</span>:</label>
+                                                <input type="number" name="cantidad[]" class="form-control" 
+                                                       value="<?php echo $item['cantidad']; ?>" 
+                                                       step="0.01" min="0.01" max="<?php echo $item['stock_disponible']; ?>" required>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label>Stock Disponible:</label>
+                                                <div class="form-control" id="stock-disponible-<?php echo $index; ?>" 
+                                                     style="background-color: #d4edda; font-weight: bold; color: #155724;">
+                                                    <?php echo number_format($item['stock_disponible'], 2); ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row mt-2">
+                                            <div class="col-md-12 d-flex justify-content-end">
+                                                <button type="button" class="btn btn-danger btn-sm eliminar-material" 
+                                                        <?php echo ($index == 0 && count($items_pedido) == 1) ? 'style="display: none;"' : ''; ?>>
+                                                    <i class="fa fa-trash"></i> Eliminar
                                                 </button>
                                             </div>
                                         </div>
-                                        <div class="col-md-3">
-                                            <label>Cantidad <span class="text-danger">*</span>:</label>
-                                            <input type="number" name="cantidad[]" class="form-control" step="0.01" required>
+                                    </div>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <!-- Material vacío por defecto (código original) -->
+                                    <div class="material-item border p-3 mb-3">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <label>Material <span class="text-danger">*</span>:</label>
+                                                <div class="input-group">
+                                                    <input type="text" name="descripcion[]" class="form-control" placeholder="Material" required>
+                                                    <input type="hidden" name="id_producto[]" value="">
+                                                    <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
+                                                        <i class="fa fa-search"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label>Cantidad <span class="text-danger">*</span>:</label>
+                                                <input type="number" name="cantidad[]" class="form-control" step="0.01" required>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label>Stock Disponible:</label>
+                                                <div class="form-control" id="stock-disponible-0" style="background-color: #f8f9fa;">
+                                                    0.00
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="col-md-3">
-                                            <label>Stock Disponible:</label>
-                                            <div class="form-control" id="stock-disponible-0" style="background-color: #f8f9fa;">
-                                                0.00
+                                        <div class="row mt-2">
+                                            <div class="col-md-12 d-flex justify-content-end">
+                                                <button type="button" class="btn btn-danger btn-sm eliminar-material" style="display: none;">
+                                                    <i class="fa fa-trash"></i> Eliminar
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="row mt-2">
-                                        <div class="col-md-12 d-flex justify-content-end">
-                                            <button type="button" class="btn btn-danger btn-sm eliminar-material" style="display: none;">
-                                                <i class="fa fa-trash"></i> Eliminar
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
+                                <?php endif; ?>
                             </div>
 
                             <div class="form-group">
-                                <button type="button" id="agregar-material" class="btn btn-info btn-sm">
-                                    <i class="fa fa-plus"></i> Agregar Material
-                                </button>
+                                <?php if ($desde_pedido > 0): ?>
+                                    <!-- Si viene de pedido, NO mostrar el botón agregar -->
+                                    <div class="alert alert-warning" style="font-size: 13px; padding: 10px;">
+                                        <i class="fa fa-info-circle"></i> 
+                                        <strong>Nota:</strong> Estos son los productos del pedido. No puede agregar productos adicionales. 
+                                        Solo puede modificar cantidades o eliminar items si es necesario.
+                                    </div>
+                                <?php else: ?>
+                                    <!-- Solo mostrar el botón si NO viene de pedido -->
+                                    <button type="button" id="agregar-material" class="btn btn-info btn-sm">
+                                        <i class="fa fa-plus"></i> Agregar Material
+                                    </button>
+                                <?php endif; ?>
                             </div>
 
                             <div class="ln_solid"></div>
@@ -475,10 +604,13 @@ function mostrarAlerta(tipo, titulo, mensaje, tiempo = null) {
 document.addEventListener('DOMContentLoaded', function() {
     let contadorMateriales = 1;
     
+    // NUEVO: Verificar si viene de pedido
+    const desdePedido = <?php echo $desde_pedido > 0 ? 'true' : 'false'; ?>;
+    
     // Función para validar stock en tiempo real
     function validarStock(inputCantidad, stockElement, inputDescripcion) {
         const cantidad = parseFloat(inputCantidad.value) || 0;
-        const stock = parseFloat(stockElement.textContent) || 0;
+        const stock = parseFloat(stockElement.textContent) || 0 ;
         const nombreProducto = inputDescripcion.value;
         
         // Si no hay producto seleccionado, permitir cualquier cantidad
@@ -582,40 +714,58 @@ document.addEventListener('DOMContentLoaded', function() {
     // Agregar nuevo material
     const btnAgregarMaterial = document.getElementById('agregar-material');
     if (btnAgregarMaterial) {
-        btnAgregarMaterial.addEventListener('click', function() {
-            const contenedor = document.getElementById('contenedor-materiales');
-            const nuevoMaterial = document.querySelector('.material-item').cloneNode(true);
-            
-            // Limpiar los valores del nuevo elemento
-            const inputs = nuevoMaterial.querySelectorAll('input, textarea, select');
-            inputs.forEach(input => {
-                if (input.type !== 'button') {
-                    input.value = '';
-                    input.removeAttribute('readonly');
-                    input.removeAttribute('title');
+        // Si viene de pedido, deshabilitar el botón completamente
+        if (desdePedido) {
+            btnAgregarMaterial.style.display = 'none';
+        } else {
+            btnAgregarMaterial.addEventListener('click', function() {
+                const contenedor = document.getElementById('contenedor-materiales');
+                const nuevoMaterial = document.querySelector('.material-item').cloneNode(true);
+                
+                // Limpiar los valores del nuevo elemento
+                const inputs = nuevoMaterial.querySelectorAll('input, textarea, select');
+                inputs.forEach(input => {
+                    if (input.type !== 'button') {
+                        input.value = '';
+                        input.removeAttribute('readonly');
+                        input.removeAttribute('title');
+                        input.removeAttribute('disabled');
+                    }
+                });
+                
+                // Habilitar el botón de búsqueda en el nuevo item
+                const btnBuscar = nuevoMaterial.querySelector('button[onclick*="buscarMaterial"]');
+                if (btnBuscar) {
+                    btnBuscar.removeAttribute('disabled');
+                    btnBuscar.style.cursor = 'pointer';
                 }
+                
+                // Actualizar el ID del elemento de stock
+                const stockElement = nuevoMaterial.querySelector('[id^="stock-disponible-"]');
+                if (stockElement) {
+                    stockElement.id = 'stock-disponible-' + contadorMateriales;
+                    stockElement.textContent = '0.00';
+                    stockElement.style.backgroundColor = '#f8f9fa';
+                    stockElement.style.color = '#333';
+                }
+                
+                // Mostrar el botón eliminar
+                const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
+                if (btnEliminar) {
+                    btnEliminar.style.display = 'block';
+                }
+                
+                // Remover el estilo de fondo azul
+                nuevoMaterial.style.backgroundColor = '';
+                
+                contenedor.appendChild(nuevoMaterial);
+                contadorMateriales++;
+                
+                // Actualizar eventos
+                actualizarEventosEliminar();
+                configurarEventosCantidad();
             });
-            
-            // Actualizar el ID del elemento de stock
-            const stockElement = nuevoMaterial.querySelector('[id^="stock-disponible-"]');
-            if (stockElement) {
-                stockElement.id = 'stock-disponible-' + contadorMateriales;
-                stockElement.textContent = '0.00';
-            }
-            
-            // Mostrar el botón eliminar
-            const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
-            if (btnEliminar) {
-                btnEliminar.style.display = 'block';
-            }
-            
-            contenedor.appendChild(nuevoMaterial);
-            contadorMateriales++;
-            
-            // Actualizar eventos
-            actualizarEventosEliminar();
-            configurarEventosCantidad();
-        });
+        }
     }
     
     // Función para actualizar eventos de eliminar

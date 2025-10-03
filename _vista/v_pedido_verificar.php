@@ -755,9 +755,16 @@ $pedido_anulado = ($pedido['est_pedido'] == 0);
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const esAutoOrden = <?php echo ($pedido['id_producto_tipo'] == 2) ? 'true' : 'false'; ?>;
+    const pedidoAnulado = <?php echo ($pedido['est_pedido'] == 0) ? 'true' : 'false'; ?>;
     const modoEditar = <?php echo $modo_editar ? 'true' : 'false'; ?>;
     let itemsAgregadosOrden = new Set();
 
+    // Verificar si generar salida al cargar la página
+    if (!esAutoOrden && !pedidoAnulado && !modoEditar) {
+        setTimeout(function() {
+            verificarSiGenerarSalida();
+        }, 1000);
+    }
     // Si es auto-orden, preparar formulario automático
     if (esAutoOrden && !modoEditar) {
         setTimeout(function() {
@@ -923,10 +930,69 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+function verificarSiGenerarSalida() {
+    const itemsPendientes = document.querySelectorAll('.item-pendiente');
+    let tieneItems = false;
+    let todosConStockCompleto = true;
+    
+    itemsPendientes.forEach(function(item) {
+        tieneItems = true;
+        
+        // Buscar el span que contiene el texto del estado
+        const estadoSpan = item.querySelector('span[class*="badge"], .text-success, .text-warning, .text-primary, .text-danger');
+        
+        if (estadoSpan) {
+            const textoEstado = estadoSpan.textContent.trim();
+            
+            // Si NO dice "Completo", entonces NO todos tienen stock
+            if (!textoEstado.includes('Completo')) {
+                todosConStockCompleto = false;
+            }
+        }
+    });
+    
+    // SOLO mostrar la alerta si:
+    // 1. Tiene items
+    // 2. TODOS los items tienen estado "Completo" (con stock suficiente)
+    if (tieneItems && todosConStockCompleto) {
+        Swal.fire({
+            title: '¡Todos los items tienen stock disponible!',
+            html: '<div style="text-align: left; padding: 10px;">' +
+                '<p style="margin-bottom: 10px;">Este pedido puede completarse con el stock actual del almacén.</p>' +
+                '<p style="margin-bottom: 0;"><strong>¿Desea generar una salida de almacén ahora?</strong></p>' +
+                '</div>',
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
+            cancelButtonText: '<i class="fa fa-times"></i> No, continuar aquí',
+            allowOutsideClick: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Redirigiendo...',
+                    text: 'Preparando formulario de salida',
+                    icon: 'info',
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                setTimeout(function() {
+                    window.location.href = 'salidas_nuevo.php?desde_pedido=<?php echo $id_pedido; ?>';
+                }, 500);
+            }
+        });
+    }
+}
+
     // ====================================================================
     // FIN NUEVO: MODAL DE PROVEEDOR
     // ====================================================================
-
+    
     function configurarEventosEdicion() {
         // Configurar eventos para items existentes en edición
         document.querySelectorAll('.precio-item').forEach(function(input) {
