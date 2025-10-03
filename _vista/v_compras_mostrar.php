@@ -1,6 +1,6 @@
 <?php 
 //=======================================================================
-// VISTA: v_pedidos_mostrar.php
+// VISTA: v_COMPRAS_mostrar.php
 //=======================================================================
 ?>
 
@@ -381,26 +381,14 @@ function EliminarDocumento(id_doc) {
                                                             <?php
                                                             $tiene_tecnica = !empty($compra['id_personal_aprueba_tecnica']);
                                                             $tiene_financiera = !empty($compra['id_personal_aprueba_financiera']);
+                                                            ?>
 
-                                                            // Si está anulado, aprobado o cerrado → bloquear todo
-                                                            if ($compra['est_compra'] == 0 || $compra['est_compra'] == 2 || $compra['est_compra'] == 3) { ?>
-                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Aprobar Técnica" tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-check"></i> Téc
-                                                                </a>
-                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Aprobar Financiera" tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-check"></i> Fin
-                                                                </a>
-                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Anular" tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-times"></i>
-                                                                </a>
-                                                                <a href="compras_pdf.php?id=<?php echo $compra['id_compra']; ?>"
-                                                                class="btn btn-secondary btn-sm"
-                                                                title="Generar PDF"
-                                                                target="_blank">
-                                                                    <i class="fa fa-file-pdf-o"></i>
-                                                                </a>
-                                                            <?php
-                                                            } else { ?>
+                                                            <?php if ($compra['est_compra'] == 0) { ?>
+                                                                <!-- Estado anulado → todo bloqueado -->
+                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled"><i class="fa fa-check"></i> Téc</a>
+                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled"><i class="fa fa-check"></i> Fin</a>
+                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled"><i class="fa fa-times"></i></a>
+                                                            <?php } else { ?>
                                                                 <!-- Botón aprobar técnica -->
                                                                 <a href="#"
                                                                 <?php if ($tiene_tecnica) { ?>
@@ -412,7 +400,7 @@ function EliminarDocumento(id_doc) {
                                                                     class="btn btn-success btn-sm"
                                                                     title="Aprobar Técnica"
                                                                 <?php } ?>>
-                                                                    <i class="fa fa-check"></i> Téc
+                                                                <i class="fa fa-check"></i> Téc
                                                                 </a>
 
                                                                 <!-- Botón aprobar financiera -->
@@ -426,22 +414,39 @@ function EliminarDocumento(id_doc) {
                                                                     class="btn btn-primary btn-sm"
                                                                     title="Aprobar Financiera"
                                                                 <?php } ?>>
-                                                                    <i class="fa fa-check"></i> Fin
+                                                                <i class="fa fa-check"></i> Fin
                                                                 </a>
 
                                                                 <!-- Botón anular -->
-                                                                <a href="#" onclick="AnularCompra(<?php echo $compra['id_compra']; ?>, <?php echo $compra['id_pedido']; ?>)"
+                                                                <a href="#"
+                                                                onclick="AnularCompra(<?php echo $compra['id_compra']; ?>, <?php echo $compra['id_pedido']; ?>)"
                                                                 class="btn btn-danger btn-sm"
                                                                 title="Anular">
-                                                                    <i class="fa fa-times"></i>
+                                                                <i class="fa fa-times"></i>
                                                                 </a>
+                                                            <?php } ?>
 
-                                                                <!-- PDF -->
-                                                                <a href="compras_pdf.php?id=<?php echo $compra['id_compra']; ?>"
-                                                                class="btn btn-secondary btn-sm"
-                                                                title="Generar PDF"
-                                                                target="_blank">
-                                                                    <i class="fa fa-file-pdf-o"></i>
+                                                            <!-- Botón PDF (siempre visible) -->
+                                                            <a href="compras_pdf.php?id=<?php echo $compra['id_compra']; ?>"
+                                                            class="btn btn-secondary btn-sm"
+                                                            title="Generar PDF"
+                                                            target="_blank">
+                                                                <i class="fa fa-file-pdf-o"></i>
+                                                            </a>
+
+                                                            <!-- Botón Pagos (siempre que no esté anulado) -->
+                                                            <?php if ($compra['est_compra'] != 0 && $tiene_tecnica && $tiene_financiera) { ?>
+                                                                <a href="pago_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
+                                                                class="btn btn-warning btn-sm"
+                                                                title="Registrar/Ver Pagos">
+                                                                <i class="fa fa-money"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a href="#"
+                                                                class="btn btn-outline-secondary btn-sm disabled"
+                                                                title="Requiere aprobación técnica y financiera"
+                                                                tabindex="-1" aria-disabled="true">
+                                                                <i class="fa fa-money"></i>
                                                                 </a>
                                                             <?php } ?>
                                                         </div>
