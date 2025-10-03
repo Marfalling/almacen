@@ -325,15 +325,20 @@ require_once("../_conexion/sesion.php");
               <?php endif; ?>
 
               <!-- Compras -->
-              <?php if (tieneAccesoModulo('proveedor') || tieneAccesoModulo('moneda')): ?>
+              <?php if (tieneAccesoModulo('proveedor') || tieneAccesoModulo('moneda') || tieneAccesoModulo('detraccion')): ?>
               <li>
                 <a>Compras<span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
                   <?php if (verificarPermisoEspecifico('ver_proveedor')): ?>
                   <li><a href="proveedor_mostrar.php">Proveedor</a></li>
                   <?php endif; ?>
+
                   <?php if (verificarPermisoEspecifico('ver_moneda')): ?>
                   <li><a href="moneda_mostrar.php">Moneda</a></li>
+                  <?php endif; ?>
+
+                  <?php if (verificarPermisoEspecifico('ver_detraccion')): ?>
+                  <li><a href="detraccion_mostrar.php">Detracción</a></li>
                   <?php endif; ?>
                 </ul>
               </li>
