@@ -67,6 +67,20 @@
                                     </select>
                                 </div>
                             </div>
+                            
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Centro de Costos <span class="text-danger">*</span>:</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <select name="id_centro_costo" class="form-control" required>
+                                        <option value="">Seleccionar</option>
+                                        <?php foreach ($centros_costo as $centro) { ?>
+                                            <option value="<?php echo $centro['id_centro_costo']; ?>">
+                                                <?php echo $centro['nom_centro_costo']; ?>
+                                            </option>
+                                        <?php } ?>
+                                    </select>
+                                </div>
+                            </div>
 
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Nombre del Pedido <span class="text-danger">*</span>:</label>

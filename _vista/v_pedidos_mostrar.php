@@ -56,6 +56,7 @@
                                                 <th>Nombre Pedido</th>
                                                 <th>Almacén</th>
                                                 <th>Ubicación</th>
+                                                <th>Centro de Costos</th>
                                                 <th>Solicitante</th>
                                                 <th>Fecha Pedido</th>
                                                 <th>Fecha Necesidad</th>
@@ -76,6 +77,7 @@
                                                     <td><?php echo $pedido['nom_pedido']; ?></td>
                                                     <td><?php echo $pedido['nom_almacen']; ?></td>
                                                     <td><?php echo $pedido['nom_ubicacion']; ?></td>
+                                                    <td><?php echo $pedido['nom_centro_costo']; ?></td>
                                                     <td><?php echo $pedido['nom_personal'] . ' ' . $pedido['ape_personal']; ?></td>
                                                     <td><?php echo date('d/m/Y H:i', strtotime($pedido['fec_pedido'])); ?></td>
                                                     <td><?php echo date('d/m/Y', strtotime($pedido['fec_req_pedido'])); ?></td>
@@ -94,56 +96,118 @@
                                                             <span class="badge badge-danger badge_size">Anulado</span>
                                                         <?php } ?>
                                                     </td>
-                                                    <td>
-                                                        <div class="d-flex flex-wrap gap-2">
-                                                            <button type="button" 
-                                                                    class="btn btn-info btn-sm" 
-                                                                    data-toggle="modal" 
-                                                                    data-target="#modalDetallePedido<?php echo $pedido['id_pedido']; ?>" 
-                                                                    title="Ver Detalle">
-                                                                <i class="fa fa-eye"></i>
-                                                            </button>
+<td>
+    <div class="d-flex flex-wrap gap-2">
+        <!-- Botón Ver Detalle -->
+        <button type="button" 
+                class="btn btn-info btn-sm" 
+                data-toggle="modal" 
+                data-target="#modalDetallePedido<?php echo $pedido['id_pedido']; ?>" 
+                title="Ver Detalle">
+            <i class="fa fa-eye"></i>
+        </button>
 
-                                                            <?php
-                                                            $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
-                                                            
-                                                            // Si tiene detalles verificados, está en estado final, o está rechazado
-                                                            if ($pedido['tiene_verificados'] == 1 || $pedido['est_pedido_calc'] == 0 || $pedido['est_pedido_calc'] == 2 || $es_rechazado) { 
-                                                                $titulo_editar = $es_rechazado ? "No se puede editar - Pedido rechazado" : "No se puede editar - Pedido verificado";
-                                                            ?>
-                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="<?php echo $titulo_editar; ?>" tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>
-                                                            <?php } else { ?>
-                                                                <a href="pedidos_editar.php?id=<?php echo $pedido['id_pedido']; ?>" 
-                                                                class="btn btn-warning btn-sm" 
-                                                                title="Editar">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>
-                                                            <?php } ?>
+        <?php
+        $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
+        
+        // Botón Editar Pedido - Solo si no tiene verificaciones
+        if ($pedido['tiene_verificados'] == 1 || $pedido['est_pedido_calc'] == 0 || $pedido['est_pedido_calc'] == 2 || $es_rechazado) { 
+            $titulo_editar = $es_rechazado ? "No se puede editar - Pedido rechazado" : "No se puede editar - Pedido verificado";
+        ?>
+            <a href="#" class="btn btn-outline-secondary btn-sm disabled" 
+               title="<?php echo $titulo_editar; ?>" tabindex="-1" aria-disabled="true">
+                <i class="fa fa-edit"></i>
+            </a>
+        <?php } else { ?>
+            <a href="pedidos_editar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+               class="btn btn-warning btn-sm" 
+               title="Editar Pedido">
+                <i class="fa fa-edit"></i>
+            </a>
+        <?php } ?>
 
-                                                            <?php if ($pedido['est_pedido_calc'] == 0 || $pedido['est_pedido_calc'] == 2 || $es_rechazado) { 
-                                                                $titulo_verificar = $es_rechazado ? "No se puede verificar - Pedido rechazado" : "No se puede verificar";
-                                                            ?>
-                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="<?php echo $titulo_verificar; ?>" tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-check"></i>
-                                                                </a>
-                                                            <?php } else { ?>
-                                                                <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
-                                                                class="btn btn-success btn-sm" 
-                                                                title="Verificar">
-                                                                    <i class="fa fa-check"></i>
-                                                                </a>
-                                                            <?php } ?>
+        <!-- NUEVO: Botón Ver/Editar Órdenes de Compra -->
+        <?php 
+        // Verificar si tiene órdenes de compra
+        $ordenes = ConsultarCompra($pedido['id_pedido']);
+        $tiene_ordenes = !empty($ordenes);
+        
+        // Verificar si tiene alguna orden SIN aprobaciones (editable)
+        $tiene_orden_editable = false;
+        if ($tiene_ordenes) {
+            foreach ($ordenes as $orden) {
+                $sin_aprobacion_tecnica = empty($orden['id_personal_aprueba_tecnica']);
+                $sin_aprobacion_financiera = empty($orden['id_personal_aprueba_financiera']);
+                if ($orden['est_compra'] == 1 && $sin_aprobacion_tecnica && $sin_aprobacion_financiera) {
+                    $tiene_orden_editable = true;
+                    break;
+                }
+            }
+        }
+        
+        if ($pedido['est_pedido_calc'] == 2) { 
+            // Pedido completado - solo ver
+        ?>
+            <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+               class="btn btn-secondary btn-sm" 
+               title="Ver Órdenes de Compra">
+                <i class="fa fa-file-text"></i> Ver OC
+            </a>
+        <?php } elseif ($pedido['est_pedido_calc'] == 0 || $es_rechazado) { 
+            // Pedido anulado/rechazado - no accesible
+        ?>
+            <a href="#" class="btn btn-outline-secondary btn-sm disabled" 
+               title="No disponible - Pedido anulado/rechazado" tabindex="-1" aria-disabled="true">
+                <i class="fa fa-file-text"></i>
+            </a>
+        <?php } elseif ($tiene_orden_editable) { 
+            // Tiene órdenes editables - botón amarillo
+        ?>
+            <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+               class="btn btn-warning btn-sm" 
+               title="Ver/Editar Órdenes de Compra">
+                <i class="fa fa-file-text"></i> Editar OC
+            </a>
+        <?php } elseif ($tiene_ordenes) { 
+            // Tiene órdenes pero todas con aprobaciones - solo ver
+        ?>
+            <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+               class="btn btn-info btn-sm" 
+               title="Ver Órdenes de Compra (no editables)">
+                <i class="fa fa-file-text"></i> Ver OC
+            </a>
+        <?php } ?>
 
-                                                            <a href="pedido_pdf.php?id=<?php echo $pedido['id_pedido']; ?>" 
-                                                            class="btn btn-secondary btn-sm" 
-                                                            title="Generar PDF"
-                                                            target="_blank">
-                                                                <i class="fa fa-file-pdf-o"></i>
-                                                            </a>
-                                                        </div>
-                                                    </td>
+        <!-- Botón Verificar -->
+        <?php if ($pedido['est_pedido_calc'] == 2) { ?>
+            <a href="#" class="btn btn-outline-secondary btn-sm disabled" 
+               title="Pedido completado" tabindex="-1" aria-disabled="true">
+                <i class="fa fa-check"></i>
+            </a>
+        <?php } elseif ($pedido['est_pedido_calc'] == 0 || $es_rechazado) { 
+            $titulo_verificar = $es_rechazado ? "No se puede verificar - Pedido rechazado" : "No se puede verificar - Pedido anulado";
+        ?>
+            <a href="#" class="btn btn-outline-secondary btn-sm disabled" 
+               title="<?php echo $titulo_verificar; ?>" tabindex="-1" aria-disabled="true">
+                <i class="fa fa-check"></i>
+            </a>
+        <?php } else { ?>
+            <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+               class="btn btn-success btn-sm" 
+               title="Verificar">
+                <i class="fa fa-check"></i>
+            </a>
+        <?php } ?>
+
+        <!-- Botón PDF -->
+        <a href="pedido_pdf.php?id=<?php echo $pedido['id_pedido']; ?>" 
+           class="btn btn-secondary btn-sm" 
+           title="Generar PDF"
+           target="_blank">
+            <i class="fa fa-file-pdf-o"></i>
+        </a>
+    </div>
+</td>
                                                 </tr>
                                             <?php 
                                                 $contador++;

@@ -7,6 +7,216 @@ if (!verificarPermisoEspecifico('ver_pedidos')) {
     header("location: bienvenido.php?permisos=true");
     exit;
 }
+
+// CARGAR MODELOS PRIMERO (antes de cualquier HTML)
+require_once("../_modelo/m_pedidos.php");
+require_once("../_modelo/m_obras.php");
+require_once("../_modelo/m_proveedor.php");
+require_once("../_modelo/m_moneda.php");
+require_once("../_modelo/m_compras.php");
+
+$id_pedido = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : 0;
+$id_compra_editar = isset($_REQUEST['id_compra']) ? intval($_REQUEST['id_compra']) : 0;
+$modo_editar = ($id_compra_editar > 0);
+
+$alerta = null;
+
+// ============================================================================
+// PROCESAR FORMULARIOS (ANTES DE CUALQUIER HTML)
+// ============================================================================
+
+// VERIFICAR ITEM
+if (isset($_REQUEST['verificar_item'])) {
+    $id_pedido_detalle = $_REQUEST['id_pedido_detalle'];
+    $new_cant_fin = $_REQUEST['fin_cant_pedido_detalle'];
+    $rpta = verificarItem($id_pedido_detalle, $new_cant_fin);
+
+    if ($rpta == "SI") {
+        header("Location: pedido_verificar.php?id=$id_pedido&success=verificado");
+        exit;
+    } else {
+        $alerta = [
+            "icon" => "error",
+            "title" => "Error",
+            "text" => "Error al verificar: $rpta"
+        ];
+    }
+}
+
+// ACTUALIZAR ORDEN
+if (isset($_REQUEST['actualizar_orden'])) {
+    $id_compra = $_REQUEST['id_compra'];
+    $proveedor_sel = $_REQUEST['proveedor_orden'];
+    $moneda_sel = $_REQUEST['moneda_orden'];
+    $observacion = $_REQUEST['observaciones_orden'];
+    $direccion = $_REQUEST['direccion_envio'];
+    $plazo_entrega = $_REQUEST['plazo_entrega'];
+    $porte = $_REQUEST['tipo_porte'];
+    $fecha_orden = $_REQUEST['fecha_orden'];
+    $items = $_REQUEST['items_orden'] ?? [];
+
+    if (empty($proveedor_sel) || empty($moneda_sel) || empty($fecha_orden)) {
+        $alerta = [
+            "icon" => "error",
+            "title" => "Error",
+            "text" => "Complete todos los campos obligatorios (Fecha, Proveedor y Moneda)"
+        ];
+    } elseif (empty($items)) {
+        $alerta = [
+            "icon" => "error",
+            "title" => "Error",
+            "text" => "Debe tener al menos un item en la orden"
+        ];
+    } else {
+        $rpta = ActualizarOrdenCompra(
+            $id_compra,
+            $proveedor_sel,
+            $moneda_sel,
+            $observacion,
+            $direccion,
+            $plazo_entrega,
+            $porte,
+            $fecha_orden,
+            $items
+        );
+
+        if ($rpta == "SI") {
+            header("Location: pedido_verificar.php?id=$id_pedido&success=actualizado");
+            exit;
+        } else {
+            $alerta = [
+                "icon" => "error",
+                "title" => "Error",
+                "text" => "Error al actualizar orden: $rpta"
+            ];
+        }
+    }
+}
+
+/// CREAR ORDEN
+if (isset($_REQUEST['crear_orden'])) {
+    $id_pedido = $_REQUEST['id'];
+    $proveedor = $_REQUEST['proveedor_orden'];
+    $moneda = $_REQUEST['moneda_orden'];
+    $id_personal = $_SESSION['id_personal'];
+    $observacion = $_REQUEST['observaciones_orden'];
+    $direccion = $_REQUEST['direccion_envio'];
+    $plazo_entrega = $_REQUEST['plazo_entrega'];
+    $porte = $_REQUEST['tipo_porte'];
+    $fecha_orden = $_REQUEST['fecha_orden'];
+    $items = $_REQUEST['items_orden'];
+
+    $rpta = CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items);
+
+    // DEBUG: Ver si se guardó
+    error_log("Respuesta CrearOrdenCompra: " . $rpta);
+    error_log("ID Pedido: " . $id_pedido);
+    
+    if ($rpta == "SI") {
+        // DEBUG: Verificar si realmente se guardó
+        include("../_conexion/conexion.php");
+        $check = mysqli_query($con, "SELECT * FROM compra WHERE id_pedido = $id_pedido ORDER BY id_compra DESC LIMIT 1");
+        $ultima_orden = mysqli_fetch_assoc($check);
+        error_log("Última orden creada ID: " . ($ultima_orden ? $ultima_orden['id_compra'] : 'NINGUNA'));
+        mysqli_close($con);
+        
+        header("Location: pedido_verificar.php?id=$id_pedido&success=creado");
+        exit;
+    } else {
+        $alerta = [
+            "icon" => "error",
+            "title" => "Error",
+            "text" => "Error al crear orden: $rpta"
+        ];
+    }
+}
+
+// FINALIZAR VERIFICACIÓN
+if (isset($_REQUEST['finalizar_verificacion'])) {
+    $id_pedido = $_REQUEST['id'];
+    
+    $resultado = FinalizarPedido($id_pedido);
+    
+    if ($resultado['success']) {
+        header("Location: pedidos_mostrar.php?success=finalizado");
+        exit;
+    } else {
+        $alerta = [
+            "icon" => $resultado['tipo'],
+            "title" => "Error",
+            "text" => $resultado['mensaje']
+        ];
+    }
+}
+
+// MOSTRAR ALERTAS DE SUCCESS (después del redirect)
+if (isset($_GET['success'])) {
+    switch($_GET['success']) {
+        case 'verificado':
+            $alerta = [
+                "icon" => "success",
+                "title" => "¡Éxito!",
+                "text" => "Item verificado correctamente",
+                "timer" => 1500
+            ];
+            break;
+        case 'creado':
+            $alerta = [
+                "icon" => "success",
+                "title" => "¡Orden Creada!",
+                "text" => "La orden de compra se ha creado exitosamente",
+                "timer" => 2000
+            ];
+            break;
+        case 'actualizado':
+            $alerta = [
+                "icon" => "success",
+                "title" => "¡Orden Actualizada!",
+                "text" => "La orden de compra se ha actualizado exitosamente",
+                "timer" => 2000
+            ];
+            break;
+    }
+}
+
+// ============================================================================
+// CARGAR DATOS DEL PEDIDO
+// ============================================================================
+
+if ($id_pedido > 0) {
+    $pedido_data = ConsultarPedido($id_pedido);
+    
+    if (empty($pedido_data)) {
+        $pedido_data = ConsultarPedidoAnulado($id_pedido);
+    }
+    
+    if (!empty($pedido_data)) {
+        $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
+        $pedido_compra = ConsultarCompra($id_pedido);
+        $proveedor = MostrarProveedores();
+        $moneda = MostrarMoneda();
+        $obras = MostrarObrasActivas();
+
+        $orden_data = null;
+        $orden_detalle = null;
+        if ($modo_editar) {
+            $orden_data = ObtenerOrdenPorId($id_compra_editar);
+            $orden_detalle = ObtenerDetalleOrden($id_compra_editar);
+        }
+
+        $pedido = $pedido_data[0];
+    } else {
+        header("Location: pedidos_mostrar.php?error=pedido_no_encontrado");
+        exit;
+    }
+} else {
+    header("Location: pedidos_mostrar.php?error=id_invalido");
+    exit;
+}
+
+// ============================================================================
+// AHORA SÍ, INICIAR EL HTML
+// ============================================================================
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -28,201 +238,7 @@ if (!verificarPermisoEspecifico('ver_pedidos')) {
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-
-            require_once("../_modelo/m_pedidos.php");
-            require_once("../_modelo/m_obras.php");
-            require_once("../_modelo/m_proveedor.php");
-            require_once("../_modelo/m_moneda.php");
-
-            $id_pedido = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : 0;
-            $id_compra_editar = isset($_REQUEST['id_compra']) ? intval($_REQUEST['id_compra']) : 0;
-            $modo_editar = ($id_compra_editar > 0);
-
-            // variable para pasar mensajes a JS
-            $alerta = null;
-
-            // VERIFICAR ITEM
-            if (isset($_REQUEST['verificar_item'])) {
-                $id_pedido_detalle = $_REQUEST['id_pedido_detalle'];
-                $new_cant_fin = $_REQUEST['fin_cant_pedido_detalle'];
-                $rpta = verificarItem($id_pedido_detalle, $new_cant_fin);
-
-                if ($rpta == "SI") {
-                    $alerta = [
-                        "icon" => "success",
-                        "title" => "¡Éxito!",
-                        "text" => "Item verificado correctamente",
-                        "redirect" => "pedido_verificar.php?id=$id_pedido",
-                        "timer" => 1500
-                    ];
-                } else {
-                    $alerta = [
-                        "icon" => "error",
-                        "title" => "Error",
-                        "text" => "Error al verificar: $rpta"
-                    ];
-                }
-            }
-
-            // ACTUALIZAR ORDEN
-            else if (isset($_REQUEST['actualizar_orden'])) {
-                $id_compra = $_REQUEST['id_compra'];
-                $proveedor_sel = $_REQUEST['proveedor_orden'];
-                $moneda_sel = $_REQUEST['moneda_orden'];
-                $observacion = $_REQUEST['observaciones_orden'];
-                $direccion = $_REQUEST['direccion_envio'];
-                $plazo_entrega = $_REQUEST['plazo_entrega'];
-                $porte = $_REQUEST['tipo_porte'];
-                $fecha_orden = $_REQUEST['fecha_orden'];
-                $items = $_REQUEST['items_orden'] ?? [];
-
-                if (empty($proveedor_sel) || empty($moneda_sel) || empty($fecha_orden)) {
-                    $alerta = [
-                        "icon" => "error",
-                        "title" => "Error",
-                        "text" => "Complete todos los campos obligatorios (Fecha, Proveedor y Moneda)"
-                    ];
-                } elseif (empty($items)) {
-                    $alerta = [
-                        "icon" => "error",
-                        "title" => "Error",
-                        "text" => "Debe tener al menos un item en la orden"
-                    ];
-                } else {
-                    $rpta = ActualizarOrdenCompra(
-                        $id_compra,
-                        $proveedor_sel,
-                        $moneda_sel,
-                        $observacion,
-                        $direccion,
-                        $plazo_entrega,
-                        $porte,
-                        $fecha_orden,
-                        $items
-                    );
-
-                    if ($rpta == "SI") {
-                        $alerta = [
-                            "icon" => "success",
-                            "title" => "¡Orden Actualizada!",
-                            "text" => "La orden de compra se ha actualizado exitosamente",
-                            "redirect" => "pedido_verificar.php?id=$id_pedido",
-                            "timer" => 2000
-                        ];
-                    } else {
-                        $alerta = [
-                            "icon" => "error",
-                            "title" => "Error",
-                            "text" => "Error al actualizar orden: $rpta"
-                        ];
-                    }
-                }
-            }
-
-            // CREAR ORDEN
-            else if (isset($_REQUEST['crear_orden'])) {
-                $id_pedido = $_REQUEST['id'];
-                $proveedor = $_REQUEST['proveedor_orden'];
-                $moneda = $_REQUEST['moneda_orden'];
-                $id_personal = $_SESSION['id_personal'];
-                $observacion = $_REQUEST['observaciones_orden'];
-                $direccion = $_REQUEST['direccion_envio'];
-                $plazo_entrega = $_REQUEST['plazo_entrega'];
-                $porte = $_REQUEST['tipo_porte'];
-                $fecha_orden = $_REQUEST['fecha_orden'];
-                $items = $_REQUEST['items_orden'];
-
-                $rpta = CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items);
-
-                if ($rpta == "SI") {
-                    $alerta = [
-                        "icon" => "success",
-                        "title" => "¡Orden Creada!",
-                        "text" => "La orden de compra se ha creado exitosamente",
-                        "redirect" => "pedido_verificar.php?id=$id_pedido",
-                        "timer" => 2000
-                    ];
-                } else {
-                    $alerta = [
-                        "icon" => "error",
-                        "title" => "Error",
-                        "text" => "Error al crear orden: $rpta"
-                    ];
-                }
-            }
-            
-            // FINALIZAR VERIFICACIÓN (cambiar pedido a completado)
-            if (isset($_REQUEST['finalizar_verificacion'])) {
-                $id_pedido = $_REQUEST['id'];
-                
-                // Llamar a la función del modelo que maneja todo
-                $resultado = FinalizarPedido($id_pedido);
-                
-                if ($resultado['success']) {
-                    $alerta = [
-                        "icon" => "success",
-                        "title" => "¡Pedido Completado!",
-                        "text" => $resultado['mensaje'],
-                        "redirect" => "pedidos_mostrar.php",
-                        "timer" => 2000
-                    ];
-                } else {
-                    $alerta = [
-                        "icon" => $resultado['tipo'],
-                        "title" => $resultado['success'] ? "Éxito" : "Error",
-                        "text" => $resultado['mensaje']
-                    ];
-                }
-            }
-            
-
-            // CARGAR PEDIDO
-            if ($id_pedido > 0) {
-            // Primero intenta cargar el pedido activo
-            $pedido_data = ConsultarPedido($id_pedido);
-            
-            // Si no encuentra el pedido activo, busca también los anulados
-            if (empty($pedido_data)) {
-                $pedido_data = ConsultarPedidoAnulado($id_pedido);
-            }
-            
-            $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
-            $pedido_compra = ConsultarCompra($id_pedido);
-            $proveedor = MostrarProveedores();
-            $moneda = MostrarMoneda();
-            $obras = MostrarObrasActivas();
-
-
-                // Cargar datos de la orden si estamos editando
-                $orden_data = null;
-                $orden_detalle = null;
-                if ($modo_editar) {
-                    $orden_data = ObtenerOrdenPorId($id_compra_editar);
-                    $orden_detalle = ObtenerDetalleOrden($id_compra_editar);
-                }
-
-                if (!empty($pedido_data)) {
-                    $pedido = $pedido_data[0];
-                    require_once("../_vista/v_pedido_verificar.php");
-                } else {
-                    $alerta = [
-                        "icon" => "error",
-                        "title" => "Error",
-                        "text" => "Pedido no encontrado",
-                        "redirect" => "pedidos_mostrar.php",
-                        "timer" => 2000
-                    ];
-                }
-            } else {
-                $alerta = [
-                    "icon" => "error",
-                    "title" => "Error",
-                    "text" => "ID de pedido no válido",
-                    "redirect" => "pedidos_mostrar.php",
-                    "timer" => 2000
-                ];
-            }
-
+            require_once("../_vista/v_pedido_verificar.php");
             require_once("../_vista/v_footer.php");
             ?>
         </div>
@@ -245,10 +261,6 @@ if (!verificarPermisoEspecifico('ver_pedidos')) {
             showConfirmButton: !alerta.timer,
             timer: alerta.timer || null,
             allowOutsideClick: false
-        }).then(() => {
-            if (alerta.redirect) {
-                window.location.href = alerta.redirect;
-            }
         });
     });
     </script>

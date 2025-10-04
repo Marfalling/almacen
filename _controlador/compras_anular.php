@@ -1,10 +1,12 @@
 <?php
-$_REQUEST['id_compra'] = isset($_REQUEST['id_compra']) ? $_REQUEST['id_compra'] : null;
-if ($_REQUEST['id_compra']) {
-    require_once("../_conexion/sesion.php");
-    require_once("../_modelo/m_compras.php");
+header('Content-Type: application/json; charset=utf-8');
 
-    $id_compra = intval($_REQUEST['id_compra']);
+require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_anulaciones.php");
+
+$id_compra = isset($_POST['id_compra']) ? intval($_POST['id_compra']) : 0;
+
+if ($id_compra > 0) {
     $resultado = AnularCompra($id_compra, $id_personal);
 
     if ($resultado) {
@@ -15,13 +17,12 @@ if ($_REQUEST['id_compra']) {
     } else {
         echo json_encode([
             "tipo_mensaje" => "error",
-            "mensaje" => "Error al anular la compra."
+            "mensaje" => "Error al anular la compra o ya está anulada."
         ]);
     }
 } else {
     echo json_encode([
         "tipo_mensaje" => "error",
-        "mensaje" => "ID de compra no proporcionado."
+        "mensaje" => "ID de compra no válido."
     ]);
 }
-?>

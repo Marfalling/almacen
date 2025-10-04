@@ -9,6 +9,7 @@ if (!verificarPermisoEspecifico('ver_pedidos')) {
 }
 
 require_once("../_modelo/m_pedidos.php");
+require_once("../_modelo/m_compras.php");
 // ========================================================================
 // Filtro de fechas
 // ========================================================================

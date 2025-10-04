@@ -1,5 +1,6 @@
 <?php
-function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $nom_pedido, $solicitante, $fecha_necesidad, 
+function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo, 
+                     $nom_pedido, $solicitante, $fecha_necesidad, 
                      $num_ot, $contacto, $lugar_entrega, $aclaraciones, $id_personal, 
                      $materiales, $archivos_subidos) 
 {
@@ -7,11 +8,11 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $nom_pedido
 
     // INSERTAR PRIMERO el pedido SIN código para obtener el ID
     $sql = "INSERT INTO pedido (
-                id_producto_tipo, id_almacen, id_ubicacion, id_personal, 
+                id_producto_tipo, id_almacen, id_ubicacion, id_centro_costo, id_personal, 
                 cod_pedido, nom_pedido, ot_pedido, cel_pedido, lug_pedido, 
                 acl_pedido, fec_req_pedido, fec_pedido, est_pedido
             ) VALUES (
-                $id_producto_tipo, $id_almacen, $id_ubicacion, $id_personal, 
+                $id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo, $id_personal, 
                 'TEMP', '$nom_pedido', '$num_ot', '$contacto', '$lugar_entrega', 
                 '$aclaraciones', '$fecha_necesidad', NOW(), 1
             )";
@@ -19,7 +20,7 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $nom_pedido
     if (mysqli_query($con, $sql)) {
         $id_pedido = mysqli_insert_id($con);
         
-        // ACTUALIZAR con el código basado en el ID (P0001, P0012, P0123, etc.)
+        // ACTUALIZAR con el código basado en el ID
         $cod_pedido = 'P' . str_pad($id_pedido, 4, '0', STR_PAD_LEFT);
         $sql_update_codigo = "UPDATE pedido SET cod_pedido = '$cod_pedido' WHERE id_pedido = $id_pedido";
         mysqli_query($con, $sql_update_codigo);
@@ -87,9 +88,8 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $nom_pedido
 function MostrarPedidos()
 {
     include("../_conexion/conexion.php");
+    include("../_conexion/conexion_complemento.php"); // AGREGAR para centros de costo
 
-    // VERSIÓN CORREGIDA: Usar LEFT JOIN en lugar de INNER JOIN
-    // para evitar que se pierdan pedidos por datos faltantes
     $sqlc = "SELECT p.*, 
                 COALESCE(ob.nom_obra, 'N/A') as nom_obra,
                 COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
@@ -98,15 +98,7 @@ function MostrarPedidos()
                 COALESCE(a.nom_almacen, 'N/A') as nom_almacen,
                 COALESCE(u.nom_ubicacion, 'N/A') as nom_ubicacion,
                 COALESCE(pt.nom_producto_tipo, 'N/A') as nom_producto_tipo,
-                CASE 
-                    WHEN EXISTS (
-                        SELECT 1 
-                        FROM compra comp 
-                        WHERE comp.id_pedido = p.id_pedido 
-                        AND comp.est_compra <> 0
-                    ) THEN 2 
-                    ELSE p.est_pedido
-                END AS est_pedido_calc,
+                p.est_pedido as est_pedido_calc,
                 CASE 
                     WHEN EXISTS (
                         SELECT 1 
@@ -124,45 +116,54 @@ function MostrarPedidos()
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion AND u.est_ubicacion = 1
              LEFT JOIN personal pr ON p.id_personal = pr.id_personal AND pr.est_personal = 1
              LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
-             WHERE p.est_pedido IN (0, 1)
+             WHERE p.est_pedido IN (0, 1, 2)
              ORDER BY p.fec_pedido DESC";
 
     $resc = mysqli_query($con, $sqlc);
     
-    // Agregar manejo de errores
     if (!$resc) {
         error_log("Error en MostrarPedidos(): " . mysqli_error($con));
         mysqli_close($con);
+        mysqli_close($con_comp);
         return array();
+    }
+    
+    // Cargar centros de costo una sola vez
+    $sql_centros = "SELECT id_area, nom_area FROM area WHERE act_area = 1";
+    $res_centros = mysqli_query($con_comp, $sql_centros);
+    $centros_costo = array();
+    while ($cc = mysqli_fetch_assoc($res_centros)) {
+        $centros_costo[$cc['id_area']] = $cc['nom_area'];
     }
     
     $resultado = array();
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        // Asignar el nombre del centro de costo
+        $rowc['nom_centro_costo'] = isset($centros_costo[$rowc['id_centro_costo']]) 
+            ? $centros_costo[$rowc['id_centro_costo']] 
+            : 'N/A';
+        
         $resultado[] = $rowc;
     }
 
     mysqli_close($con);
+    mysqli_close($con_comp);
     return $resultado;
 }
 //-----------------------------------------------------------------------
 function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
 {
     include("../_conexion/conexion.php");
+    include("../_conexion/conexion_complemento.php");
 
-    // ==========================
-    // Filtro por fechas
-    // ==========================
     $where_fecha = "";
     if ($fecha_inicio && $fecha_fin) {
         $where_fecha = " AND DATE(p.fec_pedido) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
     } else {
-        // por defecto, solo mostrar la fecha actual
         $where_fecha = " AND DATE(p.fec_pedido) = CURDATE()";
     }
 
-    // ==========================
-    // Consulta principal
-    // ==========================
+    // CORRECCIÓN: Eliminar el CASE que cambia el estado artificialmente
     $sqlc = "SELECT p.*, 
                 COALESCE(ob.nom_obra, 'N/A') as nom_obra,
                 COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
@@ -171,15 +172,7 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
                 COALESCE(a.nom_almacen, 'N/A') as nom_almacen,
                 COALESCE(u.nom_ubicacion, 'N/A') as nom_ubicacion,
                 COALESCE(pt.nom_producto_tipo, 'N/A') as nom_producto_tipo,
-                CASE 
-                    WHEN EXISTS (
-                        SELECT 1 
-                        FROM compra comp 
-                        WHERE comp.id_pedido = p.id_pedido 
-                        AND comp.est_compra <> 0
-                    ) THEN 2 
-                    ELSE p.est_pedido
-                END AS est_pedido_calc,
+                p.est_pedido as est_pedido_calc,
                 CASE 
                     WHEN EXISTS (
                         SELECT 1 
@@ -197,24 +190,37 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion AND u.est_ubicacion = 1
              LEFT JOIN personal pr ON p.id_personal = pr.id_personal AND pr.est_personal = 1
              LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
-             WHERE p.est_pedido IN (0, 1,2)
+             WHERE p.est_pedido IN (0, 1, 2)
              $where_fecha
              ORDER BY p.fec_pedido DESC";
 
     $resc = mysqli_query($con, $sqlc);
     
     if (!$resc) {
-        error_log("Error en MostrarPedidos(): " . mysqli_error($con));
+        error_log("Error en MostrarPedidosFecha(): " . mysqli_error($con));
         mysqli_close($con);
+        mysqli_close($con_comp);
         return array();
+    }
+    
+    $sql_centros = "SELECT id_area, nom_area FROM area WHERE act_area = 1";
+    $res_centros = mysqli_query($con_comp, $sql_centros);
+    $centros_costo = array();
+    while ($cc = mysqli_fetch_assoc($res_centros)) {
+        $centros_costo[$cc['id_area']] = $cc['nom_area'];
     }
     
     $resultado = array();
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $rowc['nom_centro_costo'] = isset($centros_costo[$rowc['id_centro_costo']]) 
+            ? $centros_costo[$rowc['id_centro_costo']] 
+            : 'N/A';
+        
         $resultado[] = $rowc;
     }
 
     mysqli_close($con);
+    mysqli_close($con_comp);
     return $resultado;
 }
 //-----------------------------------------------------------------------
@@ -222,9 +228,23 @@ function ObtenerPedidosConComprasAnuladas() {
     include("../_conexion/conexion.php");
     
     $pedidos_rechazados = array();
-    $sql = "SELECT DISTINCT id_pedido 
-            FROM compra 
-            WHERE est_compra = 0";
+    
+    // Solo considerar rechazado si:
+    // 1. Tiene al menos una compra
+    // 2. TODAS sus compras están anuladas (no tiene ninguna activa)
+    $sql = "SELECT DISTINCT c.id_pedido 
+            FROM compra c
+            WHERE c.id_pedido IN (
+                -- Pedidos que tienen compras
+                SELECT id_pedido FROM compra
+            )
+            AND c.id_pedido NOT IN (
+                -- Pedidos que tienen al menos UNA compra activa
+                SELECT id_pedido 
+                FROM compra 
+                WHERE est_compra != 0
+            )
+            GROUP BY c.id_pedido";
     
     $resultado = mysqli_query($con, $sql);
     
@@ -242,8 +262,8 @@ function ObtenerPedidosConComprasAnuladas() {
 function ConsultarPedido($id_pedido)
 {
     include("../_conexion/conexion.php");
+    include("../_conexion/conexion_complemento.php");
 
-    // CORREGIDO: Usar LEFT JOIN para evitar pérdida de datos
     $sqlc = "SELECT p.*, 
                 COALESCE(ob.nom_obra, 'N/A') as nom_obra,
                 COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
@@ -259,9 +279,8 @@ function ConsultarPedido($id_pedido)
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion
              LEFT JOIN personal pr ON p.id_personal = pr.id_personal
              LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
-             WHERE p.id_pedido = ? ";
+             WHERE p.id_pedido = ?";
     
-    // Usar prepared statement para seguridad
     $stmt = mysqli_prepare($con, $sqlc);
     mysqli_stmt_bind_param($stmt, "i", $id_pedido);
     mysqli_stmt_execute($stmt);
@@ -269,11 +288,27 @@ function ConsultarPedido($id_pedido)
     
     $resultado = array();
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        // Obtener nombre del centro de costo
+        if (isset($rowc['id_centro_costo']) && !empty($rowc['id_centro_costo'])) {
+            $id_cc = intval($rowc['id_centro_costo']);
+            $sql_cc = "SELECT nom_area FROM area WHERE id_area = $id_cc";
+            $res_cc = mysqli_query($con_comp, $sql_cc);
+            if ($res_cc && mysqli_num_rows($res_cc) > 0) {
+                $cc_data = mysqli_fetch_assoc($res_cc);
+                $rowc['nom_centro_costo'] = $cc_data['nom_area'];
+            } else {
+                $rowc['nom_centro_costo'] = 'N/A';
+            }
+        } else {
+            $rowc['nom_centro_costo'] = 'N/A';
+        }
+        
         $resultado[] = $rowc;
     }
 
     mysqli_stmt_close($stmt);
     mysqli_close($con);
+    mysqli_close($con_comp);
     return $resultado;
 }
 
@@ -365,14 +400,15 @@ function ConsultarPedidoDetalle($id_pedido)
     mysqli_close($con);
     return $resultado;
 }
-function ActualizarPedido($id_pedido, $id_ubicacion, $nom_pedido, $fecha_necesidad, $num_ot, 
+function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedido, $fecha_necesidad, $num_ot, 
                          $contacto, $lugar_entrega, $aclaraciones, $materiales, $archivos_subidos) 
 {
     include("../_conexion/conexion.php");
 
-    // Actualizar pedido principal - AHORA INCLUYE id_ubicacion
+    // Actualizar pedido principal - AHORA INCLUYE id_ubicacion E id_centro_costo
     $sql = "UPDATE pedido SET 
             id_ubicacion = $id_ubicacion,
+            id_centro_costo = $id_centro_costo,
             nom_pedido = '$nom_pedido',
             fec_req_pedido = '$fecha_necesidad',
             ot_pedido = '$num_ot',
@@ -559,6 +595,24 @@ function verificarItem($id_pedido_detalle, $new_cant_fin){
         mysqli_close($con);
         return "ERROR: Item no encontrado";
     }
+}
+
+function PedidoTieneVerificaciones($id_pedido)
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT COUNT(*) as total_verificados 
+            FROM pedido_detalle 
+            WHERE id_pedido = $id_pedido 
+            AND cant_fin_pedido_detalle IS NOT NULL 
+            AND est_pedido_detalle <> 0";
+    
+    $resultado = mysqli_query($con, $sql);
+    $row = mysqli_fetch_assoc($resultado);
+    
+    mysqli_close($con);
+    
+    return ($row['total_verificados'] > 0);
 }
 function PedidoTieneTodoConStock($id_pedido)
 {
@@ -839,27 +893,6 @@ function verificarPedidoListo($id_pedido, $con = null)
     ];
 }
 
-function ConsultarCompra($id_pedido){
-    include("../_conexion/conexion.php");
-
-    $sql = "SELECT 
-                c.*,
-                p.nom_proveedor
-            FROM compra c
-            LEFT JOIN proveedor p ON c.id_proveedor = p.id_proveedor 
-            WHERE id_pedido = $id_pedido";
-    $resc = mysqli_query($con, $sql);
-
-    $resultado = array();
-
-    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
-        $resultado[] = $rowc;
-    }
-
-    mysqli_close($con);
-    return $resultado;
-}
-
 function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items) 
 {
     include("../_conexion/conexion.php");
@@ -989,34 +1022,11 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
         return "ERROR: " . $error;
     }
 }
-function AnularPedido($id_pedido, $id_personal)
-{
-    include("../_conexion/conexion.php");
 
-    // Verificar si el pedido ya está anulado
-    $sql_check = "SELECT est_pedido FROM pedido WHERE id_pedido = '$id_pedido'";
-    $res_check = mysqli_query($con, $sql_check);
-    $row_check = mysqli_fetch_array($res_check, MYSQLI_ASSOC);
-
-    if ($row_check && $row_check['est_pedido'] == 0) {
-        // El pedido ya está anulado
-        mysqli_close($con);
-        return false;
-    }
-
-    // Actualizar el estado del pedido a anulado (0)
-    $sql_update = "UPDATE pedido 
-                   SET est_pedido = 0
-                   WHERE id_pedido = '$id_pedido'";
-
-    $res_update = mysqli_query($con, $sql_update);
-
-    mysqli_close($con);
-    return $res_update;
-}
 function ConsultarPedidoAnulado($id_pedido)
 {
     include("../_conexion/conexion.php");
+    include("../_conexion/conexion_complemento.php"); // AGREGAR
 
     $sqlc = "SELECT p.*, 
                 COALESCE(ob.nom_obra, 'N/A') as nom_obra,
@@ -1042,11 +1052,27 @@ function ConsultarPedidoAnulado($id_pedido)
     
     $resultado = array();
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        // AGREGAR ESTE BLOQUE: Obtener nombre del centro de costo
+        if (isset($rowc['id_centro_costo']) && !empty($rowc['id_centro_costo'])) {
+            $id_cc = intval($rowc['id_centro_costo']);
+            $sql_cc = "SELECT nom_area FROM area WHERE id_area = $id_cc";
+            $res_cc = mysqli_query($con_comp, $sql_cc);
+            if ($res_cc && mysqli_num_rows($res_cc) > 0) {
+                $cc_data = mysqli_fetch_assoc($res_cc);
+                $rowc['nom_centro_costo'] = $cc_data['nom_area'];
+            } else {
+                $rowc['nom_centro_costo'] = 'N/A';
+            }
+        } else {
+            $rowc['nom_centro_costo'] = 'N/A';
+        }
+        
         $resultado[] = $rowc;
     }
 
     mysqli_stmt_close($stmt);
     mysqli_close($con);
+    mysqli_close($con_comp); // AGREGAR
     return $resultado;
 }
 

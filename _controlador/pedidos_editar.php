@@ -37,13 +37,15 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
             require_once("../_modelo/m_unidad_medida.php");
             require_once("../_modelo/m_tipo_producto.php");
             require_once("../_modelo/m_tipo_material.php");
-            require_once("../_modelo/m_ubicacion.php"); // AGREGADO: Modelo de ubicación
+            require_once("../_modelo/m_ubicacion.php");
+            require_once("../_modelo/m_centro_costo.php"); // AGREGADO: Modelo de centro de costo
             
             // Cargar datos necesarios para el formulario
             $unidades_medida = MostrarUnidadMedidaActiva();
             $producto_tipos = MostrarProductoTipoActivos();
             $material_tipos = MostrarMaterialTipoActivos();
-            $ubicaciones = MostrarUbicacionesActivas(); // AGREGADO: Cargar ubicaciones
+            $ubicaciones = MostrarUbicacionesActivas(); 
+            $centros_costo = MostrarCentrosCostoActivos(); // AGREGADO: Cargar centros de costo
             
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/pedidos/")) {
@@ -57,6 +59,7 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
             //=======================================================================
             if (isset($_REQUEST['actualizar'])) {
                 $id_ubicacion = intval($_REQUEST['id_ubicacion']); // AGREGADO: Recibir ubicación
+                $id_centro_costo = intval($_REQUEST['id_centro_costo']); 
                 $nom_pedido = strtoupper($_REQUEST['nom_pedido']);
                 $fecha_necesidad = $_REQUEST['fecha_necesidad'];
                 $num_ot = strtoupper($_REQUEST['num_ot']);
@@ -93,9 +96,9 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                 }
 
                 // LLAMADA ACTUALIZADA con ubicación
-                $rpta = ActualizarPedido($id_pedido, $id_ubicacion, $nom_pedido, $fecha_necesidad, 
-                                       $num_ot, $contacto, $lugar_entrega, 
-                                       $aclaraciones, $materiales, $archivos_subidos);
+                $rpta = ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedido, $fecha_necesidad, 
+                           $num_ot, $contacto, $lugar_entrega, 
+                           $aclaraciones, $materiales, $archivos_subidos);
 
                 if ($rpta == "SI") {
             ?>

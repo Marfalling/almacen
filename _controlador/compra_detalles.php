@@ -1,7 +1,6 @@
 <?php
 require_once("../_conexion/sesion.php");
 require_once("../_modelo/m_compras.php");
-require_once("../_modelo/m_moneda.php");
 
 header('Content-Type: application/json');
 
@@ -21,8 +20,9 @@ if ($accion === 'obtener_detalle') {
     }
     
     try {
-        // Obtener datos de la compra
-        $compra_data = ConsultarCompra($id_compra);
+        // CORRECCIÓN: Usar la función correcta que busca por ID de compra
+        $compra_data = ConsultarCompraPorId($id_compra);
+        
         if (empty($compra_data)) {
             echo json_encode(['success' => false, 'message' => 'Orden de compra no encontrada']);
             exit;
@@ -38,6 +38,7 @@ if ($accion === 'obtener_detalle') {
         ]);
         
     } catch (Exception $e) {
+        error_log("Error en compra_detalles.php: " . $e->getMessage());
         echo json_encode(['success' => false, 'message' => 'Error interno del servidor']);
     }
     

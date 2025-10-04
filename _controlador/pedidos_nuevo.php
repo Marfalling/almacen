@@ -41,14 +41,16 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
             require_once("../_modelo/m_tipo_producto.php");
             require_once("../_modelo/m_unidad_medida.php");
             require_once("../_modelo/m_tipo_material.php");
-            require_once("../_modelo/m_ubicacion.php"); // AGREGADO
+            require_once("../_modelo/m_ubicacion.php");
+            require_once("../_modelo/m_centro_costo.php"); // AGREGADO
 
             // Cargar datos para el formulario
             $almacenes = MostrarAlmacenesActivos();
             $producto_tipos = MostrarProductoTipoActivos();
             $unidades_medida = MostrarUnidadMedidaActiva();
             $material_tipos = MostrarMaterialTipoActivos();
-            $ubicaciones = MostrarUbicacionesActivas(); // AGREGADO
+            $ubicaciones = MostrarUbicacionesActivas(); 
+            $centros_costo = MostrarCentrosCostoActivos(); // AGREGADO
             
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/pedidos/")) {
@@ -61,7 +63,8 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                 // Recibir datos del formulario
                 $id_producto_tipo = intval($_REQUEST['tipo_pedido']); // El select envía el ID
                 $id_almacen = intval($_REQUEST['id_obra']); // El select envía el ID del almacén
-                $id_ubicacion = intval($_REQUEST['id_ubicacion']); // AGREGADO: Recibir ubicación
+                $id_ubicacion = intval($_REQUEST['id_ubicacion']); // Recibir ubicación
+                $id_centro_costo = intval($_REQUEST['id_centro_costo']); // NUEVO CAMPO: Centro de Costo
                 $nom_pedido = strtoupper($_REQUEST['nom_pedido']);
                 $solicitante = strtoupper($_REQUEST['solicitante']);
                 $fecha_necesidad = $_REQUEST['fecha_necesidad'];
@@ -97,10 +100,11 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                     }
                 }
 
-                // LLAMADA CORREGIDA con los parámetros correctos, incluyendo ubicación
-                $rpta = GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $nom_pedido, $solicitante, 
-                                $fecha_necesidad, $num_ot, $contacto, $lugar_entrega, 
-                                $aclaraciones, $id, $materiales, $archivos_subidos);
+                // LLAMADA CORREGIDA con los parámetros correctos, incluyendo centro de costo
+                $rpta = GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo, // NUEVO PARÁMETRO
+                                $nom_pedido, $solicitante, $fecha_necesidad, $num_ot, 
+                                $contacto, $lugar_entrega, $aclaraciones, $id, 
+                                $materiales, $archivos_subidos);
 
                 if ($rpta == "SI") {
             ?>

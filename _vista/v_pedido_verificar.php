@@ -4,6 +4,8 @@
 //=======================================================================
 $pedido = $pedido_data[0];
 $pedido_anulado = ($pedido['est_pedido'] == 0);
+$pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
+
 ?>
 <!-- page content -->
 <div class="right_col" role="main">
@@ -302,42 +304,61 @@ $pedido_anulado = ($pedido['est_pedido'] == 0);
                                                     <td><?php echo $fecha_formateada; ?></td>
                                                     <td><span class="badge badge-<?php echo $estado_clase; ?>"><?php echo $estado_texto; ?></span></td>
                                                     <td>
-                                                        <button class="btn btn-info btn-xs btn-ver-detalle" 
-                                                                title="Ver Detalles"
-                                                                data-id-compra="<?php echo $compra['id_compra']; ?>">
-                                                            <i class="fa fa-eye"></i>
-                                                        </button>
-                                                        
-                                                        <?php if ($compra['est_compra'] == 1) { ?>
-                                                            <button class="btn btn-warning btn-xs ml-1 btn-editar-orden" 
-                                                                    title="Editar Orden"
-                                                                    data-id-compra="<?php echo $compra['id_compra']; ?>">
-                                                                <i class="fa fa-edit"></i>
-                                                            </button>
-                                                        <?php } else { ?>
-                                                            <button class="btn btn-outline-secondary btn-xs ml-1" 
-                                                                    title="No se puede editar orden aprobada" 
-                                                                    disabled>
-                                                                <i class="fa fa-edit"></i>
-                                                            </button>
-                                                        <?php } ?>
+    <button class="btn btn-info btn-xs btn-ver-detalle" 
+            title="Ver Detalles"
+            data-id-compra="<?php echo $compra['id_compra']; ?>">
+        <i class="fa fa-eye"></i>
+    </button>
+    
+    <?php 
+    // Verificar si tiene aprobaciones (técnica o financiera)
+    $tiene_aprobacion_tecnica = !empty($compra['id_personal_aprueba_tecnica']);
+    $tiene_aprobacion_financiera = !empty($compra['id_personal_aprueba_financiera']);
+    $tiene_alguna_aprobacion = $tiene_aprobacion_tecnica || $tiene_aprobacion_financiera;
+    
+    // Solo se puede editar si está PENDIENTE y SIN aprobaciones
+    $puede_editar = ($compra['est_compra'] == 1 && !$tiene_alguna_aprobacion);
+    
+    if ($puede_editar) { ?>
+        <button class="btn btn-warning btn-xs ml-1 btn-editar-orden" 
+                title="Editar Orden"
+                data-id-compra="<?php echo $compra['id_compra']; ?>">
+            <i class="fa fa-edit"></i>
+        </button>
+    <?php } else { 
+        // Determinar el mensaje según el estado
+        if ($compra['est_compra'] == 0) {
+            $mensaje = "No se puede editar - Orden anulada";
+        } elseif ($compra['est_compra'] == 2) {
+            $mensaje = "No se puede editar - Orden aprobada completamente";
+        } elseif ($tiene_alguna_aprobacion) {
+            $mensaje = "No se puede editar - Orden con aprobación iniciada";
+        } else {
+            $mensaje = "No se puede editar";
+        }
+    ?>
+        <button class="btn btn-outline-secondary btn-xs ml-1" 
+                title="<?php echo $mensaje; ?>" 
+                disabled>
+            <i class="fa fa-edit"></i>
+        </button>
+    <?php } ?>
 
-                                                        <!-- NUEVO: Botón para anular -->
-                                                        <?php if ($compra['est_compra'] != 0) { ?>
-                                                            <button class="btn btn-danger btn-xs ml-1 btn-anular-orden" 
-                                                                    title="Anular Orden"
-                                                                    data-id-compra="<?php echo $compra['id_compra']; ?>"
-                                                                    data-id-pedido="<?php echo $id_pedido; ?>">
-                                                                <i class="fa fa-times"></i>
-                                                            </button>
-                                                        <?php } else { ?>
-                                                            <button class="btn btn-outline-secondary btn-xs ml-1" 
-                                                                    title="Orden anulada" 
-                                                                    disabled>
-                                                                <i class="fa fa-times"></i>
-                                                            </button>
-                                                        <?php } ?>
-                                                    </td>
+    <?php if ($compra['est_compra'] != 0) { ?>
+        <button class="btn btn-danger btn-xs ml-1 btn-anular-orden" 
+                title="Anular Orden"
+                data-id-compra="<?php echo $compra['id_compra']; ?>"
+                data-id-pedido="<?php echo $id_pedido; ?>">
+            <i class="fa fa-times"></i>
+        </button>
+    <?php } else { ?>
+        <button class="btn btn-outline-secondary btn-xs ml-1" 
+                title="Orden anulada" 
+                disabled>
+            <i class="fa fa-times"></i>
+        </button>
+    <?php } ?>
+</td>
                                                 </tr>
                                             <?php } ?>
                                         <?php } else { ?>
@@ -422,10 +443,19 @@ $pedido_anulado = ($pedido['est_pedido'] == 0);
                                                 </select>
                                             </div>
                                             <div class="col-md-6">
-                                                <label style="font-size: 11px; font-weight: bold;">Plazo de Entrega:</label>
-                                                <input type="text" class="form-control form-control-sm" id="plazo_entrega" name="plazo_entrega"
+                                                <label style="font-size: 11px; font-weight: bold;">Plazo de Entrega (días):</label>
+                                                <input type="number" 
+                                                    class="form-control form-control-sm" 
+                                                    id="plazo_entrega" 
+                                                    name="plazo_entrega"
                                                     value="<?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['plaz_compra']) : ''; ?>"
-                                                    placeholder="Ej. 15 días hábiles" style="font-size: 12px;">
+                                                    placeholder="Dejar vacío si es al contado"
+                                                    min="1"
+                                                    step="1"
+                                                    style="font-size: 12px;">
+                                                <small class="form-text text-muted">
+                                                    Si no ingresa plazo, se considera pago al contado (sin alertas)
+                                                </small>
                                             </div>
                                         </div>
                                         <div class="row mb-2">

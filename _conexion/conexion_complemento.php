@@ -1,11 +1,11 @@
 <?php
-$con_complemento = mysqli_connect("localhost", "root", "", "arceperucomplemento", 3307);
+$con_comp = mysqli_connect("localhost", "root", "", "arceperucomplemento", 3307);
 
-if (!$con_complemento) {
+if (!$con_comp) {
     die("Error de conexión (arcecomplemento): " . mysqli_connect_error());
 }
 
-if (!$con_complemento->set_charset("utf8")) {
-    die("Error al establecer charset: " . $con_complemento->error);
+if (!$con_comp->set_charset("utf8")) {
+    die("Error al establecer charset: " . $con_comp->error);
 }
 ?>
