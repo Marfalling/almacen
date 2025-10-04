@@ -449,8 +449,8 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                                     id="plazo_entrega" 
                                                     name="plazo_entrega"
                                                     value="<?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['plaz_compra']) : ''; ?>"
-                                                    placeholder="Dejar vacío si es al contado"
-                                                    min="1"
+                                                    placeholder="Dejar vacío o 0 para pago al contado"
+                                                    min="0"
                                                     step="1"
                                                     style="font-size: 12px;">
                                                 <small class="form-text text-muted">
@@ -480,6 +480,45 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                                 <input type="text" class="form-control form-control-sm" id="tipo_porte" name="tipo_porte"
                                                     value="<?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['port_compra']) : ''; ?>"
                                                     placeholder="Ej. Marítimo, Terrestre, Aéreo" style="font-size: 12px;">
+                                            </div>
+                                        </div>
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <label style="font-size: 11px; font-weight: bold;">Detracción (Opcional):</label>
+                                                <div id="contenedor-detracciones" style="padding: 8px; background-color: #f8f9fa; border-radius: 4px;">
+                                                    <?php
+                                                    $detracciones = ObtenerDetracciones();
+                                                    
+                                                    $detraccion_seleccionada = ($modo_editar && isset($orden_data['id_detraccion'])) ? $orden_data['id_detraccion'] : null;
+                                                    
+                                                    if (!empty($detracciones)) {
+                                                        foreach ($detracciones as $detraccion) {
+                                                            $checked = ($detraccion_seleccionada == $detraccion['id_detraccion']) ? 'checked' : '';
+                                                            ?>
+                                                            <div class="form-check" style="margin-bottom: 5px;">
+                                                                <input class="form-check-input detraccion-checkbox" 
+                                                                    type="checkbox" 
+                                                                    name="id_detraccion" 
+                                                                    value="<?php echo $detraccion['id_detraccion']; ?>" 
+                                                                    data-porcentaje="<?php echo $detraccion['porcentaje']; ?>" 
+                                                                    data-nombre="<?php echo htmlspecialchars($detraccion['nombre_detraccion']); ?>"
+                                                                    id="detraccion_<?php echo $detraccion['id_detraccion']; ?>" 
+                                                                    <?php echo $checked; ?>>
+                                                                <label class="form-check-label" 
+                                                                    for="detraccion_<?php echo $detraccion['id_detraccion']; ?>" 
+                                                                    style="font-size: 12px; cursor: pointer;">
+                                                                    <?php echo htmlspecialchars($detraccion['nombre_detraccion']); ?> 
+                                                                    <strong>(<?php echo $detraccion['porcentaje']; ?>%)</strong>
+                                                                </label>
+                                                            </div>
+                                                            <?php
+                                                        }
+                                                    } else {
+                                                        echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay detracciones configuradas</p>';
+                                                    }
+                                                    ?>
+                                                </div>
+                                                <small class="form-text text-muted">Seleccione una detracción si aplica. El monto se calculará automáticamente sobre el total.</small>
                                             </div>
                                         </div>
                                     </div>
@@ -1354,15 +1393,29 @@ function verificarSiGenerarSalida() {
             }
         });
         
+        let montoDetraccion = 0;
+        let porcentajeDetraccion = 0;
+        let nombreDetraccion = '';
+        const checkboxDetraccion = document.querySelector('.detraccion-checkbox:checked');
+        if (checkboxDetraccion) {
+            porcentajeDetraccion = parseFloat(checkboxDetraccion.getAttribute('data-porcentaje')) || 0;
+            nombreDetraccion = checkboxDetraccion.getAttribute('data-nombre') || '';
+            montoDetraccion = (total * porcentajeDetraccion) / 100;
+        }
+        
+        const totalConDetraccion = total - montoDetraccion;
+        
         let totalElement = document.getElementById('total-orden');
         let totalInput = document.getElementById('total_orden_input');
         
         if (!totalElement && items.length > 0) {
             totalElement = document.createElement('div');
             totalElement.id = 'total-orden';
-            totalElement.className = 'alert alert-success text-center';
-            totalElement.style.fontSize = '16px';
+            totalElement.className = 'alert alert-success';
+            totalElement.style.fontSize = '14px';
             totalElement.style.fontWeight = 'bold';
+            totalElement.style.padding = '12px';
+            totalElement.style.marginTop = '10px';
             
             totalInput = document.createElement('input');
             totalInput.type = 'hidden';
@@ -1372,7 +1425,31 @@ function verificarSiGenerarSalida() {
         
         if (totalElement && items.length > 0) {
             const simboloMoneda = obtenerSimboloMoneda();
-            totalElement.innerHTML = `<i class="fa fa-calculator"></i> TOTAL DE LA ORDEN: ${simboloMoneda} ${total.toFixed(2)}`;
+            
+            let html = `<div class="text-center">
+                <div style="font-size: 16px; margin-bottom: 8px;">
+                    <i class="fa fa-calculator"></i> <strong>SUBTOTAL:</strong> ${simboloMoneda} ${total.toFixed(2)}
+                </div>`;
+            
+            if (montoDetraccion > 0) {
+                html += `
+                <div style="font-size: 14px; color: #dc3545; margin-bottom: 8px; padding: 6px; background-color: #fff3cd; border-radius: 4px;">
+                    <i class="fa fa-minus-circle"></i> <strong>Detracción ${nombreDetraccion} (${porcentajeDetraccion}%):</strong> -${simboloMoneda} ${montoDetraccion.toFixed(2)}
+                </div>
+                <div style="font-size: 18px; border-top: 2px solid #28a745; padding-top: 10px; color: #28a745;">
+                    <i class="fa fa-money"></i> <strong>TOTAL A PAGAR:</strong> ${simboloMoneda} ${totalConDetraccion.toFixed(2)}
+                </div>`;
+            } else {
+                html += `
+                <div style="font-size: 18px; border-top: 2px solid #28a745; padding-top: 10px;">
+                    <i class="fa fa-money"></i> <strong>TOTAL:</strong> ${simboloMoneda} ${total.toFixed(2)}
+                </div>`;
+            }
+            
+            html += `</div>`;
+            
+            totalElement.innerHTML = html;
+            
             if (totalInput) {
                 totalInput.value = total.toFixed(2);
             }
@@ -1707,6 +1784,12 @@ function verificarSiGenerarSalida() {
                             <p style="margin: 5px 0; font-size: 13px;">
                                 <strong>Plazo Entrega:</strong> ${compra.plaz_compra || 'No especificado'}
                             </p>
+                            ${compra.nombre_detraccion ? `
+                                <p style="margin: 5px 0; font-size: 13px;">
+                                    <strong>Detracción:</strong> 
+                                    <span class="badge badge-warning">${compra.nombre_detraccion} (${compra.porcentaje_detraccion}%)</span>
+                                </p>
+                            ` : ''}
                         </div>
                     </div>
         `;
@@ -1777,9 +1860,33 @@ function verificarSiGenerarSalida() {
                     </div>
                     
                     <div class="row mt-3">
-                        <div class="col-md-12">
+                        <div class="col-md-12">`;
+
+        // Calcular detracción si existe
+        let montoDetraccion = 0;
+        let totalFinal = total;
+
+        if (compra.porcentaje_detraccion && compra.porcentaje_detraccion > 0) {
+            montoDetraccion = (total * parseFloat(compra.porcentaje_detraccion)) / 100;
+            totalFinal = total - montoDetraccion;
+            
+            html += `
+                            <div class="alert alert-light" style="margin-bottom: 10px; padding: 10px;">
+                                <div style="font-size: 14px; text-align: center; margin-bottom: 5px;">
+                                    <strong>SUBTOTAL:</strong> ${simboloMoneda} ${total.toFixed(2)}
+                                </div>
+                                <div style="font-size: 13px; text-align: center; color: #dc3545; margin-bottom: 5px;">
+                                    <i class="fa fa-minus-circle"></i> 
+                                    <strong>Detracción (${compra.porcentaje_detraccion}%):</strong> 
+                                    -${simboloMoneda} ${montoDetraccion.toFixed(2)}
+                                </div>
+                            </div>`;
+        }
+
+        html += `
                             <div class="alert alert-info text-center" style="font-size: 16px; font-weight: bold; margin: 0;">
-                                <i class="fa fa-calculator"></i> TOTAL: ${simboloMoneda} ${total.toFixed(2)}
+                                <i class="fa fa-calculator"></i> 
+                                ${montoDetraccion > 0 ? 'TOTAL A PAGAR' : 'TOTAL'}: ${simboloMoneda} ${totalFinal.toFixed(2)}
                             </div>
                         </div>
                     </div>
@@ -1796,5 +1903,19 @@ function verificarSiGenerarSalida() {
         errorDiv.querySelector('p').textContent = mensaje;
         errorDiv.style.display = 'block';
     }
+    // Manejar checkboxes de detracción (solo uno seleccionado a la vez)
+    document.addEventListener('change', function(event) {
+        if (event.target.classList.contains('detraccion-checkbox')) {
+            // Desmarcar otros checkboxes
+            document.querySelectorAll('.detraccion-checkbox').forEach(cb => {
+                if (cb !== event.target) {
+                    cb.checked = false;
+                }
+            });
+            
+            // Actualizar totales
+            actualizarTotalOrden();
+        }
+    });
 });
 </script>

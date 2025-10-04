@@ -893,14 +893,26 @@ function verificarPedidoListo($id_pedido, $con = null)
     ];
 }
 
-function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items) 
+function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items, $id_detraccion = null) 
 {
     include("../_conexion/conexion.php");
 
+    // Escapar caracteres especiales
+    $observacion = mysqli_real_escape_string($con, $observacion);
+    $direccion = mysqli_real_escape_string($con, $direccion);
+    $plazo_entrega = mysqli_real_escape_string($con, $plazo_entrega);
+    $porte = mysqli_real_escape_string($con, $porte);
+    
+    $id_detraccion_sql = ($id_detraccion && $id_detraccion > 0) ? $id_detraccion : 'NULL';
+
     $sql = "INSERT INTO compra (
-                id_pedido, id_proveedor, id_moneda, id_personal, id_personal_aprueba, obs_compra, denv_compra, plaz_compra, port_compra, fec_compra, est_compra
+                id_pedido, id_proveedor, id_moneda, id_personal, id_personal_aprueba, 
+                obs_compra, denv_compra, plaz_compra, port_compra, id_detraccion, 
+                fec_compra, est_compra
             ) VALUES (
-                $id_pedido, $proveedor, $moneda, $id_personal, NULL, '$observacion', '$direccion', '$plazo_entrega', '$porte', NOW(), 1
+                $id_pedido, $proveedor, $moneda, $id_personal, NULL, 
+                '$observacion', '$direccion', '$plazo_entrega', '$porte', $id_detraccion_sql, 
+                NOW(), 1
             )";
 
     if (mysqli_query($con, $sql)) {
@@ -938,9 +950,11 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
 function ObtenerOrdenPorId($id_compra) {
     include("../_conexion/conexion.php");
     
-    $sql = "SELECT c.*, p.id_pedido 
+    $sql = "SELECT c.*, p.id_pedido, 
+            d.nombre_detraccion, d.porcentaje as porcentaje_detraccion
             FROM compra c 
             INNER JOIN pedido p ON c.id_pedido = p.id_pedido 
+            LEFT JOIN detraccion d ON c.id_detraccion = d.id_detraccion
             WHERE c.id_compra = ?";
     $stmt = mysqli_prepare($con, $sql);
     mysqli_stmt_bind_param($stmt, "i", $id_compra);
@@ -977,16 +991,15 @@ function ObtenerDetalleOrden($id_compra) {
     return $detalles;
 }
 
-function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items) {
+function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items, $id_detraccion = null) {
     include("../_conexion/conexion.php");
     
-    // Escapar caracteres especiales
     $observacion = mysqli_real_escape_string($con, $observacion);
     $direccion = mysqli_real_escape_string($con, $direccion);
     $plazo_entrega = mysqli_real_escape_string($con, $plazo_entrega);
     $porte = mysqli_real_escape_string($con, $porte);
+    $id_detraccion_sql = ($id_detraccion && $id_detraccion > 0) ? $id_detraccion : 'NULL';
     
-    // Actualizar cabecera de la orden
     $sql = "UPDATE compra SET 
             id_proveedor = $proveedor, 
             id_moneda = $moneda, 
@@ -994,11 +1007,11 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
             denv_compra = '$direccion', 
             plaz_compra = '$plazo_entrega', 
             port_compra = '$porte', 
+            id_detraccion = $id_detraccion_sql,
             fec_compra = '$fecha_orden' 
             WHERE id_compra = $id_compra";
-    echo $sql;
+    
     if (mysqli_query($con, $sql)) {
-        // Actualizar detalles
         foreach ($items as $id_detalle => $item) {
             $id_detalle = intval($id_detalle);
             $precio_unitario = floatval($item['precio_unitario']);

@@ -14,6 +14,7 @@ require_once("../_modelo/m_obras.php");
 require_once("../_modelo/m_proveedor.php");
 require_once("../_modelo/m_moneda.php");
 require_once("../_modelo/m_compras.php");
+require_once("../_modelo/m_detraccion.php");
 
 $id_pedido = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : 0;
 $id_compra_editar = isset($_REQUEST['id_compra']) ? intval($_REQUEST['id_compra']) : 0;
@@ -54,6 +55,9 @@ if (isset($_REQUEST['actualizar_orden'])) {
     $porte = $_REQUEST['tipo_porte'];
     $fecha_orden = $_REQUEST['fecha_orden'];
     $items = $_REQUEST['items_orden'] ?? [];
+    
+    // NUEVO: Capturar la detracción
+    $id_detraccion = isset($_REQUEST['id_detraccion']) ? intval($_REQUEST['id_detraccion']) : null;
 
     if (empty($proveedor_sel) || empty($moneda_sel) || empty($fecha_orden)) {
         $alerta = [
@@ -77,7 +81,8 @@ if (isset($_REQUEST['actualizar_orden'])) {
             $plazo_entrega,
             $porte,
             $fecha_orden,
-            $items
+            $items,
+            $id_detraccion  
         );
 
         if ($rpta == "SI") {
@@ -105,15 +110,16 @@ if (isset($_REQUEST['crear_orden'])) {
     $porte = $_REQUEST['tipo_porte'];
     $fecha_orden = $_REQUEST['fecha_orden'];
     $items = $_REQUEST['items_orden'];
+    
+    // NUEVO: Capturar la detracción
+    $id_detraccion = isset($_REQUEST['id_detraccion']) ? intval($_REQUEST['id_detraccion']) : null;
 
-    $rpta = CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items);
+    $rpta = CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items, $id_detraccion);
 
-    // DEBUG: Ver si se guardó
     error_log("Respuesta CrearOrdenCompra: " . $rpta);
     error_log("ID Pedido: " . $id_pedido);
     
     if ($rpta == "SI") {
-        // DEBUG: Verificar si realmente se guardó
         include("../_conexion/conexion.php");
         $check = mysqli_query($con, "SELECT * FROM compra WHERE id_pedido = $id_pedido ORDER BY id_compra DESC LIMIT 1");
         $ultima_orden = mysqli_fetch_assoc($check);
