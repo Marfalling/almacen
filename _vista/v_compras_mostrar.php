@@ -344,10 +344,12 @@ function EliminarDocumento(id_doc) {
                                                             <?php } elseif (!$tiene_tecnica && !$tiene_financiera) { ?>
                                                                 <span class="badge badge-warning badge_size">Pendiente</span>
                                                             <?php } ?>
-                                                        <?php } elseif($compra['est_compra'] == 2) { ?>
+                                                        <?php } elseif ($compra['est_compra'] == 2) { ?>
                                                             <span class="badge badge-success badge_size">Aprobado</span>
-                                                        <?php } elseif($compra['est_compra'] == 3) { ?>
+                                                        <?php } elseif ($compra['est_compra'] == 3) { ?>
                                                             <span class="badge badge-success badge_size">Aprobado</span>
+                                                        <?php } elseif ($compra['est_compra'] == 4) { ?>
+                                                            <span class="badge badge-primary badge_size">Pagado</span>
                                                         <?php } else { ?>
                                                             <span class="badge badge-danger badge_size">Anulado</span>
                                                         <?php } ?>
@@ -366,31 +368,51 @@ function EliminarDocumento(id_doc) {
                                                     </td>
                                                     <td>
                                                         <div class="d-flex flex-wrap gap-2">
-                                                            <?php if ($compra['est_compra'] == 0 || $compra['est_compra'] == 2 || $compra['est_compra'] == 3) { ?>
-                                                                <!-- Compra anulada o aprobada: botones deshabilitados -->
+                                                            <?php 
+                                                            // Estados bloqueados: 0 = anulado, 2 o 3 = aprobada, 4 = pagada
+                                                            if ($compra['est_compra'] == 0 || $compra['est_compra'] == 2 || $compra['est_compra'] == 3 || $compra['est_compra'] == 4) { 
+                                                            ?>
+                                                                <!-- Compra anulada, aprobada o pagada: botones deshabilitados -->
                                                                 <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Aprobar Técnica" tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-check"></i> Téc
                                                                 </a>
                                                                 <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Aprobar Financiera" tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-check"></i> Fin
                                                                 </a>
-                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" 
-                                                                   title="<?php echo ($compra['est_compra'] == 0) ? 'Ya anulada' : 'No se puede anular: compra aprobada'; ?>" 
-                                                                   tabindex="-1" aria-disabled="true">
+
+                                                                <!-- Botón anular -->
+                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled"
+                                                                title="<?php 
+                                                                        if ($compra['est_compra'] == 0) echo 'Ya anulada'; 
+                                                                        elseif ($compra['est_compra'] == 4) echo 'No se puede anular: compra pagada'; 
+                                                                        else echo 'No se puede anular: compra aprobada'; 
+                                                                ?>"
+                                                                tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-times"></i>
                                                                 </a>
+
+                                                                <!-- PDF -->
                                                                 <a href="compras_pdf.php?id=<?php echo $compra['id_compra']; ?>"
                                                                 class="btn btn-secondary btn-sm"
                                                                 title="Generar PDF"
                                                                 target="_blank">
                                                                     <i class="fa fa-file-pdf-o"></i>
                                                                 </a>
-                                                                
-                                                                <!-- Botón Pagos (solo si está aprobada) -->
+
+                                                                <!-- Botón Pagos -->
                                                                 <?php if ($compra['est_compra'] == 2 || $compra['est_compra'] == 3) { ?>
+                                                                    <!-- Solo si está aprobada -->
                                                                     <a href="pago_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
                                                                     class="btn btn-warning btn-sm"
                                                                     title="Registrar/Ver Pagos">
+                                                                        <i class="fa fa-money"></i>
+                                                                    </a>
+                                                                <?php } elseif ($compra['est_compra'] == 4) { ?>
+                                                                    <!-- Si ya está pagada -->
+                                                                    <a href="#"
+                                                                    class="btn btn-outline-success btn-sm disabled"
+                                                                    title="Compra completamente pagada"
+                                                                    tabindex="-1" aria-disabled="true">
                                                                         <i class="fa fa-money"></i>
                                                                     </a>
                                                                 <?php } else { ?>
@@ -401,8 +423,9 @@ function EliminarDocumento(id_doc) {
                                                                         <i class="fa fa-money"></i>
                                                                     </a>
                                                                 <?php } ?>
+
                                                             <?php } else { ?>
-                                                                <!-- Compra pendiente (est_compra = 1): botones habilitados según estado -->
+                                                                <!-- Compra pendiente (est_compra = 1): botones habilitados -->
                                                                 <a href="#"
                                                                 <?php if ($tiene_tecnica) { ?>
                                                                     class="btn btn-outline-secondary btn-sm disabled"
@@ -429,13 +452,15 @@ function EliminarDocumento(id_doc) {
                                                                     <i class="fa fa-check"></i> Fin
                                                                 </a>
 
-                                                                <!-- Botón anular (solo habilitado en estado pendiente) -->
-                                                                <a href="#" onclick="AnularCompra(<?php echo $compra['id_compra']; ?>, <?php echo $compra['id_pedido']; ?>)"
+                                                                <!-- Botón anular -->
+                                                                <a href="#"
+                                                                onclick="AnularCompra(<?php echo $compra['id_compra']; ?>, <?php echo $compra['id_pedido']; ?>)"
                                                                 class="btn btn-danger btn-sm"
                                                                 title="Anular">
                                                                     <i class="fa fa-times"></i>
                                                                 </a>
 
+                                                                <!-- PDF -->
                                                                 <a href="compras_pdf.php?id=<?php echo $compra['id_compra']; ?>"
                                                                 class="btn btn-secondary btn-sm"
                                                                 title="Generar PDF"
@@ -443,7 +468,7 @@ function EliminarDocumento(id_doc) {
                                                                     <i class="fa fa-file-pdf-o"></i>
                                                                 </a>
 
-                                                                <!-- Botón Pagos (solo si tiene ambas aprobaciones) -->
+                                                                <!-- Botón Pagos -->
                                                                 <?php if ($tiene_tecnica && $tiene_financiera) { ?>
                                                                     <a href="pago_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
                                                                     class="btn btn-warning btn-sm"
