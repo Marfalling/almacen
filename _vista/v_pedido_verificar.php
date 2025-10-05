@@ -53,7 +53,7 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
             <div class="col-md-6">
                 <div class="x_panel">
                     <div class="x_title" style="padding: 8px 15px;">
-                        <h2 style="margin: 0; font-size: 16px;">Items Pendientes <small id="contador-pendientes">(<?php echo count($pedido_detalle); ?> items)</small></h2>
+                        <h2 style="margin: 0; font-size: 16px;">Items <small id="contador-pendientes">(<?php echo "Cantidad: " . count($pedido_detalle); ?>)</small></h2>
                         <?php if ($pedido_anulado): ?>
                                 <span class="badge badge-danger ml-2">PEDIDO ANULADO</span>
                             <?php endif; ?>
@@ -602,21 +602,22 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                 <div class="x_panel">
                     <div class="x_content text-center" style="padding: 15px;">
                         <div class="row">
-                            <div class="col-md-3 offset-md-3">
+                            <div class="col-md-6 offset-md-3">
                                 <a href="pedidos_mostrar.php" class="btn btn-outline-secondary btn-sm btn-block">
                                     <i class="fa fa-arrow-left"></i> Volver
                                 </a>
                             </div>
                             <div class="col-md-3">
-                                <button type="button" class="btn btn-success btn-sm btn-block" id="btn-finalizar-verificacion" disabled>
+                                <!-- <button type="button" class="btn btn-success btn-sm btn-block" id="btn-finalizar-verificacion" disabled>
                                     <i class="fa fa-check-circle"></i> Finalizar Verificación
                                 </button>
+                                 -->
                             </div>
                         </div>
                         <div class="col-md-12 mt-2">
                             <p class="text-muted" style="font-size: 12px;">
                                 <i class="fa fa-info-circle"></i> 
-                                Verifica todos los items antes de finalizar.
+                                Recuerda verificar todos los items
                             </p>
                         </div>
                     </div>

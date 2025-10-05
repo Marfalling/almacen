@@ -21,7 +21,6 @@ $fecha_fin    = isset($_GET['fecha_fin']) ? $_GET['fecha_fin'] : null;
 // Obtener ingresos (compras + directos) con filtro
 $ingresos = MostrarIngresosFecha($fecha_inicio, $fecha_fin);
 ?>
-?>
 
 <!DOCTYPE html>
 <html lang="es">

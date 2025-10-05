@@ -260,7 +260,7 @@ function EliminarDocumento(id_doc) {
                                                 <th>Aprob. Técnica Por</th>
                                                 <th>Aprob. Financiera Por</th>
                                                 <th>Estado</th>
-                                                <th>Documento</th>
+                                                <th>Docs</th>
                                                 <th>Acciones</th>
                                             </tr>
                                         </thead>
@@ -362,7 +362,7 @@ function EliminarDocumento(id_doc) {
                                                                     class="btn btn-info btn-sm" 
                                                                     data-toggle="modal" 
                                                                     data-target="#modalDocumentos<?php echo $compra['id_compra']; ?>">
-                                                                <i class="fa fa-folder-open"></i> Ver Documentos
+                                                                <i class="fa fa-folder-open"></i>
                                                             </button>
                                                         <?php } ?>
                                                     </td>
@@ -374,10 +374,10 @@ function EliminarDocumento(id_doc) {
                                                             ?>
                                                                 <!-- Compra anulada, aprobada o pagada: botones deshabilitados -->
                                                                 <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Aprobar Técnica" tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-check"></i> Téc
+                                                                    <i class="fa fa-check"></i>
                                                                 </a>
                                                                 <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Aprobar Financiera" tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-check"></i> Fin
+                                                                    <i class="fa fa-check"></i>
                                                                 </a>
 
                                                                 <!-- Botón anular -->
@@ -436,7 +436,7 @@ function EliminarDocumento(id_doc) {
                                                                     class="btn btn-success btn-sm"
                                                                     title="Aprobar Técnica"
                                                                 <?php } ?>>
-                                                                    <i class="fa fa-check"></i> Téc
+                                                                    <i class="fa fa-check"></i>
                                                                 </a>
 
                                                                 <a href="#"
@@ -449,7 +449,7 @@ function EliminarDocumento(id_doc) {
                                                                     class="btn btn-primary btn-sm"
                                                                     title="Aprobar Financiera"
                                                                 <?php } ?>>
-                                                                    <i class="fa fa-check"></i> Fin
+                                                                    <i class="fa fa-check"></i>
                                                                 </a>
 
                                                                 <!-- Botón anular -->

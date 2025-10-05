@@ -6,7 +6,7 @@
     <div class="">
         <div class="page-title">
             <div class="title_left">
-                <h3>Verificar Ingreso<small> - Orden de Compra <strong>#<?php echo $compra['id_compra']; ?></strong></small></h3>
+                <h3>Verificar Ingreso<small> - Orden de Compra <strong>#<?php echo $comprax['id_compra']; ?></strong></small></h3>
             </div>
             <div class="title_right">
                 <div class="pull-right">
@@ -36,7 +36,7 @@
                                 </label>
                                 <div class="col-md-3 col-sm-3">
                                 <p class="form-control-plaintext fw-bold mb-0">
-                                    <?php echo $compra['id_compra']; ?>
+                                    <?php echo $comprax['id_compra']; ?>
                                 </p>
                                 </div>
 
@@ -45,7 +45,7 @@
                                 </label>
                                 <div class="col-md-3 col-sm-3">
                                 <p class="form-control-plaintext mb-0">
-                                    <?php echo $compra['nom_proveedor']; ?>
+                                    <?php echo $comprax['nom_proveedor']; ?>
                                 </p>
                                 </div>
                             </div>
@@ -56,7 +56,7 @@
                                 </label>
                                 <div class="col-md-3 col-sm-3">
                                 <p class="form-control-plaintext mb-0">
-                                    <?php echo $compra['cod_pedido']; ?>
+                                    <?php echo $comprax['cod_pedido']; ?>
                                 </p>
                                 </div>
 
@@ -65,7 +65,7 @@
                                 </label>
                                 <div class="col-md-3 col-sm-3">
                                 <p class="form-control-plaintext mb-0">
-                                    <?php echo $compra['ruc_proveedor']; ?>
+                                    <?php echo $comprax['ruc_proveedor']; ?>
                                 </p>
                                 </div>
                             </div>
@@ -76,7 +76,7 @@
                                 </label>
                                 <div class="col-md-3 col-sm-3">
                                 <p class="form-control-plaintext mb-0">
-                                    <?php echo date('d/m/Y', strtotime($compra['fec_compra'])); ?>
+                                    <?php echo date('d/m/Y', strtotime($comprax['fec_compra'])); ?>
                                 </p>
                                 </div>
 
@@ -85,7 +85,7 @@
                                 </label>
                                 <div class="col-md-3 col-sm-3">
                                 <p class="form-control-plaintext mb-0">
-                                    <?php echo $compra['nom_almacen']; ?>
+                                    <?php echo $comprax['nom_almacen']; ?>
                                 </p>
                                 </div>
                             </div>
@@ -96,7 +96,7 @@
                                 </label>
                                 <div class="col-md-3 col-sm-3">
                                 <p class="form-control-plaintext mb-0">
-                                    <?php echo $compra['nom_ubicacion']; ?>
+                                    <?php echo $comprax['nom_ubicacion']; ?>
                                 </p>
                                 </div>
                             </div>
@@ -170,9 +170,9 @@
                                                             min="0.01" 
                                                             max="<?php echo $producto['cantidad_pendiente']; ?>"
                                                             step="0.01"
-                                                            placeholder="<?php echo number_format($producto['cantidad_pendiente'], 2); ?>"
+                                                            placeholder=""
                                                             onchange="validarCantidad(this, <?php echo $producto['cantidad_pendiente']; ?>)"
-                                                            style="border: 2px solid #28a745; font-weight: bold;">
+                                                            style="">
                                                         <input type="hidden" name="productos_seleccionados[]" value="<?php echo $producto['id_producto']; ?>">
                                                     </td>
                                                     <td style="text-align: center;">

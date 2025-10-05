@@ -163,19 +163,22 @@
         <?php } elseif ($tiene_orden_editable) { 
             // Tiene órdenes editables - botón amarillo
         ?>
+            <!--
             <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
                class="btn btn-warning btn-sm" 
                title="Ver/Editar Órdenes de Compra">
                 <i class="fa fa-file-text"></i> Editar OC
             </a>
+            -->
         <?php } elseif ($tiene_ordenes) { 
             // Tiene órdenes pero todas con aprobaciones - solo ver
         ?>
-            <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+            <!-- <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
                class="btn btn-info btn-sm" 
                title="Ver Órdenes de Compra (no editables)">
                 <i class="fa fa-file-text"></i> Ver OC
             </a>
+            -->
         <?php } ?>
 
         <!-- Botón Verificar -->

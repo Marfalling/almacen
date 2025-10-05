@@ -22,8 +22,8 @@ if (!isset($_GET['id_compra'])) {
 $id_compra = intval($_GET['id_compra']);
 
 // Verificar que la compra existe y está aprobada
-$compra = ObtenerDetalleCompra($id_compra);
-if (!$compra) {
+$comprax = ObtenerDetalleCompra($id_compra);
+if (!$comprax) {
     header("location: ingresos_mostrar.php?error=" . urlencode("Compra no encontrada"));
     exit;
 }
