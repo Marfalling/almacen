@@ -1,6 +1,10 @@
 <?php
 require_once("../_conexion/sesion.php");
 
+//=======================================================================
+// CONTROLADOR: detraccion_nuevo.php 
+//=======================================================================
+
 // Verificar permisos
 if (!verificarPermisoEspecifico('crear_detraccion')) {
     require_once("../_modelo/m_auditoria.php");
@@ -9,22 +13,27 @@ if (!verificarPermisoEspecifico('crear_detraccion')) {
     exit;
 }
 
-//=======================================================================
-// CONTROLADOR: detraccion_nuevo.php
-//=======================================================================
-
 require_once("../_modelo/m_detraccion.php");
 
+// Procesar formulario
 if (isset($_REQUEST['registrar'])) {
     $nom = strtoupper(trim($_REQUEST['nom']));
     $porcentaje = floatval($_REQUEST['porcentaje']);
 
+    // Estado por defecto: activo
+    $estado = 1;
+
+    // Insertar registro (modelo ya maneja est_detraccion)
     $rpta = GrabarDetraccion($nom, $porcentaje);
 
+    // Auditoría opcional
+    require_once("../_modelo/m_auditoria.php");
     if ($rpta == "SI") {
+        GrabarAuditoria($id, $usuario_sesion, 'CREACIÓN', 'DETRACCION', "Se creó la detracción '$nom'");
         header("location: detraccion_mostrar.php?registrado=true");
         exit;
     } else {
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR CREACIÓN', 'DETRACCION', "Error al crear '$nom'");
         header("location: detraccion_mostrar.php?error=true");
         exit;
     }
@@ -55,8 +64,6 @@ if (isset($_REQUEST['registrar'])) {
 <?php require_once("../_vista/v_script.php"); ?>
 </body>
 </html>
-
-
 
 
 

@@ -344,6 +344,18 @@ require_once("../_conexion/sesion.php");
               </li>
               <?php endif; ?>
 
+              <!-- Pedidos -->
+              <?php if (tieneAccesoModulo('pedidos') || tieneAccesoModulo('centro de costo')): ?>
+              <li>
+                <a>Pedidos<span class="fa fa-chevron-down"></span></a>
+                <ul class="nav child_menu">
+                  <?php if (verificarPermisoEspecifico('ver_centro de costo')): ?>
+                  <li><a href="centro_costo_mostrar.php">Centro de Costos</a></li>
+                  <?php endif; ?>
+                </ul>
+              </li>
+              <?php endif; ?>
+
             </ul>
           </li>
           <?php endif; ?>

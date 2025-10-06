@@ -1,6 +1,26 @@
 <?php
 require_once("../_conexion/sesion.php");
 
+//=======================================================================
+// CONTROLADOR: detraccion_mostrar.php 
+//=======================================================================
+require_once("../_modelo/m_detraccion.php");
+
+if (isset($_GET['id_detraccion']) && isset($_GET['estado'])) {
+    $id = intval($_GET['id_detraccion']);
+    $nuevo_estado = intval($_GET['estado']);
+
+    $resultado = CambiarEstadoDetraccion($id, $nuevo_estado);
+
+    if ($resultado == "SI") {
+        header("Location: detraccion_mostrar.php?actualizado=true");
+        exit;
+    } else {
+        header("Location: detraccion_mostrar.php?error=true");
+        exit;
+    }
+}
+
 // Verificar permisos
 if (!verificarPermisoEspecifico('ver_detraccion')) {
     require_once("../_modelo/m_auditoria.php");
@@ -9,14 +29,13 @@ if (!verificarPermisoEspecifico('ver_detraccion')) {
     exit;
 }
 
-//=======================================================================
-// CONTROLADOR: detraccion_mostrar.php
-//=======================================================================
-
-require_once("../_modelo/m_detraccion.php");
-
 // Obtener lista de detracciones
 $detraccion = ObtenerDetracciones();
+
+// Registrar auditoría de ingreso
+require_once("../_modelo/m_auditoria.php");
+GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'DETRACCION', 'MOSTRAR');
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -43,7 +62,6 @@ $detraccion = ObtenerDetracciones();
 <?php require_once("../_vista/v_script.php"); ?>
 </body>
 </html>
-
 
 
 

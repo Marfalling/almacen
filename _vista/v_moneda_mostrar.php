@@ -20,7 +20,7 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                 <a href="moneda_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nueva moneda</a>
+                                <a href="moneda_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nueva moneda</a>
                             </div>
                         </div>
                     </div>
@@ -35,26 +35,32 @@
                                                 <th>#</th>
                                                 <th>Nombre</th>
                                                 <th>Estado</th>
-                                                <th>Editar</th> 
+                                                <th>Editar</th>
                                             </tr>
                                         </thead>
 
                                         <tbody>
                                             <?php
                                             $c = 0;
-                                            foreach ($moneda as  $value) {
+                                            foreach ($moneda as $value) {
                                                 $c++;
                                                 $id_moneda = $value['id_moneda'];
                                                 $nom_moneda = $value['nom_moneda'];
                                                 $est_moneda = $value['est_moneda'];
-                                                $estado = ($est_moneda == 1) ? "ACTIVO" : "INACTIVO";
+                                                $estado_texto = ($est_moneda == 1) ? "Activo" : "Inactivo";
                                             ?>
                                                 <tr>
                                                     <td><?php echo $c; ?></td>
                                                     <td><?php echo $nom_moneda; ?></td>
-                                                    <td><?php echo $estado; ?></td>
-                                                    <td>
-                                                        <center><a class="btn btn-warning"  href="moneda_editar.php?id_moneda=<?php echo $id_moneda; ?>"><i class="fa fa-edit"></i></a></center>
+                                                    <td class="text-center">
+                                                        <span class="badge badge_size <?php echo ($est_moneda == 1) ? 'badge-success' : 'badge-secondary'; ?>">
+                                                            <?php echo $estado_texto; ?>
+                                                        </span>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <a class="btn btn-warning btn-sm" href="moneda_editar.php?id_moneda=<?php echo $id_moneda; ?>">
+                                                            <i class="fa fa-edit"></i>
+                                                        </a>
                                                     </td>
                                                 </tr>
                                             <?php
@@ -73,3 +79,5 @@
     </div>
 </div>
 <!-- /page content -->
+
+
