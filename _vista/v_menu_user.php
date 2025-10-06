@@ -1,10 +1,15 @@
 <?php
 // Cargar el modelo de compras para las alertas
 require_once("../_modelo/m_compras.php");
+require_once("../_modelo/m_producto.php");
 
 // Obtener compras próximas a vencer (3 días antes)
 $compras_por_vencer = ObtenerComprasProximasVencer(3);
-$total_alertas = count($compras_por_vencer);
+$total_alertas_compras = count($compras_por_vencer);
+
+// Obtener productos próximos a vencer calibrado/operatividad (15 días antes)
+$productos_por_vencer = ObtenerProductosProximosVencer(15);
+$total_alertas_productos = count($productos_por_vencer);
 ?>
 
 <!-- top navigation -->
@@ -22,14 +27,6 @@ $total_alertas = count($compras_por_vencer);
                         <img src="../_complemento/images/img.jpg" alt="">
                     </a>
                     <div class="dropdown-menu dropdown-usermenu pull-right" aria-labelledby="navbarDropdown">
-                        <!--
-                        <a class="dropdown-item"  href="javascript:;"> Profile</a>
-                        <a class="dropdown-item"  href="javascript:;">
-                          <span class="badge bg-red pull-right">50%</span>
-                          <span>Settings</span>
-                        </a>
-                        <a class="dropdown-item"  href="javascript:;">Help</a>
-                        -->
                         <a class="dropdown-item" href="reset_password.php?id=<?php echo $id; ?>">
                             <i class="fa fa-key pull-right"></i> Cambiar Contraseña
                         </a>
@@ -39,8 +36,121 @@ $total_alertas = count($compras_por_vencer);
                     </div>
                 </li>
                 
-                <!-- ALERTAS DE ÓRDENES POR VENCER (NUEVO) -->
-                <?php if ($total_alertas > 0): ?>
+                <!-- ALERTAS DE PRODUCTOS POR VENCER (CALIBRADO/OPERATIVIDAD) -->
+                <?php if ($total_alertas_productos > 0): ?>
+                <li role="presentation" class="nav-item dropdown open" style="margin-right: 20px;">
+                    <a href="javascript:;" 
+                       class="dropdown-toggle alerta-productos-btn" 
+                       id="navbarDropdownProductos" 
+                       data-toggle="dropdown" 
+                       aria-expanded="false" 
+                       title="Productos con calibrado u operatividad por vencer">
+                        <div class="alerta-box alerta-box-productos">
+                            <i class="fa fa-wrench"></i>
+                            <span class="alerta-text">
+                                <strong><?php echo $total_alertas_productos; ?></strong> 
+                                <?php echo $total_alertas_productos == 1 ? 'Producto' : 'Productos'; ?> por vencer
+                            </span>
+                        </div>
+                    </a>
+                    <ul class="dropdown-menu list-unstyled msg_list alerta-dropdown" 
+                        role="menu" 
+                        aria-labelledby="navbarDropdownProductos">
+                        
+                        <!-- HEADER DEL DROPDOWN -->
+                        <li class="nav-item alerta-header">
+                            <div class="alerta-header-content">
+                                <i class="fa fa-bell"></i> 
+                                <strong>Alertas de Calibrado y Operatividad</strong>
+                            </div>
+                        </li>
+                        
+                        <!-- LISTA DE PRODUCTOS -->
+                        <?php foreach ($productos_por_vencer as $producto): 
+                            // Determinar qué está por vencer
+                            $alertas = [];
+                            
+                            if ($producto['dias_calibrado'] !== null && $producto['dias_calibrado'] >= 0 && $producto['dias_calibrado'] <= 30) {
+                                $dias = intval($producto['dias_calibrado']);
+                                if ($dias == 0) {
+                                    $alertas[] = ['tipo' => 'calibrado', 'texto' => 'Calibrado VENCE HOY', 'clase' => 'alerta-critica', 'icono' => 'fa-times-circle'];
+                                } elseif ($dias <= 7) {
+                                    $alertas[] = ['tipo' => 'calibrado', 'texto' => "Calibrado en $dias día" . ($dias > 1 ? 's' : ''), 'clase' => 'alerta-alta', 'icono' => 'fa-exclamation-circle'];
+                                } else {
+                                    $alertas[] = ['tipo' => 'calibrado', 'texto' => "Calibrado en $dias días", 'clase' => 'alerta-media', 'icono' => 'fa-clock-o'];
+                                }
+                            }
+                            
+                            if ($producto['dias_operatividad'] !== null && $producto['dias_operatividad'] >= 0 && $producto['dias_operatividad'] <= 30) {
+                                $dias = intval($producto['dias_operatividad']);
+                                if ($dias == 0) {
+                                    $alertas[] = ['tipo' => 'operatividad', 'texto' => 'Operatividad VENCE HOY', 'clase' => 'alerta-critica', 'icono' => 'fa-times-circle'];
+                                } elseif ($dias <= 7) {
+                                    $alertas[] = ['tipo' => 'operatividad', 'texto' => "Operatividad en $dias día" . ($dias > 1 ? 's' : ''), 'clase' => 'alerta-alta', 'icono' => 'fa-exclamation-circle'];
+                                } else {
+                                    $alertas[] = ['tipo' => 'operatividad', 'texto' => "Operatividad en $dias días", 'clase' => 'alerta-media', 'icono' => 'fa-clock-o'];
+                                }
+                            }
+                            
+                            // Mostrar cada alerta
+                            foreach ($alertas as $alerta):
+                        ?>
+                        <li class="nav-item alerta-item">
+                            <a class="dropdown-item" href="producto_detalle.php?id=<?php echo $producto['id_producto']; ?>">
+                                <div class="alerta-card <?php echo $alerta['clase']; ?>">
+                                    <div class="alerta-badge">
+                                        <i class="fa <?php echo $alerta['icono']; ?>"></i>
+                                        <?php echo $alerta['texto']; ?>
+                                    </div>
+                                    <div class="alerta-info">
+                                        <div class="alerta-title">
+                                            <strong><?php echo htmlspecialchars($producto['nom_producto']); ?></strong>
+                                        </div>
+                                        <?php if (!empty($producto['cod_material'])): ?>
+                                        <div class="alerta-codigo">
+                                            <i class="fa fa-barcode"></i> 
+                                            Código: <?php echo htmlspecialchars($producto['cod_material']); ?>
+                                        </div>
+                                        <?php endif; ?>
+                                        <div class="alerta-tipo">
+                                            <i class="fa fa-tag"></i> 
+                                            <?php echo htmlspecialchars($producto['nom_producto_tipo']); ?>
+                                        </div>
+                                        <?php if ($alerta['tipo'] == 'calibrado' && $producto['fecha_prox_calibrado']): ?>
+                                        <div class="alerta-fecha">
+                                            <i class="fa fa-calendar"></i> 
+                                            Fecha límite: <strong><?php echo date('d/m/Y', strtotime($producto['fecha_prox_calibrado'])); ?></strong>
+                                        </div>
+                                        <?php elseif ($alerta['tipo'] == 'operatividad' && $producto['fecha_prox_operatividad']): ?>
+                                        <div class="alerta-fecha">
+                                            <i class="fa fa-calendar"></i> 
+                                            Fecha límite: <strong><?php echo date('d/m/Y', strtotime($producto['fecha_prox_operatividad'])); ?></strong>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </a>
+                        </li>
+                        <?php 
+                            endforeach;
+                        endforeach; 
+                        ?>
+                        
+                        <!-- FOOTER DEL DROPDOWN -->
+                        <li class="nav-item alerta-footer">
+                            <div class="text-center">
+                                <a href="producto_mostrar.php" class="btn-ver-todas">
+                                    Ver todos los productos
+                                    <i class="fa fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        </li>
+                    </ul>
+                </li>
+                <?php endif; ?>
+                
+                <!-- ALERTAS DE ÓRDENES POR VENCER -->
+                <?php if ($total_alertas_compras > 0): ?>
                 <li role="presentation" class="nav-item dropdown open" style="margin-right: 20px;">
                     <a href="javascript:;" 
                        class="dropdown-toggle alerta-compras-btn" 
@@ -51,8 +161,8 @@ $total_alertas = count($compras_por_vencer);
                         <div class="alerta-box">
                             <i class="fa fa-exclamation-triangle"></i>
                             <span class="alerta-text">
-                                <strong><?php echo $total_alertas; ?></strong> 
-                                <?php echo $total_alertas == 1 ? 'Orden' : 'Órdenes'; ?> por vencer
+                                <strong><?php echo $total_alertas_compras; ?></strong> 
+                                <?php echo $total_alertas_compras == 1 ? 'Orden' : 'Órdenes'; ?> por vencer
                             </span>
                         </div>
                     </a>
@@ -127,74 +237,6 @@ $total_alertas = count($compras_por_vencer);
                     </ul>
                 </li>
                 <?php endif; ?>
-                
-                
-                <!--
-                <li role="presentation" class="nav-item dropdown open">
-                    <a href="javascript:;" class="dropdown-toggle info-number" id="navbarDropdown1" data-toggle="dropdown" aria-expanded="false">
-                      <i class="fa fa-envelope-o"></i>
-                      <span class="badge bg-green">6</span>
-                    </a>
-                    <ul class="dropdown-menu list-unstyled msg_list" role="menu" aria-labelledby="navbarDropdown1">
-                      <li class="nav-item">
-                        <a class="dropdown-item">
-                          <span class="image"><img src="../_complemento/images/img.jpg" alt="Profile Image" /></span>
-                          <span>
-                            <span>John Smith</span>
-                            <span class="time">3 mins ago</span>
-                          </span>
-                          <span class="message">
-                            Film festivals used to be do-or-die moments for movie makers. They were where...
-                          </span>
-                        </a>
-                      </li>
-                      <li class="nav-item">
-                        <a class="dropdown-item">
-                          <span class="image"><img src="../_complemento/images/img.jpg" alt="Profile Image" /></span>
-                          <span>
-                            <span>John Smith</span>
-                            <span class="time">3 mins ago</span>
-                          </span>
-                          <span class="message">
-                            Film festivals used to be do-or-die moments for movie makers. They were where...
-                          </span>
-                        </a>
-                      </li>
-                      <li class="nav-item">
-                        <a class="dropdown-item">
-                          <span class="image"><img src="../_complemento/images/img.jpg" alt="Profile Image" /></span>
-                          <span>
-                            <span>John Smith</span>
-                            <span class="time">3 mins ago</span>
-                          </span>
-                          <span class="message">
-                            Film festivals used to be do-or-die moments for movie makers. They were where...
-                          </span>
-                        </a>
-                      </li>
-                      <li class="nav-item">
-                        <a class="dropdown-item">
-                          <span class="image"><img src="../_complemento/images/img.jpg" alt="Profile Image" /></span>
-                          <span>
-                            <span>John Smith</span>
-                            <span class="time">3 mins ago</span>
-                          </span>
-                          <span class="message">
-                            Film festivals used to be do-or-die moments for movie makers. They were where...
-                          </span>
-                        </a>
-                      </li>
-                      <li class="nav-item">
-                        <div class="text-center">
-                          <a class="dropdown-item">
-                            <strong>See All Alerts</strong>
-                            <i class="fa fa-angle-right"></i>
-                          </a>
-                        </div>
-                      </li>
-                    </ul>
-                </li>
-                -->
 
             </ul>
         </nav>
@@ -204,7 +246,7 @@ $total_alertas = count($compras_por_vencer);
 
 <style>
 /* ============================================
-   ESTILOS PARA EL BOTÓN DE ALERTAS
+   ESTILOS PARA EL BOTÓN DE ALERTAS DE COMPRAS
    ============================================ */
 .alerta-compras-btn {
     padding: 0 !important;
@@ -247,6 +289,23 @@ $total_alertas = count($compras_por_vencer);
     font-weight: bold;
 }
 
+/* ============================================
+   ESTILOS PARA EL BOTÓN DE ALERTAS DE PRODUCTOS
+   ============================================ */
+.alerta-productos-btn {
+    padding: 0 !important;
+    text-decoration: none;
+}
+
+.alerta-box-productos {
+    background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+}
+
+.alerta-box-productos:hover {
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.5);
+}
+
 /* Animaciones */
 @keyframes pulse-shadow {
     0%, 100% { 
@@ -286,7 +345,7 @@ $total_alertas = count($compras_por_vencer);
 }
 
 .alerta-header-content {
-  color: black;
+    color: black;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -363,6 +422,8 @@ $total_alertas = count($compras_por_vencer);
 }
 
 .alerta-proveedor,
+.alerta-codigo,
+.alerta-tipo,
 .alerta-fecha {
     font-size: 12px;
     color: #7f8c8d;

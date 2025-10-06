@@ -48,8 +48,9 @@ function MostrarProductoActivos() {
 
 //-----------------------------------------------------------------------
 function GrabarProducto($id_producto_tipo, $id_material_tipo, $id_unidad_medida, $cod_material, $nom_producto, 
-                       $nser_producto, $mod_producto, $mar_producto, $det_producto, $fuc_producto, 
-                       $fpc_producto, $dcal_producto, $fuo_producto, $fpo_producto, $dope_producto, $est) {
+                       $nser_producto, $mod_producto, $mar_producto, $det_producto, $hom_producto,
+                       $fuc_producto, $fpc_producto, $dcal_producto, $fuo_producto, $fpo_producto, 
+                       $dope_producto, $est) {
     include("../_conexion/conexion.php");
     
     // Verificar si ya existe un producto con el mismo código de material
@@ -73,12 +74,14 @@ function GrabarProducto($id_producto_tipo, $id_material_tipo, $id_unidad_medida,
     // Insertar nuevo producto
     $sqli = "INSERT INTO producto (
                 id_producto_tipo, id_material_tipo, id_unidad_medida, cod_material, nom_producto, 
-                nser_producto, mod_producto, mar_producto, det_producto, fuc_producto, 
-                fpc_producto, dcal_producto, fuo_producto, fpo_producto, dope_producto, est_producto
+                nser_producto, mod_producto, mar_producto, det_producto, hom_producto,
+                fuc_producto, fpc_producto, dcal_producto, fuo_producto, fpo_producto, 
+                dope_producto, est_producto
             ) VALUES (
                 $id_producto_tipo, $id_material_tipo, $id_unidad_medida, '$cod_material', '$nom_producto',
-                '$nser_producto', '$mod_producto', '$mar_producto', '$det_producto', $fuc_producto,
-                $fpc_producto, '$dcal_producto', $fuo_producto, $fpo_producto, '$dope_producto', $est
+                '$nser_producto', '$mod_producto', '$mar_producto', '$det_producto', '$hom_producto',
+                $fuc_producto, $fpc_producto, '$dcal_producto', $fuo_producto, $fpo_producto, 
+                '$dope_producto', $est
             )";
     
     $resi = mysqli_query($con, $sqli);
@@ -93,9 +96,10 @@ function GrabarProducto($id_producto_tipo, $id_material_tipo, $id_unidad_medida,
 }
 
 //-----------------------------------------------------------------------
-function ActualizarProducto($id_producto, $id_producto_tipo, $id_material_tipo, $id_unidad_medida, $cod_material, $nom_producto, 
-                           $nser_producto, $mod_producto, $mar_producto, $det_producto, $fuc_producto, 
-                           $fpc_producto, $dcal_producto, $fuo_producto, $fpo_producto, $dope_producto, $est) {
+function ActualizarProducto($id_producto, $id_producto_tipo, $id_material_tipo, $id_unidad_medida, 
+                           $cod_material, $nom_producto, $nser_producto, $mod_producto, $mar_producto, 
+                           $det_producto, $hom_producto, $fuc_producto, $fpc_producto, $dcal_producto, 
+                           $fuo_producto, $fpo_producto, $dope_producto, $est) {
     include("../_conexion/conexion.php");
     
     // Verificar si ya existe otro producto con el mismo código de material
@@ -118,23 +122,24 @@ function ActualizarProducto($id_producto, $id_producto_tipo, $id_material_tipo, 
     
     // Actualizar producto
     $sqlu = "UPDATE producto SET 
-                id_producto_tipo = $id_producto_tipo,
-                id_material_tipo = $id_material_tipo,
-                id_unidad_medida = $id_unidad_medida,
-                cod_material = '$cod_material',
-                nom_producto = '$nom_producto',
-                nser_producto = '$nser_producto',
-                mod_producto = '$mod_producto',
-                mar_producto = '$mar_producto',
-                det_producto = '$det_producto',
-                fuc_producto = $fuc_producto,
-                fpc_producto = $fpc_producto,
-                dcal_producto = '$dcal_producto',
-                fuo_producto = $fuo_producto,
-                fpo_producto = $fpo_producto,
-                dope_producto = '$dope_producto',
-                est_producto = $est
-             WHERE id_producto = $id_producto";
+                    id_producto_tipo = $id_producto_tipo,
+                    id_material_tipo = $id_material_tipo,
+                    id_unidad_medida = $id_unidad_medida,
+                    cod_material = '$cod_material',
+                    nom_producto = '$nom_producto',
+                    nser_producto = '$nser_producto',
+                    mod_producto = '$mod_producto',
+                    mar_producto = '$mar_producto',
+                    det_producto = '$det_producto',
+                    hom_producto = '$hom_producto',
+                    fuc_producto = $fuc_producto,
+                    fpc_producto = $fpc_producto,
+                    dcal_producto = '$dcal_producto',
+                    fuo_producto = $fuo_producto,
+                    fpo_producto = $fpo_producto,
+                    dope_producto = '$dope_producto',
+                    est_producto = $est
+                WHERE id_producto = $id_producto";
     
     $resu = mysqli_query($con, $sqlu);
     
@@ -691,6 +696,55 @@ function NumeroRegistrosFiltradosProductosModal($searchValue, $tipoProducto = 0)
     
     mysqli_close($con);
     return intval($row['total']);
+}
+//-----------------------------------------------------------------------
+// FUNCIÓN PARA OBTENER PRODUCTOS PRÓXIMOS A VENCER (CALIBRADO Y OPERATIVIDAD)
+//-----------------------------------------------------------------------
+function ObtenerProductosProximosVencer($dias_anticipacion = 30)
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT 
+                p.id_producto,
+                p.cod_material,
+                p.nom_producto,
+                p.fpc_producto as fecha_prox_calibrado,
+                p.fpo_producto as fecha_prox_operatividad,
+                DATEDIFF(p.fpc_producto, CURDATE()) as dias_calibrado,
+                DATEDIFF(p.fpo_producto, CURDATE()) as dias_operatividad,
+                pt.nom_producto_tipo,
+                um.nom_unidad_medida
+            FROM producto p
+            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
+            INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+            WHERE p.est_producto = 1
+            AND (
+                (p.fpc_producto IS NOT NULL 
+                 AND DATEDIFF(p.fpc_producto, CURDATE()) BETWEEN 0 AND $dias_anticipacion)
+                OR
+                (p.fpo_producto IS NOT NULL 
+                 AND DATEDIFF(p.fpo_producto, CURDATE()) BETWEEN 0 AND $dias_anticipacion)
+            )
+            ORDER BY 
+                LEAST(
+                    COALESCE(DATEDIFF(p.fpc_producto, CURDATE()), 999), 
+                    COALESCE(DATEDIFF(p.fpo_producto, CURDATE()), 999)
+                ) ASC";
+    
+    $resultado = mysqli_query($con, $sql);
+    
+    if (!$resultado) {
+        mysqli_close($con);
+        return array();
+    }
+    
+    $productos = array();
+    while ($row = mysqli_fetch_assoc($resultado)) {
+        $productos[] = $row;
+    }
+    
+    mysqli_close($con);
+    return $productos;
 }
 
 ?>

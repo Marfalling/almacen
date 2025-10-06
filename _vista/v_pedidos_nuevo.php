@@ -378,6 +378,22 @@
                         </div>
                     </div>
 
+                    <!-- Documento de Homologación -->
+                    <div class="x_title">
+                        <h5>Documento de Homologación</h5>
+                        <div class="clearfix"></div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="control-label">Documento de Homologación:</label>
+                                <input type="file" name="hom_archivo" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                                <small class="text-muted">Formatos permitidos: PDF, JPG, JPEG, PNG, DOC, DOCX. Tamaño máximo: 10MB</small>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Información de Calibrado -->
                     <div class="x_title">
                         <h5>Información de Calibrado <small>(para materiales)</small></h5>
@@ -1034,8 +1050,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Validar archivos si se han seleccionado
+            const archivoHomologacion = document.querySelector('input[name="hom_archivo"]')?.files[0];
             const archivoCalibrado = document.querySelector('input[name="dcal_archivo"]')?.files[0];
             const archivoOperatividad = document.querySelector('input[name="dope_archivo"]')?.files[0];
+
+            if (archivoHomologacion && archivoHomologacion.size > 10 * 1024 * 1024) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Archivo muy grande',
+                        text: 'El archivo de homologación no debe superar los 10MB'
+                    });
+                } else {
+                    alert('El archivo de homologación no debe superar los 10MB');
+                }
+                return;
+            }
             
             if (archivoCalibrado && archivoCalibrado.size > 10 * 1024 * 1024) {
                 if (typeof Swal !== 'undefined') {

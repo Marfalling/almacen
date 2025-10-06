@@ -57,6 +57,7 @@ if (!verificarPermisoEspecifico('editar_producto')) {
 
                 // Obtener datos actuales del producto para conservar archivos existentes
                 $producto_actual = ObtenerProductoPorId($id_producto);
+                $hom_producto = $producto_actual['hom_producto'];
                 $dcal_producto = $producto_actual['dcal_producto'];
                 $dope_producto = $producto_actual['dope_producto'];
 
@@ -64,7 +65,7 @@ if (!verificarPermisoEspecifico('editar_producto')) {
                 function subirArchivo($archivo, $prefijo) {
                     if ($archivo['error'] == 0) {
                         $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
-                        $extensiones_permitidas = array('pdf', 'jpg', 'jpeg');
+                         $extensiones_permitidas = array('pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx');
                         
                         if (in_array($extension, $extensiones_permitidas)) {
                             // Crear directorio si no existe
@@ -84,11 +85,25 @@ if (!verificarPermisoEspecifico('editar_producto')) {
                     }
                     return '';
                 }
-
                 // Procesar archivos subidos (solo si se subieron nuevos)
+                if (isset($_FILES['hom_archivo']) && $_FILES['hom_archivo']['size'] > 0) {
+                    $nuevo_hom = subirArchivo($_FILES['hom_archivo'], 'homologacion');
+                    if (!empty($nuevo_hom)) {
+                        // Eliminar archivo anterior si existe
+                        if (!empty($hom_producto) && file_exists("../_uploads/documentos/" . $hom_producto)) {
+                            unlink("../_uploads/documentos/" . $hom_producto);
+                        }
+                        $hom_producto = $nuevo_hom;
+                    }
+                }
+
                 if (isset($_FILES['dcal_archivo']) && $_FILES['dcal_archivo']['size'] > 0) {
                     $nuevo_dcal = subirArchivo($_FILES['dcal_archivo'], 'calibrado');
                     if (!empty($nuevo_dcal)) {
+                        // Eliminar archivo anterior si existe
+                        if (!empty($dcal_producto) && file_exists("../_uploads/documentos/" . $dcal_producto)) {
+                            unlink("../_uploads/documentos/" . $dcal_producto);
+                        }
                         $dcal_producto = $nuevo_dcal;
                     }
                 }
@@ -96,13 +111,19 @@ if (!verificarPermisoEspecifico('editar_producto')) {
                 if (isset($_FILES['dope_archivo']) && $_FILES['dope_archivo']['size'] > 0) {
                     $nuevo_dope = subirArchivo($_FILES['dope_archivo'], 'operatividad');
                     if (!empty($nuevo_dope)) {
+                        // Eliminar archivo anterior si existe
+                        if (!empty($dope_producto) && file_exists("../_uploads/documentos/" . $dope_producto)) {
+                            unlink("../_uploads/documentos/" . $dope_producto);
+                        }
                         $dope_producto = $nuevo_dope;
                     }
                 }
 
-                $rpta = ActualizarProducto($id_producto, $id_producto_tipo, $id_material_tipo, $id_unidad_medida, $cod_material, $nom_producto, 
-                                          $nser_producto, $mod_producto, $mar_producto, $det_producto, $fuc_producto, 
-                                          $fpc_producto, $dcal_producto, $fuo_producto, $fpo_producto, $dope_producto, $est);
+                $rpta = ActualizarProducto($id_producto, $id_producto_tipo, $id_material_tipo, $id_unidad_medida, 
+                                          $cod_material, $nom_producto, $nser_producto, $mod_producto, $mar_producto, 
+                                          $det_producto, $hom_producto, $fuc_producto, $fpc_producto, $dcal_producto, 
+                                          $fuo_producto, $fpo_producto, $dope_producto, $est);
+
 
                 if ($rpta == "SI") {
                 ?>
@@ -149,6 +170,7 @@ if (!verificarPermisoEspecifico('editar_producto')) {
                 $mod_producto = $producto_data['mod_producto'];
                 $mar_producto = $producto_data['mar_producto'];
                 $det_producto = $producto_data['det_producto'];
+                $hom_producto = $producto_data['hom_producto'];
                 $fuc_producto = $producto_data['fuc_producto'];
                 $fpc_producto = $producto_data['fpc_producto'];
                 $dcal_producto = $producto_data['dcal_producto'];

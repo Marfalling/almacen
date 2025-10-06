@@ -118,6 +118,46 @@
                             </div>
                         </div>
 
+                        <!-- Información de Homologación -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="x_panel">
+                                    <div class="x_title">
+                                        <h2><i class="fa fa-certificate"></i> Documento de Homologación</h2>
+                                        <div class="clearfix"></div>
+                                    </div>
+                                    <div class="x_content">
+                                        <table class="table table-striped">
+                                            <tr>
+                                                <td style="width: 30%;"><strong>Documento de Homologación:</strong></td>
+                                                <td>
+                                                    <?php if (!empty($producto['hom_producto'])) { ?>
+                                                        <div class="mb-2">
+                                                            <a href="../_uploads/documentos/<?php echo $producto['hom_producto']; ?>" target="_blank" class="btn btn-primary btn-sm">
+                                                                <i class="fa fa-file"></i> Ver Documento
+                                                            </a>
+                                                        </div>
+                                                        <small class="text-muted">Archivo: <?php echo $producto['hom_producto']; ?></small>
+                                                        
+                                                        <!-- Vista previa si es imagen -->
+                                                        <?php 
+                                                        $extension = strtolower(pathinfo($producto['hom_producto'], PATHINFO_EXTENSION));
+                                                        if (in_array($extension, ['jpg', 'jpeg', 'png'])) { ?>
+                                                            <div class="mt-2">
+                                                                <img src="../_uploads/documentos/<?php echo $producto['hom_producto']; ?>" alt="Documento de homologación" class="img-thumbnail" style="max-width: 200px; max-height: 150px;">
+                                                            </div>
+                                                        <?php } ?>
+                                                    <?php } else { ?>
+                                                        <span class="text-muted">No hay documento</span>
+                                                    <?php } ?>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Información de Calibrado -->
                         <div class="row">
                             <div class="col-md-6">
@@ -173,7 +213,7 @@
                                                         <!-- Vista previa si es imagen -->
                                                         <?php 
                                                         $extension = strtolower(pathinfo($producto['dcal_producto'], PATHINFO_EXTENSION));
-                                                        if (in_array($extension, ['jpg', 'jpeg'])) { ?>
+                                                        if (in_array($extension, ['jpg', 'jpeg', 'png'])) { ?>
                                                             <div class="mt-2">
                                                                 <img src="../_uploads/documentos/<?php echo $producto['dcal_producto']; ?>" alt="Documento de calibrado" class="img-thumbnail" style="max-width: 200px; max-height: 150px;">
                                                             </div>
@@ -242,7 +282,7 @@
                                                         <!-- Vista previa si es imagen -->
                                                         <?php 
                                                         $extension = strtolower(pathinfo($producto['dope_producto'], PATHINFO_EXTENSION));
-                                                        if (in_array($extension, ['jpg', 'jpeg'])) { ?>
+                                                        if (in_array($extension, ['jpg', 'jpeg', 'png'])) { ?>
                                                             <div class="mt-2">
                                                                 <img src="../_uploads/documentos/<?php echo $producto['dope_producto']; ?>" alt="Documento de operatividad" class="img-thumbnail" style="max-width: 200px; max-height: 150px;">
                                                             </div>

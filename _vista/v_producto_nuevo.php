@@ -105,6 +105,20 @@
                                 </div>
                             </div>
 
+                            <!-- Sección de Homologación -->
+                            <div class="x_title">
+                                <h2>Documento de Homologación</h2>
+                                <div class="clearfix"></div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Documento de Homologación:</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="file" name="hom_archivo" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                                    <small class="text-muted">Formatos permitidos: PDF, JPG, JPEG, PNG, DOC, DOCX. Tamaño máximo: 10MB</small>
+                                </div>
+                            </div>
+
                             <!-- Sección de Calibrado -->
                             <div class="x_title">
                                 <h2>Información de Calibrado <small>(para materiales)</small></h2>
@@ -128,8 +142,8 @@
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Documento de Calibrado:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="file" name="dcal_archivo" class="form-control" accept=".pdf,.jpg,.jpeg">
-                                    <small class="text-muted">Formatos permitidos: PDF, JPG, JPEG. Tamaño máximo: 10MB</small>
+                                    <input type="file" name="dcal_archivo" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                                    <small class="text-muted">Formatos permitidos: PDF, JPG, JPEG, PNG, DOC, DOCX. Tamaño máximo: 10MB</small>
                                 </div>
                             </div>
 
@@ -156,8 +170,8 @@
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Documento de Operatividad:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="file" name="dope_archivo" class="form-control" accept=".pdf,.jpg,.jpeg">
-                                    <small class="text-muted">Formatos permitidos: PDF, JPG, JPEG. Tamaño máximo: 10MB</small>
+                                    <input type="file" name="dope_archivo" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                                    <small class="text-muted">Formatos permitidos: PDF, JPG, JPEG, PNG, DOC, DOCX. Tamaño máximo: 10MB</small>
                                 </div>
                             </div>
 

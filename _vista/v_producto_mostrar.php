@@ -45,6 +45,7 @@
                                                 <th>N° Serie</th>
                                                 <th>Modelo</th>
                                                 <th>Marca</th>
+                                                <th>Doc. Homolog.</th>
                                                 <th>Doc. Calibrado</th>
                                                 <th>Doc. Operatividad</th>
                                                 <th>Estado</th>
@@ -70,6 +71,7 @@
                                                 $mod_producto = $value['mod_producto'];
                                                 $mar_producto = $value['mar_producto'];
                                                 $det_producto = $value['det_producto'];
+                                                $hom_producto = $value['hom_producto'];
                                                 $fuc_producto = $value['fuc_producto'];
                                                 $fpc_producto = $value['fpc_producto'];
                                                 $dcal_producto = $value['dcal_producto'];
@@ -88,6 +90,17 @@
                                                     <td><?php echo $nser_producto; ?></td>
                                                     <td><?php echo $mod_producto; ?></td>
                                                     <td><?php echo $mar_producto; ?></td>
+                                                    <td>
+                                                        <?php if (!empty($hom_producto)) { ?>
+                                                            <a href="../_uploads/documentos/<?php echo $hom_producto; ?>" target="_blank" class="btn btn-success btn-xs" title="Ver documento de homologación">
+                                                                <i class="fa fa-file"></i>
+                                                            </a>
+                                                            <br>
+                                                            <small class="text-muted"><?php echo substr($hom_producto, 0, 15) . '...'; ?></small>
+                                                        <?php } else { ?>
+                                                            <span class="text-muted">Sin documento</span>
+                                                        <?php } ?>
+                                                    </td>
                                                     <td>
                                                         <?php if (!empty($dcal_producto)) { ?>
                                                             <a href="../_uploads/documentos/<?php echo $dcal_producto; ?>" target="_blank" class="btn btn-primary btn-xs" title="Ver documento de calibrado">

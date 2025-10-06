@@ -15,7 +15,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 return round($size);
             }
         }
-
         // Verificar límites de PHP
         $max_filesize = min(
             parse_size(ini_get('upload_max_filesize')),
@@ -195,8 +194,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Procesar archivos subidos
+        $hom_producto = '';
         $dcal_producto = '';
         $dope_producto = '';
+
+        // Archivo de homologación
+        if (isset($_FILES['hom_archivo'])) {
+            $resultado_hom = subirArchivo($_FILES['hom_archivo'], 'hom', 10485760);
+            if (!$resultado_hom['success'] && !empty($resultado_hom['error'])) {
+                echo json_encode([
+                    'success' => false, 
+                    'message' => 'Error en archivo de homologación: ' . $resultado_hom['error']
+                ]);
+                exit;
+            }
+            $hom_producto = $resultado_hom['filename'];
+        }
 
         // Archivo de calibrado
         if (isset($_FILES['dcal_archivo'])) {
@@ -233,7 +246,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $nser_producto, 
             $mod_producto, 
             $mar_producto, 
-            $det_producto, 
+            $det_producto,
+            $hom_producto,
             $fuc_producto,
             $fpc_producto, 
             $dcal_producto, 

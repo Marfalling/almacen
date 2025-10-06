@@ -72,7 +72,17 @@ if (!verificarPermisoEspecifico('crear_producto')) {
                         }
                         
                         // Generar nombre optimizado (máximo 35 caracteres)
-                        $prefijo_corto = ($prefijo === 'calibrado') ? 'cal' : 'ope';
+                        $prefijo_corto = '';
+                        if ($prefijo === 'calibrado') {
+                            $prefijo_corto = 'cal';
+                        } elseif ($prefijo === 'operatividad') {
+                            $prefijo_corto = 'ope';
+                        } elseif ($prefijo === 'homologacion') {
+                            $prefijo_corto = 'hom';
+                        } else {
+                            $prefijo_corto = substr($prefijo, 0, 3);
+                        }
+
                         $timestamp = date('YmdHis'); // 14 caracteres
                         $random = substr(md5(uniqid(rand(), true)), 0, 4); // 4 caracteres
                         
@@ -96,10 +106,14 @@ if (!verificarPermisoEspecifico('crear_producto')) {
                 }
                 return '';
             }
-
                 // Procesar archivos subidos
+                $hom_producto = '';
                 $dcal_producto = '';
                 $dope_producto = '';
+
+                if (isset($_FILES['hom_archivo']) && $_FILES['hom_archivo']['size'] > 0) {
+                    $hom_producto = subirArchivo($_FILES['hom_archivo'], 'homologacion');
+                }
 
                 if (isset($_FILES['dcal_archivo']) && $_FILES['dcal_archivo']['size'] > 0) {
                     $dcal_producto = subirArchivo($_FILES['dcal_archivo'], 'calibrado');
@@ -110,8 +124,9 @@ if (!verificarPermisoEspecifico('crear_producto')) {
                 }
 
                 $rpta = GrabarProducto($id_producto_tipo, $id_material_tipo, $id_unidad_medida, $cod_material, $nom_producto, 
-                                      $nser_producto, $mod_producto, $mar_producto, $det_producto, $fuc_producto, 
-                                      $fpc_producto, $dcal_producto, $fuo_producto, $fpo_producto, $dope_producto, $est);
+                                      $nser_producto, $mod_producto, $mar_producto, $det_producto, $hom_producto,
+                                      $fuc_producto, $fpc_producto, $dcal_producto, $fuo_producto, $fpo_producto, 
+                                      $dope_producto, $est);
 
                 if ($rpta == "SI") {
             ?>
