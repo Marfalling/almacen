@@ -1,8 +1,3 @@
-<?php 
-//=======================================================================
-// VISTA: v_clientes_editar.php
-//=======================================================================
-?>
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -56,7 +51,6 @@
                                 </div>
                             </div>
 
-                            <!-- Campos ocultos -->
                             <input type="hidden" name="id_cliente" value="<?php echo $id_cliente; ?>">
                         </form>
                     </div>

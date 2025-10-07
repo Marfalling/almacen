@@ -88,9 +88,13 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                 $id_ubicacion_origen = intval($_REQUEST['id_ubicacion_origen']);
                 $id_almacen_destino = intval($_REQUEST['id_almacen_destino']);
                 $id_ubicacion_destino = intval($_REQUEST['id_ubicacion_destino']);
-                $ndoc_salida = mysqli_real_escape_string($con, $_REQUEST['ndoc_salida']);
+                
+                // CORRECCIÓN: No usar mysqli_real_escape_string aquí
+                // El modelo se encargará de sanitizar estos datos
+                $ndoc_salida = $_REQUEST['ndoc_salida'];
                 $fec_req_salida = $_REQUEST['fec_req_salida'];
-                $obs_salida = mysqli_real_escape_string($con, $_REQUEST['obs_salida']);
+                $obs_salida = $_REQUEST['obs_salida'];
+                
                 $id_personal_encargado = intval($_REQUEST['id_personal_encargado']);
                 $id_personal_recibe = intval($_REQUEST['id_personal_recibe']);
                 
@@ -135,9 +139,10 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                                     $mensaje_alerta = "La cantidad solicitada para '{$_REQUEST['descripcion'][$index]}' ({$cantidad}) excede el stock disponible ({$stock_disponible}).";
                                     break;
                                 } else {
+                                    // CORRECCIÓN: Ya no usamos mysqli_real_escape_string aquí
                                     $materiales[] = array(
                                         'id_producto' => intval($id_producto),
-                                        'descripcion' => mysqli_real_escape_string($con, $_REQUEST['descripcion'][$index]),
+                                        'descripcion' => $_REQUEST['descripcion'][$index],
                                         'cantidad' => $cantidad
                                     );
                                 }
@@ -155,7 +160,7 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                         );
                         
                         if ($resultado === "SI") {
-                            // ✅ Si la salida proviene de un pedido, marcar el pedido como completado
+                            // Si la salida proviene de un pedido, marcar el pedido como completado
                             $id_pedido_origen = isset($_REQUEST['id_pedido_origen']) ? intval($_REQUEST['id_pedido_origen']) : 0;
                             
                             if ($id_pedido_origen > 0) {

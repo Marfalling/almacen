@@ -8,12 +8,7 @@ if (!verificarPermisoEspecifico('ver_cliente')) {
     exit;
 }
 
-require_once("../_modelo/m_clientes.php");
-
-
 ?>
-
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -35,6 +30,7 @@ require_once("../_modelo/m_clientes.php");
 
             require_once("../_modelo/m_clientes.php");
             $clientes = MostrarClientes();
+            
             require_once("../_vista/v_clientes_mostrar.php");
 
             require_once("../_vista/v_footer.php");
@@ -47,5 +43,4 @@ require_once("../_modelo/m_clientes.php");
     require_once("../_vista/v_alertas.php");
     ?>
 </body>
-
 </html>

@@ -5,7 +5,7 @@ function GrabarPersonal($id_area, $id_cargo, $nom, $ape, $dni, $email, $tel, $es
 {
     include("../_conexion/conexion.php");
     
-    // Verificar si ya existe un personal con el mismo DNI
+    // Verificar si ya existe un personal con el mismo DNI en la base principal
     $sql_verificar = "SELECT COUNT(*) as total FROM personal WHERE dni_personal = '$dni'";
     $resultado_verificar = mysqli_query($con, $sql_verificar);
     $fila = mysqli_fetch_assoc($resultado_verificar);
@@ -32,21 +32,53 @@ function GrabarPersonal($id_area, $id_cargo, $nom, $ape, $dni, $email, $tel, $es
 function MostrarPersonal()
 {
     include("../_conexion/conexion.php");
+    include("../_conexion/conexion_complemento.php");
 
-    $sqlc = "SELECT p.*, a.nom_area, c.nom_cargo 
+    $resultado = array();
+
+    // Obtener personal de la base principal
+    $sqlc = "SELECT p.id_personal, p.nom_personal, p.ape_personal, p.dni_personal, 
+             p.email_personal, p.tel_personal, p.est_personal,
+             a.nom_area, c.nom_cargo, 'Principal' as origen 
              FROM personal p 
              INNER JOIN area a ON p.id_area = a.id_area 
              INNER JOIN cargo c ON p.id_cargo = c.id_cargo 
              ORDER BY p.nom_personal ASC";
     $resc = mysqli_query($con, $sqlc);
 
-    $resultado = array();
-
-    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
-        $resultado[] = $rowc;
+    if (!$resc) {
+        error_log("Error en MostrarPersonal() - Base principal: " . mysqli_error($con));
+    } else {
+        while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+            $resultado[] = $rowc;
+        }
     }
 
+    // Obtener personal de la base complementaria (Inspecciones)
+    $sql_comp = "SELECT p.id_personal, p.nom_personal, '' as ape_personal, p.dni_personal, 
+                 p.email_personal, p.cel_personal as tel_personal, p.act_personal as est_personal,
+                 a.nom_area, c.nom_cargo, 'Inspecciones' as origen 
+                 FROM personal p 
+                 INNER JOIN area a ON p.id_area = a.id_area 
+                 INNER JOIN cargo c ON p.id_cargo = c.id_cargo 
+                 ORDER BY p.nom_personal ASC";
+    $res_comp = mysqli_query($con_comp, $sql_comp);
+    
+    if (!$res_comp) {
+        error_log("Error en MostrarPersonal() - Base Inspecciones: " . mysqli_error($con_comp));
+    } else {
+        while ($rowc = mysqli_fetch_array($res_comp, MYSQLI_ASSOC)) {
+            $resultado[] = $rowc;
+        }
+    }
+
+    // Ordenar por nombre
+    usort($resultado, function($a, $b) {
+        return strcmp($a['nom_personal'], $b['nom_personal']);
+    });
+
     mysqli_close($con);
+    mysqli_close($con_comp);
     
     return $resultado;
 }
@@ -55,8 +87,13 @@ function MostrarPersonal()
 function MostrarPersonalActivo()
 {
     include("../_conexion/conexion.php");
+    include("../_conexion/conexion_complemento.php");
 
-    $sqlc = "SELECT p.id_personal, p.nom_personal, p.ape_personal, a.nom_area, c.nom_cargo 
+    $resultado = array();
+
+    // Personal activo de la base principal
+    $sqlc = "SELECT p.id_personal, p.nom_personal, p.ape_personal, 
+             a.nom_area, c.nom_cargo, 'Principal' as origen 
              FROM personal p 
              INNER JOIN area a ON p.id_area = a.id_area 
              INNER JOIN cargo c ON p.id_cargo = c.id_cargo 
@@ -64,13 +101,39 @@ function MostrarPersonalActivo()
              ORDER BY p.nom_personal ASC";
     $resc = mysqli_query($con, $sqlc);
 
-    $resultado = array();
-
-    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
-        $resultado[] = $rowc;
+    if (!$resc) {
+        error_log("Error en MostrarPersonalActivo() - Base principal: " . mysqli_error($con));
+    } else {
+        while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+            $resultado[] = $rowc;
+        }
     }
 
+    // Personal activo de la base complementaria
+    $sql_comp = "SELECT p.id_personal, p.nom_personal, '' as ape_personal, 
+                 a.nom_area, c.nom_cargo, 'Inspecciones' as origen 
+                 FROM personal p 
+                 INNER JOIN area a ON p.id_area = a.id_area 
+                 INNER JOIN cargo c ON p.id_cargo = c.id_cargo 
+                 WHERE p.act_personal = 1 
+                 ORDER BY p.nom_personal ASC";
+    $res_comp = mysqli_query($con_comp, $sql_comp);
+    
+    if (!$res_comp) {
+        error_log("Error en MostrarPersonalActivo() - Base Inspecciones: " . mysqli_error($con_comp));
+    } else {
+        while ($rowc = mysqli_fetch_array($res_comp, MYSQLI_ASSOC)) {
+            $resultado[] = $rowc;
+        }
+    }
+
+    // Ordenar por nombre
+    usort($resultado, function($a, $b) {
+        return strcmp($a['nom_personal'], $b['nom_personal']);
+    });
+
     mysqli_close($con);
+    mysqli_close($con_comp);
     
     return $resultado;
 }
@@ -134,19 +197,44 @@ function ObtenerPersonal($id)
 function BuscarPersonalPorDNI($dni)
 {
     include("../_conexion/conexion.php");
+    include("../_conexion/conexion_complemento.php");
 
-    $sql = "SELECT p.*, a.nom_area, c.nom_cargo 
+    // Buscar primero en la base principal
+    $sql = "SELECT p.*, a.nom_area, c.nom_cargo, 'Principal' as origen 
             FROM personal p 
             INNER JOIN area a ON p.id_area = a.id_area 
             INNER JOIN cargo c ON p.id_cargo = c.id_cargo 
             WHERE p.dni_personal = '$dni'";
     $result = mysqli_query($con, $sql);
     
-    $personal = mysqli_fetch_assoc($result);
+    if ($result && mysqli_num_rows($result) > 0) {
+        $personal = mysqli_fetch_assoc($result);
+        mysqli_close($con);
+        mysqli_close($con_comp);
+        return $personal;
+    }
+
+    // Si no se encuentra en la principal, buscar en la complementaria
+    $sql_comp = "SELECT p.id_personal, p.nom_personal, '' as ape_personal, 
+                 p.dni_personal, p.email_personal, p.cel_personal as tel_personal,
+                 a.nom_area, c.nom_cargo, 'Inspecciones' as origen 
+                 FROM personal p 
+                 INNER JOIN area a ON p.id_area = a.id_area 
+                 INNER JOIN cargo c ON p.id_cargo = c.id_cargo 
+                 WHERE p.dni_personal = '$dni'";
+    $result_comp = mysqli_query($con_comp, $sql_comp);
     
+    if ($result_comp && mysqli_num_rows($result_comp) > 0) {
+        $personal = mysqli_fetch_assoc($result_comp);
+        mysqli_close($con);
+        mysqli_close($con_comp);
+        return $personal;
+    }
+
     mysqli_close($con);
+    mysqli_close($con_comp);
     
-    return $personal;
+    return false;
 }
 
 ?>

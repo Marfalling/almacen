@@ -32,7 +32,6 @@ if (!verificarPermisoEspecifico('editar_cliente')) {
 
             require_once("../_modelo/m_clientes.php");
 
-            //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
                 $id_cliente = $_REQUEST['id_cliente'];
                 $nom = strtoupper($_REQUEST['nom']);
@@ -54,9 +53,7 @@ if (!verificarPermisoEspecifico('editar_cliente')) {
                 <?php
                 }
             }
-            //-------------------------------------------
 
-            // Obtener ID del cliente desde GET
             $id_cliente = isset($_GET['id_cliente']) ? $_GET['id_cliente'] : '';
             if ($id_cliente == "") {
             ?>
@@ -67,7 +64,6 @@ if (!verificarPermisoEspecifico('editar_cliente')) {
                 exit;
             }
 
-            // Obtener datos del cliente a editar
             $cliente_data = ObtenerCliente($id_cliente);
             if ($cliente_data) {
                 $nom = $cliente_data['nom_cliente'];

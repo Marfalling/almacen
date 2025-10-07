@@ -35,6 +35,7 @@
                                                 <th>#</th>
                                                 <th>Nombre</th>
                                                 <th>Estado</th>
+                                                <th>Origen</th>
                                                 <th>Editar</th> 
                                             </tr>
                                         </thead>
@@ -42,19 +43,27 @@
                                         <tbody>
                                             <?php
                                             $c = 0;
-                                            foreach ($clientes as  $value) {
+                                            foreach ($clientes as $value) {
                                                 $c++;
                                                 $id_cliente = $value['id_cliente'];
                                                 $nom_cliente = $value['nom_cliente'];
                                                 $est_cliente = $value['est_cliente'];
+                                                $origen = $value['origen'];
                                                 $estado = ($est_cliente == 1) ? "ACTIVO" : "INACTIVO";
                                             ?>
                                                 <tr>
                                                     <td><?php echo $c; ?></td>
                                                     <td><?php echo $nom_cliente; ?></td>
                                                     <td><?php echo $estado; ?></td>
+                                                    <td><?php echo $origen; ?></td>
                                                     <td>
-                                                        <center><a class="btn btn-warning"href="clientes_editar.php?id_cliente=<?php echo $id_cliente; ?>"><i class="fa fa-edit"></i></a></center>
+                                                        <center>
+                                                            <?php if ($origen == 'Principal'): ?>
+                                                                <a class="btn btn-warning" href="clientes_editar.php?id_cliente=<?php echo $id_cliente; ?>"><i class="fa fa-edit"></i></a>
+                                                            <?php else: ?>
+                                                                <span>-</span>
+                                                            <?php endif; ?>
+                                                        </center>
                                                     </td>
                                                 </tr>
                                             <?php

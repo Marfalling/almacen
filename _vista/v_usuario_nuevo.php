@@ -25,15 +25,24 @@
                                     <select name="id_personal" class="form-control" required="required">
                                         <option value="">Seleccione personal</option>
                                         <?php if(isset($personal_sin_usuario) && !empty($personal_sin_usuario)) { ?>
-                                            <?php foreach($personal_sin_usuario as $personal) { ?>
+                                            <?php foreach($personal_sin_usuario as $personal) { 
+                                                $origen_texto = ($personal['origen'] == 'Principal') ? '' : ' [BD Inspecciones]';
+                                            ?>
                                                 <option value="<?php echo $personal['id_personal']; ?>">
-                                                    <?php echo $personal['nom_personal'] . ' ' . $personal['ape_personal'] . ' - ' . $personal['dni_personal'] . ' (' . $personal['nom_area'] . ' - ' . $personal['nom_cargo'] . ')'; ?>
+                                                    <?php 
+                                                    $nombre_completo = $personal['nom_personal'];
+                                                    if (!empty($personal['ape_personal'])) {
+                                                        $nombre_completo .= ' ' . $personal['ape_personal'];
+                                                    }
+                                                    echo $nombre_completo . ' - ' . $personal['dni_personal'] . ' (' . $personal['nom_area'] . ' - ' . $personal['nom_cargo'] . ')' . $origen_texto; 
+                                                    ?>
                                                 </option>
                                             <?php } ?>
                                         <?php } else { ?>
                                             <option value="">No hay personal disponible sin usuario asignado</option>
                                         <?php } ?>
                                     </select>
+                                    
                                 </div>
                             </div>
                             

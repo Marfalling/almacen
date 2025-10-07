@@ -57,8 +57,6 @@
                                             foreach ($personal as $value) {
                                                 $c++;
                                                 $id_personal = $value['id_personal'];
-                                                $id_area = $value['id_area'];
-                                                $id_cargo = $value['id_cargo'];
                                                 $nom_personal = $value['nom_personal'];
                                                 $ape_personal = $value['ape_personal'];
                                                 $dni_personal = $value['dni_personal'];
@@ -67,6 +65,7 @@
                                                 $nom_area = $value['nom_area'];
                                                 $nom_cargo = $value['nom_cargo'];
                                                 $est_personal = $value['est_personal'];
+                                                $origen = $value['origen'];
                                                 $estado = ($est_personal == 1) ? "ACTIVO" : "INACTIVO";
                                             ?>
                                                 <tr>
@@ -87,9 +86,13 @@
                                                     </td>
                                                     <td>
                                                         <center>
-                                                            <a class="btn btn-warning btn-xs"href="personal_editar.php?id_personal=<?php echo $id_personal; ?>" ><i title="Editar">
-                                                                <i class="fa fa-edit"></i>
-                                                            </a>
+                                                            <?php if ($origen == 'Principal') { ?>
+                                                                <a class="btn btn-warning btn-xs" href="personal_editar.php?id_personal=<?php echo $id_personal; ?>">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <span class="text-muted">-</span>
+                                                            <?php } ?>
                                                         </center>
                                                     </td>
                                                 </tr>

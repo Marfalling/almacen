@@ -94,26 +94,28 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                 $id_ubicacion_origen = intval($_REQUEST['id_ubicacion_origen']);
                 $id_almacen_destino = intval($_REQUEST['id_almacen_destino']);
                 $id_ubicacion_destino = intval($_REQUEST['id_ubicacion_destino']);
-                $ndoc_salida = mysqli_real_escape_string($con, $_REQUEST['ndoc_salida']);
+                $ndoc_salida = $_REQUEST['ndoc_salida'];
                 $fec_req_salida = $_REQUEST['fec_req_salida'];
-                $obs_salida = mysqli_real_escape_string($con, $_REQUEST['obs_salida']);
+                $obs_salida = $_REQUEST['obs_salida'];
                 $id_personal_encargado = intval($_REQUEST['id_personal_encargado']);
                 $id_personal_recibe = intval($_REQUEST['id_personal_recibe']);
-                
+                                
                 // Procesar materiales
                 $materiales = array();
                 if (isset($_REQUEST['id_producto']) && is_array($_REQUEST['id_producto'])) {
                     foreach ($_REQUEST['id_producto'] as $index => $id_producto) {
                         if (!empty($id_producto) && !empty($_REQUEST['cantidad'][$index])) {
+                            $cantidad = floatval($_REQUEST['cantidad'][$index]); 
+                            
                             $materiales[] = array(
                                 'id_producto' => intval($id_producto),
-                                'descripcion' => mysqli_real_escape_string($con, $_REQUEST['descripcion'][$index]),
-                                'cantidad' => floatval($_REQUEST['cantidad'][$index])
+                                'descripcion' => $_REQUEST['descripcion'][$index],
+                                'cantidad' => $cantidad
                             );
                         }
                     }
                 }
-                
+
                 // Validar que haya al menos un material
                 if (count($materiales) > 0) {
                     // Validar stocks antes de actualizar
@@ -178,6 +180,7 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                     $titulo_alerta = 'Datos incompletos';
                     $mensaje_alerta = 'Debe tener al menos un material en la salida';
                 }
+            
             }
             //-------------------------------------------
             

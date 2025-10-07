@@ -31,7 +31,6 @@ if (!verificarPermisoEspecifico('crear_cliente')) {
 
             require_once("../_modelo/m_clientes.php");
 
-            //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
                 $nom = strtoupper($_REQUEST['nom']);
                 $est = isset($_REQUEST['est']) ? 1 : 0;
@@ -52,7 +51,6 @@ if (!verificarPermisoEspecifico('crear_cliente')) {
             <?php
                 }
             }
-            //-------------------------------------------
 
             require_once("../_vista/v_clientes_nuevo.php");
             require_once("../_vista/v_footer.php");

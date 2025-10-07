@@ -104,6 +104,20 @@ require_once("../_modelo/m_rol.php");
                         location.href = 'usuario_mostrar.php?error=true';
                     </script>
                 <?php
+                } else if ($rpta == "ERROR_SINCRONIZAR") {
+                ?>
+                    <script Language="JavaScript">
+                        alert('Error al sincronizar el personal de la base de Inspecciones. Intente nuevamente.');
+                        history.back();
+                    </script>
+                <?php
+                } else if ($rpta == "PERSONAL_NO_ENCONTRADO") {
+                ?>
+                    <script Language="JavaScript">
+                        alert('Error: El personal asociado a este usuario no fue encontrado en ninguna base de datos.');
+                        history.back();
+                    </script>
+                <?php
                 } else {
                 ?>
                     <script Language="JavaScript">

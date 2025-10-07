@@ -20,6 +20,11 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
     
     include("../_conexion/conexion.php");
 
+    
+    $ndoc_salida = mysqli_real_escape_string($con, $ndoc_salida);
+    $fec_req_salida = mysqli_real_escape_string($con, $fec_req_salida);
+    $obs_salida = mysqli_real_escape_string($con, $obs_salida);
+
     // Insertar salida principal
     $sql = "INSERT INTO salida (
                 id_material_tipo, id_almacen_origen, id_ubicacion_origen, 
@@ -269,6 +274,11 @@ function ActualizarSalida($id_salida, $id_almacen_origen, $id_ubicacion_origen,
 {
     include("../_conexion/conexion.php");
 
+
+    $ndoc_salida = mysqli_real_escape_string($con, $ndoc_salida);
+    $fec_req_salida = mysqli_real_escape_string($con, $fec_req_salida);
+    $obs_salida = mysqli_real_escape_string($con, $obs_salida);
+
     // Actualizar salida principal
     $sql = "UPDATE salida SET 
                 id_almacen_origen = $id_almacen_origen,
@@ -422,7 +432,72 @@ function ValidarSalidaAntesDeProcesar($id_material_tipo, $id_almacen_origen, $id
 
 
 // Función corregida para obtener productos con stock, excluyendo "NA"
-function MostrarProductosConStock($limit, $offset, $searchValue, $orderColumn, $orderDirection, $id_almacen, $id_ubicacion, $tipoMaterial = 0)
+function NumeroRegistrosTotalProductosConStockParaSalida($id_almacen, $id_ubicacion, $tipoMaterial = 0)
+{
+    include("../_conexion/conexion.php");
+
+    $sql = "SELECT COUNT(DISTINCT p.id_producto) as total
+            FROM producto p 
+            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
+            INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo
+            INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+            WHERE p.est_producto = 1 
+            AND pt.est_producto_tipo = 1
+            AND mt.est_material_tipo = 1
+            AND um.est_unidad_medida = 1
+            AND mt.id_material_tipo != 1"; // Excluir "NA"
+
+    // Filtrar por tipo de material si se especifica y no es "NA"
+    if ($tipoMaterial > 0 && $tipoMaterial != 1) {
+        $sql .= " AND mt.id_material_tipo = $tipoMaterial";
+    }
+
+    $resultado = mysqli_query($con, $sql);
+    $row = mysqli_fetch_assoc($resultado);
+    
+    mysqli_close($con);
+    return intval($row['total']);
+}
+
+function NumeroRegistrosFiltradosProductosConStockParaSalida($searchValue, $id_almacen, $id_ubicacion, $tipoMaterial = 0)
+{
+    include("../_conexion/conexion.php");
+    mysqli_set_charset($con, "utf8");
+
+    $sql = "SELECT COUNT(DISTINCT p.id_producto) as total
+            FROM producto p 
+            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
+            INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo
+            INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+            WHERE p.est_producto = 1 
+            AND pt.est_producto_tipo = 1
+            AND mt.est_material_tipo = 1
+            AND um.est_unidad_medida = 1
+            AND mt.id_material_tipo != 1"; // Excluir "NA"
+
+    // Filtrar por tipo de material si se especifica y no es "NA"
+    if ($tipoMaterial > 0 && $tipoMaterial != 1) {
+        $sql .= " AND mt.id_material_tipo = $tipoMaterial";
+    }
+
+    // Aplicar filtro de búsqueda
+    if (!empty($searchValue)) {
+        $searchValue = mysqli_real_escape_string($con, $searchValue);
+        $sql .= " AND (p.cod_material LIKE '%$searchValue%' 
+                  OR p.nom_producto LIKE '%$searchValue%'
+                  OR p.mar_producto LIKE '%$searchValue%'
+                  OR p.mod_producto LIKE '%$searchValue%'
+                  OR pt.nom_producto_tipo LIKE '%$searchValue%')";
+    }
+
+    $resultado = mysqli_query($con, $sql);
+    $row = mysqli_fetch_assoc($resultado);
+    
+    mysqli_close($con);
+    return intval($row['total']);
+}
+
+function MostrarProductosConStockParaSalida($limit, $offset, $searchValue, $orderColumn, $orderDirection, $id_almacen, $id_ubicacion, $tipoMaterial = 0)
 {
     include("../_conexion/conexion.php");
 
