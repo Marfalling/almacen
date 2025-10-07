@@ -1,47 +1,70 @@
 <?php
 require_once("../_conexion/sesion.php");
 
+//=======================================================================
+// CONTROLADOR: centro_costo_editar.php 
+//=======================================================================
+
+require_once("../_modelo/m_centro_costo.php");
+
 // Verificar permiso
-if (!verificarPermisoEspecifico('editar_centro_costo')) {
+if (!verificarPermisoEspecifico('editar_centro de costo')) {
     require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'CENTRO DE COSTO', 'EDITAR');
     header("location: bienvenido.php?permisos=true");
     exit;
 }
 
-//=======================================================================
-// CONTROLADOR: centro_costo_editar.php
-//=======================================================================
+// Procesar actualización
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $id_centro = intval($_POST['id_centro_costo']);
+    $nombre = trim($_POST['nom_centro_costo']);
+    $estado = intval($_POST['est_centro_costo']);
 
-require_once("../_modelo/m_centro_costo.php");
-
-if (isset($_POST['actualizar'])) {
-    $id_centro_costo = intval($_POST['id_centro_costo']);
-    $nom = strtoupper(trim($_POST['nom']));
-    $rpta = EditarCentroCosto($id_centro_costo, $nom);
-
+    $rpta = EditarCentroCosto($id_centro, $nombre);
     if ($rpta == "SI") {
-        header("location: centro_costo_mostrar.php?actualizado=true");
-    } elseif ($rpta == "NO") {
-        header("location: centro_costo_mostrar.php?error=duplicado");
+        CambiarEstadoCentroCosto($id_centro, $estado);
+        require_once("../_modelo/m_auditoria.php");
+        GrabarAuditoria($id, $usuario_sesion, 'ACTUALIZACIÓN', 'CENTRO DE COSTO', $nombre);
+        header("Location: centro_costo_mostrar.php?actualizado=true");
     } else {
-        header("location: centro_costo_mostrar.php?error=true");
+        require_once("../_modelo/m_auditoria.php");
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR', 'CENTRO DE COSTO', 'EDITAR');
+        header("Location: centro_costo_mostrar.php?error=true");
     }
     exit;
 }
 
-// Obtener datos
-$id_centro_costo = isset($_GET['id_centro_costo']) ? intval($_GET['id_centro_costo']) : 0;
-if ($id_centro_costo <= 0) {
-    header("location: centro_costo_mostrar.php?error=true");
-    exit;
-}
+// Obtener datos para editar
+$id_centro = isset($_GET['id_centro_costo']) ? intval($_GET['id_centro_costo']) : 0;
+$centro = ObtenerCentroCostoPorId($id_centro);
 
-$centro = ObtenerCentroCostoPorId($id_centro_costo);
-if (!$centro) {
-    header("location: centro_costo_mostrar.php?error=true");
-    exit;
-}
-
-require_once("../_vista/v_centro_costo_editar.php");
+// Registrar auditoría
+require_once("../_modelo/m_auditoria.php");
+GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'CENTRO DE COSTO', 'EDITAR');
 ?>
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8">
+    <title>Editar Centro de Costo</title>
+    <?php require_once("../_vista/v_estilo.php"); ?>
+</head>
+
+<body class="nav-md">
+<div class="container body">
+    <div class="main_container">
+
+        <?php
+        require_once("../_vista/v_menu.php");
+        require_once("../_vista/v_menu_user.php");
+        require_once("../_vista/v_centro_costo_editar.php");
+        require_once("../_vista/v_footer.php");
+        ?>
+
+    </div>
+</div>
+<?php require_once("../_vista/v_script.php"); ?>
+</body>
+</html>

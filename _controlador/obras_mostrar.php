@@ -9,12 +9,9 @@ if (!verificarPermisoEspecifico('ver_obras')) {
     exit;
 }
 
-
 require_once("../_modelo/m_obras.php");
 
-
 ?>
-
 
 <!DOCTYPE html>
 <html lang="es">

@@ -345,20 +345,20 @@ require_once("../_conexion/sesion.php");
               <?php endif; ?>
 
               <!-- Pedidos -->
-              <?php if (tieneAccesoModulo('pedidos') || tieneAccesoModulo('centro de costo')): ?>
+              <?php if (tieneAccesoModulo('Centro de Costo')): ?>
               <li>
                 <a>Pedidos<span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
                   <?php if (verificarPermisoEspecifico('ver_centro de costo')): ?>
-                  <li><a href="centro_costo_mostrar.php">Centro de Costos</a></li>
+                    <li><a href="centro_costo_mostrar.php">Centro de Costos</a></li>
                   <?php endif; ?>
                 </ul>
               </li>
               <?php endif; ?>
 
-            </ul>
-          </li>
-          <?php endif; ?>
+            </ul> <!-- 🔹 cierre del ul del menú Mantenimiento -->
+          </li> <!-- 🔹 cierre del li de Mantenimiento -->
+          <?php endif; ?> <!-- 🔹 cierre del if ($acceso_mantenimiento) -->
 
           <!-- AUDITORÍA -->
           <?php if (verificarPermisoEspecifico('ver_auditoria')): ?>
