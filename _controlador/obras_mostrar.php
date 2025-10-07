@@ -1,7 +1,7 @@
 <?php
-
 require_once("../_conexion/sesion.php");
 
+//Verificar permiso para VER OBRAS
 if (!verificarPermisoEspecifico('ver_obras')) {
     require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'OBRAS', 'VER');
@@ -10,41 +10,31 @@ if (!verificarPermisoEspecifico('ver_obras')) {
 }
 
 require_once("../_modelo/m_obras.php");
+$obras = MostrarObras();
 
+require_once("../_modelo/m_auditoria.php");
+GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'OBRAS', 'MOSTRAR');
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    
-    <title>Obras Mostrar</title>
-    
+    <title>Listado de Obras</title>
     <?php require_once("../_vista/v_estilo.php"); ?>
 </head>
 <body class="nav-md">
-    <div class="container body">
-        <div class="main_container">
-            <?php
-            require_once("../_vista/v_menu.php");
-            require_once("../_vista/v_menu_user.php");
-
-            require_once("../_modelo/m_obras.php");
-            $obras = MostrarObras();
-            require_once("../_vista/v_obras_mostrar.php");
-
-            require_once("../_vista/v_footer.php");
-            ?>
-        </div>
+<div class="container body">
+    <div class="main_container">
+        <?php
+        require_once("../_vista/v_menu.php");
+        require_once("../_vista/v_menu_user.php");
+        require_once("../_vista/v_obras_mostrar.php");
+        require_once("../_vista/v_footer.php");
+        ?>
     </div>
-
-    <?php
-    require_once("../_vista/v_script.php");
-    require_once("../_vista/v_alertas.php");
-    ?>
+</div>
+<?php require_once("../_vista/v_script.php"); ?>
 </body>
-
 </html>
+
+

@@ -1,20 +1,28 @@
 <?php
+//-----------------------------------------------------------------------
+// MODELO: m_pedidos.php
+//-----------------------------------------------------------------------
+
+// Grabar Pedido (ahora acepta opcionalmente $id_obra)
 function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo, 
                      $nom_pedido, $solicitante, $fecha_necesidad, 
                      $num_ot, $contacto, $lugar_entrega, $aclaraciones, $id_personal, 
-                     $materiales, $archivos_subidos) 
+                     $materiales, $archivos_subidos, $id_obra = null) 
 {
     include("../_conexion/conexion.php");
 
+    $id_obra_sql = ($id_obra && $id_obra > 0) ? intval($id_obra) : "NULL";
+
     // INSERTAR PRIMERO el pedido SIN código para obtener el ID
     $sql = "INSERT INTO pedido (
-                id_producto_tipo, id_almacen, id_ubicacion, id_centro_costo, id_personal, 
+                id_producto_tipo, id_almacen, id_ubicacion, id_centro_costo, id_personal, id_obra,
                 cod_pedido, nom_pedido, ot_pedido, cel_pedido, lug_pedido, 
                 acl_pedido, fec_req_pedido, fec_pedido, est_pedido
             ) VALUES (
-                $id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo, $id_personal, 
-                'TEMP', '$nom_pedido', '$num_ot', '$contacto', '$lugar_entrega', 
-                '$aclaraciones', '$fecha_necesidad', NOW(), 1
+                $id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo, $id_personal, $id_obra_sql,
+                'TEMP', '" . mysqli_real_escape_string($con, $nom_pedido) . "', '" . mysqli_real_escape_string($con, $num_ot) . "',
+                '" . mysqli_real_escape_string($con, $contacto) . "', '" . mysqli_real_escape_string($con, $lugar_entrega) . "',
+                '" . mysqli_real_escape_string($con, $aclaraciones) . "', '" . mysqli_real_escape_string($con, $fecha_necesidad) . "', NOW(), 1
             )";
 
     if (mysqli_query($con, $sql)) {
@@ -36,7 +44,7 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
             // Obtener el nombre de la unidad por su ID
             $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
             $resultado_unidad = mysqli_query($con, $sql_unidad);
-            $unidad_data = mysqli_fetch_assoc($resultado_unidad);
+            $unidad_data = $resultado_unidad ? mysqli_fetch_assoc($resultado_unidad) : null;
             $nombre_unidad = $unidad_data ? $unidad_data['nom_unidad_medida'] : '';
             
             $requisitos = $sst_descripcion;
@@ -60,7 +68,7 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
                     foreach ($archivos_subidos[$index]['name'] as $key => $archivo_nombre) {
                         if (!empty($archivo_nombre)) {
                             $extension = pathinfo($archivo_nombre, PATHINFO_EXTENSION);
-                            $nuevo_nombre = "pedido_" . $id_pedido . "detalle" . $id_detalle . "" . $key . "" . uniqid() . "." . $extension;
+                            $nuevo_nombre = "pedido_" . $id_pedido . "_detalle_" . $id_detalle . "_" . uniqid() . "." . $extension;
                             
                             $ruta_destino = "../_archivos/pedidos/" . $nuevo_nombre;
                             
@@ -80,8 +88,9 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
         mysqli_close($con);
         return "SI";
     } else {
+        $error = mysqli_error($con);
         mysqli_close($con);
-        return "ERROR: " . mysqli_error($con);
+        return "ERROR: " . $error;
     }
 }
 //-----------------------------------------------------------------------
@@ -91,7 +100,9 @@ function MostrarPedidos()
     include("../_conexion/conexion_complemento.php"); // AGREGAR para centros de costo
 
     $sqlc = "SELECT p.*, 
-                COALESCE(ob.nom_obra, 'N/A') as nom_obra,
+                -- intentar primero la obra asociada directamente al pedido,
+                -- si no existe usar la obra asociada al almacén (compatibilidad)
+                COALESCE(obp.nom_obra, oba.nom_obra, 'N/A') as nom_obra,
                 COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
                 COALESCE(pr.nom_personal, 'Sin asignar') as nom_personal,
                 COALESCE(pr.ape_personal, '') as ape_personal,
@@ -110,8 +121,9 @@ function MostrarPedidos()
                     ELSE 0 
                 END AS tiene_verificados
              FROM pedido p 
+             LEFT JOIN obra obp ON p.id_obra = obp.id_obra AND obp.est_obra = 1
              LEFT JOIN almacen a ON p.id_almacen = a.id_almacen AND a.est_almacen = 1
-             LEFT JOIN obra ob ON a.id_obra = ob.id_obra AND ob.est_obra = 1
+             LEFT JOIN obra oba ON a.id_obra = oba.id_obra AND oba.est_obra = 1
              LEFT JOIN cliente c ON a.id_cliente = c.id_cliente AND c.est_cliente = 1
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion AND u.est_ubicacion = 1
              LEFT JOIN personal pr ON p.id_personal = pr.id_personal AND pr.est_personal = 1
@@ -163,9 +175,8 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
         $where_fecha = " AND DATE(p.fec_pedido) = CURDATE()";
     }
 
-    // CORRECCIÓN: Eliminar el CASE que cambia el estado artificialmente
     $sqlc = "SELECT p.*, 
-                COALESCE(ob.nom_obra, 'N/A') as nom_obra,
+                COALESCE(obp.nom_obra, oba.nom_obra, 'N/A') as nom_obra,
                 COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
                 COALESCE(pr.nom_personal, 'Sin asignar') as nom_personal,
                 COALESCE(pr.ape_personal, '') as ape_personal,
@@ -184,8 +195,9 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
                     ELSE 0 
                 END AS tiene_verificados
              FROM pedido p 
+             LEFT JOIN obra obp ON p.id_obra = obp.id_obra AND obp.est_obra = 1
              LEFT JOIN almacen a ON p.id_almacen = a.id_almacen AND a.est_almacen = 1
-             LEFT JOIN obra ob ON a.id_obra = ob.id_obra AND ob.est_obra = 1
+             LEFT JOIN obra oba ON a.id_obra = oba.id_obra AND oba.est_obra = 1
              LEFT JOIN cliente c ON a.id_cliente = c.id_cliente AND c.est_cliente = 1
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion AND u.est_ubicacion = 1
              LEFT JOIN personal pr ON p.id_personal = pr.id_personal AND pr.est_personal = 1
@@ -265,7 +277,7 @@ function ConsultarPedido($id_pedido)
     include("../_conexion/conexion_complemento.php");
 
     $sqlc = "SELECT p.*, 
-                COALESCE(ob.nom_obra, 'N/A') as nom_obra,
+                COALESCE(obp.nom_obra, oba.nom_obra, 'N/A') as nom_obra,
                 COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
                 COALESCE(u.nom_ubicacion, 'N/A') as nom_ubicacion,
                 COALESCE(a.nom_almacen, 'N/A') as nom_almacen,
@@ -273,8 +285,9 @@ function ConsultarPedido($id_pedido)
                 COALESCE(pr.ape_personal, '') as ape_personal,
                 COALESCE(pt.nom_producto_tipo, 'N/A') as nom_producto_tipo
              FROM pedido p 
+             LEFT JOIN obra obp ON p.id_obra = obp.id_obra
              LEFT JOIN almacen a ON p.id_almacen = a.id_almacen
-             LEFT JOIN obra ob ON a.id_obra = ob.id_obra
+             LEFT JOIN obra oba ON a.id_obra = oba.id_obra
              LEFT JOIN cliente c ON a.id_cliente = c.id_cliente
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion
              LEFT JOIN personal pr ON p.id_personal = pr.id_personal
@@ -288,7 +301,7 @@ function ConsultarPedido($id_pedido)
     
     $resultado = array();
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
-        // Obtener nombre del centro de costo
+        // Obtener nombre del centro de costo desde la BD complemento
         if (isset($rowc['id_centro_costo']) && !empty($rowc['id_centro_costo'])) {
             $id_cc = intval($rowc['id_centro_costo']);
             $sql_cc = "SELECT nom_area FROM area WHERE id_area = $id_cc";
@@ -400,21 +413,25 @@ function ConsultarPedidoDetalle($id_pedido)
     mysqli_close($con);
     return $resultado;
 }
+
 function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedido, $fecha_necesidad, $num_ot, 
-                         $contacto, $lugar_entrega, $aclaraciones, $materiales, $archivos_subidos) 
+                         $contacto, $lugar_entrega, $aclaraciones, $materiales, $archivos_subidos, $id_obra = null) 
 {
     include("../_conexion/conexion.php");
 
-    // Actualizar pedido principal - AHORA INCLUYE id_ubicacion E id_centro_costo
+    $id_obra_sql = ($id_obra && $id_obra > 0) ? intval($id_obra) : "NULL";
+
+    // Actualizar pedido principal - AHORA INCLUYE id_ubicacion, id_centro_costo e id_obra
     $sql = "UPDATE pedido SET 
             id_ubicacion = $id_ubicacion,
             id_centro_costo = $id_centro_costo,
-            nom_pedido = '$nom_pedido',
-            fec_req_pedido = '$fecha_necesidad',
-            ot_pedido = '$num_ot',
-            cel_pedido = '$contacto',
-            lug_pedido = '$lugar_entrega',
-            acl_pedido = '$aclaraciones'
+            id_obra = $id_obra_sql,
+            nom_pedido = '" . mysqli_real_escape_string($con, $nom_pedido) . "',
+            fec_req_pedido = '" . mysqli_real_escape_string($con, $fecha_necesidad) . "',
+            ot_pedido = '" . mysqli_real_escape_string($con, $num_ot) . "',
+            cel_pedido = '" . mysqli_real_escape_string($con, $contacto) . "',
+            lug_pedido = '" . mysqli_real_escape_string($con, $lugar_entrega) . "',
+            acl_pedido = '" . mysqli_real_escape_string($con, $aclaraciones) . "'
             WHERE id_pedido = $id_pedido";
 
     if (mysqli_query($con, $sql)) {
@@ -444,7 +461,7 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
             // OBTENER EL NOMBRE DE LA UNIDAD
             $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
             $resultado_unidad = mysqli_query($con, $sql_unidad);
-            $unidad_data = mysqli_fetch_assoc($resultado_unidad);
+            $unidad_data = $resultado_unidad ? mysqli_fetch_assoc($resultado_unidad) : null;
             $nombre_unidad = $unidad_data ? $unidad_data['nom_unidad_medida'] : '';
             
             // CAMBIO: req_pedido ahora almacena directamente la descripción SST/MA/CA
@@ -465,6 +482,9 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
                 if (mysqli_query($con, $sql_detalle)) {
                     $id_detalle_actual = $id_detalle;
                     $detalles_utilizados[] = $id_detalle;
+                } else {
+                    // en caso de error, continuar para no interrumpir la edición masiva
+                    $id_detalle_actual = $id_detalle;
                 }
             } else {
                 // INSERTAR NUEVO DETALLE (solo para materiales completamente nuevos)
@@ -480,11 +500,13 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
                 
                 if (mysqli_query($con, $sql_detalle)) {
                     $id_detalle_actual = mysqli_insert_id($con);
+                } else {
+                    $id_detalle_actual = 0;
                 }
             }
             
             // MANEJO MEJORADO DE ARCHIVOS - REEMPLAZAR ARCHIVOS EXISTENTES
-            if (isset($archivos_subidos[$index]) && !empty($archivos_subidos[$index]['name'][0])) {
+            if ($id_detalle_actual > 0 && isset($archivos_subidos[$index]) && !empty($archivos_subidos[$index]['name'][0])) {
                 
                 // PASO 1: Obtener archivos existentes para este detalle
                 $sql_archivos_existentes = "SELECT nom_pedido_detalle_documento 
@@ -567,8 +589,9 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
         mysqli_close($con);
         return "SI";
     } else {
+        $error = mysqli_error($con);
         mysqli_close($con);
-        return "ERROR: " . mysqli_error($con);
+        return "ERROR: " . $error;
     }
 }
 
@@ -941,8 +964,9 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
         mysqli_close($con);
         return "SI";
     } else {
+        $err = mysqli_error($con);
         mysqli_close($con);
-        return "ERROR: " . mysqli_error($con);
+        return "ERROR: " . $err;
     }
 }
 
@@ -1042,7 +1066,7 @@ function ConsultarPedidoAnulado($id_pedido)
     include("../_conexion/conexion_complemento.php"); // AGREGAR
 
     $sqlc = "SELECT p.*, 
-                COALESCE(ob.nom_obra, 'N/A') as nom_obra,
+                COALESCE(obp.nom_obra, oba.nom_obra, 'N/A') as nom_obra,
                 COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
                 COALESCE(u.nom_ubicacion, 'N/A') as nom_ubicacion,
                 COALESCE(a.nom_almacen, 'N/A') as nom_almacen,
@@ -1050,8 +1074,29 @@ function ConsultarPedidoAnulado($id_pedido)
                 COALESCE(pr.ape_personal, '') as ape_personal,
                 COALESCE(pt.nom_producto_tipo, 'N/A') as nom_producto_tipo
              FROM pedido p 
+             LEFT JOIN obra obp ON p.id_obra = obp.id_obra
              LEFT JOIN almacen a ON p.id_almacen = a.id_almacen
-             LEFT JOIN obra ob ON a.id_obra = ob.id_obra
+             LEFT JOIN obra oba ON a.id_obra = oba.id_obra
+             LEFT JOIN cliente c ON a.id_cliente = c.id_cliente
+             LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion
+             LEFT JOIN personal pr ON p.id_personal = pr.id_personal
+             LEFT JOIN producto_tipo pt ON p.id_producto_type = pt.id_producto_tipo
+             WHERE p.id_pedido = ?";
+
+    // Si tu versión de BD tiene columna id_producto_tipo tal cual, mantener pt join como antes.
+    // Ajuste: usar la misma consulta que en ConsultarPedido (se sobreescribe el alias correcto más arriba)
+    $sqlc = "SELECT p.*, 
+                COALESCE(obp.nom_obra, oba.nom_obra, 'N/A') as nom_obra,
+                COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
+                COALESCE(u.nom_ubicacion, 'N/A') as nom_ubicacion,
+                COALESCE(a.nom_almacen, 'N/A') as nom_almacen,
+                COALESCE(pr.nom_personal, 'Sin asignar') as nom_personal,
+                COALESCE(pr.ape_personal, '') as ape_personal,
+                COALESCE(pt.nom_producto_tipo, 'N/A') as nom_producto_tipo
+             FROM pedido p 
+             LEFT JOIN obra obp ON p.id_obra = obp.id_obra
+             LEFT JOIN almacen a ON p.id_almacen = a.id_almacen
+             LEFT JOIN obra oba ON a.id_obra = oba.id_obra
              LEFT JOIN cliente c ON a.id_cliente = c.id_cliente
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion
              LEFT JOIN personal pr ON p.id_personal = pr.id_personal
@@ -1088,6 +1133,4 @@ function ConsultarPedidoAnulado($id_pedido)
     mysqli_close($con_comp); // AGREGAR
     return $resultado;
 }
-
-
 ?>

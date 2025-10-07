@@ -1,3 +1,8 @@
+<?php 
+//=======================================================================
+// VISTA: v_obras_mostrar.php
+//=======================================================================
+?>
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -20,7 +25,7 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                 <a href="obras_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nueva obra</a>
+                                 <a href="obras_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nueva Obra</a>
                             </div>
                         </div>
                     </div>
@@ -42,7 +47,7 @@
                                         <tbody>
                                             <?php
                                             $c = 0;
-                                            foreach ($obras as  $value) {
+                                            foreach ($obras as $value) {
                                                 $c++;
                                                 $id_obra = $value['id_obra'];
                                                 $nom_obra = $value['nom_obra'];
@@ -51,17 +56,26 @@
                                             ?>
                                                 <tr>
                                                     <td><?php echo $c; ?></td>
-                                                    <td><?php echo $nom_obra; ?></td>
-                                                    <td><?php echo $estado; ?></td>
+                                                    <td><?php echo htmlspecialchars($nom_obra); ?></td>
                                                     <td>
-                                                        <center><a class="btn btn-warning" href="obras_editar.php?id_obra=<?php echo $id_obra; ?>"><i class="fa fa-edit"></i></a></center>
+                                                        <?php if ($est_obra == 1) { ?>
+                                                            <span class="badge badge-success">ACTIVO</span>
+                                                        <?php } else { ?>
+                                                            <span class="badge badge-danger">INACTIVO</span>
+                                                        <?php } ?>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <a class="btn btn-warning btn-sm" 
+                                                           href="obras_editar.php?id_obra=<?php echo $id_obra; ?>" 
+                                                           title="Editar obra">
+                                                            <i class="fa fa-edit"></i>
+                                                        </a>
                                                     </td>
                                                 </tr>
                                             <?php
                                             }
                                             ?>
                                         </tbody>
-
                                     </table>
                                 </div>
                             </div>
