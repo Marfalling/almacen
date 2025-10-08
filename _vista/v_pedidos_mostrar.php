@@ -148,11 +148,11 @@
         if ($pedido['est_pedido_calc'] == 2) { 
             // Pedido completado - solo ver
         ?>
-            <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+            <!-- <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
                class="btn btn-secondary btn-sm" 
                title="Ver Órdenes de Compra">
                 <i class="fa fa-file-text"></i> Ver OC
-            </a>
+            </a> -->
         <?php } elseif ($pedido['est_pedido_calc'] == 0 || $es_rechazado) { 
             // Pedido anulado/rechazado - no accesible
         ?>
@@ -183,8 +183,9 @@
 
         <!-- Botón Verificar -->
         <?php if ($pedido['est_pedido_calc'] == 2) { ?>
-            <a href="#" class="btn btn-outline-secondary btn-sm disabled" 
-               title="Pedido completado" tabindex="-1" aria-disabled="true">
+           <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+               class="btn btn-success btn-sm" 
+               title="Verificar">
                 <i class="fa fa-check"></i>
             </a>
         <?php } elseif ($pedido['est_pedido_calc'] == 0 || $es_rechazado) { 
