@@ -1412,7 +1412,7 @@ function verificarSiGenerarSalida() {
         if (!totalElement && items.length > 0) {
             totalElement = document.createElement('div');
             totalElement.id = 'total-orden';
-            totalElement.className = 'alert alert-success';
+            totalElement.className = 'text-end';
             totalElement.style.fontSize = '14px';
             totalElement.style.fontWeight = 'bold';
             totalElement.style.padding = '12px';
@@ -1427,23 +1427,47 @@ function verificarSiGenerarSalida() {
         if (totalElement && items.length > 0) {
             const simboloMoneda = obtenerSimboloMoneda();
             
-            let html = `<div class="text-center">
-                <div style="font-size: 16px; margin-bottom: 8px;">
-                    <i class="fa fa-calculator"></i> <strong>SUBTOTAL:</strong> ${simboloMoneda} ${total.toFixed(2)}
+            let html = `
+            <div class="text-end" style="font-size: 15px; padding: 10px 15px; background-color: #fff; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px;">
+                <div class="mb-2">
+                    <i class="fa fa-calculator text-secondary"></i>
+                    <strong class="text-secondary"> Subtotal:</strong>
+                    <span class="text-dark">${simboloMoneda} ${total.toFixed(2)}</span>
                 </div>`;
             
             if (montoDetraccion > 0) {
                 html += `
-                <div style="font-size: 14px; color: #dc3545; margin-bottom: 8px; padding: 6px; background-color: #fff3cd; border-radius: 4px;">
-                    <i class="fa fa-minus-circle"></i> <strong>Detracción ${nombreDetraccion} (${porcentajeDetraccion}%):</strong> -${simboloMoneda} ${montoDetraccion.toFixed(2)}
+                <div class="mb-2">
+                    <i class="fa fa-minus-circle text-secondary"></i>
+                    <strong class="text-secondary"> Detracción ${nombreDetraccion} (${porcentajeDetraccion}%):</strong>
+                    <span class="text-dark">-${simboloMoneda} ${montoDetraccion.toFixed(2)}</span>
                 </div>
-                <div style="font-size: 18px; border-top: 2px solid #28a745; padding-top: 10px; color: #28a745;">
-                    <i class="fa fa-money"></i> <strong>TOTAL A PAGAR:</strong> ${simboloMoneda} ${totalConDetraccion.toFixed(2)}
+
+                <div style="
+                    font-size: 18px; 
+                    font-weight: bold; 
+                    padding: 10px; 
+                    background-color: #28a745; 
+                    color: white; 
+                    border-radius: 6px;
+                    text-align: center;
+                    ">
+                    <i class="fa fa-money"></i> 
+                    TOTAL A PAGAR: ${simboloMoneda} ${totalConDetraccion.toFixed(2)}
                 </div>`;
             } else {
                 html += `
-                <div style="font-size: 18px; border-top: 2px solid #28a745; padding-top: 10px;">
-                    <i class="fa fa-money"></i> <strong>TOTAL:</strong> ${simboloMoneda} ${total.toFixed(2)}
+                <div style="
+                    font-size: 18px; 
+                    font-weight: bold; 
+                    padding: 10px; 
+                    background-color: #28a745; 
+                    color: white; 
+                    border-radius: 6px;
+                    text-align: center;
+                    ">
+                    <i class="fa fa-money"></i> 
+                    TOTAL: ${simboloMoneda} ${total.toFixed(2)}
                 </div>`;
             }
             

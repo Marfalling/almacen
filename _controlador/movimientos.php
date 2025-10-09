@@ -12,12 +12,15 @@ if (!verificarPermisoEspecifico('ver_movimientos')) {
 require_once("../_modelo/m_movimientos.php");
 
 // ========================================================================
-// filtro de fechas
+// Filtro de fechas (por defecto desde el 1° del mes hasta hoy)
 // ========================================================================
-$fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : null;
-$fecha_fin    = isset($_GET['fecha_fin']) ? $_GET['fecha_fin'] : null;
+$fecha_actual = date("Y-m-d");
+$primer_dia_mes = date("Y-m-01");
 
-// Obtener movimientos (con filtro o fecha actual)
+$fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : $primer_dia_mes;
+$fecha_fin    = isset($_GET['fecha_fin']) ? $_GET['fecha_fin'] : $fecha_actual;
+
+// Obtener movimientos filtrados
 $movimientos = MostrarMovimientos($fecha_inicio, $fecha_fin);
 
 ?>
@@ -34,9 +37,7 @@ $movimientos = MostrarMovimientos($fecha_inicio, $fecha_fin);
             <?php 
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-
             require_once("../_vista/v_movimientos.php");
-
             require_once("../_vista/v_footer.php");
             ?>
         </div>

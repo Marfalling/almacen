@@ -38,7 +38,7 @@ function GrabarPago($id_compra, $id_proveedor_cuenta, $monto, $comprobante, $id_
         return "Error al registrar el pago: $error";
     }
 
-    // ✅ Actualizar estado si ya está cancelada
+    // Actualizar estado si ya está cancelada
     $nuevoSaldo = $compra['saldo'] - $monto;
     if ($nuevoSaldo <= 0) {
         $sql_upd = "UPDATE compra SET est_compra = 4 WHERE id_compra = $id_compra";

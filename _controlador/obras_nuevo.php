@@ -1,10 +1,7 @@
 <?php
-//=======================================================================
-// CONTROLADOR: obras_nuevo.php
-//=======================================================================
 require_once("../_conexion/sesion.php");
 
-//Verificar permisos coherentes con el mapa
+// Verificar permisos
 if (!verificarPermisoEspecifico('crear_obras')) {
     require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'OBRAS', 'NUEVO');
@@ -14,7 +11,7 @@ if (!verificarPermisoEspecifico('crear_obras')) {
 
 require_once("../_modelo/m_obras.php");
 
-//Procesar registro
+// Procesar registro
 if (isset($_POST['registrar'])) {
     $nom = strtoupper(trim($_POST['nom']));
     $est = isset($_POST['est']) ? 1 : 0;
@@ -51,9 +48,6 @@ GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'OBRAS', 'NUEVO');
         require_once("../_vista/v_menu_user.php");
         ?>
 
-        <!-- ==========================
-             VISTA: Nueva Obra
-        ========================== -->
         <div class="right_col" role="main">
             <div class="">
                 <div class="page-title">
@@ -63,7 +57,6 @@ GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'OBRAS', 'NUEVO');
                 </div>
 
                 <div class="clearfix"></div>
-
                 <div class="row">
                     <div class="col-md-12 col-sm-12 ">
                         <div class="x_panel">
@@ -97,12 +90,9 @@ GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'OBRAS', 'NUEVO');
                                     </div>
 
                                     <div class="ln_solid"></div>
-
                                     <div class="form-group">
                                         <div class="col-md-2 col-sm-2 offset-md-10">
-                                            <button type="submit" name="registrar" class="btn btn-success btn-block">
-                                                Registrar
-                                            </button>
+                                            <button type="submit" name="registrar" class="btn btn-success btn-block">Registrar</button>
                                         </div>
                                     </div>
 

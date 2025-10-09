@@ -1,7 +1,7 @@
 <?php
 require_once("../_conexion/sesion.php");
 
-//Verificar permiso para VER OBRAS
+// Verificar permiso
 if (!verificarPermisoEspecifico('ver_obras')) {
     require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'OBRAS', 'VER');
@@ -36,5 +36,7 @@ GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'OBRAS', 'MOSTRAR');
 <?php require_once("../_vista/v_script.php"); ?>
 </body>
 </html>
+
+
 
 

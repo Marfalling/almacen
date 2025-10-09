@@ -26,14 +26,14 @@
                         <form class="form-horizontal form-label-left" action="obras_nuevo.php" method="post">
                             
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Nombre de la Obra <span class="text-danger">*</span> :</label>
+                                <label class="control-label col-md-3 col-sm-3">Nombre<span class="text-danger">*</span> :</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="nom" class="form-control" placeholder="Nombre de la obra" required="required">
+                                    <input type="text" name="nom" class="form-control" placeholder="Nombre" required="required">
                                 </div>
                             </div>
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Estado:</label>
+                                <label class="control-label col-md-3 col-sm-3">Estado</label>
                                 <div class="col-md-9 col-sm-9">
                                     <label>
                                         <input type="checkbox" name="est" class="js-switch" checked> Activo
@@ -62,3 +62,4 @@
     </div>
 </div>
 <!-- /page content -->
+

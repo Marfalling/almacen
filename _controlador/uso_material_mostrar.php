@@ -1,6 +1,6 @@
 <?php
 //=======================================================================
-// uso_material_mostrar.php - CONTROLADOR CORREGIDO
+// uso_material_mostrar.php 
 //=======================================================================
 require_once("../_conexion/sesion.php");
 
@@ -17,12 +17,14 @@ require_once("../_modelo/m_uso_material.php");
 // ========================================================================
 // Filtro de fechas
 // ========================================================================
-$fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : null;
-$fecha_fin    = isset($_GET['fecha_fin']) ? $_GET['fecha_fin'] : null;
+$fecha_hoy = date('Y-m-d');
+$primer_dia_mes = date('Y-m-01');
 
-// Obtener datos con filtro (o solo fecha actual si no se envía rango)
+$fecha_inicio = isset($_GET['fecha_inicio']) && !empty($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : $primer_dia_mes;
+$fecha_fin    = isset($_GET['fecha_fin']) && !empty($_GET['fecha_fin']) ? $_GET['fecha_fin'] : $fecha_hoy;
+
+// Obtener datos con filtro
 $usos_material = MostrarUsoMaterial($fecha_inicio, $fecha_fin);
-
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -44,10 +46,7 @@ $usos_material = MostrarUsoMaterial($fecha_inicio, $fecha_fin);
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-            
-            // Cargar datos para mostrar
-            //$usos_material = MostrarUsoMaterial();
-            
+
             require_once("../_vista/v_uso_material_mostrar.php");
             require_once("../_vista/v_footer.php");
             ?>

@@ -10,16 +10,23 @@ if (!verificarPermisoEspecifico('ver_pedidos')) {
 
 require_once("../_modelo/m_pedidos.php");
 require_once("../_modelo/m_compras.php");
-// ========================================================================
-// Filtro de fechas
-// ========================================================================
-$fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : null;
-$fecha_fin    = isset($_GET['fecha_fin']) ? $_GET['fecha_fin'] : null;
 
-// Obtener pedidos con filtro (o solo fecha actual si no se envía rango)
+// ========================================================================
+// Filtro de fechas con valores por defecto dinámicos
+// ========================================================================
+if (isset($_GET['fecha_inicio']) && isset($_GET['fecha_fin'])) {
+    // Si el usuario envió fechas, se usan esas
+    $fecha_inicio = $_GET['fecha_inicio'];
+    $fecha_fin    = $_GET['fecha_fin'];
+} else {
+    // Si no se envían fechas, se calcula automáticamente el rango del mes actual
+    $fecha_inicio = date('Y-m-01'); // Primer día del mes actual
+    $fecha_fin    = date('Y-m-d');  // Fecha actual
+}
+
+// Obtener pedidos con filtro
 $pedidos = MostrarPedidosFecha($fecha_inicio, $fecha_fin);
 $pedidos_rechazados = ObtenerPedidosConComprasAnuladas();
-
 ?>
 
 <!DOCTYPE html>
@@ -39,9 +46,6 @@ $pedidos_rechazados = ObtenerPedidosConComprasAnuladas();
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
 
-            //$pedidos = MostrarPedidos();
-            //$pedidos_rechazados = ObtenerPedidosConComprasAnuladas();
-            
             require_once("../_vista/v_pedidos_mostrar.php");
             require_once("../_vista/v_footer.php");
             ?>

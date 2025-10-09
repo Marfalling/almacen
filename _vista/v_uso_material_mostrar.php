@@ -81,16 +81,17 @@ function AnularUso(id_uso_material) {
 
                     <div class="x_content">
                         <!-- ========== FILTRO DE FECHAS ========== -->
-                        <form method="get" action="uso_material_mostrar.php" class="form-inline mb-3">
+                        <form method="get" action="uso_material_mostrar.php" class="form-inline mb-3 filtro-fechas">
                             <label for="fecha_inicio" class="mr-2">Desde:</label>
                             <input type="date" id="fecha_inicio" name="fecha_inicio" class="form-control mr-2"
-                                   value="<?php echo htmlspecialchars($fecha_inicio ?? date('Y-m-d')); ?>">
+                                value="<?php echo htmlspecialchars($fecha_inicio); ?>">
 
                             <label for="fecha_fin" class="mr-2">Hasta:</label>
                             <input type="date" id="fecha_fin" name="fecha_fin" class="form-control mr-2"
-                                   value="<?php echo htmlspecialchars($fecha_fin ?? date('Y-m-d')); ?>">
+                                value="<?php echo htmlspecialchars($fecha_fin); ?>">
 
                             <button type="submit" class="btn btn-primary">Consultar</button>
+                            <button type="button" class="btn btn-secondary ml-2" onclick="window.location.href='uso_material_mostrar.php'">Limpiar</button>
                         </form>
                         <!-- ======================================= -->
                         <div class="row">

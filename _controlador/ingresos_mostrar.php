@@ -12,13 +12,22 @@ if (!verificarPermisoEspecifico('ver_ingresos')) {
 }
 
 require_once("../_modelo/m_ingreso.php");
-// ========================================================================
-// Filtro de fechas  👈 se coloca aquí (arriba, igual que en otros procesos)
-// ========================================================================
-$fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : null;
-$fecha_fin    = isset($_GET['fecha_fin']) ? $_GET['fecha_fin'] : null;
 
-// Obtener ingresos (compras + directos) con filtro
+// ========================================================================
+// Filtro de fechas 
+// ========================================================================
+$fecha_actual = date('Y-m-d');
+$primer_dia_mes = date('Y-m-01');
+
+$fecha_inicio = isset($_GET['fecha_inicio']) && $_GET['fecha_inicio'] !== ''
+    ? $_GET['fecha_inicio']
+    : $primer_dia_mes;
+
+$fecha_fin = isset($_GET['fecha_fin']) && $_GET['fecha_fin'] !== ''
+    ? $_GET['fecha_fin']
+    : $fecha_actual;
+
+// Obtener ingresos (compras + directos) con el filtro seleccionado
 $ingresos = MostrarIngresosFecha($fecha_inicio, $fecha_fin);
 ?>
 
@@ -41,9 +50,7 @@ $ingresos = MostrarIngresosFecha($fecha_inicio, $fecha_fin);
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
 
-            // Obtener TODOS los ingresos (compras + directos)
-            //$ingresos = MostrarTodosLosIngresos();
-            
+            // Vista principal
             require_once("../_vista/v_ingresos_mostrar.php");
             require_once("../_vista/v_footer.php");
             ?>

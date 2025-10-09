@@ -12,17 +12,22 @@ if (!verificarPermisoEspecifico('ver_salidas')) {
 }
 
 require_once("../_modelo/m_salidas.php");
-// ========================================================================
-// Filtro de fechas
-// ========================================================================
-$fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : null;
-$fecha_fin    = isset($_GET['fecha_fin']) ? $_GET['fecha_fin'] : null;
 
-// Obtener salidas según filtro de fechas (o fecha actual por defecto)
+// ========================================================================
+// Filtro de fechas con valores por defecto automáticos
+// ========================================================================
+if (isset($_GET['fecha_inicio']) && isset($_GET['fecha_fin'])) {
+    $fecha_inicio = $_GET['fecha_inicio'];
+    $fecha_fin    = $_GET['fecha_fin'];
+} else {
+    // Si no hay filtro, mostrar desde el primer día del mes hasta hoy
+    $fecha_inicio = date('Y-m-01');
+    $fecha_fin    = date('Y-m-d');
+}
+
+// Obtener salidas según filtro de fechas
 $salidas = MostrarSalidasFecha($fecha_inicio, $fecha_fin);
-
 ?>
-
 
 <!DOCTYPE html>
 <html lang="es">
@@ -43,10 +48,7 @@ $salidas = MostrarSalidasFecha($fecha_inicio, $fecha_fin);
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
 
-            require_once("../_modelo/m_salidas.php");
-            //$salidas = MostrarSalidas();
             require_once("../_vista/v_salidas_mostrar.php");
-
             require_once("../_vista/v_footer.php");
             ?>
         </div>
@@ -57,5 +59,4 @@ $salidas = MostrarSalidasFecha($fecha_inicio, $fecha_fin);
     require_once("../_vista/v_alertas.php");
     ?>
 </body>
-
 </html>

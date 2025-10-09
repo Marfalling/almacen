@@ -28,16 +28,16 @@
                             <input type="hidden" name="id_obra" value="<?php echo $id_obra; ?>">
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Nombre de la Obra <span class="text-danger">*</span> :</label>
+                                <label class="control-label col-md-3 col-sm-3">Nombre <span class="text-danger">*</span> :</label>
                                 <div class="col-md-9 col-sm-9">
                                     <input type="text" name="nom" class="form-control" 
                                            value="<?php echo htmlspecialchars($nom); ?>" 
-                                           placeholder="Nombre de la obra" required="required">
+                                           placeholder="Nombre" required="required">
                                 </div>
                             </div>
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Estado:</label>
+                                <label class="control-label col-md-3 col-sm-3">Estado</label>
                                 <div class="col-md-9 col-sm-9">
                                     <label>
                                         <input type="checkbox" name="est" class="js-switch" <?php echo $est; ?>> Activo
@@ -49,7 +49,7 @@
 
                             <div class="form-group">
                                 <div class="col-md-2 col-sm-2 offset-md-10">
-                                    <button type="submit" name="registrar" class="btn btn-success btn-block">Actualizar</button>
+                                    <button type="submit" name="registrar" class="btn btn-warning btn-block">Actualizar</button>
                                 </div>
                             </div>
 
@@ -66,4 +66,5 @@
     </div>
 </div>
 <!-- /page content -->
+
 

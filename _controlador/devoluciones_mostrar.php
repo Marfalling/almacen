@@ -1,5 +1,5 @@
 <?php
-
+//=======================================================================
 // DEVOLUCIONES - VER (devoluciones_mostrar.php)
 //=======================================================================
 
@@ -60,10 +60,18 @@ if (isset($_REQUEST['anular'])) {
 }
 
 // ========================================================================
-// Filtro de fechas
+// Filtro de fechas (por defecto: del primer día del mes hasta hoy)
 // ========================================================================
-$fecha_inicio = isset($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : null;
-$fecha_fin    = isset($_GET['fecha_fin']) ? $_GET['fecha_fin'] : null;
+$hoy = date('Y-m-d');
+$primerDiaMes = date('Y-m-01');
+
+$fecha_inicio = isset($_GET['fecha_inicio']) && !empty($_GET['fecha_inicio'])
+    ? $_GET['fecha_inicio']
+    : $primerDiaMes;
+
+$fecha_fin = isset($_GET['fecha_fin']) && !empty($_GET['fecha_fin'])
+    ? $_GET['fecha_fin']
+    : $hoy;
 
 // obtenemos devoluciones desde el modelo con filtro
 $devoluciones = MostrarDevolucionesFecha($fecha_inicio, $fecha_fin);
@@ -86,17 +94,10 @@ $devoluciones = MostrarDevolucionesFecha($fecha_inicio, $fecha_fin);
     <div class="container body">
         <div class="main_container">
             <?php
-            // menús reutilizables
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
 
-            // obtenemos devoluciones desde el modelo
-            //$devoluciones = MostrarDevoluciones();
-
-            // cargamos la vista
             require_once("../_vista/v_devolucion_mostrar.php");
-
-            // pie de página
             require_once("../_vista/v_footer.php");
             ?>
         </div>
@@ -125,13 +126,11 @@ $devoluciones = MostrarDevolucionesFecha($fecha_inicio, $fecha_fin);
         </script>
         <?php
     }
-
     ?>
 
     <script>
     // Unir botones de Confirmar y Anular con confirmarAccion()
     document.addEventListener('DOMContentLoaded', function() {
-        // Confirmar devolución
         document.querySelectorAll('.btn-confirmar').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 let form = this.closest('form');
@@ -145,7 +144,6 @@ $devoluciones = MostrarDevolucionesFecha($fecha_inicio, $fecha_fin);
             });
         });
 
-        // Anular devolución
         document.querySelectorAll('.btn-anular').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 let form = this.closest('form');
@@ -160,6 +158,5 @@ $devoluciones = MostrarDevolucionesFecha($fecha_inicio, $fecha_fin);
         });
     });
     </script>
-
 </body>
 </html>

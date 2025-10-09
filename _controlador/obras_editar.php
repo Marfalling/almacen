@@ -1,6 +1,6 @@
 <?php
 //=======================================================================
-// CONTROLADOR: obras_editar.php
+// CONTROLADOR: obras_editar.php (adaptado a subestacion)
 //=======================================================================
 require_once("../_conexion/sesion.php");
 
@@ -37,19 +37,15 @@ if (isset($_POST['registrar'])) {
 //Obtener obra a editar
 $id_obra = isset($_GET['id_obra']) ? intval($_GET['id_obra']) : 0;
 
-// Buscar primero en la BD principal; si no está, buscar en la adicional
-$obra = ConsultarObra($id_obra, 'local');
-if (!$obra) {
-    $obra = ConsultarObra($id_obra, 'externa');
-}
-
+// Consultar obra/subestacion por ID
+$obra = ConsultarObra($id_obra);
 if (!$obra) {
     header("Location: obras_mostrar.php?error=true");
     exit;
 }
 
-$nom = $obra['nom_obra'];
-$est = ($obra['est_obra'] == 1) ? "checked" : "";
+$nom = $obra['nom_subestacion'];
+$est = ($obra['act_subestacion'] == 1) ? "checked" : "";
 
 require_once("../_modelo/m_auditoria.php");
 GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'OBRAS', 'EDITAR');
@@ -76,7 +72,7 @@ GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'OBRAS', 'EDITAR');
             <div class="">
                 <div class="page-title">
                     <div class="title_left">
-                        <h3>Editar Obra</h3>
+                        <h3>Editar Obra / Subestación</h3>
                     </div>
                 </div>
 
@@ -97,7 +93,8 @@ GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'OBRAS', 'EDITAR');
                                             Nombre de la Obra <span class="text-danger">*</span> :
                                         </label>
                                         <div class="col-md-9 col-sm-9">
-                                            <input type="text" name="nom" value="<?php echo htmlspecialchars($nom); ?>" 
+                                            <input type="text" name="nom" 
+                                                   value="<?php echo htmlspecialchars($nom ?? ''); ?>" 
                                                    class="form-control" placeholder="Nombre de la obra" required="required">
                                         </div>
                                     </div>
@@ -117,7 +114,9 @@ GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'OBRAS', 'EDITAR');
 
                                     <div class="form-group">
                                         <div class="col-md-2 col-sm-2 offset-md-10">
-                                            <button type="submit" name="registrar" class="btn btn-warning btn-block">Actualizar</button>
+                                            <button type="submit" name="registrar" class="btn btn-warning btn-block">
+                                                Actualizar
+                                            </button>
                                         </div>
                                     </div>
 

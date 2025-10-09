@@ -511,3 +511,56 @@ select:focus ~ .highlight {
     transform: translateY(0);
   }
 }
+.resumen-compra {
+  background: #fafafa;
+  border: 1px solid #ebebeb;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 2px;
+}
+
+.resumen-compra .group {
+  margin-bottom: 25px;
+}
+
+.resumen-compra input[readonly] {
+  background: #fafafa;
+  color: #2A3F54;
+  font-weight: 500;
+}
+
+.resumen-compra .total input[readonly] {
+  color: #ed840d;
+  font-weight: 600;
+  font-size: 20px;
+}
+
+.resumen-compra .total label {
+  color: #ed840d;
+  font-weight: bold;
+}
+
+/* === Bloque de totales del pedido === */
+.detalle-detraccion {
+  font-size: 14px;
+  color: #dc3545;
+  margin-bottom: 8px;
+  padding: 6px;
+  background-color: #fff3cd;
+  border-radius: 4px;
+}
+
+.detalle-total {
+  font-size: 18px;
+  font-weight: bold;
+  padding: 10px;
+  background-color: #28a745;
+  color: white;
+  border-radius: 6px;
+  text-align: center;
+}
+
+td {
+    vertical-align: middle;
+}
