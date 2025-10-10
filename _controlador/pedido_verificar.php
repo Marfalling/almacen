@@ -270,6 +270,20 @@ if ($id_pedido > 0) {
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
+            // ========================================================================
+            // Calcular y adjuntar stock disponible y en almacén a cada detalle
+            // ========================================================================
+            foreach ($pedido_detalle as &$detalle) {
+                $id_producto  = intval($detalle['id_producto']);
+                $id_almacen   = intval($pedido_data[0]['id_almacen']);
+                $id_ubicacion = intval($pedido_data[0]['id_ubicacion']);
+
+                // Llamamos a una función en el modelo (m_pedidos.php)
+                $stock = ObtenerStockProducto($detalle['id_producto'], $pedido['id_almacen'], $pedido['id_ubicacion']);
+                $detalle['cantidad_disponible_almacen'] = $stock['stock_fisico'];    // lo que muestras como "/Almacén"
+                $detalle['cantidad_disponible_real']   = $stock['stock_disponible']; // disponible real (físico - reservado)
+            }
+            unset($detalle);
             require_once("../_vista/v_pedido_verificar.php"); 
             require_once("../_vista/v_footer.php");
             ?>

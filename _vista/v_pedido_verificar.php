@@ -144,6 +144,7 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                         }
                                     }
                                 ?>
+                                
                             <div class="item-pendiente border mb-2" 
                                 style="background-color: <?php echo $colorFondo; ?>; border-left: 4px solid <?php echo $colorBorde; ?> !important; padding: 8px 12px; border-radius: 4px;" 
                                 data-item="<?php echo $contador_detalle; ?>">

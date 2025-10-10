@@ -1425,7 +1425,7 @@ function ObtenerTipoMaterialProducto($id_producto)
     return $id_material_tipo;
 }
 
-function ObtenerStockDisponible($id_producto) {
+/*function ObtenerStockDisponible($id_producto) {
     include("../_conexion/conexion.php");
 
     $sql = "
@@ -1463,35 +1463,85 @@ function ObtenerStockDisponible($id_producto) {
         'disponible' => floatval($row['stock_disponible']),
         'almacen' => floatval($row['stock_almacen'])
     ];
-}
+}*/
 
-function ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion) {
+/**
+ * Obtener stock (físico, reservado y disponible).
+ * Si $id_almacen / $id_ubicacion son null -> hace el cálculo para todos los almacenes/ubicaciones (global).
+ *
+ * Retorna:
+ *  [
+ *    'stock_fisico' => float,
+ *    'stock_reservado' => float,
+ *    'stock_disponible' => float,
+ *    'stock_incluye_compromisos' => float // (opcional) suma neta incluyendo movimientos tipo_orden=5 como si fueran reales
+ *  ]
+ */
+function ObtenerStockProducto($id_producto, $id_almacen = null, $id_ubicacion = null) {
     include("../_conexion/conexion.php");
 
-    $sql = "SELECT 
-                COALESCE(SUM(
-                    CASE 
+    $id_producto = intval($id_producto);
+
+    $whereBase = "id_producto = $id_producto AND est_movimiento = 1";
+
+    if (!is_null($id_almacen)) {
+        $id_almacen = intval($id_almacen);
+        $whereBase .= " AND id_almacen = $id_almacen";
+    }
+    if (!is_null($id_ubicacion)) {
+        $id_ubicacion = intval($id_ubicacion);
+        $whereBase .= " AND id_ubicacion = $id_ubicacion";
+    }
+
+    // 1) Stock físico: consideramos movimientos que afectan realmente el stock (EXCLUIMOS tipo_orden = 5 que son reservas)
+    $sql_fisico = "SELECT COALESCE(SUM(
+                    CASE
                         WHEN tipo_movimiento = 1 THEN cant_movimiento
                         WHEN tipo_movimiento = 2 THEN -cant_movimiento
                         ELSE 0
-                    END
-                ), 0) AS stock_disponible,
-                COALESCE(SUM(
-                    CASE 
-                        WHEN tipo_movimiento = 1 THEN cant_movimiento
-                        ELSE 0
-                    END
-                ), 0) AS stock_almacen
-            FROM movimiento
-            WHERE id_producto = $id_producto
-              AND id_almacen = $id_almacen
-              AND id_ubicacion = $id_ubicacion
-              AND est_movimiento = 1";
+                    END), 0) AS stock_fisico
+                  FROM movimiento
+                  WHERE $whereBase
+                    AND tipo_orden <> 5";
 
-    $res = mysqli_query($con, $sql);
-    $data = $res ? mysqli_fetch_assoc($res) : ['stock_disponible' => 0, 'stock_almacen' => 0];
+    $res = mysqli_query($con, $sql_fisico);
+    $row = $res ? mysqli_fetch_assoc($res) : null;
+    $stock_fisico = $row ? floatval($row['stock_fisico']) : 0.0;
+
+    // 2) Stock reservado (compromisos): tipo_orden = 5, tipo_movimiento = 2, est_movimiento = 1
+    $sql_reservado = "SELECT COALESCE(SUM(cant_movimiento),0) AS stock_reservado
+                      FROM movimiento
+                      WHERE $whereBase
+                        AND tipo_orden = 5
+                        AND tipo_movimiento = 2
+                        AND est_movimiento = 1";
+
+    $res2 = mysqli_query($con, $sql_reservado);
+    $row2 = $res2 ? mysqli_fetch_assoc($res2) : null;
+    $stock_reservado = $row2 ? floatval($row2['stock_reservado']) : 0.0;
+
+    // 3) (opcional) stock neto si consideráramos las reservas como salidas (para comparar con versiones anteriores)
+    $sql_incluye_comp = "SELECT COALESCE(SUM(
+                            CASE
+                              WHEN tipo_movimiento = 1 THEN cant_movimiento
+                              WHEN tipo_movimiento = 2 THEN -cant_movimiento
+                              ELSE 0
+                            END),0) AS stock_net_incluye_comp
+                         FROM movimiento
+                         WHERE $whereBase";
+    $res3 = mysqli_query($con, $sql_incluye_comp);
+    $row3 = $res3 ? mysqli_fetch_assoc($res3) : null;
+    $stock_incluye_comp = $row3 ? floatval($row3['stock_net_incluye_comp']) : 0.0;
+
     mysqli_close($con);
-    return $data;
-}
 
+    $stock_disponible = $stock_fisico - $stock_reservado;
+
+    return [
+        'stock_fisico' => $stock_fisico,
+        'stock_reservado' => $stock_reservado,
+        'stock_disponible' => $stock_disponible,
+        'stock_incluye_compromisos' => $stock_incluye_comp
+    ];
+}
 ?>
