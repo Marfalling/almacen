@@ -119,7 +119,18 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
             if ($id_pedido > 0) {
                 // Cargar datos del pedido
                 $pedido_data = ConsultarPedido($id_pedido);
-                $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
+                foreach ($pedido_detalle as &$detalle) {
+                    $id_producto = intval($detalle['id_producto']);
+                    $id_almacen  = intval($pedido_data[0]['id_almacen']);
+                    $id_ubicacion = intval($pedido_data[0]['id_ubicacion']);
+
+                    // Consultar stock disponible real y en almacén
+                    $stock = ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion);
+
+                    $detalle['cantidad_disponible_real'] = $stock['stock_disponible'] ?? 0;
+                    $detalle['cantidad_disponible_almacen'] = $stock['stock_almacen'] ?? 0;
+                }
+                unset($detalle);
                 
                 if (!empty($pedido_data)) {
                     require_once("../_vista/v_pedidos_editar.php");

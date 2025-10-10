@@ -152,7 +152,11 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                     <span class="<?php echo $claseTexto; ?>" style="font-weight: 600; font-size: 14px;">
                                         <i class="fa <?php echo $icono; ?>"></i> Item <?php echo $contador_detalle; ?> - <?php echo $estadoTexto; ?>
                                     </span>
-                                    <span>Stock Almacen: <?php echo $detalle['cantidad_disponible_almacen']; ?></span>
+                                    <span>
+                                        Stock Disponible/Almacén:
+                                        <?php echo $detalle['cantidad_disponible_real']; ?> /
+                                        <?php echo $detalle['cantidad_disponible_almacen']; ?>
+                                    </span>
                                     <?php if ($esAutoOrden) { ?>
                                         <span class="badge badge-primary" style="font-size: 10px; padding: 2px 6px;">
                                             <i class="fa fa-cog"></i> En Orden Automática

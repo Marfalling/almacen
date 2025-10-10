@@ -176,6 +176,9 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
 
                                     // CAMBIO: Obtener directamente el valor de req_pedido
                                     $sst_descripcion = $detalle['req_pedido'];
+
+                                    $stock_real = isset($detalle['cantidad_disponible_real']) ? $detalle['cantidad_disponible_real'] : 0;
+                                    $stock_almacen = isset($detalle['cantidad_disponible_almacen']) ? $detalle['cantidad_disponible_almacen'] : 0;
                                 ?>
                                 <div class="material-item border p-3 mb-3">
                                     <div class="row">
@@ -204,8 +207,20 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                         </div>
                                         <div class="col-md-3">
                                             <label>Cantidad <span class="text-danger">*</span>:</label>
-                                            <input type="number" name="cantidad[]" class="form-control" step="0.01" min="0" 
-                                                value="<?php echo $detalle['cant_pedido_detalle']; ?>" required>
+                                            <input 
+                                                type="number" 
+                                                name="cantidad[]" 
+                                                class="form-control" 
+                                                step="0.01" 
+                                                min="0" 
+                                                value="<?php echo $detalle['cant_pedido_detalle']; ?>" 
+                                                required
+                                                data-stock="<?php echo isset($detalle['cantidad_disponible_real']) ? $detalle['cantidad_disponible_real'] : 0; ?>">
+                                            <small class="form-text text-muted">
+                                                Stock Disponible/Almacén:
+                                                <?php echo isset($detalle['cantidad_disponible_real']) ? $detalle['cantidad_disponible_real'] : 0; ?> /
+                                                <?php echo isset($detalle['cantidad_disponible_almacen']) ? $detalle['cantidad_disponible_almacen'] : 0; ?>
+                                            </small>
                                         </div>
                                     </div>
                                     
@@ -916,5 +931,23 @@ document.addEventListener('DOMContentLoaded', function() {
 // Limpiar la referencia cuando se cierre la modal sin seleccionar
 $('#buscar_producto').on('hidden.bs.modal', function () {
     currentSearchButton = null;
+});
+
+
+document.querySelectorAll('input[name="cantidad[]"]').forEach(input => {
+    input.addEventListener('change', e => {
+        const maxStock = parseFloat(input.dataset.stock || 0);
+        const valor = parseFloat(input.value || 0);
+        if (valor > maxStock) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Stock insuficiente',
+                text: 'La cantidad supera el stock disponible. Se ajustará al máximo permitido.',
+                timer: 2000,
+                showConfirmButton: false
+            });
+            input.value = maxStock;
+        }
+    });
 });
 </script>

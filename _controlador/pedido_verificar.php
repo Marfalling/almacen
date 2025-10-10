@@ -15,6 +15,7 @@ require_once("../_modelo/m_proveedor.php");
 require_once("../_modelo/m_moneda.php");
 require_once("../_modelo/m_compras.php");
 require_once("../_modelo/m_detraccion.php");
+require_once("../_modelo/m_movimientos.php"); // 🔹 nuevo: para registrar movimientos
 
 $id_pedido = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : 0;
 $id_compra_editar = isset($_REQUEST['id_compra']) ? intval($_REQUEST['id_compra']) : 0;
@@ -28,18 +29,37 @@ $alerta = null;
 
 // VERIFICAR ITEM
 if (isset($_REQUEST['verificar_item'])) {
-    $id_pedido_detalle = $_REQUEST['id_pedido_detalle'];
-    $new_cant_fin = $_REQUEST['fin_cant_pedido_detalle'];
+    $id_pedido_detalle = intval($_REQUEST['id_pedido_detalle']);
+    $new_cant_fin = floatval($_REQUEST['fin_cant_pedido_detalle']);
+    $id_personal = $_SESSION['id_personal'] ?? 0;
+
     $rpta = verificarItem($id_pedido_detalle, $new_cant_fin);
 
     if ($rpta == "SI") {
+        // 🔹 Registrar movimiento tipo PEDIDO (compromiso de stock)
+        $detalle = ConsultarDetallePorId($id_pedido_detalle);
+        if ($detalle) {
+            $data_mov = [
+                'id_producto'    => $detalle['id_producto'],
+                'id_almacen'     => $detalle['id_almacen'],
+                'id_ubicacion'   => $detalle['id_ubicacion'],
+                'id_personal'    => $id_personal,
+                'id_tipo_orden'  => 5, // PEDIDO
+                'id_tipo_mov'    => 2, // salida comprometida
+                'id_pedido'      => $id_pedido,
+                'cantidad'       => $new_cant_fin,
+                'descripcion'    => 'Compromiso de stock por verificación de pedido #' . $id_pedido
+            ];
+            RegistrarMovimientoPedido($data_mov);
+        }
+
         header("Location: pedido_verificar.php?id=$id_pedido&success=verificado");
         exit;
     } else {
         $alerta = [
             "icon" => "error",
             "title" => "Error",
-            "text" => "Error al verificar: $rpta"
+            "text" => "Error al verificar item: $rpta"
         ];
     }
 }
