@@ -27,40 +27,77 @@ $alerta = null;
 // PROCESAR FORMULARIOS (ANTES DE CUALQUIER HTML)
 // ============================================================================
 
-// VERIFICAR ITEM
+// VERIFICAR ITEM (con validación de estado del pedido)
 if (isset($_REQUEST['verificar_item'])) {
     $id_pedido_detalle = intval($_REQUEST['id_pedido_detalle']);
     $new_cant_fin = floatval($_REQUEST['fin_cant_pedido_detalle']);
     $id_personal = $_SESSION['id_personal'] ?? 0;
 
-    $rpta = verificarItem($id_pedido_detalle, $new_cant_fin);
-
-    if ($rpta == "SI") {
-        // 🔹 Registrar movimiento tipo PEDIDO (compromiso de stock)
-        $detalle = ConsultarDetallePorId($id_pedido_detalle);
-        if ($detalle) {
-            $data_mov = [
-                'id_producto'    => $detalle['id_producto'],
-                'id_almacen'     => $detalle['id_almacen'],
-                'id_ubicacion'   => $detalle['id_ubicacion'],
-                'id_personal'    => $id_personal,
-                'id_tipo_orden'  => 5, // PEDIDO
-                'id_tipo_mov'    => 2, // salida comprometida
-                'id_pedido'      => $id_pedido,
-                'cantidad'       => $new_cant_fin,
-                'descripcion'    => 'Compromiso de stock por verificación de pedido #' . $id_pedido
-            ];
-            RegistrarMovimientoPedido($data_mov);
-        }
-
-        header("Location: pedido_verificar.php?id=$id_pedido&success=verificado");
-        exit;
-    } else {
+    // 1) Obtener detalle para saber a qué pedido pertenece
+    $detalle = ConsultarDetallePorId($id_pedido_detalle); // debe devolver id_pedido, id_producto, etc.
+    if (!$detalle) {
         $alerta = [
             "icon" => "error",
             "title" => "Error",
-            "text" => "Error al verificar item: $rpta"
+            "text" => "Detalle no encontrado."
         ];
+    } else {
+        $id_pedido_real = intval($detalle['id_pedido']);
+
+        // 2) Obtener estado actual del pedido (usar función existente)
+        $pedido_check = ConsultarPedido($id_pedido_real);
+        if (empty($pedido_check)) {
+            $alerta = [
+                "icon" => "error",
+                "title" => "Error",
+                "text" => "Pedido no encontrado."
+            ];
+        } else {
+            $pedido_row = $pedido_check[0];
+            // Cambia '1' por el valor que consideres "Completado" (en tu esquema dijiste que es 1)
+            if (intval($pedido_row['est_pedido']) !== 1) {
+                $alerta = [
+                    "icon" => "warning",
+                    "title" => "Acción no permitida",
+                    "text" => "No se puede verificar este item porque el pedido no está en estado 'Completado'."
+                ];
+            } else {
+                // 3) Proceder con la verificación
+                $rpta = verificarItem($id_pedido_detalle, $new_cant_fin);
+
+                if ($rpta == "SI") {
+                    // 4) Registrar movimiento tipo PEDIDO (compromiso de stock)
+                    // Obtener almacen/ubicacion preferentemente del detalle; si no existen usar los del pedido
+                    $id_almacen = isset($detalle['id_almacen']) ? intval($detalle['id_almacen']) : intval($pedido_row['id_almacen']);
+                    $id_ubicacion = isset($detalle['id_ubicacion']) ? intval($detalle['id_ubicacion']) : intval($pedido_row['id_ubicacion']);
+
+                    $data_mov = [
+                        'id_producto'    => intval($detalle['id_producto']),
+                        'id_almacen'     => $id_almacen,
+                        'id_ubicacion'   => $id_ubicacion,
+                        'id_personal'    => $id_personal,
+                        'id_tipo_orden'  => 5, // PEDIDO
+                        'id_tipo_mov'    => 2, // salida comprometida (estado 1 = comprometido)
+                        'id_pedido'      => $id_pedido_real,
+                        'cantidad'       => $new_cant_fin,
+                        'descripcion'    => 'Compromiso de stock por verificación de pedido #' . $id_pedido_real
+                    ];
+
+                    // RegistrarMovimientoPedido debe estar en m_movimientos.php (ya lo incluyes)
+                    $mov_rpta = RegistrarMovimientoPedido($data_mov);
+                    // opcional: manejar error en $mov_rpta
+
+                    header("Location: pedido_verificar.php?id=$id_pedido_real&success=verificado");
+                    exit;
+                } else {
+                    $alerta = [
+                        "icon" => "error",
+                        "title" => "Error",
+                        "text" => "Error al verificar item: $rpta"
+                    ];
+                }
+            }
+        }
     }
 }
 

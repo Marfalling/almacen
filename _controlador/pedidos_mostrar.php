@@ -29,6 +29,8 @@ $pedidos = MostrarPedidosFecha($fecha_inicio, $fecha_fin);
 $pedidos_rechazados = ObtenerPedidosConComprasAnuladas();
 $alerta = null;
 
+
+
 if (isset($_GET['success']) && $_GET['success'] === 'completado_auto') {
     $alerta = [
         "icon" => "success",
