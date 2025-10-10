@@ -47,12 +47,14 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
             $ubicaciones = MostrarUbicacionesActivas(); 
             $centros_costo = MostrarCentrosCostoActivos(); // AGREGADO: Cargar centros de costo
             
+            
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/pedidos/")) {
                 mkdir("../_archivos/pedidos/", 0777, true);
             }
 
             $id_pedido = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : 0;
+            $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
 
             //=======================================================================
             // CONTROLADOR ACTUALIZADO - SST COMO CAMPO ÚNICO
@@ -120,15 +122,16 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                 // Cargar datos del pedido
                 $pedido_data = ConsultarPedido($id_pedido);
                 foreach ($pedido_detalle as &$detalle) {
-                    $id_producto = intval($detalle['id_producto']);
-                    $id_almacen  = intval($pedido_data[0]['id_almacen']);
+                    $id_producto  = intval($detalle['id_producto']);
+                    $id_almacen   = intval($pedido_data[0]['id_almacen']);
                     $id_ubicacion = intval($pedido_data[0]['id_ubicacion']);
 
                     // Consultar stock disponible real y en almacén
                     $stock = ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion);
 
-                    $detalle['cantidad_disponible_real'] = $stock['stock_disponible'] ?? 0;
-                    $detalle['cantidad_disponible_almacen'] = $stock['stock_almacen'] ?? 0;
+                    // Ajusta nombres según lo que devuelve tu función
+                    $detalle['cantidad_disponible_almacen'] = $stock['stock_fisico'];
+                    $detalle['cantidad_disponible_real']    = $stock['stock_disponible'];
                 }
                 unset($detalle);
                 
