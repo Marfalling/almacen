@@ -1,104 +1,83 @@
 <?php
+//=======================================================================
+// CONTROLADOR: personal_editar.php
+//=======================================================================
+require_once("../_conexion/conexion_complemento.php");
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_personal.php");
+require_once("../_modelo/m_area.php");
+require_once("../_modelo/m_cargo.php");
+require_once("../_modelo/m_auditoria.php");
 
+// Validar permisos
 if (!verificarPermisoEspecifico('editar_personal')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PERSONAL', 'EDITAR');
-    header("location: bienvenido.php?permisos=true");
+    header("location: dashboard.php?permisos=false");
     exit;
 }
+
+// Obtener ID del personal desde GET
+$id_personal = isset($_GET['id_personal']) ? intval($_GET['id_personal']) : 0;
+if ($id_personal <= 0) {
+    header("location: personal_mostrar.php?error=true");
+    exit;
+}
+
+// Si se envía el formulario
+if (isset($_POST['registrar'])) {
+    $nom      = strtoupper(trim($_POST['nom'] ?? ''));
+    $dni      = trim($_POST['dni'] ?? '');
+    $email    = trim($_POST['email'] ?? '');
+    $cel      = trim($_POST['cel'] ?? '');
+    $est      = isset($_POST['est']) ? 1 : 0;
+    $id_area  = intval($_POST['id_area'] ?? 0);
+    $id_cargo = intval($_POST['id_cargo'] ?? 0);
+
+    // Validaciones mínimas
+    if ($nom === '' || $dni === '' || $id_area === 0 || $id_cargo === 0) {
+        echo "<script>alert('Error: Complete todos los campos obligatorios.'); history.back();</script>";
+        exit;
+    }
+
+    // LLAMADA CORRECTA A LA FUNCIÓN: ORDEN DE PARÁMETROS EXACTO
+    $rpta = EditarPersonal($id_personal, $id_area, $id_cargo, $nom, $dni, $email, $cel, $est);
+
+    if ($rpta === "SI") {
+        GrabarAuditoria($id, $usuario_sesion, 'ACTUALIZÓ PERSONAL', 'PERSONAL', "ID: $id_personal");
+        echo "<script>location.href='personal_mostrar.php?actualizado=true';</script>";
+        exit;
+    } elseif ($rpta === "NO") {
+        echo "<script>alert('Error: Ya existe un personal con este DNI.'); history.back();</script>";
+        exit;
+    } else {
+        echo "<script>alert('Error al actualizar el personal.'); history.back();</script>";
+        exit;
+    }
+}
+
+// Obtener datos actuales del personal
+$personal_data = ConsultarPersonal($id_personal); //  Usa ConsultarPersonal para traer los datos
+if (!$personal_data) {
+    header("location: personal_mostrar.php?error=true");
+    exit;
+}
+
+// Asignar valores con fallback
+$nom      = $personal_data['nom_personal'] ?? '';
+$dni      = $personal_data['dni_personal'] ?? '';
+$email    = $personal_data['email_personal'] ?? '';
+$cel      = $personal_data['cel_personal'] ?? '';
+$est      = ($personal_data['act_personal'] ?? 0) ? "checked" : "";
+$id_area  = $personal_data['id_area'] ?? '';
+$id_cargo = $personal_data['id_cargo'] ?? '';
+
+// Listas para select
+$areas  = MostrarAreasActivas();
+$cargos = MostrarCargosActivos();
+
+// Grabar auditoría de ingreso a la edición
+GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'PERSONAL', 'EDITAR');
+
+// Cargar la vista
+require_once("../_vista/v_personal_editar.php");
 ?>
-<!DOCTYPE html>
-<html lang="es">
-
-<head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <title>Editar Personal</title>
-
-    <?php require_once("../_vista/v_estilo.php"); ?>
-</head>
-
-<body class="nav-md">
-    <div class="container body">
-        <div class="main_container">
-            <?php
-            require_once("../_vista/v_menu.php");
-            require_once("../_vista/v_menu_user.php");
-
-            require_once("../_modelo/m_personal.php");
-
-            //-------------------------------------------
-            if (isset($_REQUEST['registrar'])) {
-                $id_personal = $_REQUEST['id_personal'];
-                $id_area = $_REQUEST['id_area'];
-                $id_cargo = $_REQUEST['id_cargo'];
-                $nom = strtoupper($_REQUEST['nom']);
-                $ape = strtoupper($_REQUEST['ape']);
-                $dni = $_REQUEST['dni'];
-                $email = $_REQUEST['email'];
-                $tel = $_REQUEST['tel'];
-                $est = isset($_REQUEST['est']) ? 1 : 0;
-
-                $rpta = EditarPersonal($id_personal, $id_area, $id_cargo, $nom, $ape, $dni, $email, $tel, $est);
-
-                if ($rpta == "SI") {
-                ?>
-                    <script Language="JavaScript">
-                        location.href = 'personal_mostrar.php?actualizado=true';
-                    </script>
-                <?php
-                } else if ($rpta == "NO") {
-                ?>
-                    <script Language="JavaScript">
-                        location.href = 'personal_mostrar.php?error=true';
-                    </script>
-                <?php
-                }
-            }
-            //-------------------------------------------
-
-            // Obtener ID del personal desde GET
-            $id_personal = isset($_GET['id_personal']) ? $_GET['id_personal'] : '';
-            if ($id_personal == "") {
-            ?>
-                <script Language="JavaScript">
-                    location.href = 'dashboard.php?error=true';
-                </script>
-            <?php
-                exit;
-            }
-
-            // Obtener datos del personal a editar
-            $personal_data = ObtenerPersonal($id_personal);
-            if ($personal_data) {
-                $id_area = $personal_data['id_area'];
-                $id_cargo = $personal_data['id_cargo'];
-                $nom = $personal_data['nom_personal'];
-                $ape = $personal_data['ape_personal'];
-                $dni = $personal_data['dni_personal'];
-                $email = $personal_data['email_personal'];
-                $tel = $personal_data['tel_personal'];
-                $est = ($personal_data['est_personal'] == 1) ? "checked" : "";
-            } else {
-            ?>
-                <script Language="JavaScript">
-                    location.href = 'dashboard.php?error=true';
-                </script>
-            <?php
-                exit;
-            }
-
-            require_once("../_vista/v_personal_editar.php");
-            require_once("../_vista/v_footer.php");
-            ?>
-        </div>
-    </div>
-
-    <?php require_once("../_vista/v_script.php"); ?>
-</body>
-
-</html>

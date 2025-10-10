@@ -1,6 +1,7 @@
-<?php
+</div>
+<<?php
 //=======================================================================
-// CONTROLADOR: obras_editar.php (adaptado a subestacion)
+// CONTROLADOR: obras_editar.php 
 //=======================================================================
 require_once("../_conexion/sesion.php");
 
@@ -132,8 +133,7 @@ GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'OBRAS', 'EDITAR');
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
+             /div>
         </div>
 
         <?php require_once("../_vista/v_footer.php"); ?>
