@@ -3,6 +3,15 @@
 // MODELO: m_pedidos.php
 //-----------------------------------------------------------------------
 
+
+//PEDIDO_ANULADO', 0);
+//PEDIDO_COMPLETADO', 1); 
+//PEDIDO_APROBADO', 2);
+//PEDIDO_INGRESADO', 3);
+//PEDIDO_FINALIZADO', 4);
+//PEDIDO_REGISTRADO_O_PENDIENTE', 5);  
+
+
 // Grabar Pedido (ahora acepta opcionalmente $id_obra)
 function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo, 
                      $nom_pedido, $solicitante, $fecha_necesidad, 
@@ -22,7 +31,7 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
                 $id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo, $id_personal, $id_obra_sql,
                 'TEMP', '" . mysqli_real_escape_string($con, $nom_pedido) . "', '" . mysqli_real_escape_string($con, $num_ot) . "',
                 '" . mysqli_real_escape_string($con, $contacto) . "', '" . mysqli_real_escape_string($con, $lugar_entrega) . "',
-                '" . mysqli_real_escape_string($con, $aclaraciones) . "', '" . mysqli_real_escape_string($con, $fecha_necesidad) . "', NOW(), 1
+                '" . mysqli_real_escape_string($con, $aclaraciones) . "', '" . mysqli_real_escape_string($con, $fecha_necesidad) . "', NOW(), 5
             )";
 
     if (mysqli_query($con, $sql)) {
@@ -126,7 +135,7 @@ function MostrarPedidos()
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion AND u.est_ubicacion = 1
              LEFT JOIN personal pr ON p.id_personal = pr.id_personal AND pr.est_personal = 1
              LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
-             WHERE p.est_pedido IN (0, 1, 2, 3, 4)
+             WHERE p.est_pedido IN (0, 1, 2, 3, 4, 5)
              ORDER BY p.fec_pedido DESC";
 
     $resc = mysqli_query($con, $sqlc);
@@ -198,7 +207,7 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion AND u.est_ubicacion = 1
              LEFT JOIN personal pr ON p.id_personal = pr.id_personal AND pr.est_personal = 1
              LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
-             WHERE p.est_pedido IN (0, 1, 2, 3, 4)
+             WHERE p.est_pedido IN (0, 1, 2, 3, 4, 5)
              $where_fecha
              ORDER BY p.fec_pedido DESC";
 
@@ -1063,7 +1072,7 @@ function verificarPedidoListo($id_pedido, $con = null)
     // Si llegamos aquí, todos los items sin stock están en órdenes de compra
     return [
         'listo' => true,
-        'mensaje' => 'El pedido está listo para finalizarse'
+        'mensaje' => 'El pedido tiene stock suficiente y puede marcarse como completado'
     ];
 }
 
@@ -1117,6 +1126,10 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
         mysqli_close($con);
         return "ERROR: " . $err;
     }
+
+    // Si el pedido estaba solo registrado (5), ahora pasa a completado (1)
+    $sql_estado = "UPDATE pedido SET est_pedido = 1 WHERE id_pedido = $id_pedido AND est_pedido = 5";
+    mysqli_query($con, $sql_estado);
 }
 
 //-----------------------------------------------------------------------
@@ -1229,7 +1242,7 @@ function ConsultarPedidoAnulado($id_pedido)
              LEFT JOIN cliente c ON a.id_cliente = c.id_cliente
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion
              LEFT JOIN personal pr ON p.id_personal = pr.id_personal
-             LEFT JOIN producto_tipo pt ON p.id_producto_type = pt.id_producto_tipo
+             LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
              WHERE p.id_pedido = ?";
 
     // Si tu versión de BD tiene columna id_producto_tipo tal cual, mantener pt join como antes.
@@ -1386,9 +1399,10 @@ function VerificarYActualizarEstadoPedido($id_pedido)
             'items' => $items_detalle
         ];
     }
+
+    // Actualizar a COMPLETADO (estado 1) cuando tiene todo el stock
+    $sql_update = "UPDATE pedido SET est_pedido = 1 WHERE id_pedido = $id_pedido";
     
-    // Actualizar a FINALIZADO (estado 4) cuando tiene todo el stock
-    $sql_update = "UPDATE pedido SET est_pedido = 4 WHERE id_pedido = $id_pedido";
     $resultado = mysqli_query($con, $sql_update);
     
     if ($resultado) {

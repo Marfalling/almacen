@@ -93,18 +93,20 @@
                                                         <?php 
                                                         // Verificar si este pedido está en la lista de rechazados
                                                         $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
-                                                        
-                                                            if($pedido['est_pedido'] == 1) { ?>
-                                                                <span class="badge badge-warning badge_size">Pendiente</span>
-                                                            <?php } elseif($pedido['est_pedido'] == 2) { ?>
-                                                                <span class="badge badge-info badge_size">Aprobado</span>
-                                                            <?php } elseif($pedido['est_pedido'] == 3) { ?>
-                                                                <span class="badge badge-primary badge_size">Ingresado</span>
-                                                            <?php } elseif($pedido['est_pedido'] == 4) { ?>
-                                                                <span class="badge badge-success badge_size">Finalizado</span>
-                                                            <?php } else { ?>
-                                                                <span class="badge badge-danger badge_size">Anulado</span>
-                                                            <?php } ?>
+
+                                                        if ($pedido['est_pedido'] == 5) { ?>
+                                                            <span class="badge badge-secondary badge_size">Pendiente</span>
+                                                        <?php } elseif ($pedido['est_pedido'] == 1) { ?>
+                                                            <span class="badge badge-warning badge_size">Completado</span>
+                                                        <?php } elseif ($pedido['est_pedido'] == 2) { ?>
+                                                            <span class="badge badge-info badge_size">Aprobado</span>
+                                                        <?php } elseif ($pedido['est_pedido'] == 3) { ?>
+                                                            <span class="badge badge-primary badge_size">Ingresado</span>
+                                                        <?php } elseif ($pedido['est_pedido'] == 4) { ?>
+                                                            <span class="badge badge-success badge_size">Finalizado</span>
+                                                        <?php } else { ?>
+                                                            <span class="badge badge-danger badge_size">Anulado</span>
+                                                        <?php } ?>
                                                     </td>
 <td>
     <div class="d-flex flex-wrap gap-2">
@@ -192,26 +194,33 @@
         <?php } ?>
 
         <!-- Botón Verificar -->
-        <?php if ($pedido['est_pedido_calc'] == 2) { ?>
-           <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
-               class="btn btn-success btn-sm" 
-               title="Verificar">
+        <?php
+        // defensivas
+        $estado = isset($pedido['est_pedido_calc']) ? intval($pedido['est_pedido_calc']) : -1;
+        $es_rechazado = !empty($es_rechazado);
+
+        // Sólo permitir VERIFICAR cuando el pedido está en estado "Completado" (1)
+        if ($estado === 1 && !$es_rechazado) : ?>
+            <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>"
+            class="btn btn-success btn-sm"
+            title="Verificar pedido">
                 <i class="fa fa-check"></i>
             </a>
-        <?php } elseif ($pedido['est_pedido_calc'] == 0 || $es_rechazado) { 
-            $titulo_verificar = $es_rechazado ? "No se puede verificar - Pedido rechazado" : "No se puede verificar - Pedido anulado";
-        ?>
-            <a href="#" class="btn btn-outline-secondary btn-sm disabled" 
-               title="<?php echo $titulo_verificar; ?>" tabindex="-1" aria-disabled="true">
+        <?php else :
+            // Mensaje explicativo para el tooltip
+            switch ($estado) {
+                case 0: $titulo = "No se puede verificar - Pedido anulado"; break;
+                case 2: $titulo = "No se puede verificar - Pedido aprobado en compras"; break;
+                case 3: $titulo = "No se puede verificar - Pedido ingresado a almacén"; break;
+                case 4: $titulo = "No se puede verificar - Pedido finalizado"; break;
+                default: $titulo = $es_rechazado ? "No se puede verificar - Pedido rechazado" : "No disponible para verificación";
+            }
+            ?>
+            <a href="#" class="btn btn-outline-secondary btn-sm disabled"
+            title="<?php echo $titulo; ?>" tabindex="-1" aria-disabled="true">
                 <i class="fa fa-check"></i>
             </a>
-        <?php } else { ?>
-            <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
-               class="btn btn-success btn-sm" 
-               title="Verificar">
-                <i class="fa fa-check"></i>
-            </a>
-        <?php } ?>
+        <?php endif; ?>
 
         <!-- Botón PDF -->
         <a href="pedido_pdf.php?id=<?php echo $pedido['id_pedido']; ?>" 

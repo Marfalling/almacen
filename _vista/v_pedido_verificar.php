@@ -1080,40 +1080,41 @@ document.addEventListener('DOMContentLoaded', function() {
     // Si todos los items tienen stock
     if (tieneItems && todosConStockCompleto) {
 
+        // --- PEDIDO YA FINALIZADO (4) ---
         if (estadoPedido === 4) {
             Swal.fire({
                 title: '¡Pedido Finalizado!',
                 html: '<div style="text-align: left; padding: 10px;">' +
-                    '<p style="margin-bottom: 10px;"> Este pedido está marcado como <strong style="color: #28a745;">FINALIZADO</strong>.</p>' +
-                    '<p style="margin-bottom: 10px;"> Todos los items tienen stock disponible en el almacén.</p>' +
-                    '<p style="margin-bottom: 0;"><strong>¿Desea generar una salida de almacén ahora?</strong></p>' +
+                    '<p style="margin-bottom: 10px;">Este pedido ya está marcado como <strong style="color: #28a745;">FINALIZADO</strong>.</p>' +
+                    '<p style="margin-bottom: 0;"><strong>¿Deseas ver las salidas relacionadas?</strong></p>' +
                     '</div>',
                 icon: 'success',
                 showCancelButton: true,
                 confirmButtonColor: '#28a745',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
+                confirmButtonText: '<i class="fa fa-eye"></i> Ver Salidas',
                 cancelButtonText: '<i class="fa fa-arrow-left"></i> Volver a pedidos',
                 allowOutsideClick: false
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = 'salidas_nuevo.php?desde_pedido=<?php echo $id_pedido; ?>';
+                    // Llevar al listado de salidas o detalle de salida (ajusta según tu ruta)
+                    window.location.href = 'salidas_mostrar.php?pedido=<?php echo $id_pedido; ?>';
                 } else {
                     window.location.href = 'pedidos_mostrar.php';
                 }
             });
             return;
         }
-        // Si el pedido está APROBADO (estado = 2) o INGRESADO (estado = 3)
+
+        // --- PEDIDO APROBADO O INGRESADO (2 o 3): sugerir generar salida ---
         if (estadoPedido === 2 || estadoPedido === 3) {
             Swal.fire({
-                title: '¡Pedido Aprobado!',
+                title: '¡Pedido con stock disponible!',
                 html: '<div style="text-align: left; padding: 10px;">' +
-                    '<p style="margin-bottom: 10px;">✅ Este pedido está aprobado.</p>' +
-                    '<p style="margin-bottom: 10px;">✅ Todos los items tienen stock disponible en el almacén.</p>' +
-                    '<p style="margin-bottom: 0;"><strong>¿Desea generar una salida de almacén ahora?</strong></p>' +
+                    '<p style="margin-bottom: 10px;">Este pedido está aprobado/ingresado y todos los items tienen stock en almacén.</p>' +
+                    '<p style="margin-bottom: 0;"><strong>¿Deseas generar una salida de almacén ahora?</strong></p>' +
                     '</div>',
-                icon: 'success',
+                icon: 'info',
                 showCancelButton: true,
                 confirmButtonColor: '#28a745',
                 cancelButtonColor: '#6c757d',
@@ -1129,96 +1130,33 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             return;
         }
-       
-        // Si el pedido está PENDIENTE (estado = 1), intentar completarlo
+
+        // --- PEDIDO COMPLETADO (1): mostrar opción de generar salida, NO finalizar automáticamente ---
         if (estadoPedido === 1) {
-            // Mostrar loading
             Swal.fire({
-                title: 'Verificando disponibilidad...',
-                text: 'Por favor espere',
-                allowOutsideClick: false,
-                showConfirmButton: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-            
-            // Marcar como FINALIZADO (estado 4) automáticamente
-            fetch('pedido_actualizar_estado.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'id_pedido=<?php echo $id_pedido; ?>&accion=completar_automatico'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        title: '¡Stock Completo - Pedido Finalizado!',
-                        html: '<div style="text-align: left; padding: 10px;">' +
-                            '<p style="margin-bottom: 10px;"> Todos los items tienen stock disponible en el almacén.</p>' +
-                            '<p style="margin-bottom: 10px;"> El pedido se ha marcado como <strong style="color: #28a745;">FINALIZADO</strong> (sin necesidad de orden de compra).</p>' +
-                            '<p style="margin-bottom: 0;"><strong>¿Desea generar una salida de almacén ahora?</strong></p>' +
-                            '</div>',
-                        icon: 'success',
-                        showCancelButton: true,
-                        confirmButtonColor: '#28a745',
-                        cancelButtonColor: '#6c757d',
-                        confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
-                        cancelButtonText: '<i class="fa fa-arrow-left"></i> Volver a pedidos',
-                        allowOutsideClick: false
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            Swal.fire({
-                                title: 'Redirigiendo...',
-                                text: 'Preparando formulario de salida',
-                                icon: 'info',
-                                allowOutsideClick: false,
-                                showConfirmButton: false,
-                                didOpen: () => {
-                                    Swal.showLoading();
-                                }
-                            });
-                            setTimeout(function() {
-                                window.location.href = 'salidas_nuevo.php?desde_pedido=<?php echo $id_pedido; ?>';
-                            }, 500);
-                        } else {
-                            window.location.href = 'pedidos_mostrar.php?success=finalizado_auto';
-                        }
-                    });
+                title: 'Pedido verificado (completado)',
+                html: '<div style="text-align: left; padding: 10px;">' +
+                    '<p style="margin-bottom: 10px;">Este pedido ya fue verificado y tiene stock disponible en almacén.</p>' +
+                    '<p style="margin-bottom: 0;"><strong>¿Deseas generar una salida de almacén ahora?</strong></p>' +
+                    '</div>',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
+                cancelButtonText: '<i class="fa fa-arrow-left"></i> Volver a pedidos',
+                allowOutsideClick: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Redirigir al formulario de salida; el módulo de salidas deberá
+                    // volver a validar stock y, una vez se guarde la salida, marcar el pedido est_pedido = 4.
+                    window.location.href = 'salidas_nuevo.php?desde_pedido=<?php echo $id_pedido; ?>';
                 } else {
-                    // Mostrar error detallado
-                    let errorHtml = '<div style="text-align: left;">';
-                    errorHtml += '<p><strong>Error:</strong> ' + (data.message || 'Error desconocido') + '</p>';
-                    
-                    if (data.detalles) {
-                        errorHtml += '<hr><p><strong>Detalles:</strong></p>';
-                        errorHtml += '<pre style="text-align: left; font-size: 11px; max-height: 300px; overflow: auto;">' + 
-                                    JSON.stringify(data.detalles, null, 2) + '</pre>';
-                    }
-                    
-                    errorHtml += '</div>';
-                    
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error al finalizar pedido',
-                        html: errorHtml,
-                        width: '600px',
-                        confirmButtonText: 'Entendido'
-                    });
+                    // Solo volver al listado; NO tocar estado del pedido
+                    window.location.href = 'pedidos_mostrar.php';
                 }
-            })
-            .catch(error => {
-                console.error('Error de red:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error de conexión',
-                    html: '<p>No se pudo conectar con el servidor</p>' +
-                        '<p><strong>Error:</strong> ' + error.message + '</p>',
-                    confirmButtonText: 'Entendido'
-                });
             });
+            return;
         }
     }
 }
