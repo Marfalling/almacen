@@ -110,14 +110,8 @@
                                                     <?php
                                                     $contador = 1;
                                                     foreach ($ingresos as $ingreso) {
-                                                        // Solo mostrar órdenes de compra (tipo COMPRA o sin tipo definido para compatibilidad)
                                                         if (isset($ingreso['tipo']) && $ingreso['tipo'] != 'COMPRA') continue;
                                                         
-                                                        // Calcular progreso para determinar estado
-                                                        $porcentaje = $ingreso['total_productos'] > 0 ? 
-                                                            round(($ingreso['productos_ingresados'] / $ingreso['total_productos']) * 100) : 0;
-                                                        
-                                                        // Compatibilidad con estructura original
                                                         $id_compra = isset($ingreso['id_compra']) ? $ingreso['id_compra'] : (isset($ingreso['id_orden']) ? $ingreso['id_orden'] : '');
                                                         $est_compra = isset($ingreso['est_compra']) ? $ingreso['est_compra'] : (isset($ingreso['estado']) ? $ingreso['estado'] : 0);
                                                         $fec_compra = isset($ingreso['fec_compra']) ? $ingreso['fec_compra'] : (isset($ingreso['fecha']) ? $ingreso['fecha'] : '');
@@ -142,25 +136,51 @@
                                                             <td><?php echo $ingreso['registrado_por'] ?? 'No especificado'; ?></td>
                                                             <td><?php echo $ingreso['aprobado_por'] ?? 'Pendiente'; ?></td>
                                                             <td>
-                                                                <?php if ($est_compra == 3) { ?>
-                                                                    <span class="badge badge-success badge_size">Completado</span>
-                                                                <?php } elseif ($ingreso['productos_ingresados'] > 0) { ?>
-                                                                    <span class="badge badge-warning badge_size">Parcial (<?php echo $ingreso['productos_ingresados']; ?>/<?php echo $ingreso['total_productos']; ?>)</span>
-                                                                <?php } else { ?>
+                                                                <?php 
+                                                                $est_compra = intval($est_compra);
+                                                                
+                                                                if ($est_compra == 0) { ?>
+                                                                    <span class="badge badge-danger badge_size">Anulada</span>
+                                                                <?php } elseif ($est_compra == 1) { ?>
                                                                     <span class="badge badge-warning badge_size">Pendiente</span>
+                                                                    <?php 
+                                                                    if (isset($ingreso['cantidad_total_ingresada']) && $ingreso['cantidad_total_ingresada'] > 0) { 
+                                                                        $cantidad_pedida = floatval($ingreso['cantidad_total_pedida']);
+                                                                        $cantidad_ingresada = floatval($ingreso['cantidad_total_ingresada']);
+                                                                        $porcentaje = $cantidad_pedida > 0 ? round(($cantidad_ingresada / $cantidad_pedida) * 100) : 0;
+                                                                    ?>
+                                                                        <br><small class="text-info">(<?php echo number_format($cantidad_ingresada, 2); ?>/<?php echo number_format($cantidad_pedida, 2); ?> - <?php echo $porcentaje; ?>%)</small>
+                                                                    <?php } ?>
+                                                                <?php } elseif ($est_compra == 2) { ?>
+                                                                    <span class="badge badge-success badge_size">Aprobada</span>
+                                                                    <?php 
+                                                                    if (isset($ingreso['cantidad_total_ingresada']) && isset($ingreso['cantidad_total_pedida'])) { 
+                                                                        $cantidad_pedida = floatval($ingreso['cantidad_total_pedida']);
+                                                                        $cantidad_ingresada = floatval($ingreso['cantidad_total_ingresada']);
+                                                                        $porcentaje = $cantidad_pedida > 0 ? round(($cantidad_ingresada / $cantidad_pedida) * 100) : 0;
+                                                                        
+                                                                        if ($cantidad_ingresada > 0) { ?>
+                                                                            <br><small class="text-info">(<?php echo number_format($cantidad_ingresada, 2); ?>/<?php echo number_format($cantidad_pedida, 2); ?> - <?php echo $porcentaje; ?>%)</small>
+                                                                        <?php }
+                                                                    } ?>
+                                                                <?php } elseif ($est_compra == 3) { ?>
+                                                                    <span class="badge badge-info badge_size">Cerrada</span>
+                                                                    <?php if (isset($ingreso['cantidad_total_ingresada'])) { ?>
+                                                                        <br><small class="text-success">(<?php echo number_format($ingreso['cantidad_total_ingresada'], 2); ?> ingresado)</small>
+                                                                    <?php } ?>
+                                                                <?php } elseif ($est_compra == 4) { ?>
+                                                                    <span class="badge badge-primary badge_size">Pagada</span>
                                                                 <?php } ?>
                                                             </td>
                                                             <td>
                                                                 <div class="d-flex flex-wrap gap-2">
-                                                                    <?php if ($est_compra != 3) { ?>
-                                                                    <!-- Botón Verificar - solo visible si NO está completado (estado != 3) --> 
+                                                                    <?php if ($est_compra != 0 && $est_compra != 3 && $est_compra != 4) { ?>
                                                                     <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
                                                                        class="btn btn-success btn-sm"
                                                                        title="Verificar ingreso">
                                                                         <i class="fa fa-check"></i>
                                                                     </a>
                                                                     <?php } ?>
-                                                                    <!-- Botón Ingresos - siempre visible -->
                                                                     <a href="ingresos_detalle.php?id_compra=<?php echo $id_compra; ?>" 
                                                                         class="btn btn-secondary btn-sm"
                                                                         title="Ver ingresos">
@@ -180,7 +200,9 @@
                                 </div>
                             </div>
 
+                            <!-- ============================================ -->
                             <!-- TAB 2: INGRESOS DIRECTOS -->
+                            <!-- ============================================ -->
                             <div role="tabpanel" class="tab-pane" id="ingresos-directos">
                                 <div class="row">
                                     <div class="col-sm-12">
@@ -258,8 +280,9 @@
                                 </div>
                             </div>
 
+                            <!-- ============================================ -->
                             <!-- TAB 3: TODOS LOS INGRESOS -->
-                            <!-- CAMBIO: Ahora este es el tab activo por defecto -->
+                            <!-- ============================================ -->
                             <div role="tabpanel" class="tab-pane active" id="todos-ingresos">
                                 <div class="row">
                                     <div class="col-sm-12">
@@ -291,6 +314,8 @@
                                                     ?>
                                                         <tr>
                                                             <td><?php echo $contador; ?></td>
+                                                            
+                                                            <!-- COLUMNA: TIPO -->
                                                             <td>
                                                                 <?php if ($tipo == 'COMPRA') { ?>
                                                                     <span class="badge badge-warning badge_size">COMPRA</span>
@@ -298,62 +323,107 @@
                                                                     <span class="badge badge-info badge_size">DIRECTO</span>
                                                                 <?php } ?>
                                                             </td>
+                                                            
+                                                            <!-- COLUMNA: N° DOCUMENTO -->
                                                             <td>
                                                                 <?php if ($tipo == 'COMPRA') { ?>
                                                                     <strong>OC-<?php echo $id_compra; ?></strong>
-                                                                    <?php if (isset($ingreso['id_ingreso'])): ?>
-                                                                        <br><small class="text-muted">(ING-<?php echo $ingreso['id_ingreso']; ?>)</small>
-                                                                    <?php endif; ?>
                                                                 <?php } else { ?>
                                                                     <strong>ING-<?php echo $ingreso['id_ingreso']; ?></strong>
                                                                 <?php } ?>
                                                             </td>
+                                                            
+                                                            <!-- COLUMNA: ORIGEN/PROVEEDOR -->
                                                             <td><?php echo $nom_proveedor; ?></td>
+                                                            
+                                                            <!-- COLUMNA: ALMACÉN -->
                                                             <td><?php echo $ingreso['nom_almacen']; ?></td>
+                                                            
+                                                            <!-- COLUMNA: UBICACIÓN -->
                                                             <td><?php echo $ingreso['nom_ubicacion']; ?></td>
+                                                            
+                                                            <!-- COLUMNA: FECHA -->
                                                             <td><?php echo date('d/m/Y H:i', strtotime($fec_compra)); ?></td>
+                                                            
+                                                            <!-- COLUMNA: ESTADO -->
                                                             <td>
-                                                                <?php if ($tipo == 'COMPRA') { ?>
-                                                                    <?php if ($est_compra == 3) { ?>
-                                                                        <span class="badge badge-success badge_size">Completado</span>
-                                                                    <?php } elseif ($ingreso['productos_ingresados'] > 0) { ?>
-                                                                        <span class="badge badge-warning badge_size">Parcial</span>
-                                                                    <?php } else { ?>
+                                                                <?php 
+                                                                if ($tipo == 'COMPRA') { 
+                                                                    $est_compra = intval($est_compra);
+                                                                    
+                                                                    if ($est_compra == 0) { ?>
+                                                                        <span class="badge badge-danger badge_size">Anulada</span>
+                                                                    <?php } elseif ($est_compra == 1) { ?>
                                                                         <span class="badge badge-warning badge_size">Pendiente</span>
+                                                                        <?php 
+                                                                        if (isset($ingreso['cantidad_total_ingresada']) && $ingreso['cantidad_total_ingresada'] > 0) { 
+                                                                            $cantidad_pedida = floatval($ingreso['cantidad_total_pedida']);
+                                                                            $cantidad_ingresada = floatval($ingreso['cantidad_total_ingresada']);
+                                                                            $porcentaje = $cantidad_pedida > 0 ? round(($cantidad_ingresada / $cantidad_pedida) * 100) : 0;
+                                                                        ?>
+                                                                            <br><small class="text-info">(<?php echo $porcentaje; ?>%)</small>
+                                                                        <?php } ?>
+                                                                    <?php } elseif ($est_compra == 2) { ?>
+                                                                        <span class="badge badge-success badge_size">Aprobada</span>
+                                                                        <?php 
+                                                                        if (isset($ingreso['cantidad_total_ingresada']) && isset($ingreso['cantidad_total_pedida'])) { 
+                                                                            $cantidad_pedida = floatval($ingreso['cantidad_total_pedida']);
+                                                                            $cantidad_ingresada = floatval($ingreso['cantidad_total_ingresada']);
+                                                                            $porcentaje = $cantidad_pedida > 0 ? round(($cantidad_ingresada / $cantidad_pedida) * 100) : 0;
+                                                                            
+                                                                            if ($cantidad_ingresada > 0) { ?>
+                                                                                <br><small class="text-info">(<?php echo $porcentaje; ?>%)</small>
+                                                                            <?php }
+                                                                        } ?>
+                                                                    <?php } elseif ($est_compra == 3) { ?>
+                                                                        <span class="badge badge-info badge_size">Cerrada</span>
+                                                                        <br><small class="text-success">(Completo)</small>
+                                                                    <?php } elseif ($est_compra == 4) { ?>
+                                                                        <span class="badge badge-primary badge_size">Pagada</span>
                                                                     <?php } ?>
                                                                 <?php } else { ?>
-                                                                     <?php if ($ingreso['estado'] == 0) { ?>
+                                                                    <?php if ($ingreso['estado'] == 0) { ?>
                                                                         <span class="badge badge-danger badge_size">Anulado</span>
                                                                     <?php } else { ?>
-                                                                        <!-- CAMBIO: Formato correcto con mayúscula inicial -->
                                                                         <span class="badge badge-success badge_size">Registrado</span>
                                                                     <?php } ?>
                                                                 <?php } ?>
                                                             </td>
+                                                            
+                                                            <!-- COLUMNA: PRODUCTOS -->
                                                             <td>
                                                                 <span class="badge badge-primary badge_size"><?php echo $ingreso['total_productos']; ?></span>
                                                             </td>
+                                                            
+                                                            <!-- COLUMNA: ACCIONES -->
                                                             <td>
                                                                 <div class="d-flex flex-wrap gap-2">
-                                                                    <?php if ($tipo == 'COMPRA') { ?>
-                                                                        <?php if ($est_compra != 3) { ?>
+                                                                    <?php if ($tipo == 'COMPRA') { 
+                                                                        $est_compra = intval($est_compra);
+                                                                    ?>
+                                                                        <?php if ($est_compra != 0 && $est_compra != 3 && $est_compra != 4) { ?>
                                                                         <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
-                                                                           class="btn btn-success btn-sm" title="Verificar">
+                                                                           class="btn btn-success btn-sm"
+                                                                           title="Verificar ingreso">
                                                                             <i class="fa fa-check"></i>
                                                                         </a>
                                                                         <?php } ?>
+                                                                        
                                                                         <a href="ingresos_detalle.php?id_compra=<?php echo $id_compra; ?>" 
-                                                                            class="btn btn-secondary btn-sm" title="Ver detalles">
+                                                                            class="btn btn-secondary btn-sm"
+                                                                            title="Ver ingresos">
                                                                             <i class="fa fa-plus"></i>
                                                                         </a>
                                                                     <?php } else { ?>
                                                                         <a href="ingresos_detalle_directo.php?id_ingreso=<?php echo $ingreso['id_ingreso']; ?>" 
-                                                                            class="btn btn-secondary btn-sm" title="Ver detalles">
+                                                                            class="btn btn-secondary btn-sm" 
+                                                                            title="Ver detalles">
                                                                             <i class="fa fa-plus"></i>
                                                                         </a>
                                                                         <?php if ($ingreso['estado'] == 1) { ?>
                                                                             <button onclick="anularIngresoDirecto(<?php echo $ingreso['id_ingreso']; ?>)" 
-                                                                                class="btn btn-danger btn-sm" title="Anular ingreso">
+                                                                                class="btn btn-danger btn-sm" 
+                                                                                title="Anular ingreso">
                                                                                 <i class="fa fa-times"></i>
                                                                             </button>
                                                                         <?php } else { ?>

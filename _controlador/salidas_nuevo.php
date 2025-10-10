@@ -60,14 +60,8 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                     
                     // Determinar el tipo de material predominante
                     if (!empty($items_pedido)) {
-                        // Obtener el material_tipo del primer producto
                         $primer_producto = $items_pedido[0]['id_producto'];
-                        $sql_tipo = "SELECT id_material_tipo FROM producto WHERE id_producto = $primer_producto";
-                        $res_tipo = mysqli_query($con, $sql_tipo);
-                        if ($res_tipo) {
-                            $tipo_data = mysqli_fetch_assoc($res_tipo);
-                            $id_material_tipo_pedido = $tipo_data['id_material_tipo'];
-                        }
+                        $id_material_tipo_pedido = ObtenerTipoMaterialProducto($primer_producto);
                     }
                 }
             }
@@ -89,8 +83,6 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                 $id_almacen_destino = intval($_REQUEST['id_almacen_destino']);
                 $id_ubicacion_destino = intval($_REQUEST['id_ubicacion_destino']);
                 
-                // CORRECCIÓN: No usar mysqli_real_escape_string aquí
-                // El modelo se encargará de sanitizar estos datos
                 $ndoc_salida = $_REQUEST['ndoc_salida'];
                 $fec_req_salida = $_REQUEST['fec_req_salida'];
                 $obs_salida = $_REQUEST['obs_salida'];
@@ -139,7 +131,6 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                                     $mensaje_alerta = "La cantidad solicitada para '{$_REQUEST['descripcion'][$index]}' ({$cantidad}) excede el stock disponible ({$stock_disponible}).";
                                     break;
                                 } else {
-                                    // CORRECCIÓN: Ya no usamos mysqli_real_escape_string aquí
                                     $materiales[] = array(
                                         'id_producto' => intval($id_producto),
                                         'descripcion' => $_REQUEST['descripcion'][$index],
@@ -152,28 +143,38 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                     
                     // VALIDACIÓN 4: Verificar que haya al menos un material válido
                     if (!$mostrar_alerta && count($materiales) > 0) {
+                        // Capturar el ID del pedido origen si existe
+                        $id_pedido_para_salida = isset($_REQUEST['id_pedido_origen']) ? intval($_REQUEST['id_pedido_origen']) : null;
+                        
                         $resultado = GrabarSalida(
                             $id_material_tipo, $id_almacen_origen, $id_ubicacion_origen,
                             $id_almacen_destino, $id_ubicacion_destino, $ndoc_salida,
                             $fec_req_salida, $obs_salida, $id_personal_encargado,
-                            $id_personal_recibe, $id_personal, $materiales
+                            $id_personal_recibe, $id_personal, $materiales, $id_pedido_para_salida
                         );
                         
                         if ($resultado === "SI") {
-                            // Si la salida proviene de un pedido, marcar el pedido como completado
                             $id_pedido_origen = isset($_REQUEST['id_pedido_origen']) ? intval($_REQUEST['id_pedido_origen']) : 0;
                             
                             if ($id_pedido_origen > 0) {
                                 require_once("../_modelo/m_pedidos.php");
                                 
-                                // Finalizar el pedido (cambiar estado a 2 = completado)
+                                // Finalizar el pedido (cambiar a estado 4)
                                 $resultado_pedido = FinalizarPedido($id_pedido_origen);
                                 
                                 if ($resultado_pedido['success']) {
+                                    $mensaje_base = 'La salida se ha creado correctamente.';
+                                    
+                                    if (isset($resultado_pedido['ya_completado']) && $resultado_pedido['ya_completado']) {
+                                        $mensaje_completo = $mensaje_base . ' El pedido ya estaba finalizado.';
+                                    } else {
+                                        $mensaje_completo = $mensaje_base . ' El pedido ha sido marcado como finalizado.';
+                                    }
+                                    
                                     $mostrar_alerta = true;
                                     $tipo_alerta = 'success';
                                     $titulo_alerta = '¡Salida registrada!';
-                                    $mensaje_alerta = 'La salida se ha creado correctamente y el pedido ha sido marcado como completado.';
+                                    $mensaje_alerta = $mensaje_completo;
                                     $redirigir_a = 'salidas_mostrar.php?registrado=true';
                                 } else {
                                     $mostrar_alerta = true;
@@ -183,7 +184,6 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                                     $redirigir_a = 'salidas_mostrar.php?registrado=true';
                                 }
                             } else {
-                                // Salida normal (no viene de pedido)
                                 $mostrar_alerta = true;
                                 $tipo_alerta = 'success';
                                 $titulo_alerta = '¡Salida registrada!';
@@ -193,7 +193,7 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                         } else {
                             $mostrar_alerta = true;
                             $tipo_alerta = 'error';
-                            $titulo_alerta = 'Error al registrar';
+                            $titulo_alerta = 'Error al registrar salida';
                             $mensaje_alerta = str_replace("'", "\'", $resultado);
                         }
                     } elseif (!$mostrar_alerta) {

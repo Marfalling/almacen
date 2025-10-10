@@ -292,7 +292,6 @@ function ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_person
 {
     include("../_conexion/conexion.php");
     
-    // Verificar conexión
     if (!$con) {
         return array('success' => false, 'message' => 'Error de conexión a la base de datos');
     }
@@ -350,7 +349,7 @@ function ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_person
             throw new Exception("Cantidad solicitada ($cantidad) mayor a la disponible ({$row_disponible['cantidad_disponible']})");
         }
         
-        // CAMBIO PRINCIPAL: SIEMPRE crear un nuevo ingreso para cada operación
+        // Crear nuevo ingreso
         $fecha_ingreso = date('Y-m-d H:i:s');
         $sql_ingreso = "INSERT INTO ingreso (id_compra, id_almacen, id_ubicacion, id_personal, fec_ingreso, est_ingreso) 
                        VALUES ('$id_compra', '$id_almacen', '$id_ubicacion', '$id_personal', '$fecha_ingreso', 1)";
@@ -361,7 +360,7 @@ function ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_person
         
         $id_ingreso = mysqli_insert_id($con);
         
-        // Crear nuevo detalle de ingreso
+        // Crear detalle de ingreso
         $sql_detalle = "INSERT INTO ingreso_detalle (id_ingreso, id_producto, cant_ingreso_detalle, est_ingreso_detalle)
                        VALUES ('$id_ingreso', '$id_producto', '$cantidad', 1)";
         
@@ -369,7 +368,7 @@ function ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_person
             throw new Exception("Error al crear el detalle del ingreso: " . mysqli_error($con));
         }
         
-        // Registrar movimiento con los tipos correctos
+        // Registrar movimiento
         $fecha_movimiento = date('Y-m-d H:i:s');
         $sql_movimiento = "INSERT INTO movimiento (id_personal, id_orden, id_producto, id_almacen, id_ubicacion, tipo_orden, tipo_movimiento, cant_movimiento, fec_movimiento, est_movimiento)
                           VALUES ('$id_personal', '$id_compra', '$id_producto', '$id_almacen', '$id_ubicacion', 1, 1, '$cantidad', '$fecha_movimiento', 1)";
@@ -378,10 +377,9 @@ function ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_person
             throw new Exception("Error al registrar el movimiento: " . mysqli_error($con));
         }
         
-        // Log para debug
         error_log("Nuevo ingreso creado - ID: $id_ingreso, Compra: $id_compra, Producto: $id_producto, Cantidad: $cantidad");
         
-        // Verificar si todos los productos han sido ingresados completamente
+        // NUEVO: Verificar si todos los productos de esta compra han sido ingresados completamente
         $sql_check_completo = "SELECT 
                                 COUNT(*) as total_productos,
                                 SUM(CASE 
@@ -396,6 +394,7 @@ function ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_person
                                   FROM ingreso i 
                                   INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso
                                   WHERE i.id_compra = '$id_compra'
+                                  AND id2.est_ingreso_detalle = 1
                                   GROUP BY id2.id_producto
                               ) ingresado ON cd.id_producto = ingresado.id_producto
                               WHERE cd.id_compra = '$id_compra'
@@ -409,14 +408,13 @@ function ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_person
         
         $row_completo = mysqli_fetch_assoc($res_check_completo);
         
-        // Si todos los productos han sido ingresados completamente, cambiar estado de compra a 3
+        // Si todos los productos han sido ingresados completamente, cambiar estado de compra a 3 (Cerrada)
         if ($row_completo && $row_completo['total_productos'] == $row_completo['productos_completos']) {
             $sql_update_compra = "UPDATE compra SET est_compra = 3 WHERE id_compra = '$id_compra'";
             if (!mysqli_query($con, $sql_update_compra)) {
-                // Log el error pero no fallar la transacción
                 error_log("Advertencia: No se pudo actualizar estado de compra: " . mysqli_error($con));
             } else {
-                error_log("Estado de compra actualizado a 3 (cerrado) para compra: $id_compra");
+                error_log("✅ Estado de compra actualizado a 3 (Cerrada) para compra: $id_compra");
             }
         }
         
@@ -774,7 +772,7 @@ function ObtenerProductosMateriales()
 {
     include("../_conexion/conexion.php");
     
-    // Solo productos tipo MATERIAL (no servicios)
+    // Productos tipo MATERIAL: CONSUMIBLES y HERRAMIENTAS 
     $sql = "SELECT 
                 p.id_producto,
                 p.cod_material,
@@ -783,16 +781,36 @@ function ObtenerProductosMateriales()
                 p.mod_producto,
                 um.nom_unidad_medida,
                 pt.nom_producto_tipo,
-                mt.nom_material_tipo
+                mt.nom_material_tipo,
+                CONCAT(
+                    p.nom_producto,
+                    CASE WHEN p.mar_producto IS NOT NULL AND p.mar_producto != '' 
+                        THEN CONCAT(' - ', p.mar_producto) 
+                        ELSE '' 
+                    END,
+                    CASE WHEN p.mod_producto IS NOT NULL AND p.mod_producto != '' 
+                        THEN CONCAT(' (', p.mod_producto, ')') 
+                        ELSE '' 
+                    END
+                ) as descripcion_completa
             FROM producto p
             INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
             INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo
             INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
             WHERE p.est_producto = 1 
             AND pt.nom_producto_tipo = 'MATERIAL'
-            ORDER BY p.nom_producto";
+            AND mt.nom_material_tipo IN ('CONSUMIBLES', 'HERRAMIENTAS')
+            AND mt.est_material_tipo = 1
+            ORDER BY p.nom_producto, p.mar_producto";
     
     $resultado = mysqli_query($con, $sql);
+    
+    if (!$resultado) {
+        error_log("Error en ObtenerProductosMateriales: " . mysqli_error($con));
+        mysqli_close($con);
+        return array();
+    }
+    
     $productos = array();
     
     while ($row = mysqli_fetch_array($resultado, MYSQLI_ASSOC)) {
@@ -936,11 +954,27 @@ function MostrarTodosLosIngresos()
                 al.nom_almacen,
                 ub.nom_ubicacion,
                 mon.nom_moneda,
-                (SELECT COUNT(*) FROM compra_detalle cd WHERE cd.id_compra = c.id_compra) as total_productos,
-                COALESCE((SELECT COUNT(DISTINCT id.id_producto) 
+                -- Total de productos en la orden
+                (SELECT COUNT(*) FROM compra_detalle cd WHERE cd.id_compra = c.id_compra AND cd.est_compra_detalle = 1) as total_productos,
+                -- Cantidad total pedida
+                COALESCE((SELECT SUM(cd.cant_compra_detalle) 
+                         FROM compra_detalle cd 
+                         WHERE cd.id_compra = c.id_compra 
+                         AND cd.est_compra_detalle = 1), 0) as cantidad_total_pedida,
+                -- Cantidad total ingresada
+                COALESCE((SELECT SUM(id2.cant_ingreso_detalle) 
                          FROM ingreso i 
-                         INNER JOIN ingreso_detalle id ON i.id_ingreso = id.id_ingreso 
-                         WHERE i.id_compra = c.id_compra), 0) as productos_ingresados
+                         INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso 
+                         WHERE i.id_compra = c.id_compra 
+                         AND i.est_ingreso = 1
+                         AND id2.est_ingreso_detalle = 1), 0) as cantidad_total_ingresada,
+                -- Productos con al menos un ingreso (para mostrar progreso)
+                COALESCE((SELECT COUNT(DISTINCT id2.id_producto) 
+                         FROM ingreso i 
+                         INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso 
+                         WHERE i.id_compra = c.id_compra
+                         AND i.est_ingreso = 1
+                         AND id2.est_ingreso_detalle = 1), 0) as productos_ingresados
             FROM compra c
             INNER JOIN pedido p ON c.id_pedido = p.id_pedido
             INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
@@ -949,7 +983,9 @@ function MostrarTodosLosIngresos()
             INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
             LEFT JOIN personal pe1 ON c.id_personal = pe1.id_personal
             LEFT JOIN personal pe2 ON c.id_personal_aprueba = pe2.id_personal
-            WHERE c.est_compra IN (2, 3)
+            WHERE c.est_compra IN (2, 3, 4)  --   Solo Aprobada, Cerrada y Pagada
+            AND c.id_personal_aprueba_tecnica IS NOT NULL  -- Debe tener aprobación técnica
+            AND c.id_personal_aprueba_financiera IS NOT NULL  --  Debe tener aprobación financiera
             
             UNION ALL
             
@@ -968,6 +1004,8 @@ function MostrarTodosLosIngresos()
                 ub.nom_ubicacion,
                 'N/A' as nom_moneda,
                 COALESCE((SELECT COUNT(*) FROM ingreso_detalle id WHERE id.id_ingreso = i.id_ingreso), 0) as total_productos,
+                0 as cantidad_total_pedida,
+                COALESCE((SELECT SUM(id2.cant_ingreso_detalle) FROM ingreso_detalle id2 WHERE id2.id_ingreso = i.id_ingreso), 0) as cantidad_total_ingresada,
                 COALESCE((SELECT COUNT(*) FROM ingreso_detalle id WHERE id.id_ingreso = i.id_ingreso), 0) as productos_ingresados
             FROM ingreso i
             INNER JOIN almacen al ON i.id_almacen = al.id_almacen
@@ -976,7 +1014,6 @@ function MostrarTodosLosIngresos()
             INNER JOIN cliente cl ON al.id_cliente = cl.id_cliente
             LEFT JOIN personal pe ON i.id_personal = pe.id_personal
             WHERE i.id_compra IS NULL
-            -- CAMBIADO: Ahora incluye todos los estados (1 = activo, 0 = anulado)
             AND i.est_ingreso IN (0, 1)
             
             ORDER BY fecha DESC";
@@ -1004,7 +1041,6 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
         $whereCompras   = " AND DATE(c.fec_compra) BETWEEN '$fecha_inicio' AND '$fecha_fin' ";
         $whereDirectos  = " AND DATE(i.fec_ingreso) BETWEEN '$fecha_inicio' AND '$fecha_fin' ";
     } else {
-        // Por defecto: solo la fecha actual
         $whereCompras   = " AND DATE(c.fec_compra) = CURDATE() ";
         $whereDirectos  = " AND DATE(i.fec_ingreso) = CURDATE() ";
     }
@@ -1023,11 +1059,23 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
                 al.nom_almacen,
                 ub.nom_ubicacion,
                 mon.nom_moneda,
-                (SELECT COUNT(*) FROM compra_detalle cd WHERE cd.id_compra = c.id_compra) as total_productos,
-                COALESCE((SELECT COUNT(DISTINCT id.id_producto) 
+                (SELECT COUNT(*) FROM compra_detalle cd WHERE cd.id_compra = c.id_compra AND cd.est_compra_detalle = 1) as total_productos,
+                COALESCE((SELECT SUM(cd.cant_compra_detalle) 
+                         FROM compra_detalle cd 
+                         WHERE cd.id_compra = c.id_compra 
+                         AND cd.est_compra_detalle = 1), 0) as cantidad_total_pedida,
+                COALESCE((SELECT SUM(id2.cant_ingreso_detalle) 
                          FROM ingreso i 
-                         INNER JOIN ingreso_detalle id ON i.id_ingreso = id.id_ingreso 
-                         WHERE i.id_compra = c.id_compra), 0) as productos_ingresados
+                         INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso 
+                         WHERE i.id_compra = c.id_compra 
+                         AND i.est_ingreso = 1
+                         AND id2.est_ingreso_detalle = 1), 0) as cantidad_total_ingresada,
+                COALESCE((SELECT COUNT(DISTINCT id2.id_producto) 
+                         FROM ingreso i 
+                         INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso 
+                         WHERE i.id_compra = c.id_compra
+                         AND i.est_ingreso = 1
+                         AND id2.est_ingreso_detalle = 1), 0) as productos_ingresados
             FROM compra c
             INNER JOIN pedido p ON c.id_pedido = p.id_pedido
             INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
@@ -1036,7 +1084,9 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
             INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
             LEFT JOIN personal pe1 ON c.id_personal = pe1.id_personal
             LEFT JOIN personal pe2 ON c.id_personal_aprueba = pe2.id_personal
-            WHERE c.est_compra IN (2, 3) $whereCompras
+            WHERE c.est_compra IN (2, 3, 4) $whereCompras  --  Solo Aprobada, Cerrada y Pagada
+            AND c.id_personal_aprueba_tecnica IS NOT NULL  --  Debe tener aprobación técnica
+            AND c.id_personal_aprueba_financiera IS NOT NULL  -- Debe tener aprobación financiera
 
             UNION ALL
 
@@ -1055,6 +1105,8 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
                 ub.nom_ubicacion,
                 'N/A' as nom_moneda,
                 COALESCE((SELECT COUNT(*) FROM ingreso_detalle id WHERE id.id_ingreso = i.id_ingreso), 0) as total_productos,
+                0 as cantidad_total_pedida,
+                COALESCE((SELECT SUM(id2.cant_ingreso_detalle) FROM ingreso_detalle id2 WHERE id2.id_ingreso = i.id_ingreso), 0) as cantidad_total_ingresada,
                 COALESCE((SELECT COUNT(*) FROM ingreso_detalle id WHERE id.id_ingreso = i.id_ingreso), 0) as productos_ingresados
             FROM ingreso i
             INNER JOIN almacen al ON i.id_almacen = al.id_almacen

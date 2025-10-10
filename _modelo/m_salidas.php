@@ -6,7 +6,7 @@
 function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_origen, 
                      $id_almacen_destino, $id_ubicacion_destino, $ndoc_salida, 
                      $fec_req_salida, $obs_salida, $id_personal_encargado, 
-                     $id_personal_recibe, $id_personal, $materiales) 
+                     $id_personal_recibe, $id_personal, $materiales, $id_pedido = null) 
 {
     // VALIDACIONES ANTES DE PROCESAR
     $errores_validacion = ValidarSalidaAntesDeProcesar(
@@ -20,19 +20,21 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
     
     include("../_conexion/conexion.php");
 
-    
     $ndoc_salida = mysqli_real_escape_string($con, $ndoc_salida);
     $fec_req_salida = mysqli_real_escape_string($con, $fec_req_salida);
     $obs_salida = mysqli_real_escape_string($con, $obs_salida);
 
+    // ✅ NUEVO: Preparar el ID del pedido
+    $id_pedido_sql = ($id_pedido && $id_pedido > 0) ? intval($id_pedido) : "NULL";
+
     // Insertar salida principal
     $sql = "INSERT INTO salida (
-                id_material_tipo, id_almacen_origen, id_ubicacion_origen, 
+                id_material_tipo, id_pedido, id_almacen_origen, id_ubicacion_origen, 
                 id_almacen_destino, id_ubicacion_destino, id_personal, 
                 id_personal_encargado, id_personal_recibe, ndoc_salida, 
                 fec_req_salida, fec_salida, obs_salida, est_salida
             ) VALUES (
-                $id_material_tipo, $id_almacen_origen, $id_ubicacion_origen, 
+                $id_material_tipo, $id_pedido_sql, $id_almacen_origen, $id_ubicacion_origen, 
                 $id_almacen_destino, $id_ubicacion_destino, $id_personal, 
                 $id_personal_encargado, $id_personal_recibe, '$ndoc_salida', 
                 '$fec_req_salida', NOW(), '$obs_salida', 1
@@ -560,5 +562,26 @@ function MostrarProductosConStockParaSalida($limit, $offset, $searchValue, $orde
 
     mysqli_close($con);
     return $productos;
+}
+
+function TieneSalidaActivaPedido($id_pedido)
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT COUNT(*) as total 
+            FROM salida 
+            WHERE id_pedido = $id_pedido 
+            AND est_salida = 1";
+    
+    $resultado = mysqli_query($con, $sql);
+    $tiene_salida = false;
+    
+    if ($resultado) {
+        $row = mysqli_fetch_assoc($resultado);
+        $tiene_salida = ($row['total'] > 0);
+    }
+    
+    mysqli_close($con);
+    return $tiene_salida;
 }
 ?>

@@ -97,11 +97,9 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
 function MostrarPedidos()
 {
     include("../_conexion/conexion.php");
-    include("../_conexion/conexion_complemento.php"); // AGREGAR para centros de costo
+    include("../_conexion/conexion_complemento.php");
 
     $sqlc = "SELECT p.*, 
-                -- intentar primero la obra asociada directamente al pedido,
-                -- si no existe usar la obra asociada al almacén (compatibilidad)
                 COALESCE(obp.nom_obra, oba.nom_obra, 'N/A') as nom_obra,
                 COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
                 COALESCE(pr.nom_personal, 'Sin asignar') as nom_personal,
@@ -128,7 +126,7 @@ function MostrarPedidos()
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion AND u.est_ubicacion = 1
              LEFT JOIN personal pr ON p.id_personal = pr.id_personal AND pr.est_personal = 1
              LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
-             WHERE p.est_pedido IN (0, 1, 2)
+             WHERE p.est_pedido IN (0, 1, 2, 3, 4)
              ORDER BY p.fec_pedido DESC";
 
     $resc = mysqli_query($con, $sqlc);
@@ -140,7 +138,6 @@ function MostrarPedidos()
         return array();
     }
     
-    // Cargar centros de costo una sola vez
     $sql_centros = "SELECT id_area, nom_area FROM area WHERE act_area = 1";
     $res_centros = mysqli_query($con_comp, $sql_centros);
     $centros_costo = array();
@@ -150,7 +147,6 @@ function MostrarPedidos()
     
     $resultado = array();
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
-        // Asignar el nombre del centro de costo
         $rowc['nom_centro_costo'] = isset($centros_costo[$rowc['id_centro_costo']]) 
             ? $centros_costo[$rowc['id_centro_costo']] 
             : 'N/A';
@@ -202,7 +198,7 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion AND u.est_ubicacion = 1
              LEFT JOIN personal pr ON p.id_personal = pr.id_personal AND pr.est_personal = 1
              LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
-             WHERE p.est_pedido IN (0, 1, 2)
+             WHERE p.est_pedido IN (0, 1, 2, 3, 4)
              $where_fecha
              ORDER BY p.fec_pedido DESC";
 
@@ -731,41 +727,63 @@ function ObtenerItemsParaSalida($id_pedido)
     mysqli_close($con);
     return $items;
 }
-
 function FinalizarPedido($id_pedido)
 {
     include("../_conexion/conexion.php");
     
-    // Verificar que todos los items estén listos para finalizar
-    $puede_finalizar = verificarPedidoListo($id_pedido, $con);
+    // Verificar el estado actual
+    $sql_estado = "SELECT est_pedido FROM pedido WHERE id_pedido = $id_pedido";
+    $res_estado = mysqli_query($con, $sql_estado);
     
-    if (!$puede_finalizar['listo']) {
+    if (!$res_estado || mysqli_num_rows($res_estado) == 0) {
         mysqli_close($con);
         return [
             'success' => false,
-            'tipo' => 'warning',
-            'mensaje' => $puede_finalizar['mensaje']
+            'tipo' => 'error',
+            'mensaje' => 'Pedido no encontrado'
         ];
     }
     
-    // Actualizar el pedido a completado (estado = 2)
-    $sql_finalizar = "UPDATE pedido SET est_pedido = 2 WHERE id_pedido = $id_pedido";
+    $row_estado = mysqli_fetch_assoc($res_estado);
+    $estado_actual = intval($row_estado['est_pedido']);
+    
+    // Si ya está finalizado (estado 4), retornar éxito
+    if ($estado_actual == 4) {
+        mysqli_close($con);
+        return [
+            'success' => true,
+            'ya_completado' => true,
+            'mensaje' => 'El pedido ya estaba finalizado'
+        ];
+    }
+    
+    // Si está anulado, no se puede finalizar
+    if ($estado_actual == 0) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo' => 'error',
+            'mensaje' => 'No se puede finalizar un pedido anulado'
+        ];
+    }
+    
+    //  Actualizar el pedido a FINALIZADO (estado = 4)
+    $sql_finalizar = "UPDATE pedido SET est_pedido = 4 WHERE id_pedido = $id_pedido";
     
     if (mysqli_query($con, $sql_finalizar)) {
-        // Verificar que realmente se actualizó
         $verificar = mysqli_affected_rows($con);
         mysqli_close($con);
         
         if ($verificar > 0) {
             return [
                 'success' => true,
-                'mensaje' => 'El pedido se ha marcado como completado exitosamente'
+                'mensaje' => 'El pedido se ha marcado como finalizado exitosamente'
             ];
         } else {
             return [
-                'success' => false,
-                'tipo' => 'warning',
-                'mensaje' => 'No se pudo actualizar el estado del pedido (ya podría estar completado)'
+                'success' => true,
+                'ya_completado' => true,
+                'mensaje' => 'El pedido ya estaba finalizado'
             ];
         }
     } else {
@@ -920,7 +938,6 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
 {
     include("../_conexion/conexion.php");
 
-    // Escapar caracteres especiales
     $observacion = mysqli_real_escape_string($con, $observacion);
     $direccion = mysqli_real_escape_string($con, $direccion);
     $plazo_entrega = mysqli_real_escape_string($con, $plazo_entrega);
@@ -959,8 +976,7 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
                        SET est_pedido_detalle = 2 
                        WHERE id_pedido_detalle = $id_detalle";
             mysqli_query($con, $sql_update);
-        }
-        
+        }   
         mysqli_close($con);
         return "SI";
     } else {
@@ -1132,5 +1148,147 @@ function ConsultarPedidoAnulado($id_pedido)
     mysqli_close($con);
     mysqli_close($con_comp); // AGREGAR
     return $resultado;
+}
+
+//-----------------------------------------------------------------------
+// NUEVA FUNCIÓN: Verificar y actualizar estado automáticamente
+//-----------------------------------------------------------------------
+function VerificarYActualizarEstadoPedido($id_pedido)
+{
+    include("../_conexion/conexion.php");
+    
+    // Obtener información del pedido
+    $sql_pedido = "SELECT id_almacen, id_ubicacion, id_producto_tipo, est_pedido 
+                   FROM pedido 
+                   WHERE id_pedido = $id_pedido";
+    $res_pedido = mysqli_query($con, $sql_pedido);
+    
+    if (!$res_pedido) {
+        mysqli_close($con);
+        return ['error' => 'Query pedido falló: ' . mysqli_error($con)];
+    }
+    
+    $pedido_info = mysqli_fetch_assoc($res_pedido);
+    
+    if (!$pedido_info) {
+        mysqli_close($con);
+        return ['error' => 'Pedido no encontrado'];
+    }
+    
+    // Solo actualizar si está en estado PENDIENTE (1)
+    if ($pedido_info['est_pedido'] != 1) {
+        mysqli_close($con);
+        return ['error' => 'Pedido no está pendiente (estado: ' . $pedido_info['est_pedido'] . ')'];
+    }
+    
+    $id_almacen = $pedido_info['id_almacen'];
+    $id_ubicacion = $pedido_info['id_ubicacion'];
+    $es_auto_orden = ($pedido_info['id_producto_tipo'] == 2);
+    
+    if ($es_auto_orden) {
+        mysqli_close($con);
+        return ['error' => 'Es auto-orden (SERVICIO), no se completa automáticamente'];
+    }
+    
+    // Verificar items
+    $sql_items = "SELECT 
+                    pd.id_pedido_detalle,
+                    pd.id_producto,
+                    pd.cant_pedido_detalle,
+                    p.nom_producto,
+                    COALESCE(
+                        (SELECT SUM(CASE
+                            WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                            WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+                            ELSE 0
+                        END)
+                        FROM movimiento mov
+                        WHERE mov.id_producto = pd.id_producto 
+                        AND mov.id_almacen = $id_almacen
+                        AND mov.id_ubicacion = $id_ubicacion
+                        AND mov.est_movimiento = 1), 0
+                    ) AS stock_disponible
+                  FROM pedido_detalle pd
+                  INNER JOIN producto p ON pd.id_producto = p.id_producto
+                  WHERE pd.id_pedido = $id_pedido
+                  AND pd.est_pedido_detalle = 1";
+    
+    $res_items = mysqli_query($con, $sql_items);
+    
+    if (!$res_items) {
+        mysqli_close($con);
+        return ['error' => 'Query items falló: ' . mysqli_error($con)];
+    }
+    
+    $total_items = mysqli_num_rows($res_items);
+    
+    if ($total_items == 0) {
+        mysqli_close($con);
+        return ['error' => 'No hay items activos en el pedido'];
+    }
+    
+    $todos_con_stock = true;
+    $items_detalle = [];
+    
+    while ($item = mysqli_fetch_assoc($res_items)) {
+        $tiene_stock = ($item['stock_disponible'] >= $item['cant_pedido_detalle']);
+        
+        $items_detalle[] = [
+            'id' => $item['id_pedido_detalle'],
+            'producto' => $item['nom_producto'],
+            'necesita' => $item['cant_pedido_detalle'],
+            'stock' => $item['stock_disponible'],
+            'suficiente' => $tiene_stock
+        ];
+        
+        if (!$tiene_stock) {
+            $todos_con_stock = false;
+        }
+    }
+    
+    if (!$todos_con_stock) {
+        mysqli_close($con);
+        return [
+            'error' => 'No todos los items tienen stock suficiente',
+            'items' => $items_detalle
+        ];
+    }
+    
+    // Actualizar a FINALIZADO (estado 4) cuando tiene todo el stock
+    $sql_update = "UPDATE pedido SET est_pedido = 4 WHERE id_pedido = $id_pedido";
+    $resultado = mysqli_query($con, $sql_update);
+    
+    if ($resultado) {
+        $filas_afectadas = mysqli_affected_rows($con);
+        mysqli_close($con);
+        
+        if ($filas_afectadas > 0) {
+            return true;
+        } else {
+            return ['error' => 'UPDATE ejecutado pero no afectó filas'];
+        }
+    } else {
+        $error = mysqli_error($con);
+        mysqli_close($con);
+        return ['error' => 'UPDATE falló: ' . $error];
+    }
+}
+
+function ObtenerTipoMaterialProducto($id_producto)
+{
+    include("../_conexion/conexion.php");
+    
+    $id_producto = intval($id_producto);
+    $sql = "SELECT id_material_tipo FROM producto WHERE id_producto = $id_producto";
+    $resultado = mysqli_query($con, $sql);
+    
+    $id_material_tipo = 0;
+    if ($resultado && mysqli_num_rows($resultado) > 0) {
+        $row = mysqli_fetch_assoc($resultado);
+        $id_material_tipo = intval($row['id_material_tipo']);
+    }
+    
+    mysqli_close($con);
+    return $id_material_tipo;
 }
 ?>

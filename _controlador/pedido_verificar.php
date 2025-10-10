@@ -189,6 +189,8 @@ if (isset($_GET['success'])) {
 // CARGAR DATOS DEL PEDIDO
 // ============================================================================
 
+$tiene_salida_activa = false; // Inicializar variable
+
 if ($id_pedido > 0) {
     $pedido_data = ConsultarPedido($id_pedido);
     
@@ -201,7 +203,11 @@ if ($id_pedido > 0) {
         $pedido_compra = ConsultarCompra($id_pedido);
         $proveedor = MostrarProveedores();
         $moneda = MostrarMoneda();
-        $obras = MostrarObrasActivas();
+        $obras = MostrarObras();
+
+        //NUEVO: Verificar si ya tiene salida activa
+        require_once("../_modelo/m_salidas.php");
+        $tiene_salida_activa = TieneSalidaActivaPedido($id_pedido);
 
         $orden_data = null;
         $orden_detalle = null;
@@ -244,7 +250,7 @@ if ($id_pedido > 0) {
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-            require_once("../_vista/v_pedido_verificar.php");
+            require_once("../_vista/v_pedido_verificar.php"); 
             require_once("../_vista/v_footer.php");
             ?>
         </div>

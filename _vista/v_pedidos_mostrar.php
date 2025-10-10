@@ -94,15 +94,17 @@
                                                         // Verificar si este pedido está en la lista de rechazados
                                                         $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
                                                         
-                                                        if ($pedido['est_pedido_calc'] == 1 && $es_rechazado) { ?>
-                                                            <span class="badge badge-danger badge_size">Rechazado</span>
-                                                        <?php } elseif($pedido['est_pedido_calc'] == 1) { ?>
-                                                            <span class="badge badge-warning badge_size">Pendiente</span>
-                                                        <?php } elseif($pedido['est_pedido_calc'] == 2) { ?>
-                                                            <span class="badge badge-success badge_size">Completado</span>
-                                                        <?php } elseif($pedido['est_pedido_calc'] == 0) { ?>
-                                                            <span class="badge badge-danger badge_size">Anulado</span>
-                                                        <?php } ?>
+                                                            if($pedido['est_pedido'] == 1) { ?>
+                                                                <span class="badge badge-warning badge_size">Pendiente</span>
+                                                            <?php } elseif($pedido['est_pedido'] == 2) { ?>
+                                                                <span class="badge badge-info badge_size">Aprobado</span>
+                                                            <?php } elseif($pedido['est_pedido'] == 3) { ?>
+                                                                <span class="badge badge-primary badge_size">Ingresado</span>
+                                                            <?php } elseif($pedido['est_pedido'] == 4) { ?>
+                                                                <span class="badge badge-success badge_size">Finalizado</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge badge-danger badge_size">Anulado</span>
+                                                            <?php } ?>
                                                     </td>
 <td>
     <div class="d-flex flex-wrap gap-2">

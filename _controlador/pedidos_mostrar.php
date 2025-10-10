@@ -27,6 +27,24 @@ if (isset($_GET['fecha_inicio']) && isset($_GET['fecha_fin'])) {
 // Obtener pedidos con filtro
 $pedidos = MostrarPedidosFecha($fecha_inicio, $fecha_fin);
 $pedidos_rechazados = ObtenerPedidosConComprasAnuladas();
+$alerta = null;
+
+if (isset($_GET['success']) && $_GET['success'] === 'completado_auto') {
+    $alerta = [
+        "icon" => "success",
+        "title" => "¡Pedido Completado Automáticamente!",
+        "text" => "El pedido se completó porque todos los items tienen stock disponible.",
+        "timer" => 3000
+    ];
+}
+if (isset($_GET['error']) && $_GET['error'] === 'completado_auto') {
+    $alerta = [
+        "icon" => "error",
+        "title" => "Error al Completar Pedido",
+        "text" => "No se pudo completar el pedido automáticamente.",
+        "timer" => 3000
+    ];
+}
 ?>
 
 <!DOCTYPE html>
@@ -56,5 +74,21 @@ $pedidos_rechazados = ObtenerPedidosConComprasAnuladas();
     require_once("../_vista/v_script.php");
     require_once("../_vista/v_alertas.php");
     ?>
+
+    <?php if ($alerta): ?>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const alerta = <?php echo json_encode($alerta, JSON_UNESCAPED_UNICODE); ?>;
+        
+        Swal.fire({
+            icon: alerta.icon,
+            title: alerta.title,
+            text: alerta.text,
+            showConfirmButton: !alerta.timer,
+            timer: alerta.timer || null
+        });
+    });
+    </script>
+    <?php endif; ?>
 </body>
 </html>

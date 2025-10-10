@@ -283,87 +283,130 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                     <tbody id="tbody-ordenes">
                                         <?php if (!empty($pedido_compra)) { ?>
                                             <?php foreach ($pedido_compra as $compra) {
-                                                //Mostrar correctamente los estados incluyendo "Anulada"
                                                 $estado_texto = '';
                                                 $estado_clase = '';
-                                                if ($compra['est_compra'] == 0) {
-                                                    $estado_texto = 'Anulada';
-                                                    $estado_clase = 'danger';
-                                                } elseif ($compra['est_compra'] == 2) {
-                                                    $estado_texto = 'Aprobada';
-                                                    $estado_clase = 'success';
-                                                } else {
-                                                    $estado_texto = 'Pendiente';
-                                                    $estado_clase = 'warning';
+                                                $puede_agregar_pago = false;
+
+                                                switch ($compra['est_compra']) {
+                                                    case 0:
+                                                        $estado_texto = 'Anulada';
+                                                        $estado_clase = 'danger';
+                                                        break;
+                                                    case 1:
+                                                        $estado_texto = 'Pendiente';
+                                                        $estado_clase = 'warning';
+                                                        break;
+                                                    case 2:
+                                                        $estado_texto = 'Aprobada';
+                                                        $estado_clase = 'success';
+                                                        $puede_agregar_pago = true; //  Solo puede pagar si está aprobada
+                                                        break;
+                                                    case 3:
+                                                        $estado_texto = 'Cerrada';
+                                                        $estado_clase = 'info';
+                                                        $puede_agregar_pago = true; // También puede pagar si está cerrada
+                                                        break;
+                                                    case 4:  //  AGREGAR ESTE CASO
+                                                        $estado_texto = 'Pagada';
+                                                        $estado_clase = 'primary';
+                                                        $puede_agregar_pago = false;
+                                                        break;
+                                                    default:
+                                                        $estado_texto = 'Desconocido';
+                                                        $estado_clase = 'secondary';
                                                 }
+
                                                 $fecha_formateada = date('d/m/Y', strtotime($compra['fec_compra']));
                                             ?>
                                                 <tr>
                                                     <td><strong>ORD-<?php echo $compra['id_compra']; ?></strong></td>
                                                     <td><?php echo htmlspecialchars($compra['nom_proveedor']); ?></td>
                                                     <td><?php echo $fecha_formateada; ?></td>
-                                                    <td><span class="badge badge-<?php echo $estado_clase; ?>"><?php echo $estado_texto; ?></span></td>
                                                     <td>
-    <button class="btn btn-info btn-xs btn-ver-detalle" 
-            title="Ver Detalles"
-            data-id-compra="<?php echo $compra['id_compra']; ?>">
-        <i class="fa fa-eye"></i>
-    </button>
-    
-    <?php 
-    // Verificar si tiene aprobaciones (técnica o financiera)
-    $tiene_aprobacion_tecnica = !empty($compra['id_personal_aprueba_tecnica']);
-    $tiene_aprobacion_financiera = !empty($compra['id_personal_aprueba_financiera']);
-    $tiene_alguna_aprobacion = $tiene_aprobacion_tecnica || $tiene_aprobacion_financiera;
-    
-    // Solo se puede editar si está PENDIENTE y SIN aprobaciones
-    $puede_editar = ($compra['est_compra'] == 1 && !$tiene_alguna_aprobacion);
-    
-    if ($puede_editar) { ?>
-        <button class="btn btn-warning btn-xs ml-1 btn-editar-orden" 
-                title="Editar Orden"
-                data-id-compra="<?php echo $compra['id_compra']; ?>">
-            <i class="fa fa-edit"></i>
-        </button>
-    <?php } else { 
-        // Determinar el mensaje según el estado
-        if ($compra['est_compra'] == 0) {
-            $mensaje = "No se puede editar - Orden anulada";
-        } elseif ($compra['est_compra'] == 2) {
-            $mensaje = "No se puede editar - Orden aprobada completamente";
-        } elseif ($tiene_alguna_aprobacion) {
-            $mensaje = "No se puede editar - Orden con aprobación iniciada";
-        } else {
-            $mensaje = "No se puede editar";
-        }
-    ?>
-        <button class="btn btn-outline-secondary btn-xs ml-1" 
-                title="<?php echo $mensaje; ?>" 
-                disabled>
-            <i class="fa fa-edit"></i>
-        </button>
-    <?php } ?>
+                                                        <span class="badge badge-<?php echo $estado_clase; ?>">
+                                                            <?php echo $estado_texto; ?>
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <!-- Botón Ver Detalles -->
+                                                        <button class="btn btn-info btn-xs btn-ver-detalle" 
+                                                                title="Ver Detalles"
+                                                                data-id-compra="<?php echo $compra['id_compra']; ?>">
+                                                            <i class="fa fa-eye"></i>
+                                                        </button>
+                                                        
+                                                        <?php 
+                                                        // Verificar si tiene aprobaciones (técnica o financiera)
+                                                        $tiene_aprobacion_tecnica = !empty($compra['id_personal_aprueba_tecnica']);
+                                                        $tiene_aprobacion_financiera = !empty($compra['id_personal_aprueba_financiera']);
+                                                        $tiene_alguna_aprobacion = $tiene_aprobacion_tecnica || $tiene_aprobacion_financiera;
+                                                        
+                                                        // Solo se puede editar si está PENDIENTE y SIN aprobaciones
+                                                        $puede_editar = ($compra['est_compra'] == 1 && !$tiene_alguna_aprobacion);
+                                                        
+                                                        if ($puede_editar) { ?>
+                                                            <button class="btn btn-warning btn-xs ml-1 btn-editar-orden" 
+                                                                    title="Editar Orden"
+                                                                    data-id-compra="<?php echo $compra['id_compra']; ?>">
+                                                                <i class="fa fa-edit"></i>
+                                                            </button>
+                                                        <?php } else { 
+                                                            // Determinar el mensaje según el estado
+                                                            if ($compra['est_compra'] == 0) {
+                                                                $mensaje = "No se puede editar - Orden anulada";
+                                                            } elseif ($compra['est_compra'] == 2) {
+                                                                $mensaje = "No se puede editar - Orden aprobada completamente";
+                                                            } elseif ($compra['est_compra'] == 3) {
+                                                                $mensaje = "No se puede editar - Orden cerrada";
+                                                            } elseif ($tiene_alguna_aprobacion) {
+                                                                $mensaje = "No se puede editar - Orden con aprobación iniciada";
+                                                            } else {
+                                                                $mensaje = "No se puede editar";
+                                                            }
+                                                        ?>
+                                                            <button class="btn btn-outline-secondary btn-xs ml-1" 
+                                                                    title="<?php echo $mensaje; ?>" 
+                                                                    disabled>
+                                                                <i class="fa fa-edit"></i>
+                                                            </button>
+                                                        <?php } ?>
 
-    <?php if ($compra['est_compra'] != 0) { ?>
-        <button class="btn btn-danger btn-xs ml-1 btn-anular-orden" 
-                title="Anular Orden"
-                data-id-compra="<?php echo $compra['id_compra']; ?>"
-                data-id-pedido="<?php echo $id_pedido; ?>">
-            <i class="fa fa-times"></i>
-        </button>
-    <?php } else { ?>
-        <button class="btn btn-outline-secondary btn-xs ml-1" 
-                title="Orden anulada" 
-                disabled>
-            <i class="fa fa-times"></i>
-        </button>
-    <?php } ?>
-</td>
+                                                        <!--  NUEVO: Botón Registrar Pago -->
+                                                        <?php if ($puede_agregar_pago): ?>
+                                                            <a href="pago_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>" 
+                                                            class="btn btn-success btn-xs ml-1" 
+                                                            title="Registrar Pago">
+                                                                <i class="fa fa-money"></i>
+                                                            </a>
+                                                        <?php else: ?>
+                                                            <button class="btn btn-outline-secondary btn-xs ml-1" 
+                                                                    title="No disponible - Orden <?php echo strtolower($estado_texto); ?>" 
+                                                                    disabled>
+                                                                <i class="fa fa-money"></i>
+                                                            </button>
+                                                        <?php endif; ?>
+
+                                                        <!-- Botón Anular -->
+                                                        <?php if ($compra['est_compra'] != 0) { ?>
+                                                            <button class="btn btn-danger btn-xs ml-1 btn-anular-orden" 
+                                                                    title="Anular Orden"
+                                                                    data-id-compra="<?php echo $compra['id_compra']; ?>"
+                                                                    data-id-pedido="<?php echo $id_pedido; ?>">
+                                                                <i class="fa fa-times"></i>
+                                                            </button>
+                                                        <?php } else { ?>
+                                                            <button class="btn btn-outline-secondary btn-xs ml-1" 
+                                                                    title="Orden anulada" 
+                                                                    disabled>
+                                                                <i class="fa fa-times"></i>
+                                                            </button>
+                                                        <?php } ?>
+                                                    </td>
                                                 </tr>
                                             <?php } ?>
                                         <?php } else { ?>
                                             <tr>
-                                                <td colspan="6" class="text-center p-3">
+                                                <td colspan="5" class="text-center p-3">
                                                     <i class="fa fa-file-text-o fa-2x text-info mb-2"></i>
                                                     <h5 class="text-info">Sin órdenes de compra</h5>
                                                     <p class="text-muted" style="font-size: 12px;">Las órdenes de compra aparecerán aquí.</p>
@@ -1000,7 +1043,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-function verificarSiGenerarSalida() {
+    function verificarSiGenerarSalida() {
     const itemsPendientes = document.querySelectorAll('.item-pendiente');
     let tieneItems = false;
     let todosConStockCompleto = true;
@@ -1008,54 +1051,170 @@ function verificarSiGenerarSalida() {
     itemsPendientes.forEach(function(item) {
         tieneItems = true;
         
-        // Buscar el span que contiene el texto del estado
         const estadoSpan = item.querySelector('span[class*="badge"], .text-success, .text-warning, .text-primary, .text-danger');
         
         if (estadoSpan) {
             const textoEstado = estadoSpan.textContent.trim();
             
-            // Si NO dice "Completo", entonces NO todos tienen stock
             if (!textoEstado.includes('Completo')) {
                 todosConStockCompleto = false;
             }
         }
     });
     
-    // SOLO mostrar la alerta si:
-    // 1. Tiene items
-    // 2. TODOS los items tienen estado "Completo" (con stock suficiente)
+    //Verificar el estado del pedido antes de intentar completarlo
+    const estadoPedido = <?php echo $pedido['est_pedido']; ?>;
+    const tieneSalidaActiva = <?php echo isset($tiene_salida_activa) && $tiene_salida_activa ? 'true' : 'false'; ?>;
+
+    // Si ya tiene salida activa, NO mostrar mensaje
+    if (tieneSalidaActiva) {
+        console.log('Este pedido ya tiene una salida activa registrada');
+        return;
+    }
+
+    // Si todos los items tienen stock
     if (tieneItems && todosConStockCompleto) {
-        Swal.fire({
-            title: '¡Todos los items tienen stock disponible!',
-            html: '<div style="text-align: left; padding: 10px;">' +
-                '<p style="margin-bottom: 10px;">Este pedido puede completarse con el stock actual del almacén.</p>' +
-                '<p style="margin-bottom: 0;"><strong>¿Desea generar una salida de almacén ahora?</strong></p>' +
-                '</div>',
-            icon: 'info',
-            showCancelButton: true,
-            confirmButtonColor: '#28a745',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
-            cancelButtonText: '<i class="fa fa-times"></i> No, continuar aquí',
-            allowOutsideClick: false
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                    title: 'Redirigiendo...',
-                    text: 'Preparando formulario de salida',
-                    icon: 'info',
-                    allowOutsideClick: false,
-                    showConfirmButton: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-                
-                setTimeout(function() {
+
+        if (estadoPedido === 4) {
+            Swal.fire({
+                title: '¡Pedido Finalizado!',
+                html: '<div style="text-align: left; padding: 10px;">' +
+                    '<p style="margin-bottom: 10px;"> Este pedido está marcado como <strong style="color: #28a745;">FINALIZADO</strong>.</p>' +
+                    '<p style="margin-bottom: 10px;"> Todos los items tienen stock disponible en el almacén.</p>' +
+                    '<p style="margin-bottom: 0;"><strong>¿Desea generar una salida de almacén ahora?</strong></p>' +
+                    '</div>',
+                icon: 'success',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
+                cancelButtonText: '<i class="fa fa-arrow-left"></i> Volver a pedidos',
+                allowOutsideClick: false
+            }).then((result) => {
+                if (result.isConfirmed) {
                     window.location.href = 'salidas_nuevo.php?desde_pedido=<?php echo $id_pedido; ?>';
-                }, 500);
-            }
-        });
+                } else {
+                    window.location.href = 'pedidos_mostrar.php';
+                }
+            });
+            return;
+        }
+        // Si el pedido está APROBADO (estado = 2) o INGRESADO (estado = 3)
+        if (estadoPedido === 2 || estadoPedido === 3) {
+            Swal.fire({
+                title: '¡Pedido Aprobado!',
+                html: '<div style="text-align: left; padding: 10px;">' +
+                    '<p style="margin-bottom: 10px;">✅ Este pedido está aprobado.</p>' +
+                    '<p style="margin-bottom: 10px;">✅ Todos los items tienen stock disponible en el almacén.</p>' +
+                    '<p style="margin-bottom: 0;"><strong>¿Desea generar una salida de almacén ahora?</strong></p>' +
+                    '</div>',
+                icon: 'success',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
+                cancelButtonText: '<i class="fa fa-arrow-left"></i> Volver a pedidos',
+                allowOutsideClick: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'salidas_nuevo.php?desde_pedido=<?php echo $id_pedido; ?>';
+                } else {
+                    window.location.href = 'pedidos_mostrar.php';
+                }
+            });
+            return;
+        }
+       
+        // Si el pedido está PENDIENTE (estado = 1), intentar completarlo
+        if (estadoPedido === 1) {
+            // Mostrar loading
+            Swal.fire({
+                title: 'Verificando disponibilidad...',
+                text: 'Por favor espere',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Marcar como FINALIZADO (estado 4) automáticamente
+            fetch('pedido_actualizar_estado.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'id_pedido=<?php echo $id_pedido; ?>&accion=completar_automatico'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: '¡Stock Completo - Pedido Finalizado!',
+                        html: '<div style="text-align: left; padding: 10px;">' +
+                            '<p style="margin-bottom: 10px;"> Todos los items tienen stock disponible en el almacén.</p>' +
+                            '<p style="margin-bottom: 10px;"> El pedido se ha marcado como <strong style="color: #28a745;">FINALIZADO</strong> (sin necesidad de orden de compra).</p>' +
+                            '<p style="margin-bottom: 0;"><strong>¿Desea generar una salida de almacén ahora?</strong></p>' +
+                            '</div>',
+                        icon: 'success',
+                        showCancelButton: true,
+                        confirmButtonColor: '#28a745',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
+                        cancelButtonText: '<i class="fa fa-arrow-left"></i> Volver a pedidos',
+                        allowOutsideClick: false
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            Swal.fire({
+                                title: 'Redirigiendo...',
+                                text: 'Preparando formulario de salida',
+                                icon: 'info',
+                                allowOutsideClick: false,
+                                showConfirmButton: false,
+                                didOpen: () => {
+                                    Swal.showLoading();
+                                }
+                            });
+                            setTimeout(function() {
+                                window.location.href = 'salidas_nuevo.php?desde_pedido=<?php echo $id_pedido; ?>';
+                            }, 500);
+                        } else {
+                            window.location.href = 'pedidos_mostrar.php?success=finalizado_auto';
+                        }
+                    });
+                } else {
+                    // Mostrar error detallado
+                    let errorHtml = '<div style="text-align: left;">';
+                    errorHtml += '<p><strong>Error:</strong> ' + (data.message || 'Error desconocido') + '</p>';
+                    
+                    if (data.detalles) {
+                        errorHtml += '<hr><p><strong>Detalles:</strong></p>';
+                        errorHtml += '<pre style="text-align: left; font-size: 11px; max-height: 300px; overflow: auto;">' + 
+                                    JSON.stringify(data.detalles, null, 2) + '</pre>';
+                    }
+                    
+                    errorHtml += '</div>';
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error al finalizar pedido',
+                        html: errorHtml,
+                        width: '600px',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error de red:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de conexión',
+                    html: '<p>No se pudo conectar con el servidor</p>' +
+                        '<p><strong>Error:</strong> ' + error.message + '</p>',
+                    confirmButtonText: 'Entendido'
+                });
+            });
+        }
     }
 }
 
@@ -1754,22 +1913,39 @@ function verificarSiGenerarSalida() {
     }
 
     function mostrarContenidoDetalle(compra, detalles) {
-        const titulo = document.getElementById('modalDetalleCompraLabel');
-        titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de Compra - ORD-${compra.id_compra}`;
-        
-        const contenido = document.getElementById('contenido-detalle-compra');
-        const fechaFormateada = new Date(compra.fec_compra).toLocaleDateString('es-PE');
-        const estadoCompra = parseInt(compra.est_compra);
-        let estadoTexto = 'Pendiente';
-        let estadoClase = 'warning';
-        
-        if (estadoCompra === 0) {
-            estadoTexto = 'Anulada';
-            estadoClase = 'danger';
-        } else if (estadoCompra === 2) {
-            estadoTexto = 'Aprobada';
-            estadoClase = 'success';
-        } 
+    const titulo = document.getElementById('modalDetalleCompraLabel');
+    titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de Compra - ORD-${compra.id_compra}`;
+    
+    const contenido = document.getElementById('contenido-detalle-compra');
+    const fechaFormateada = new Date(compra.fec_compra).toLocaleDateString('es-PE');
+    const estadoCompra = parseInt(compra.est_compra);
+    
+    // CORRECCIÓN: Definir TODOS los estados posibles
+    let estadoTexto = 'Desconocido';
+    let estadoClase = 'secondary';
+    
+        switch(estadoCompra) {
+            case 0:
+                estadoTexto = 'Anulada';
+                estadoClase = 'danger';
+                break;
+            case 1:
+                estadoTexto = 'Pendiente';
+                estadoClase = 'warning';
+                break;
+            case 2:
+                estadoTexto = 'Aprobada';
+                estadoClase = 'success';
+                break;
+            case 3:
+                estadoTexto = 'Cerrada';
+                estadoClase = 'info';
+                break;
+            case 4:
+                estadoTexto = 'Pagada';
+                estadoClase = 'primary';
+                break;
+        }
         
         let html = `
             <div class="card mb-3">
