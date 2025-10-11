@@ -82,11 +82,21 @@ function AnularPedido($id_pedido, $id_personal)
         return false;
     }
 
+    // Anular pedido
     $sql_update = "UPDATE pedido 
-                   SET est_pedido = 0
+                   SET est_pedido = 0 
                    WHERE id_pedido = '$id_pedido'";
-
     $res_update = mysqli_query($con, $sql_update);
+
+    if ($res_update) {
+        // Liberar stock comprometido
+        $sql_mov = "UPDATE movimiento 
+                    SET est_movimiento = 0
+                    WHERE id_orden = '$id_pedido' 
+                      AND tipo_orden = 5 
+                      AND est_movimiento = 1";
+        mysqli_query($con, $sql_mov);
+    }
 
     mysqli_close($con);
     return $res_update;

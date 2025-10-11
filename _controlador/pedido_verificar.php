@@ -85,6 +85,38 @@ if (isset($_REQUEST['verificar_item'])) {
                     $rpta = verificarItem($id_pedido_detalle, $new_cant_fin);
 
                     if ($rpta == "SI") {
+                        // ===============================================================
+                        // 🔹 REGISTRO DE MOVIMIENTO tipo_orden = 5 (pedido / stock comprometido)
+                        // ===============================================================
+                        $id_producto   = intval($detalle['id_producto']);
+                        $id_almacen    = intval($pedido_row['id_almacen']);
+                        $id_ubicacion  = intval($pedido_row['id_ubicacion']);
+                        $cantidad_pedida = floatval($new_cant_fin);
+
+                        // 1️⃣ Obtener stock actual (físico y disponible)
+                        $stock = ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion);
+                        $stock_disponible = floatval($stock['stock_disponible']);
+
+                        // 2️⃣ Evaluar cantidad a reservar
+                        if ($stock_disponible >= $cantidad_pedida) {
+                            $cantidad_reservar = $cantidad_pedida; // stock suficiente
+                        } elseif ($stock_disponible > 0 && $stock_disponible < $cantidad_pedida) {
+                            $cantidad_reservar = $stock_disponible; // stock parcial
+                        } else {
+                            $cantidad_reservar = 0; // sin stock
+                        }
+
+                        // 3️⃣ Registrar movimiento si hay algo que reservar
+                        if ($cantidad_reservar > 0) {
+                            RegistrarMovimientoPedido(
+                                $id_pedido_real,
+                                $id_producto,
+                                $id_almacen,
+                                $id_ubicacion,
+                                $cantidad_reservar
+                            );
+                        }
+                        // ===============================================================
                         //  Verificación exitosa
                         header("Location: pedido_verificar.php?id=$id_pedido_real&success=verificado");
                         exit;

@@ -234,6 +234,14 @@ if ($puede_verificar) { ?>
            target="_blank">
             <i class="fa fa-file-pdf-o"></i>
         </a>
+
+        <?php if ($pedido['est_pedido'] == 1 || $pedido['est_pedido'] == 2) { ?>
+            <button 
+                class="btn btn-danger btn-sm" 
+                onclick="AnularPedido(<?php echo $pedido['id_pedido']; ?>)">
+                <i class="fa fa-times"></i>
+            </button>
+        <?php } ?>
     </div>
 </td>
                                                 </tr>
@@ -473,5 +481,42 @@ foreach($pedidos as $pedido) {
 </div>
 <?php 
     }
-} 
+}
+
+
 ?>
+
+<script>
+function AnularPedido(id_pedido) {
+    Swal.fire({
+        title: '¿Estás seguro?',
+        text: "El pedido será anulado y se liberará el stock comprometido.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, anular',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: 'pedido_anular.php',
+                type: 'POST',
+                data: { id_pedido: id_pedido },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire('Anulado', response.message, 'success').then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire('Error', response.message, 'error');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire('Error', 'No se pudo anular el pedido.', 'error');
+                    console.error(xhr.responseText);
+                }
+            });
+        }
+    });
+}
+</script>

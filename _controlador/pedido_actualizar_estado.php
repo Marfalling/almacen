@@ -1,9 +1,13 @@
 <?php
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 //-----------------------------------------------------------------------
 // CONTROLADOR: pedido_actualizar_estado.php
 //-----------------------------------------------------------------------
-
-require_once('../_modelo/m_pedidos.php');
+require_once(__DIR__ . "/../_modelo/m_movimientos.php");
+require_once(__DIR__ . "/../_modelo/m_pedidos.php");
 
 header('Content-Type: application/json');
 
@@ -41,7 +45,40 @@ if ($accion === 'completar_automatico') {
     
     error_log("Resultado de VerificarYActualizarEstadoPedido: " . print_r($resultado, true));
     
+    
     if ($resultado === true) {
+
+        $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
+
+        foreach ($pedido_detalle as $item) {
+            $id_producto = intval($item['id_producto']);
+            $cantidad = floatval($item['cant_pedido_detalle']);
+            $id_almacen = intval($item['id_almacen'] ?? 1);
+            $id_ubicacion = intval($item['id_ubicacion'] ?? 1);
+
+            // Verificar stock disponible antes de registrar
+            $stock = ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion);
+            $stock_disponible = floatval($stock['stock_disponible']);
+
+            if ($stock_disponible >= $cantidad) {
+                $cantidad_reservar = $cantidad;
+            } elseif ($stock_disponible > 0 && $stock_disponible < $cantidad) {
+                $cantidad_reservar = $stock_disponible;
+            } else {
+                $cantidad_reservar = 0;
+            }
+
+            if ($cantidad_reservar > 0) {
+                RegistrarMovimientoPedido(
+                    $id_pedido,
+                    $id_producto,
+                    $id_almacen,
+                    $id_ubicacion,
+                    $cantidad_reservar
+                );
+                
+            }
+        }
         echo json_encode([
             'success' => true,
             'message' => 'Pedido actualizado a estado Completado correctamente'

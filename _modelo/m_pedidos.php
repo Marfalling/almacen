@@ -624,36 +624,41 @@ function ConsultarDetallePorId($id_pedido_detalle) {
  * Espera $data array con claves:
  *  'id_producto','id_almacen','id_ubicacion','id_personal','id_tipo_orden','id_tipo_mov','id_pedido','cantidad','descripcion'
  */
-function RegistrarMovimientoPedido($data) {
+function RegistrarMovimientoPedido($id_pedido, $id_producto, $id_almacen, $id_ubicacion, $cantidad)
+{
     include("../_conexion/conexion.php");
+    $id_personal = $_SESSION['id_personal'] ?? 1; // usa 1 si no existe sesión
 
-    $id_producto   = intval($data['id_producto']);
-    $id_almacen    = intval($data['id_almacen']);
-    $id_ubicacion  = intval($data['id_ubicacion']);
-    $id_personal   = intval($data['id_personal']);
-    $id_tipo_orden = intval($data['id_tipo_orden']); // 5 = PEDIDO
-    $id_tipo_mov   = intval($data['id_tipo_mov']);   // 2 = salida comprometida
-    $id_pedido     = intval($data['id_pedido']);
-    $cantidad      = floatval($data['cantidad']);
-    $descripcion   = mysqli_real_escape_string($con, $data['descripcion']);
+    // Verificar si ya hay una reserva activa para ese producto y pedido
+    $sql_check = "SELECT id_movimiento 
+                  FROM movimiento 
+                  WHERE id_orden = '$id_pedido' 
+                    AND id_producto = '$id_producto' 
+                    AND tipo_orden = 5 
+                    AND est_movimiento = 1";
+    $res = mysqli_query($con, $sql_check);
 
-    // Inserción en movimiento (ajustar columnas según tu tabla)
-    $sql = "INSERT INTO movimiento (
-                id_producto, id_almacen, id_ubicacion, id_personal, id_tipo_orden,
-                tipo_movimiento, cant_movimiento, descripcion_movimiento, id_pedido, fec_movimiento, est_movimiento
-            ) VALUES (
-                $id_producto, $id_almacen, $id_ubicacion, $id_personal, $id_tipo_orden,
-                $id_tipo_mov, $cantidad, '$descripcion', $id_pedido, NOW(), 1
-            )";
-
-    if (mysqli_query($con, $sql)) {
-        $id_mov = mysqli_insert_id($con);
-        mysqli_close($con);
-        return $id_mov;
+    if (mysqli_num_rows($res) == 0) {
+        // No existe → insertar nueva reserva
+        $sql_insert = "INSERT INTO movimiento (
+                            id_personal, id_orden, id_producto, id_almacen, 
+                            id_ubicacion, tipo_orden, tipo_movimiento, 
+                            cant_movimiento, fec_movimiento, est_movimiento
+                        ) VALUES (
+                            '$id_personal', '$id_pedido', '$id_producto', '$id_almacen',
+                            '$id_ubicacion', 5, 2,
+                            '$cantidad', NOW(), 1
+                        )";
+        mysqli_query($con, $sql_insert);
     } else {
-        $err = mysqli_error($con);
-        mysqli_close($con);
-        return "ERROR: " . $err;
+        // Ya existe → actualizar cantidad reservada
+        $sql_update = "UPDATE movimiento 
+                       SET cant_movimiento = '$cantidad', fec_movimiento = NOW()
+                       WHERE id_orden = '$id_pedido' 
+                         AND id_producto = '$id_producto' 
+                         AND tipo_orden = 5 
+                         AND est_movimiento = 1";
+        mysqli_query($con, $sql_update);
     }
 }
 
