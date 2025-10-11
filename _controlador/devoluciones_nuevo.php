@@ -42,7 +42,7 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
             // Cargar datos para el formulario
             $almacenes = MostrarAlmacenesActivos();
             $ubicaciones = MostrarUbicacionesActivas();
-            $personal = MostrarPersonalActivo();
+            $personal = MostrarPersonal();
             $productos = MostrarMaterialesActivos();
             $clientes = MostrarClientesActivos(); // <--- Lista de clientes
 

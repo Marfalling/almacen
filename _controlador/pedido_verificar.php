@@ -33,68 +33,68 @@ if (isset($_REQUEST['verificar_item'])) {
     $new_cant_fin = floatval($_REQUEST['fin_cant_pedido_detalle']);
     $id_personal = $_SESSION['id_personal'] ?? 0;
 
-    // 1) Obtener detalle para saber a qué pedido pertenece
-    $detalle = ConsultarDetallePorId($id_pedido_detalle); // debe devolver id_pedido, id_producto, etc.
-    if (!$detalle) {
+    //  VALIDACIÓN: La cantidad debe ser mayor a 0
+    if ($new_cant_fin <= 0) {
         $alerta = [
             "icon" => "error",
-            "title" => "Error",
-            "text" => "Detalle no encontrado."
+            "title" => "Cantidad inválida",
+            "text" => "La cantidad verificada debe ser mayor a 0"
         ];
     } else {
-        $id_pedido_real = intval($detalle['id_pedido']);
-
-        // 2) Obtener estado actual del pedido (usar función existente)
-        $pedido_check = ConsultarPedido($id_pedido_real);
-        if (empty($pedido_check)) {
+        // 1) Obtener detalle para saber a qué pedido pertenece
+        $detalle = ConsultarDetallePorId($id_pedido_detalle);
+        
+        if (!$detalle) {
             $alerta = [
                 "icon" => "error",
                 "title" => "Error",
-                "text" => "Pedido no encontrado."
+                "text" => "Detalle no encontrado."
             ];
         } else {
-            $pedido_row = $pedido_check[0];
-            // Cambia '1' por el valor que consideres "Completado" (en tu esquema dijiste que es 1)
-            if (intval($pedido_row['est_pedido']) !== 1) {
+            $id_pedido_real = intval($detalle['id_pedido']);
+
+            // 2) Obtener estado actual del pedido
+            $pedido_check = ConsultarPedido($id_pedido_real);
+            
+            if (empty($pedido_check)) {
                 $alerta = [
-                    "icon" => "warning",
-                    "title" => "Acción no permitida",
-                    "text" => "No se puede verificar este item porque el pedido no está en estado 'Completado'."
+                    "icon" => "error",
+                    "title" => "Error",
+                    "text" => "Pedido no encontrado."
                 ];
             } else {
-                // 3) Proceder con la verificación
-                $rpta = verificarItem($id_pedido_detalle, $new_cant_fin);
-
-                if ($rpta == "SI") {
-                    // 4) Registrar movimiento tipo PEDIDO (compromiso de stock)
-                    // Obtener almacen/ubicacion preferentemente del detalle; si no existen usar los del pedido
-                    $id_almacen = isset($detalle['id_almacen']) ? intval($detalle['id_almacen']) : intval($pedido_row['id_almacen']);
-                    $id_ubicacion = isset($detalle['id_ubicacion']) ? intval($detalle['id_ubicacion']) : intval($pedido_row['id_ubicacion']);
-
-                    $data_mov = [
-                        'id_producto'    => intval($detalle['id_producto']),
-                        'id_almacen'     => $id_almacen,
-                        'id_ubicacion'   => $id_ubicacion,
-                        'id_personal'    => $id_personal,
-                        'id_tipo_orden'  => 5, // PEDIDO
-                        'id_tipo_mov'    => 2, // salida comprometida (estado 1 = comprometido)
-                        'id_pedido'      => $id_pedido_real,
-                        'cantidad'       => $new_cant_fin,
-                        'descripcion'    => 'Compromiso de stock por verificación de pedido #' . $id_pedido_real
-                    ];
-
-                    // RegistrarMovimientoPedido debe estar en m_movimientos.php (ya lo incluyes)
-                    $mov_rpta = RegistrarMovimientoPedido($data_mov);
-                    // opcional: manejar error en $mov_rpta
-
-                    header("Location: pedido_verificar.php?id=$id_pedido_real&success=verificado");
-                    exit;
-                } else {
+                $pedido_row = $pedido_check[0];
+                $estado_pedido = intval($pedido_row['est_pedido']);
+                
+                //  CORRECCIÓN: Permitir verificación en estados 1 (Pendiente) y 2 (Completado)
+                // NO permitir en: 0 (Anulado), 3 (Aprobado), 4 (Ingresado), 5 (Finalizado)
+                if ($estado_pedido == 0) {
                     $alerta = [
                         "icon" => "error",
-                        "title" => "Error",
-                        "text" => "Error al verificar item: $rpta"
+                        "title" => "Pedido anulado",
+                        "text" => "No se puede verificar items de un pedido anulado."
                     ];
+                } elseif ($estado_pedido >= 3) {
+                    $alerta = [
+                        "icon" => "warning",
+                        "title" => "Acción no permitida",
+                        "text" => "No se puede verificar este item. El pedido ya fue aprobado o finalizado."
+                    ];
+                } else {
+                    // 3) Proceder con la verificación (estados 1 o 2)
+                    $rpta = verificarItem($id_pedido_detalle, $new_cant_fin);
+
+                    if ($rpta == "SI") {
+                        //  Verificación exitosa
+                        header("Location: pedido_verificar.php?id=$id_pedido_real&success=verificado");
+                        exit;
+                    } else {
+                        $alerta = [
+                            "icon" => "error",
+                            "title" => "Error al verificar",
+                            "text" => str_replace("ERROR: ", "", $rpta)
+                        ];
+                    }
                 }
             }
         }

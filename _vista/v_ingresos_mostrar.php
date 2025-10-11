@@ -136,58 +136,68 @@
                                                             <td><?php echo $ingreso['registrado_por'] ?? 'No especificado'; ?></td>
                                                             <td><?php echo $ingreso['aprobado_por'] ?? 'Pendiente'; ?></td>
                                                             <td>
-                                                                <?php 
-                                                                $est_compra = intval($est_compra);
-                                                                
-                                                                if ($est_compra == 0) { ?>
-                                                                    <span class="badge badge-danger badge_size">Anulada</span>
-                                                                <?php } elseif ($est_compra == 1) { ?>
-                                                                    <span class="badge badge-warning badge_size">Pendiente</span>
-                                                                    <?php 
-                                                                    if (isset($ingreso['cantidad_total_ingresada']) && $ingreso['cantidad_total_ingresada'] > 0) { 
-                                                                        $cantidad_pedida = floatval($ingreso['cantidad_total_pedida']);
-                                                                        $cantidad_ingresada = floatval($ingreso['cantidad_total_ingresada']);
-                                                                        $porcentaje = $cantidad_pedida > 0 ? round(($cantidad_ingresada / $cantidad_pedida) * 100) : 0;
-                                                                    ?>
-                                                                        <br><small class="text-info">(<?php echo number_format($cantidad_ingresada, 2); ?>/<?php echo number_format($cantidad_pedida, 2); ?> - <?php echo $porcentaje; ?>%)</small>
-                                                                    <?php } ?>
-                                                                <?php } elseif ($est_compra == 2) { ?>
-                                                                    <span class="badge badge-success badge_size">Aprobada</span>
-                                                                    <?php 
-                                                                    if (isset($ingreso['cantidad_total_ingresada']) && isset($ingreso['cantidad_total_pedida'])) { 
-                                                                        $cantidad_pedida = floatval($ingreso['cantidad_total_pedida']);
-                                                                        $cantidad_ingresada = floatval($ingreso['cantidad_total_ingresada']);
-                                                                        $porcentaje = $cantidad_pedida > 0 ? round(($cantidad_ingresada / $cantidad_pedida) * 100) : 0;
-                                                                        
-                                                                        if ($cantidad_ingresada > 0) { ?>
-                                                                            <br><small class="text-info">(<?php echo number_format($cantidad_ingresada, 2); ?>/<?php echo number_format($cantidad_pedida, 2); ?> - <?php echo $porcentaje; ?>%)</small>
-                                                                        <?php }
-                                                                    } ?>
-                                                                <?php } elseif ($est_compra == 3) { ?>
-                                                                    <span class="badge badge-info badge_size">Cerrada</span>
-                                                                    <?php if (isset($ingreso['cantidad_total_ingresada'])) { ?>
-                                                                        <br><small class="text-success">(<?php echo number_format($ingreso['cantidad_total_ingresada'], 2); ?> ingresado)</small>
-                                                                    <?php } ?>
-                                                                <?php } elseif ($est_compra == 4) { ?>
-                                                                    <span class="badge badge-primary badge_size">Pagada</span>
-                                                                <?php } ?>
-                                                            </td>
-                                                            <td>
-                                                                <div class="d-flex flex-wrap gap-2">
-                                                                    <?php if ($est_compra != 0 && $est_compra != 3 && $est_compra != 4) { ?>
-                                                                    <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
-                                                                       class="btn btn-success btn-sm"
-                                                                       title="Verificar ingreso">
-                                                                        <i class="fa fa-check"></i>
-                                                                    </a>
-                                                                    <?php } ?>
-                                                                    <a href="ingresos_detalle.php?id_compra=<?php echo $id_compra; ?>" 
-                                                                        class="btn btn-secondary btn-sm"
-                                                                        title="Ver ingresos">
-                                                                        <i class="fa fa-plus"></i>
-                                                                    </a>
-                                                                </div>
-                                                            </td>
+    <?php 
+    $est_compra = intval($est_compra);
+    
+    if ($est_compra == 0) { ?>
+        <span class="badge badge-danger badge_size">Anulada</span>
+    <?php } elseif ($est_compra == 1) { ?>
+        <span class="badge badge-warning badge_size">Pendiente Aprobación</span>
+    <?php } elseif ($est_compra == 2) { 
+        // ✅ ESTADO 2 = APROBADA (lista para ingreso)
+        $cantidad_pedida = isset($ingreso['cantidad_total_pedida']) ? floatval($ingreso['cantidad_total_pedida']) : 0;
+        $cantidad_ingresada = isset($ingreso['cantidad_total_ingresada']) ? floatval($ingreso['cantidad_total_ingresada']) : 0;
+        $porcentaje = $cantidad_pedida > 0 ? round(($cantidad_ingresada / $cantidad_pedida) * 100) : 0;
+        
+        if ($cantidad_ingresada == 0) { 
+            // Sin ningún ingreso
+        ?>
+            <span class="badge badge-info badge_size">Aprobada - Sin Ingreso</span>
+            <br><small class="text-muted">0% ingresado</small>
+        <?php } elseif ($porcentaje < 100) { 
+            // Ingreso parcial
+        ?>
+            <span class="badge badge-warning badge_size">Aprobada - Ingreso Parcial</span>
+            <br><small class="text-info"><?php echo $porcentaje; ?>% completado</small>
+        <?php } else { 
+            // 100% ingresado pero aún no cerrado (caso raro)
+        ?>
+            <span class="badge badge-success badge_size">Ingreso Completo</span>
+            <br><small class="text-success">100% ingresado</small>
+        <?php } ?>
+    <?php } elseif ($est_compra == 3) { ?>
+        <span class="badge badge-success badge_size">Cerrada</span>
+        <br><small class="text-success">Ingreso completo</small>
+    <?php } elseif ($est_compra == 4) { ?>
+        <span class="badge badge-dark badge_size">Pagada</span>
+    <?php } ?>
+</td>
+                                                            <!-- TAB 1: ÓRDENES DE COMPRA - COLUMNA ACCIONES CORREGIDA -->
+<td>
+    <div class="d-flex flex-wrap gap-2">
+        <?php 
+        // ✅ Solo mostrar botón "Ingresar" si está APROBADA (2)
+        if ($est_compra == 2) { 
+        ?>
+            <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
+               class="btn btn-success btn-sm"
+               title="Realizar ingreso de productos">
+                <i class="fa fa-download"></i> Ingresar
+            </a>
+        <?php } elseif ($est_compra == 3) { ?>
+            <span class="badge badge-success">
+                <i class="fa fa-check-circle"></i> Completado
+            </span>
+        <?php } ?>
+        
+        <!-- Botón para ver historial siempre visible -->
+        <a href="ingresos_detalle.php?id_compra=<?php echo $id_compra; ?>" 
+            class="btn btn-secondary btn-sm"
+            title="Ver historial de ingresos">
+            <i class="fa fa-eye"></i>
+        </a>
+    </div>
+</td>
                                                         </tr>
                                                     <?php 
                                                         $contador++;

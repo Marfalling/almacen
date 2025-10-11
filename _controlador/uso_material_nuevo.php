@@ -41,7 +41,7 @@ if (!verificarPermisoEspecifico('crear_uso de material')) {
             // Cargar datos para el formulario
             $almacenes = MostrarAlmacenesActivos();
             $ubicaciones = MostrarUbicacionesActivas();
-            $personal = MostrarPersonalActivo();
+            $personal = MostrarPersonal();
             
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/uso_material/")) {

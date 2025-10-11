@@ -90,7 +90,7 @@ if (!verificarPermisoEspecifico('editar_almacen')) {
 
 			// Obtener listas para los selects (solo activos)
 			$listaClientes = MostrarClientesActivos();
-			$listaObras = MostrarObrasActivas();
+			$listaObras = MostrarObras();
 
 			require_once("../_vista/v_almacen_editar.php");
 			require_once("../_vista/v_footer.php");

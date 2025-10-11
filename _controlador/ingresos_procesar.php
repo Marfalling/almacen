@@ -103,8 +103,7 @@ try {
     }
 
     // Si hubo al menos un ingreso exitoso, intentar finalizar el pedido
-    // ✅ ACTUALIZADO: Actualizar pedido a estado 3 (Ingresado) tras el ingreso
-    if ($resultados_exitosos > 0 && $id_compra) {
+        if ($resultados_exitosos > 0 && $id_compra) {
         include("../_conexion/conexion.php");
         
         // Obtener el pedido asociado a esta compra
@@ -118,15 +117,14 @@ try {
             $pedido_data = mysqli_fetch_assoc($res_pedido);
             $id_pedido_asociado = $pedido_data['id_pedido'];
             $estado_actual_pedido = $pedido_data['est_pedido'];
-            $es_auto_orden = ($pedido_data['id_producto_tipo'] == 2);
             
-            // Solo actualizar a INGRESADO (3) si está en APROBADO (2)
-            if ($estado_actual_pedido == 2) {
-                $sql_update_pedido = "UPDATE pedido SET est_pedido = 3 WHERE id_pedido = $id_pedido_asociado";
+            //  Actualizar a INGRESADO (4) si está en APROBADO (3)
+            if ($estado_actual_pedido == 3) {
+                $sql_update_pedido = "UPDATE pedido SET est_pedido = 4 WHERE id_pedido = $id_pedido_asociado";
                 if (mysqli_query($con, $sql_update_pedido)) {
-                    error_log("✅ Pedido $id_pedido_asociado actualizado a estado 3 (Ingresado) tras ingreso de compra $id_compra");
+                    error_log(" Pedido $id_pedido_asociado actualizado a estado 4 (Ingresado)");
                 } else {
-                    error_log("❌ Error al actualizar estado de pedido $id_pedido_asociado: " . mysqli_error($con));
+                    error_log(" Error al actualizar estado de pedido: " . mysqli_error($con));
                 }
             }
             

@@ -41,7 +41,7 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
             // Cargar datos para el formulario
             $almacenes = MostrarAlmacenesActivos();
             $ubicaciones = MostrarUbicacionesActivas();
-            $personal = MostrarPersonalActivo();
+            $personal = MostrarPersonal();
             $material_tipos = MostrarMaterialTipoActivos();
 
             $desde_pedido = isset($_GET['desde_pedido']) ? intval($_GET['desde_pedido']) : 0;
@@ -159,7 +159,7 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                             if ($id_pedido_origen > 0) {
                                 require_once("../_modelo/m_pedidos.php");
                                 
-                                // Finalizar el pedido (cambiar a estado 4)
+                                // Finalizar el pedido 
                                 $resultado_pedido = FinalizarPedido($id_pedido_origen);
                                 
                                 if ($resultado_pedido['success']) {

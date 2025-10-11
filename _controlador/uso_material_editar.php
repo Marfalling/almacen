@@ -40,7 +40,7 @@ if (!verificarPermisoEspecifico('editar_uso de material')) {
             
             // Cargar datos necesarios para el formulario
             $ubicaciones = MostrarUbicacionesActivas();
-            $personal = MostrarPersonalActivo();
+            $personal = MostrarPersonal();
             
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/uso_material/")) {

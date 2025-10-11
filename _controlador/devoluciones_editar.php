@@ -83,7 +83,7 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
             // Cargar datos para el formulario
             $almacenes = MostrarAlmacenesActivos();
             $ubicaciones = MostrarUbicacionesActivas();
-            $personal = MostrarPersonalActivo();
+            $personal = MostrarPersonal();
             $material_tipos = MostrarMaterialTipoActivos();
             $clientes = ObtenerClientes(); // <-- lista de clientes para el select
 

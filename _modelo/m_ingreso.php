@@ -248,6 +248,7 @@ function ObtenerDetalleCompra($id_compra)
 }
 
 //-----------------------------------------------------------------------
+//-----------------------------------------------------------------------
 function ObtenerProductosPendientesIngreso($id_compra)
 {
     include("../_conexion/conexion.php");
@@ -256,27 +257,47 @@ function ObtenerProductosPendientesIngreso($id_compra)
                 cd.id_compra_detalle,
                 cd.id_producto,
                 cd.cant_compra_detalle,
-                pd.prod_pedido_detalle as nom_producto, -- CAMBIADO: ahora usa la descripción del pedido
+                pd.prod_pedido_detalle as nom_producto,
                 prod.cod_material,
                 um.nom_unidad_medida,
-                COALESCE(SUM(id2.cant_ingreso_detalle), 0) as cantidad_ingresada,
-                (cd.cant_compra_detalle - COALESCE(SUM(id2.cant_ingreso_detalle), 0)) as cantidad_pendiente
+                COALESCE((
+                    SELECT SUM(id2.cant_ingreso_detalle)
+                    FROM ingreso i 
+                    INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso
+                    WHERE i.id_compra = '$id_compra'
+                    AND id2.id_producto = cd.id_producto
+                    AND i.est_ingreso = 1
+                    AND id2.est_ingreso_detalle = 1
+                ), 0) as cantidad_ingresada,
+                (cd.cant_compra_detalle - COALESCE((
+                    SELECT SUM(id2.cant_ingreso_detalle)
+                    FROM ingreso i 
+                    INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso
+                    WHERE i.id_compra = '$id_compra'
+                    AND id2.id_producto = cd.id_producto
+                    AND i.est_ingreso = 1
+                    AND id2.est_ingreso_detalle = 1
+                ), 0)) as cantidad_pendiente
             FROM compra_detalle cd
-            INNER JOIN compra c ON cd.id_compra = c.id_compra -- JOIN con compra
+            INNER JOIN compra c ON cd.id_compra = c.id_compra
             INNER JOIN pedido_detalle pd ON cd.id_producto = pd.id_producto 
-                AND pd.id_pedido = c.id_pedido -- JOIN con pedido_detalle usando la relación correcta
-                AND pd.est_pedido_detalle IN (1, 2) -- Solo detalles activos o en proceso
+                AND pd.id_pedido = c.id_pedido
+                AND pd.est_pedido_detalle IN (1, 2)
             INNER JOIN producto prod ON cd.id_producto = prod.id_producto
             INNER JOIN unidad_medida um ON prod.id_unidad_medida = um.id_unidad_medida
-            LEFT JOIN ingreso i ON i.id_compra = '$id_compra'
-            LEFT JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso AND cd.id_producto = id2.id_producto
             WHERE cd.id_compra = '$id_compra'
             AND cd.est_compra_detalle = 1
-            GROUP BY cd.id_compra_detalle, cd.id_producto, pd.prod_pedido_detalle
             HAVING cantidad_pendiente > 0
-            ORDER BY pd.prod_pedido_detalle"; 
+            ORDER BY pd.prod_pedido_detalle";
             
     $resultado = mysqli_query($con, $sql);
+    
+    if (!$resultado) {
+        error_log("Error en ObtenerProductosPendientesIngreso: " . mysqli_error($con));
+        mysqli_close($con);
+        return array();
+    }
+    
     $productos = array();
 
     while ($row = mysqli_fetch_array($resultado, MYSQLI_ASSOC)) {
@@ -394,6 +415,7 @@ function ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_person
                                   FROM ingreso i 
                                   INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso
                                   WHERE i.id_compra = '$id_compra'
+                                  AND i.est_ingreso = 1
                                   AND id2.est_ingreso_detalle = 1
                                   GROUP BY id2.id_producto
                               ) ingresado ON cd.id_producto = ingresado.id_producto
@@ -408,13 +430,13 @@ function ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_person
         
         $row_completo = mysqli_fetch_assoc($res_check_completo);
         
-        // Si todos los productos han sido ingresados completamente, cambiar estado de compra a 3 (Cerrada)
+        // Si todos los productos han sido ingresados, cambiar estado de compra a 3 (Cerrada)
         if ($row_completo && $row_completo['total_productos'] == $row_completo['productos_completos']) {
             $sql_update_compra = "UPDATE compra SET est_compra = 3 WHERE id_compra = '$id_compra'";
             if (!mysqli_query($con, $sql_update_compra)) {
                 error_log("Advertencia: No se pudo actualizar estado de compra: " . mysqli_error($con));
             } else {
-                error_log("✅ Estado de compra actualizado a 3 (Cerrada) para compra: $id_compra");
+                error_log(" Compra $id_compra actualizada a estado 3 (Cerrada)");
             }
         }
         
@@ -954,21 +976,17 @@ function MostrarTodosLosIngresos()
                 al.nom_almacen,
                 ub.nom_ubicacion,
                 mon.nom_moneda,
-                -- Total de productos en la orden
                 (SELECT COUNT(*) FROM compra_detalle cd WHERE cd.id_compra = c.id_compra AND cd.est_compra_detalle = 1) as total_productos,
-                -- Cantidad total pedida
                 COALESCE((SELECT SUM(cd.cant_compra_detalle) 
                          FROM compra_detalle cd 
                          WHERE cd.id_compra = c.id_compra 
                          AND cd.est_compra_detalle = 1), 0) as cantidad_total_pedida,
-                -- Cantidad total ingresada
                 COALESCE((SELECT SUM(id2.cant_ingreso_detalle) 
                          FROM ingreso i 
                          INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso 
                          WHERE i.id_compra = c.id_compra 
                          AND i.est_ingreso = 1
                          AND id2.est_ingreso_detalle = 1), 0) as cantidad_total_ingresada,
-                -- Productos con al menos un ingreso (para mostrar progreso)
                 COALESCE((SELECT COUNT(DISTINCT id2.id_producto) 
                          FROM ingreso i 
                          INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso 
@@ -983,9 +1001,9 @@ function MostrarTodosLosIngresos()
             INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
             LEFT JOIN personal pe1 ON c.id_personal = pe1.id_personal
             LEFT JOIN personal pe2 ON c.id_personal_aprueba = pe2.id_personal
-            WHERE c.est_compra IN (2, 3, 4)  --   Solo Aprobada, Cerrada y Pagada
-            AND c.id_personal_aprueba_tecnica IS NOT NULL  -- Debe tener aprobación técnica
-            AND c.id_personal_aprueba_financiera IS NOT NULL  --  Debe tener aprobación financiera
+            WHERE c.est_compra IN (1, 2, 3, 4)  -- ✅ INCLUYE ESTADO 1 (Pendiente)
+            AND c.id_personal_aprueba_tecnica IS NOT NULL
+            AND c.id_personal_aprueba_financiera IS NOT NULL
             
             UNION ALL
             
@@ -1084,8 +1102,8 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
             INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
             LEFT JOIN personal pe1 ON c.id_personal = pe1.id_personal
             LEFT JOIN personal pe2 ON c.id_personal_aprueba = pe2.id_personal
-            WHERE c.est_compra IN (2, 3, 4) $whereCompras  --  Solo Aprobada, Cerrada y Pagada
-            AND c.id_personal_aprueba_tecnica IS NOT NULL  --  Debe tener aprobación técnica
+            WHERE c.est_compra IN (1, 2, 3, 4) $whereCompras  -- ✅ INCLUYE ESTADO 1 (Pendiente)
+            AND c.id_personal_aprueba_tecnica IS NOT NULL  -- Debe tener aprobación técnica
             AND c.id_personal_aprueba_financiera IS NOT NULL  -- Debe tener aprobación financiera
 
             UNION ALL

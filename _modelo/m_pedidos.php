@@ -3,16 +3,11 @@
 // MODELO: m_pedidos.php
 //-----------------------------------------------------------------------
 
-
-//PEDIDO_ANULADO', 0);
-//PEDIDO_COMPLETADO', 1); 
-//PEDIDO_APROBADO', 2);
-//PEDIDO_INGRESADO', 3);
-//PEDIDO_FINALIZADO', 4);
-//PEDIDO_REGISTRADO_O_PENDIENTE', 5);  
+// FUNCIONES CORREGIDAS PARA m_pedidos.php
+// Estados: 0=Anulado, 1=Pendiente, 2=Completado, 3=Aprobado, 4=Ingresado, 5=Finalizado
 
 
-// Grabar Pedido (ahora acepta opcionalmente $id_obra)
+// Grabar Pedido (ahora acepta opcionalmente $id_obra) (debe iniciar con estado 1, no 5)
 function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo, 
                      $nom_pedido, $solicitante, $fecha_necesidad, 
                      $num_ot, $contacto, $lugar_entrega, $aclaraciones, $id_personal, 
@@ -22,7 +17,7 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
 
     $id_obra_sql = ($id_obra && $id_obra > 0) ? intval($id_obra) : "NULL";
 
-    // INSERTAR PRIMERO el pedido SIN código para obtener el ID
+    //estado inicial debe ser 1 (Pendiente)
     $sql = "INSERT INTO pedido (
                 id_producto_tipo, id_almacen, id_ubicacion, id_centro_costo, id_personal, id_obra,
                 cod_pedido, nom_pedido, ot_pedido, cel_pedido, lug_pedido, 
@@ -31,7 +26,7 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
                 $id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo, $id_personal, $id_obra_sql,
                 'TEMP', '" . mysqli_real_escape_string($con, $nom_pedido) . "', '" . mysqli_real_escape_string($con, $num_ot) . "',
                 '" . mysqli_real_escape_string($con, $contacto) . "', '" . mysqli_real_escape_string($con, $lugar_entrega) . "',
-                '" . mysqli_real_escape_string($con, $aclaraciones) . "', '" . mysqli_real_escape_string($con, $fecha_necesidad) . "', NOW(), 5
+                '" . mysqli_real_escape_string($con, $aclaraciones) . "', '" . mysqli_real_escape_string($con, $fecha_necesidad) . "', NOW(), 1
             )";
 
     if (mysqli_query($con, $sql)) {
@@ -666,96 +661,45 @@ function verificarItem($id_pedido_detalle, $new_cant_fin)
 {
     include("../_conexion/conexion.php");
 
-    // 1️⃣ Obtener detalle con datos del pedido (almacén y ubicación)
-    $sql_detalle = "SELECT 
-                        pd.id_pedido_detalle,
-                        pd.id_pedido,
-                        pd.id_producto,
-                        p.id_almacen,
-                        p.id_ubicacion
-                    FROM pedido_detalle pd
-                    INNER JOIN pedido p ON pd.id_pedido = p.id_pedido
-                    WHERE pd.id_pedido_detalle = $id_pedido_detalle
-                    LIMIT 1";
-    $res_detalle = mysqli_query($con, $sql_detalle);
-    $detalle = $res_detalle ? mysqli_fetch_assoc($res_detalle) : null;
+    // Convertir a float para asegurar decimales
+    $cantidad_verificada = floatval($new_cant_fin);
+    
+    // Validación adicional por seguridad
+    if ($cantidad_verificada <= 0) {
+        mysqli_close($con);
+        return "ERROR: La cantidad verificada debe ser mayor a 0";
+    }
 
-    if (!$detalle) {
+    //  Verificar que el detalle exista
+    $sql_check = "SELECT id_pedido_detalle FROM pedido_detalle WHERE id_pedido_detalle = $id_pedido_detalle";
+    $res_check = mysqli_query($con, $sql_check);
+    
+    if (!$res_check || mysqli_num_rows($res_check) == 0) {
         mysqli_close($con);
         return "ERROR: Item no encontrado";
     }
 
-    $id_producto  = intval($detalle['id_producto']);
-    $id_pedido    = intval($detalle['id_pedido']);
-    $id_almacen   = intval($detalle['id_almacen']);
-    $id_ubicacion = intval($detalle['id_ubicacion']);
-    $cantidad_solicitada = floatval($new_cant_fin);
-
-    // 2️⃣ Calcular stock disponible actual (excluyendo compromisos activos)
-    $sql_stock = "
-        SELECT 
-            COALESCE(SUM(
-                CASE 
-                    WHEN tipo_movimiento = 1 THEN cant_movimiento
-                    WHEN tipo_movimiento = 2 THEN -cant_movimiento
-                    ELSE 0
-                END
-            ), 0)
-            - COALESCE(SUM(
-                CASE 
-                    WHEN tipo_orden = 5 AND est_movimiento = 1 THEN cant_movimiento
-                    ELSE 0
-                END
-            ), 0) AS stock_disponible
-        FROM movimiento
-        WHERE id_producto = $id_producto
-        AND id_almacen = $id_almacen
-        AND id_ubicacion = $id_ubicacion
-        AND est_movimiento = 1
-    ";
-    $res_stock = mysqli_query($con, $sql_stock);
-    $row_stock = $res_stock ? mysqli_fetch_assoc($res_stock) : null;
-    $stock_disponible = $row_stock ? floatval($row_stock['stock_disponible']) : 0;
-
-    // 3️⃣ Determinar cuánto se puede comprometer (lo disponible hasta lo solicitado)
-    $cantidad_comprometer = min($cantidad_solicitada, $stock_disponible);
-
-    // 4️⃣ Actualizar cantidad final verificada
-    $sql_update = "
-        UPDATE pedido_detalle 
-        SET cant_fin_pedido_detalle = $cantidad_comprometer
-        WHERE id_pedido_detalle = $id_pedido_detalle
-    ";
+    //  Actualizar la cantidad verificada
+    $sql_update = "UPDATE pedido_detalle 
+                   SET cant_fin_pedido_detalle = $cantidad_verificada
+                   WHERE id_pedido_detalle = $id_pedido_detalle";
+    
     if (!mysqli_query($con, $sql_update)) {
         $error = mysqli_error($con);
         mysqli_close($con);
-        return "ERROR: $error";
+        return "ERROR: " . $error;
     }
 
-    // 5️⃣ Registrar movimiento de compromiso si corresponde
-    if ($cantidad_comprometer > 0) {
-        session_start();
-        $id_personal = isset($_SESSION['id_personal']) ? intval($_SESSION['id_personal']) : 0;
-
-        $sql_mov = "
-            INSERT INTO movimiento (
-                id_personal, id_orden, id_producto, id_almacen, id_ubicacion, 
-                tipo_orden, tipo_movimiento, cant_movimiento, fec_movimiento, est_movimiento
-            ) VALUES (
-                $id_personal, $id_pedido, $id_producto, $id_almacen, $id_ubicacion,
-                5, 2, $cantidad_comprometer, NOW(), 1
-            )
-        ";
-
-        if (!mysqli_query($con, $sql_mov)) {
-            $error_mov = mysqli_error($con);
-            mysqli_close($con);
-            return "ERROR al registrar movimiento: $error_mov";
-        }
-    }
-
+    //  Verificar que se actualizó
+    $filas_afectadas = mysqli_affected_rows($con);
+    
     mysqli_close($con);
-    return "SI";
+    
+    if ($filas_afectadas > 0) {
+        return "SI";
+    } else {
+        return "ERROR: No se pudo actualizar la cantidad verificada";
+    }
 }
 
 function PedidoTieneVerificaciones($id_pedido)
@@ -889,8 +833,8 @@ function FinalizarPedido($id_pedido)
     $row_estado = mysqli_fetch_assoc($res_estado);
     $estado_actual = intval($row_estado['est_pedido']);
     
-    // Si ya está finalizado (estado 4), retornar éxito
-    if ($estado_actual == 4) {
+    // Si ya está finalizado (estado 5), retornar éxito
+    if ($estado_actual == 5) {
         mysqli_close($con);
         return [
             'success' => true,
@@ -909,8 +853,8 @@ function FinalizarPedido($id_pedido)
         ];
     }
     
-    //  Actualizar el pedido a FINALIZADO (estado = 4)
-    $sql_finalizar = "UPDATE pedido SET est_pedido = 4 WHERE id_pedido = $id_pedido";
+    // Actualizar el pedido a FINALIZADO (estado = 5)
+    $sql_finalizar = "UPDATE pedido SET est_pedido = 5 WHERE id_pedido = $id_pedido";
     
     if (mysqli_query($con, $sql_finalizar)) {
         $verificar = mysqli_affected_rows($con);
@@ -1075,7 +1019,6 @@ function verificarPedidoListo($id_pedido, $con = null)
         'mensaje' => 'El pedido tiene stock suficiente y puede marcarse como completado'
     ];
 }
-
 function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items, $id_detraccion = null) 
 {
     include("../_conexion/conexion.php");
@@ -1087,6 +1030,7 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
     
     $id_detraccion_sql = ($id_detraccion && $id_detraccion > 0) ? $id_detraccion : 'NULL';
 
+    // Crear la orden de compra con estado PENDIENTE (1)
     $sql = "INSERT INTO compra (
                 id_pedido, id_proveedor, id_moneda, id_personal, id_personal_aprueba, 
                 obs_compra, denv_compra, plaz_compra, port_compra, id_detraccion, 
@@ -1100,11 +1044,26 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
     if (mysqli_query($con, $sql)) {
         $id_compra = mysqli_insert_id($con);
         
+        // Insertar detalles de la orden
         foreach ($items as $item) {
             $cantidad = floatval($item['cantidad']);
             $id_producto = intval($item['id_producto']);
             $precio_unitario = floatval($item['precio_unitario']);
             $id_detalle = intval($item['id_detalle']);
+            
+            // 🔍 Validación: Si la cantidad es 0, usar la cantidad del pedido_detalle
+            if ($cantidad <= 0) {
+                $sql_get_cantidad = "SELECT cant_pedido_detalle 
+                                    FROM pedido_detalle 
+                                    WHERE id_pedido_detalle = $id_detalle";
+                $res_cantidad = mysqli_query($con, $sql_get_cantidad);
+                if ($res_cantidad && mysqli_num_rows($res_cantidad) > 0) {
+                    $row_cantidad = mysqli_fetch_assoc($res_cantidad);
+                    $cantidad = floatval($row_cantidad['cant_pedido_detalle']);
+                }
+            }
+            
+            
             
             $sql_detalle = "INSERT INTO compra_detalle (
                                 id_compra, id_producto, cant_compra_detalle, prec_compra_detalle, est_compra_detalle
@@ -1112,13 +1071,17 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
                                 $id_compra, $id_producto, $cantidad, $precio_unitario, 1
                             )";
             
-            mysqli_query($con, $sql_detalle);
+            if (!mysqli_query($con, $sql_detalle)) {
+                error_log("ERROR al insertar detalle: " . mysqli_error($con));
+            }
 
+            // Marcar el detalle del pedido como "en proceso de compra" (estado 2)
             $sql_update = "UPDATE pedido_detalle 
                        SET est_pedido_detalle = 2 
                        WHERE id_pedido_detalle = $id_detalle";
             mysqli_query($con, $sql_update);
-        }   
+        }
+        
         mysqli_close($con);
         return "SI";
     } else {
@@ -1126,10 +1089,6 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
         mysqli_close($con);
         return "ERROR: " . $err;
     }
-
-    // Si el pedido estaba solo registrado (5), ahora pasa a completado (1)
-    $sql_estado = "UPDATE pedido SET est_pedido = 1 WHERE id_pedido = $id_pedido AND est_pedido = 5";
-    mysqli_query($con, $sql_estado);
 }
 
 //-----------------------------------------------------------------------
@@ -1399,10 +1358,9 @@ function VerificarYActualizarEstadoPedido($id_pedido)
             'items' => $items_detalle
         ];
     }
-
-    // Actualizar a COMPLETADO (estado 1) cuando tiene todo el stock
-    $sql_update = "UPDATE pedido SET est_pedido = 1 WHERE id_pedido = $id_pedido";
     
+    // CAMBIO CRÍTICO: Actualizar a COMPLETADO (estado 2) cuando tiene todo el stock
+    $sql_update = "UPDATE pedido SET est_pedido = 2 WHERE id_pedido = $id_pedido";
     $resultado = mysqli_query($con, $sql_update);
     
     if ($resultado) {

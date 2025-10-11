@@ -263,9 +263,32 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                 <small id="contador-verificados">(0 items)</small>
                             </h2>
                             <?php if (!$modo_editar && !$pedido_anulado): ?>
-                            <button type="button" class="btn btn-primary btn-sm" id="btn-nueva-orden" style="padding: 4px 8px; font-size: 12px;">
-                                <i class="fa fa-plus"></i> Nueva Orden
-                            </button>
+                                <?php
+                                // Verificar si hay items disponibles para agregar a orden
+                                $tiene_items_disponibles = false;
+                                foreach ($pedido_detalle as $detalle) {
+                                    $esVerificado = !is_null($detalle['cant_fin_pedido_detalle']);
+                                    $stockInsuficiente = $detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle'];
+                                    $esAutoOrden = ($pedido['id_producto_tipo'] == 2);
+                                    $estaCerrado = ($detalle['est_pedido_detalle'] == 2);
+                                    
+                                    // Si es auto-orden, verificado con stock insuficiente, y no está cerrado
+                                    if (($esAutoOrden || ($esVerificado && $stockInsuficiente)) && !$estaCerrado) {
+                                        $tiene_items_disponibles = true;
+                                        break;
+                                    }
+                                }
+                                ?>
+                                
+                                <?php if ($tiene_items_disponibles): ?>
+                                    <button type="button" class="btn btn-primary btn-sm" id="btn-nueva-orden" style="padding: 4px 8px; font-size: 12px;">
+                                        <i class="fa fa-plus"></i> Nueva Orden
+                                    </button>
+                                <?php else: ?>
+                                    <button type="button" class="btn btn-secondary btn-sm" disabled title="No hay items disponibles para agregar" style="padding: 4px 8px; font-size: 12px;">
+                                        <i class="fa fa-ban"></i> Nueva Orden
+                                    </button>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </div>
                         <div class="clearfix"></div>
@@ -333,80 +356,105 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                                         </span>
                                                     </td>
                                                     <td>
-                                                        <!-- Botón Ver Detalles -->
-                                                        <button class="btn btn-info btn-xs btn-ver-detalle" 
-                                                                title="Ver Detalles"
-                                                                data-id-compra="<?php echo $compra['id_compra']; ?>">
-                                                            <i class="fa fa-eye"></i>
-                                                        </button>
-                                                        
-                                                        <?php 
-                                                        // Verificar si tiene aprobaciones (técnica o financiera)
-                                                        $tiene_aprobacion_tecnica = !empty($compra['id_personal_aprueba_tecnica']);
-                                                        $tiene_aprobacion_financiera = !empty($compra['id_personal_aprueba_financiera']);
-                                                        $tiene_alguna_aprobacion = $tiene_aprobacion_tecnica || $tiene_aprobacion_financiera;
-                                                        
-                                                        // Solo se puede editar si está PENDIENTE y SIN aprobaciones
-                                                        $puede_editar = ($compra['est_compra'] == 1 && !$tiene_alguna_aprobacion);
-                                                        
-                                                        if ($puede_editar) { ?>
-                                                            <button class="btn btn-warning btn-xs ml-1 btn-editar-orden" 
-                                                                    title="Editar Orden"
-                                                                    data-id-compra="<?php echo $compra['id_compra']; ?>">
-                                                                <i class="fa fa-edit"></i>
-                                                            </button>
-                                                        <?php } else { 
-                                                            // Determinar el mensaje según el estado
-                                                            if ($compra['est_compra'] == 0) {
-                                                                $mensaje = "No se puede editar - Orden anulada";
-                                                            } elseif ($compra['est_compra'] == 2) {
-                                                                $mensaje = "No se puede editar - Orden aprobada completamente";
-                                                            } elseif ($compra['est_compra'] == 3) {
-                                                                $mensaje = "No se puede editar - Orden cerrada";
-                                                            } elseif ($tiene_alguna_aprobacion) {
-                                                                $mensaje = "No se puede editar - Orden con aprobación iniciada";
-                                                            } else {
-                                                                $mensaje = "No se puede editar";
-                                                            }
-                                                        ?>
-                                                            <button class="btn btn-outline-secondary btn-xs ml-1" 
-                                                                    title="<?php echo $mensaje; ?>" 
-                                                                    disabled>
-                                                                <i class="fa fa-edit"></i>
-                                                            </button>
-                                                        <?php } ?>
+    <!-- Botón Ver Detalles -->
+    <button class="btn btn-info btn-xs btn-ver-detalle" 
+            title="Ver Detalles"
+            data-id-compra="<?php echo $compra['id_compra']; ?>">
+        <i class="fa fa-eye"></i>
+    </button>
+    
+    <?php 
+    // Verificar si tiene aprobaciones (técnica o financiera)
+    $tiene_aprobacion_tecnica = !empty($compra['id_personal_aprueba_tecnica']);
+    $tiene_aprobacion_financiera = !empty($compra['id_personal_aprueba_financiera']);
+    $tiene_alguna_aprobacion = $tiene_aprobacion_tecnica || $tiene_aprobacion_financiera;
+    
+    // Solo se puede editar si está PENDIENTE y SIN aprobaciones
+    $puede_editar = ($compra['est_compra'] == 1 && !$tiene_alguna_aprobacion);
+    
+    if ($puede_editar) { ?>
+        <!-- Botón Editar HABILITADO -->
+        <button class="btn btn-warning btn-xs ml-1 btn-editar-orden" 
+                title="Editar Orden"
+                data-id-compra="<?php echo $compra['id_compra']; ?>">
+            <i class="fa fa-edit"></i>
+        </button>
+    <?php } else { 
+        // Determinar el mensaje según el estado
+        if ($compra['est_compra'] == 0) {
+            $mensaje = "No se puede editar - Orden anulada";
+        } elseif ($compra['est_compra'] == 2) {
+            $mensaje = "No se puede editar - Orden aprobada completamente";
+        } elseif ($compra['est_compra'] == 3) {
+            $mensaje = "No se puede editar - Orden cerrada";
+        } elseif ($compra['est_compra'] == 4) {
+            $mensaje = "No se puede editar - Orden pagada";
+        } elseif ($tiene_alguna_aprobacion) {
+            $mensaje = "No se puede editar - Orden con aprobación iniciada";
+        } else {
+            $mensaje = "No se puede editar";
+        }
+    ?>
+        <!-- Botón Editar DESHABILITADO -->
+        <button class="btn btn-outline-secondary btn-xs ml-1" 
+                title="<?php echo $mensaje; ?>" 
+                disabled>
+            <i class="fa fa-edit"></i>
+        </button>
+    <?php } ?>
 
-                                                        <!--  NUEVO: Botón Registrar Pago -->
-                                                        <?php if ($puede_agregar_pago): ?>
-                                                            <a href="pago_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>" 
-                                                            class="btn btn-success btn-xs ml-1" 
-                                                            title="Registrar Pago">
-                                                                <i class="fa fa-money"></i>
-                                                            </a>
-                                                        <?php else: ?>
-                                                            <button class="btn btn-outline-secondary btn-xs ml-1" 
-                                                                    title="No disponible - Orden <?php echo strtolower($estado_texto); ?>" 
-                                                                    disabled>
-                                                                <i class="fa fa-money"></i>
-                                                            </button>
-                                                        <?php endif; ?>
+    <!-- Botón Registrar Pago -->
+    <?php if ($puede_agregar_pago): ?>
+        <a href="pago_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>" 
+           class="btn btn-success btn-xs ml-1" 
+           title="Registrar Pago">
+            <i class="fa fa-money"></i>
+        </a>
+    <?php else: ?>
+        <button class="btn btn-outline-secondary btn-xs ml-1" 
+                title="No disponible - Orden <?php echo strtolower($estado_texto); ?>" 
+                disabled>
+            <i class="fa fa-money"></i>
+        </button>
+    <?php endif; ?>
 
-                                                        <!-- Botón Anular -->
-                                                        <?php if ($compra['est_compra'] != 0) { ?>
-                                                            <button class="btn btn-danger btn-xs ml-1 btn-anular-orden" 
-                                                                    title="Anular Orden"
-                                                                    data-id-compra="<?php echo $compra['id_compra']; ?>"
-                                                                    data-id-pedido="<?php echo $id_pedido; ?>">
-                                                                <i class="fa fa-times"></i>
-                                                            </button>
-                                                        <?php } else { ?>
-                                                            <button class="btn btn-outline-secondary btn-xs ml-1" 
-                                                                    title="Orden anulada" 
-                                                                    disabled>
-                                                                <i class="fa fa-times"></i>
-                                                            </button>
-                                                        <?php } ?>
-                                                    </td>
+    <!-- Botón Anular -->
+    <?php 
+    // Solo se puede anular si NO está anulada Y NO tiene aprobaciones
+    $puede_anular = ($compra['est_compra'] != 0 && !$tiene_alguna_aprobacion);
+    
+    if ($puede_anular) { ?>
+        <!-- Botón anular HABILITADO -->
+        <button class="btn btn-danger btn-xs ml-1 btn-anular-orden" 
+                title="Anular Orden"
+                data-id-compra="<?php echo $compra['id_compra']; ?>"
+                data-id-pedido="<?php echo $id_pedido; ?>">
+            <i class="fa fa-times"></i>
+        </button>
+    <?php } else { 
+        // Determinar el mensaje según el estado
+        if ($compra['est_compra'] == 0) {
+            $mensaje_anular = "Orden anulada";
+        } elseif ($compra['est_compra'] == 2) {
+            $mensaje_anular = "No se puede anular - Orden aprobada completamente";
+        } elseif ($compra['est_compra'] == 3) {
+            $mensaje_anular = "No se puede anular - Orden cerrada";
+        } elseif ($compra['est_compra'] == 4) {
+            $mensaje_anular = "No se puede anular - Orden pagada";
+        } elseif ($tiene_alguna_aprobacion) {
+            $mensaje_anular = "No se puede anular - Orden con aprobación iniciada";
+        } else {
+            $mensaje_anular = "No se puede anular";
+        }
+    ?>
+        <!-- Botón anular DESHABILITADO -->
+        <button class="btn btn-outline-secondary btn-xs ml-1" 
+                title="<?php echo $mensaje_anular; ?>" 
+                disabled>
+            <i class="fa fa-times"></i>
+        </button>
+    <?php } ?>
+</td>
                                                 </tr>
                                             <?php } ?>
                                         <?php } else { ?>
@@ -1048,7 +1096,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
-    function verificarSiGenerarSalida() {
+
+// Estados: 0=Anulado, 1=Pendiente, 2=Completado, 3=Aprobado, 4=Ingresado, 5=Finalizado
+
+function verificarSiGenerarSalida() {
     const itemsPendientes = document.querySelectorAll('.item-pendiente');
     let tieneItems = false;
     let todosConStockCompleto = true;
@@ -1067,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    //Verificar el estado del pedido antes de intentar completarlo
+    // Verificar el estado del pedido
     const estadoPedido = <?php echo $pedido['est_pedido']; ?>;
     const tieneSalidaActiva = <?php echo isset($tiene_salida_activa) && $tiene_salida_activa ? 'true' : 'false'; ?>;
 
@@ -1080,8 +1131,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Si todos los items tienen stock
     if (tieneItems && todosConStockCompleto) {
 
-        // --- PEDIDO YA FINALIZADO (4) ---
-        if (estadoPedido === 4) {
+        // --- PEDIDO FINALIZADO (5) ---
+        if (estadoPedido === 5) {
             Swal.fire({
                 title: '¡Pedido Finalizado!',
                 html: '<div style="text-align: left; padding: 10px;">' +
@@ -1097,7 +1148,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 allowOutsideClick: false
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Llevar al listado de salidas o detalle de salida (ajusta según tu ruta)
                     window.location.href = 'salidas_mostrar.php?pedido=<?php echo $id_pedido; ?>';
                 } else {
                     window.location.href = 'pedidos_mostrar.php';
@@ -1106,12 +1156,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // --- PEDIDO APROBADO O INGRESADO (2 o 3): sugerir generar salida ---
-        if (estadoPedido === 2 || estadoPedido === 3) {
+        // --- PEDIDO APROBADO (3) o INGRESADO (4): sugerir generar salida ---
+        if (estadoPedido === 3 || estadoPedido === 4) {
+            const estadoTexto = estadoPedido === 3 ? 'aprobado' : 'ingresado a almacén';
             Swal.fire({
                 title: '¡Pedido con stock disponible!',
                 html: '<div style="text-align: left; padding: 10px;">' +
-                    '<p style="margin-bottom: 10px;">Este pedido está aprobado/ingresado y todos los items tienen stock en almacén.</p>' +
+                    '<p style="margin-bottom: 10px;">Este pedido está ' + estadoTexto + ' y todos los items tienen stock en almacén.</p>' +
                     '<p style="margin-bottom: 0;"><strong>¿Deseas generar una salida de almacén ahora?</strong></p>' +
                     '</div>',
                 icon: 'info',
@@ -1131,15 +1182,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // --- PEDIDO COMPLETADO (1): mostrar opción de generar salida, NO finalizar automáticamente ---
-        if (estadoPedido === 1) {
+        // --- PEDIDO COMPLETADO (2): ya tiene stock, puede generar salida ---
+        if (estadoPedido === 2) {
             Swal.fire({
-                title: 'Pedido verificado (completado)',
+                title: '¡Pedido Completado!',
                 html: '<div style="text-align: left; padding: 10px;">' +
-                    '<p style="margin-bottom: 10px;">Este pedido ya fue verificado y tiene stock disponible en almacén.</p>' +
+                    '<p style="margin-bottom: 10px;">Este pedido fue completado automáticamente porque tiene todo el stock disponible.</p>' +
                     '<p style="margin-bottom: 0;"><strong>¿Deseas generar una salida de almacén ahora?</strong></p>' +
                     '</div>',
-                icon: 'info',
+                icon: 'success',
                 showCancelButton: true,
                 confirmButtonColor: '#28a745',
                 cancelButtonColor: '#6c757d',
@@ -1148,19 +1199,79 @@ document.addEventListener('DOMContentLoaded', function() {
                 allowOutsideClick: false
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Redirigir al formulario de salida; el módulo de salidas deberá
-                    // volver a validar stock y, una vez se guarde la salida, marcar el pedido est_pedido = 4.
                     window.location.href = 'salidas_nuevo.php?desde_pedido=<?php echo $id_pedido; ?>';
                 } else {
-                    // Solo volver al listado; NO tocar estado del pedido
                     window.location.href = 'pedidos_mostrar.php';
                 }
+            });
+            return;
+        }
+
+        // --- PEDIDO PENDIENTE (1): actualizar automáticamente a COMPLETADO (2) ---
+        if (estadoPedido === 1) {
+            // Mostrar loading
+            Swal.fire({
+                title: 'Verificando disponibilidad...',
+                text: 'Por favor espere',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Marcar como COMPLETADO (estado 2) automáticamente
+            fetch('pedido_actualizar_estado.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'id_pedido=<?php echo $id_pedido; ?>&accion=completar_automatico'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: '¡Stock Completo - Pedido Completado!',
+                        html: '<div style="text-align: left; padding: 10px;">' +
+                            '<p style="margin-bottom: 10px;">Todos los items tienen stock disponible en el almacén.</p>' +
+                            '<p style="margin-bottom: 10px;">El pedido se ha marcado como <strong style="color: #17a2b8;">COMPLETADO</strong> automáticamente.</p>' +
+                            '<p style="margin-bottom: 0;"><strong>¿Desea generar una salida de almacén ahora?</strong></p>' +
+                            '</div>',
+                        icon: 'success',
+                        showCancelButton: true,
+                        confirmButtonColor: '#28a745',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
+                        cancelButtonText: '<i class="fa fa-arrow-left"></i> Volver a pedidos',
+                        allowOutsideClick: false
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = 'salidas_nuevo.php?desde_pedido=<?php echo $id_pedido; ?>';
+                        } else {
+                            window.location.href = 'pedidos_mostrar.php';
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'No se pudo actualizar el estado del pedido. Intente nuevamente.'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de conexión',
+                    text: 'No se pudo conectar con el servidor. Intente nuevamente.'
+                });
             });
             return;
         }
     }
 }
-
     // ====================================================================
     // FIN NUEVO: MODAL DE PROVEEDOR
     // ====================================================================

@@ -201,7 +201,6 @@ function AprobarCompraFinanciera($id_compra, $id_personal)
     return $res_update;
 }
 
-// AGREGAR esta función al final de m_compras.php
 function verificarYCompletarPedido($id_pedido, $con = null)
 {
     $cerrar_conexion = false;
@@ -209,6 +208,17 @@ function verificarYCompletarPedido($id_pedido, $con = null)
     if ($con === null) {
         include("../_conexion/conexion.php");
         $cerrar_conexion = true;
+    }
+    
+    // Verificar estado actual del pedido
+    $sql_estado = "SELECT est_pedido FROM pedido WHERE id_pedido = $id_pedido";
+    $res_estado = mysqli_query($con, $sql_estado);
+    $row_estado = mysqli_fetch_assoc($res_estado);
+    
+    // Solo actualizar si está en PENDIENTE (1) o COMPLETADO (2)
+    if (!$row_estado || !in_array($row_estado['est_pedido'], [1, 2])) {
+        if ($cerrar_conexion) mysqli_close($con);
+        return;
     }
     
     // Verificar si hay órdenes pendientes (sin aprobar completamente)
@@ -220,7 +230,7 @@ function verificarYCompletarPedido($id_pedido, $con = null)
     $resultado = mysqli_query($con, $sql_pendientes);
     $row = mysqli_fetch_assoc($resultado);
     
-    // Si NO hay órdenes pendientes, marcar pedido como completado
+    // Si NO hay órdenes pendientes, marcar pedido como APROBADO
     if ($row['total_pendientes'] == 0) {
         // Verificar que haya al menos una orden aprobada
         $sql_aprobadas = "SELECT COUNT(*) as total_aprobadas
@@ -232,9 +242,9 @@ function verificarYCompletarPedido($id_pedido, $con = null)
         $row_aprobadas = mysqli_fetch_assoc($resultado_aprobadas);
         
         if ($row_aprobadas['total_aprobadas'] > 0) {
-            // Completar el pedido
-            $sql_completar = "UPDATE pedido SET est_pedido = 2 WHERE id_pedido = $id_pedido";
-            mysqli_query($con, $sql_completar);
+            //  Actualizar a APROBADO (estado 3)
+            $sql_aprobar = "UPDATE pedido SET est_pedido = 3 WHERE id_pedido = $id_pedido";
+            mysqli_query($con, $sql_aprobar);
         }
     }
     

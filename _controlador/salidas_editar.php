@@ -82,7 +82,7 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
             // Cargar datos para el formulario
             $almacenes = MostrarAlmacenesActivos();
             $ubicaciones = MostrarUbicacionesActivas();
-            $personal = MostrarPersonalActivo();
+            $personal = MostrarPersonal();
             $material_tipos = MostrarMaterialTipoActivos();
 
             //=======================================================================
