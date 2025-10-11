@@ -30,6 +30,14 @@ $listaObras = MostrarObrasActivas();
                         <br>
                         <form class="form-horizontal form-label-left" action="almacen_nuevo.php" method="post">
                             
+
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Nombre del Almacén <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" name="nom" class="form-control" placeholder="Nombre del almacén" required="required">
+                                </div>
+                            </div>
+
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Cliente <span class="text-danger">*</span> :</label>
                                 <div class="col-md-9 col-sm-9">
@@ -54,7 +62,7 @@ $listaObras = MostrarObrasActivas();
                                         <?php
                                         if ($listaObras && count($listaObras) > 0) {
                                             foreach ($listaObras as $obra) {
-                                                echo '<option value="' . $obra['id_obra'] . '">' . htmlspecialchars($obra['nom_obra']) . '</option>';
+                                                echo '<option value="' . $obra['id_subestacion'] . '">' . htmlspecialchars($obra['nom_subestacion']) . '</option>';
                                             }
                                         }
                                         ?>
@@ -62,12 +70,7 @@ $listaObras = MostrarObrasActivas();
                                 </div>
                             </div>
 
-                            <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Nombre del Almacén <span class="text-danger">*</span> :</label>
-                                <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="nom" class="form-control" placeholder="Nombre del almacén" required="required">
-                                </div>
-                            </div>
+                           
 
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Estado:</label>

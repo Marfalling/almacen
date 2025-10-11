@@ -35,24 +35,9 @@ function GrabarClientes($nom, $est)
 //-----------------------------------------------------------------------
 function MostrarClientes()
 {
-    include("../_conexion/conexion.php");
     include("../_conexion/conexion_complemento.php");
 
     $resultado = array();
-
-    // Obtener clientes de la base principal
-    $sqlc = "SELECT id_cliente, nom_cliente, est_cliente, 'Principal' as origen 
-             FROM cliente 
-             ORDER BY nom_cliente ASC";
-    $resc = mysqli_query($con, $sqlc);
-
-    if (!$resc) {
-        error_log("Error en MostrarClientes() - Base principal: " . mysqli_error($con));
-    } else {
-        while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
-            $resultado[] = $rowc;
-        }
-    }
 
     // Obtener clientes de la base complementaria (Inspecciones)
     $sql_comp = "SELECT id_cliente, nom_cliente, act_cliente as est_cliente, 'Inspecciones' as origen 
@@ -68,12 +53,6 @@ function MostrarClientes()
         }
     }
 
-    // Ordenar por nombre
-    usort($resultado, function($a, $b) {
-        return strcmp($a['nom_cliente'], $b['nom_cliente']);
-    });
-
-    mysqli_close($con);
     mysqli_close($con_comp);
     
     return $resultado;
@@ -82,25 +61,9 @@ function MostrarClientes()
 //-----------------------------------------------------------------------
 function MostrarClientesActivos()
 {
-    include("../_conexion/conexion.php");
     include("../_conexion/conexion_complemento.php");
 
     $resultado = array();
-
-    // Clientes activos de la base principal
-    $sqlc = "SELECT id_cliente, nom_cliente, 'Principal' as origen 
-             FROM cliente 
-             WHERE est_cliente = 1 
-             ORDER BY nom_cliente ASC";
-    $resc = mysqli_query($con, $sqlc);
-
-    if (!$resc) {
-        error_log("Error en MostrarClientesActivos() - Base principal: " . mysqli_error($con));
-    } else {
-        while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
-            $resultado[] = $rowc;
-        }
-    }
 
     // Clientes activos de la base complementaria
     $sql_comp = "SELECT id_cliente, nom_cliente, 'Inspecciones' as origen 
@@ -117,12 +80,6 @@ function MostrarClientesActivos()
         }
     }
 
-    // Ordenar por nombre
-    usort($resultado, function($a, $b) {
-        return strcmp($a['nom_cliente'], $b['nom_cliente']);
-    });
-
-    mysqli_close($con);
     mysqli_close($con_comp);
     
     return $resultado;

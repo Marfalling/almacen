@@ -70,7 +70,7 @@ if (!verificarPermisoEspecifico('editar_cargo')) {
 			$cargo_data = ObtenerCargo($id_cargo);
 			if ($cargo_data) {
 				$nom = $cargo_data['nom_cargo'];
-				$est = ($cargo_data['est_cargo'] == 1) ? "checked" : "";
+				$est = ($cargo_data['act_cargo'] == 1) ? "checked" : "";
 			} else {
 			?>
 				<script Language="JavaScript">
