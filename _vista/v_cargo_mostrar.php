@@ -46,7 +46,7 @@
                                                 $c++;
                                                 $id_cargo = $value['id_cargo'];
                                                 $nom_cargo = $value['nom_cargo'];
-                                                $est_cargo = $value['est_cargo'];
+                                                $est_cargo = $value['act_cargo'];
                                                 $estado = ($est_cargo == 1) ? "ACTIVO" : "INACTIVO";
                                             ?>
                                                 <tr>

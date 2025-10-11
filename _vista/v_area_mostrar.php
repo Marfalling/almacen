@@ -45,7 +45,7 @@
                                                 $c++;
                                                 $id_area = $value['id_area'];
                                                 $nom_area = $value['nom_area'];
-                                                $est_area = $value['est_area'];
+                                                $est_area = $value['act_area'];
                                                 $estado = ($est_area == 1) ? "ACTIVO" : "INACTIVO";
                                             ?>
                                                 <tr>

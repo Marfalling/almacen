@@ -22,6 +22,26 @@ function MostrarObras() {
     return $obras;
 }
 
+function MostrarObrasActivas() 
+{
+    include("../_conexion/conexion_complemento.php");
+
+    $obras = [];
+    $sql = "SELECT id_subestacion, nom_subestacion, act_subestacion 
+            FROM subestacion 
+            WHERE act_subestacion = 1
+            ORDER BY nom_subestacion ASC";
+    $res = mysqli_query($con_comp, $sql);
+    if ($res) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $obras[] = $row;
+        }
+    }
+
+    mysqli_close($con_comp);
+    return $obras;
+}
+
 // Consultar obra / subestacion por ID
 function ConsultarObra($id_obra) {
     include("../_conexion/conexion_complemento.php");

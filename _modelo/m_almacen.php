@@ -1,5 +1,4 @@
 <?php
-
 //-----------------------------------------------------------------------
 function GrabarAlmacen($id_cliente, $id_obra, $nom, $est) 
 {
@@ -27,51 +26,57 @@ function GrabarAlmacen($id_cliente, $id_obra, $nom, $est)
         return "ERROR";
     }
 }
-
 //-----------------------------------------------------------------------
 function MostrarAlmacenes()
 {
-    include("../_conexion/conexion.php");
+    include("../_conexion/conexion.php"); // conexión principal
 
-    $sqlc = "SELECT a.*, c.nom_cliente, o.nom_obra 
-             FROM almacen a 
-             INNER JOIN cliente c ON a.id_cliente = c.id_cliente 
-             INNER JOIN obra o ON a.id_obra = o.id_obra 
-             ORDER BY a.nom_almacen ASC";
-    $resc = mysqli_query($con, $sqlc);
+    $sql = "
+        SELECT 
+            a.id_almacen,
+            a.nom_almacen,
+            c.nom_cliente,
+            s.nom_subestacion AS nom_obra,
+            a.est_almacen
+        FROM almacen a
+        LEFT JOIN {$bd_complemento}.cliente c 
+               ON a.id_cliente = c.id_cliente
+        LEFT JOIN {$bd_complemento}.subestacion s 
+               ON a.id_obra = s.id_subestacion
+        ORDER BY a.nom_almacen ASC;
+    ";
 
-    $resultado = array();
-
-    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
-        $resultado[] = $rowc;
-    }
+    $res = mysqli_query($con, $sql);
+    $resultado = mysqli_fetch_all($res, MYSQLI_ASSOC);
 
     mysqli_close($con);
-    
     return $resultado;
 }
-
 //-----------------------------------------------------------------------
 function MostrarAlmacenesActivos()
 {
-    include("../_conexion/conexion.php");
+    include("../_conexion/conexion.php"); // conexión principal
 
-    $sqlc = "SELECT a.id_almacen, a.nom_almacen, c.nom_cliente, o.nom_obra 
-             FROM almacen a 
-             INNER JOIN cliente c ON a.id_cliente = c.id_cliente 
-             INNER JOIN obra o ON a.id_obra = o.id_obra 
-             WHERE a.est_almacen = 1 
-             ORDER BY a.nom_almacen ASC";
-    $resc = mysqli_query($con, $sqlc);
+    $sql = "
+        SELECT 
+            a.id_almacen,
+            a.nom_almacen,
+            c.nom_cliente,
+            s.nom_subestacion AS nom_obra,
+            a.est_almacen
+        FROM almacen a
+        LEFT JOIN {$bd_complemento}.cliente c 
+               ON a.id_cliente = c.id_cliente
+        LEFT JOIN {$bd_complemento}.subestacion s 
+               ON a.id_obra = s.id_subestacion
+        WHERE a.est_almacen = 1
+        ORDER BY a.nom_almacen ASC;
+    ";
 
-    $resultado = array();
-
-    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
-        $resultado[] = $rowc;
-    }
+    $res = mysqli_query($con, $sql);
+    $resultado = mysqli_fetch_all($res, MYSQLI_ASSOC);
 
     mysqli_close($con);
-    
     return $resultado;
 }
 //-----------------------------------------------------------------------
@@ -109,7 +114,6 @@ function ActualizarAlmacen($id_almacen, $id_cliente, $id_obra, $nom, $est)
         return "ERROR";
     }
 }
-
 //-----------------------------------------------------------------------
 function ConsultarAlmacen($id_almacen)
 {
@@ -117,8 +121,8 @@ function ConsultarAlmacen($id_almacen)
 
     $sqlc = "SELECT a.*, c.nom_cliente, o.nom_obra 
              FROM almacen a 
-             INNER JOIN cliente c ON a.id_cliente = c.id_cliente 
-             INNER JOIN obra o ON a.id_obra = o.id_obra 
+                LEFT JOIN {$bd_complemento}.cliente c ON a.id_cliente = c.id_cliente
+                LEFT JOIN {$bd_complemento}.obra o ON a.id_obra = o.id_obra
              WHERE a.id_almacen = $id_almacen";
     $resc = mysqli_query($con, $sqlc);
 

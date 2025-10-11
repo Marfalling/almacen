@@ -2,8 +2,8 @@
 require_once("../_conexion/sesion.php");
 
 if (!verificarPermisoEspecifico('editar_area')) {
-    require_once("../_modelo/m_auditoria.php");
-    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'AREA', 'EDITAR');
+    //require_once("../_modelo/m_auditoria.php");
+    //GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'AREA', 'EDITAR');
     header("location: bienvenido.php?permisos=true");
     exit;
 }
@@ -71,7 +71,7 @@ if (!verificarPermisoEspecifico('editar_area')) {
 			$area_data = ObtenerArea($id_area);
 			if ($area_data) {
 				$nom = $area_data['nom_area'];
-				$est = ($area_data['est_area'] == 1) ? "checked" : "";
+				$est = ($area_data['act_area'] == 1) ? "checked" : "";
 			} else {
 			?>
 				<script Language="JavaScript">
