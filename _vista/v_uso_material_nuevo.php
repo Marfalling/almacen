@@ -62,7 +62,7 @@
                                         <?php foreach ($personal as $persona) { ?>
                                             <option value="<?php echo $persona['id_personal']; ?>" 
                                                 <?php echo ($persona['id_personal'] == $id_personal) ? 'selected' : ''; ?>>
-                                                <?php echo $persona['nom_personal'] . ' ' . $persona['ape_personal']; ?>
+                                                <?php echo $persona['nom_personal']; ?>
                                             </option>
                                         <?php } ?>
                                     </select>

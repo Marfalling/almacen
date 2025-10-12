@@ -97,13 +97,13 @@ function MostrarDevoluciones()
     $sql = "SELECT d.*, 
                    a.nom_almacen, 
                    u.nom_ubicacion, 
-                   p.nom_personal, p.ape_personal,
+                   p.nom_personal,
                    c.nom_cliente as nom_cliente_destino
             FROM devolucion d
             INNER JOIN almacen a ON d.id_almacen = a.id_almacen
             INNER JOIN ubicacion u ON d.id_ubicacion = u.id_ubicacion
-            INNER JOIN personal p ON d.id_personal = p.id_personal
-            INNER JOIN cliente c ON d.id_cliente_destino = c.id_cliente
+            INNER JOIN {$bd_complemento}.personal p ON d.id_personal = p.id_personal
+            INNER JOIN {$bd_complemento}.cliente c ON d.id_cliente_destino = c.id_cliente
             /*WHERE d.est_devolucion = 1*/
             ORDER BY d.fec_devolucion DESC";
 
@@ -134,13 +134,12 @@ function MostrarDevolucionesFecha($fecha_inicio = null, $fecha_fin = null)
                    a.nom_almacen, 
                    u.nom_ubicacion, 
                    p.nom_personal, 
-                   p.ape_personal,
                    c.nom_cliente as nom_cliente_destino
             FROM devolucion d
             INNER JOIN almacen a ON d.id_almacen = a.id_almacen
             INNER JOIN ubicacion u ON d.id_ubicacion = u.id_ubicacion
-            INNER JOIN personal p ON d.id_personal = p.id_personal
-            INNER JOIN cliente c ON d.id_cliente_destino = c.id_cliente
+            INNER JOIN {$bd_complemento}.personal p ON d.id_personal = p.id_personal
+            INNER JOIN {$bd_complemento}.cliente c ON d.id_cliente_destino = c.id_cliente
             $where
             ORDER BY d.fec_devolucion DESC";
 
@@ -163,13 +162,13 @@ function ConsultarDevolucion($id_devolucion)
     $sql = "SELECT d.*, 
                    a.nom_almacen, 
                    u.nom_ubicacion, 
-                   p.nom_personal, p.ape_personal,
+                   p.nom_personal,
                    c.nom_cliente as nom_cliente_destino
             FROM devolucion d
             INNER JOIN almacen a ON d.id_almacen = a.id_almacen
             INNER JOIN ubicacion u ON d.id_ubicacion = u.id_ubicacion
-            INNER JOIN personal p ON d.id_personal = p.id_personal
-            INNER JOIN cliente c ON d.id_cliente_destino = c.id_cliente
+            INNER JOIN {$bd_complemento}.personal p ON d.id_personal = p.id_personal
+            INNER JOIN {$bd_complemento}.cliente c ON d.id_cliente_destino = c.id_cliente
             WHERE d.id_devolucion = $id_devolucion";
 
     $res = mysqli_query($con, $sql);
@@ -208,11 +207,11 @@ function ConsultarDevolucionDetalle($id_devolucion)
     mysqli_close($con);
     return $resultado;
 }
-
 //-----------------------------------------------------------------------
 
 function MostrarMaterialesActivos() {
-    global $con;
+    include("../_conexion/conexion.php");
+
     $sql = "SELECT * FROM producto 
             WHERE est_producto = 1 
               AND id_producto_tipo = 1";
@@ -222,6 +221,7 @@ function MostrarMaterialesActivos() {
     while ($row = mysqli_fetch_assoc($result)) {
         $materiales[] = $row;
     }
+    mysqli_close($con);
     return $materiales;
 }
 
@@ -423,8 +423,8 @@ function ObtenerClientes()
     include("../_conexion/conexion.php");
     
     $sql = "SELECT id_cliente, nom_cliente 
-            FROM cliente 
-            WHERE est_cliente = 1 
+            FROM {$bd_complemento}.cliente 
+            WHERE act_cliente = 1 
             ORDER BY 
                 CASE WHEN id_cliente = 1 THEN 0 ELSE 1 END,
                 nom_cliente";

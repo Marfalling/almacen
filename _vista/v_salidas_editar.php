@@ -123,7 +123,7 @@
                                             <?php foreach ($personal as $persona) { ?>
                                                 <option value="<?php echo $persona['id_personal']; ?>" 
                                                     <?php echo ($persona['id_personal'] == $salida_datos[0]['id_personal_encargado']) ? 'selected' : ''; ?>>
-                                                    <?php echo $persona['nom_personal'] . ' ' . $persona['ape_personal']; ?>
+                                                    <?php echo $persona['nom_personal']; ?>
                                                 </option>
                                             <?php } ?>
                                         </select>
@@ -170,7 +170,7 @@
                                             <?php foreach ($personal as $persona) { ?>
                                                 <option value="<?php echo $persona['id_personal']; ?>"
                                                     <?php echo ($persona['id_personal'] == $salida_datos[0]['id_personal_recibe']) ? 'selected' : ''; ?>>
-                                                    <?php echo $persona['nom_personal'] . ' ' . $persona['ape_personal']; ?>
+                                                    <?php echo $persona['nom_personal']; ?>
                                                 </option>
                                             <?php } ?>
                                         </select>

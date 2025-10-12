@@ -73,7 +73,7 @@
                                                     <td><?php echo $devolucion['nom_almacen']; ?></td>
                                                     <td><?php echo $devolucion['nom_ubicacion']; ?></td>
                                                     <td><?php echo $devolucion['nom_cliente_destino']; ?></td>
-                                                    <td><?php echo $devolucion['nom_personal'] . ' ' . $devolucion['ape_personal']; ?></td>
+                                                    <td><?php echo $devolucion['nom_personal']; ?></td>
                                                     <td><?php echo date('d/m/Y H:i', strtotime($devolucion['fec_devolucion'])); ?></td>
                                                     <td><?php echo $devolucion['obs_devolucion']; ?></td>
                                                     <td>
@@ -224,12 +224,12 @@ foreach($devoluciones as $devolucion) {
                                 <td><?php echo $dev_info['nom_ubicacion']; ?></td>
                                 <tr>
                                     <td><strong>Cliente destino:</strong></td>
-                                    <td colspan="3"><?php echo $dev_info['nom_cliente']; ?></td>
+                                    <td colspan="3"><?php echo $dev_info['nom_cliente_destino']; ?></td>
                                 </tr>
                             </tr>
                             <tr>
                                 <td><strong>Registrado por:</strong></td>
-                                <td colspan="3"><?php echo $dev_info['nom_personal'] . ' ' . $dev_info['ape_personal']; ?></td>
+                                <td colspan="3"><?php echo $dev_info['nom_personal']; ?></td>
                             </tr>
                             <?php if (!empty($dev_info['obs_devolucion'])) { ?>
                             <tr>

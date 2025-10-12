@@ -1,5 +1,5 @@
 <?php
-$con_comp = mysqli_connect("localhost", "root", "", "arceperucomplemento", 3306);
+$con_comp = mysqli_connect("localhost", "root", "", "arceperu", 3306);
 
 if (!$con_comp) {
     die("Error de conexión (arcecomplemento): " . mysqli_connect_error());
