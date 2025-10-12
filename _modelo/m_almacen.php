@@ -144,7 +144,7 @@ function ConsultarAlmacenTotal()
     $sqlc = "SELECT 
         pro.nom_producto       AS Producto,
         cli.nom_cliente        AS Cliente,
-        obr.nom_obra           AS Obra,
+        obr.nom_subestacion    AS Obra,
         alm.nom_almacen        AS Almacen,
         ubi.nom_ubicacion      AS Ubicacion,
         SUM(CASE 
@@ -156,8 +156,8 @@ function ConsultarAlmacenTotal()
     INNER JOIN producto   pro ON mov.id_producto   = pro.id_producto
     INNER JOIN personal   per ON mov.id_personal   = per.id_personal
     INNER JOIN almacen    alm ON mov.id_almacen    = alm.id_almacen
-        INNER JOIN cliente    cli ON alm.id_cliente    = cli.id_cliente
-        INNER JOIN obra       obr ON alm.id_obra       = obr.id_obra
+        INNER JOIN {$bd_complemento}.cliente    cli ON alm.id_cliente    = cli.id_cliente
+        INNER JOIN {$bd_complemento}.subestacion obr ON alm.id_obra       = obr.id_subestacion
     INNER JOIN ubicacion  ubi ON mov.id_ubicacion  = ubi.id_ubicacion
     WHERE mov.est_movimiento = 1
     GROUP BY 
@@ -169,7 +169,7 @@ function ConsultarAlmacenTotal()
         pro.nom_producto,
         cli.nom_cliente,
         alm.nom_almacen,
-        obr.nom_obra,
+        obr.nom_subestacion,
         ubi.nom_ubicacion;
     ";
     $resc = mysqli_query($con, $sqlc);
@@ -205,8 +205,8 @@ function ConsultarAlmacenArce()
         INNER JOIN unidad_medida  umi ON pro.id_unidad_medida = umi.id_unidad_medida
     INNER JOIN personal   per ON mov.id_personal   = per.id_personal
     INNER JOIN almacen    alm ON mov.id_almacen    = alm.id_almacen
-        INNER JOIN cliente    cli ON alm.id_cliente    = cli.id_cliente
-        INNER JOIN obra       obr ON alm.id_obra       = obr.id_obra
+        INNER JOIN {$bd_complemento}.cliente    cli ON alm.id_cliente    = cli.id_cliente
+        INNER JOIN {$bd_complemento}.subestacion obr ON alm.id_obra       = obr.id_subestacion
     INNER JOIN ubicacion  ubi ON mov.id_ubicacion  = ubi.id_ubicacion
     WHERE mov.est_movimiento = 1
     GROUP BY 
@@ -241,7 +241,7 @@ function ConsultarAlmacenClientes($id_cliente)
         mti.nom_material_tipo  AS Tipo_Material,
         umi.nom_unidad_medida  AS Unidad_Medida,
         alm.nom_almacen       AS Almacen,
-        obr.nom_obra           AS Obra,
+        obr.nom_subestacion   AS Obra,
         ubi.nom_ubicacion      AS Ubicacion,
         SUM(CASE 
                 WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
@@ -255,8 +255,8 @@ function ConsultarAlmacenClientes($id_cliente)
         INNER JOIN unidad_medida  umi ON pro.id_unidad_medida = umi.id_unidad_medida
     INNER JOIN personal   per ON mov.id_personal   = per.id_personal
     INNER JOIN almacen    alm ON mov.id_almacen    = alm.id_almacen
-        INNER JOIN cliente    cli ON alm.id_cliente    = cli.id_cliente
-        INNER JOIN obra       obr ON alm.id_obra       = obr.id_obra
+        INNER JOIN {$bd_complemento}.cliente    cli ON alm.id_cliente    = cli.id_cliente
+        INNER JOIN {$bd_complemento}.subestacion obr ON alm.id_obra       = obr.id_subestacion
     INNER JOIN ubicacion  ubi ON mov.id_ubicacion  = ubi.id_ubicacion
     WHERE mov.est_movimiento = 1
     $filtro_cliente
@@ -267,7 +267,7 @@ function ConsultarAlmacenClientes($id_cliente)
     ORDER BY 
         pro.nom_producto,
         alm.nom_almacen,
-        obr.nom_obra,
+        obr.nom_subestacion,
         ubi.nom_ubicacion
     ";
     $resc = mysqli_query($con, $sqlc);

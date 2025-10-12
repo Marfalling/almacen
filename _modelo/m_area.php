@@ -2,17 +2,14 @@
 //=======================================================================
 // MODELO: m_area.php
 //=======================================================================
-require_once("../_conexion/conexion_complemento.php"); // $con_comp global
-
-//-----------------------------------------------------------------------
 // REGISTRAR NUEVA ÁREA
 function GrabarArea($nom, $est)
 {
-    global $con_comp;
+    include("../_conexion/conexion.php");
 
     // Verificar si ya existe un área con el mismo nombre
-    $sql_verificar = "SELECT COUNT(*) AS total FROM area WHERE nom_area = '$nom'";
-    $resultado_verificar = mysqli_query($con_comp, $sql_verificar);
+    $sql_verificar = "SELECT COUNT(*) AS total FROM {$bd_complemento}.area WHERE nom_area = '$nom'";
+    $resultado_verificar = mysqli_query($con, $sql_verificar);
     $fila = mysqli_fetch_assoc($resultado_verificar);
 
     if ($fila['total'] > 0) {
@@ -20,9 +17,9 @@ function GrabarArea($nom, $est)
     }
 
     // Insertar nueva área
-    $sql = "INSERT INTO area (nom_area, act_area) VALUES ('$nom', $est)";
+    $sql = "INSERT INTO {$bd_complemento}.area (nom_area, act_area) VALUES ('$nom', $est)";
 
-    if (mysqli_query($con_comp, $sql)) {
+    if (mysqli_query($con, $sql)) {
         return "SI";
     } else {
         return "ERROR";
@@ -33,29 +30,31 @@ function GrabarArea($nom, $est)
 // MOSTRAR TODAS LAS ÁREAS
 function MostrarAreas()
 {
-    global $con_comp;
+    include("../_conexion/conexion.php");
 
-    $sql = "SELECT id_area, nom_area, act_area FROM area ORDER BY nom_area ASC";
-    $res = mysqli_query($con_comp, $sql);
+    $sql = "SELECT id_area, nom_area, act_area FROM {$bd_complemento}.area ORDER BY nom_area ASC";
+    $res = mysqli_query($con, $sql);
 
     $resultado = [];
     while ($row = mysqli_fetch_assoc($res)) {
         $resultado[] = $row;
     }
 
+    mysqli_close($con);
     return $resultado;
 }
 
 //-----------------------------------------------------------------------
 // MOSTRAR ÁREAS ACTIVAS
 function MostrarAreasActivas() {
-    global $con_comp;
+
+    include("../_conexion/conexion.php");
 
     $query = "SELECT id_area, nom_area 
-              FROM area 
+              FROM {$bd_complemento}.area 
               WHERE act_area = 1 
               ORDER BY nom_area ASC";
-    $result = mysqli_query($con_comp, $query);
+    $result = mysqli_query($con, $query);
 
     $areas = [];
     if ($result) {
@@ -63,6 +62,8 @@ function MostrarAreasActivas() {
             $areas[] = $row;
         }
     }
+
+    mysqli_close($con);
     return $areas;
 }
 
@@ -70,11 +71,11 @@ function MostrarAreasActivas() {
 // EDITAR ÁREA
 function EditarArea($id, $nom, $est)
 {
-    global $con_comp;
+    include("../_conexion/conexion.php");
 
     // Verificar si ya existe otra con el mismo nombre
-    $sql_verificar = "SELECT COUNT(*) AS total FROM area WHERE nom_area = '$nom' AND id_area != $id";
-    $resultado_verificar = mysqli_query($con_comp, $sql_verificar);
+    $sql_verificar = "SELECT COUNT(*) AS total FROM {$bd_complemento}.area WHERE nom_area = '$nom' AND id_area != $id";
+    $resultado_verificar = mysqli_query($con, $sql_verificar);
     $fila = mysqli_fetch_assoc($resultado_verificar);
 
     if ($fila['total'] > 0) {
@@ -82,13 +83,15 @@ function EditarArea($id, $nom, $est)
     }
 
     // Actualizar
-    $sql = "UPDATE area 
+    $sql = "UPDATE {$bd_complemento}.area 
             SET nom_area = '$nom', act_area = $est 
             WHERE id_area = $id";
 
-    if (mysqli_query($con_comp, $sql)) {
+    if (mysqli_query($con, $sql)) {
+        mysqli_close($con);
         return "SI";
     } else {
+        mysqli_close($con);
         return "ERROR";
     }
 }
@@ -97,12 +100,18 @@ function EditarArea($id, $nom, $est)
 // OBTENER UNA ÁREA POR ID
 function ObtenerArea($id)
 {
-    global $con_comp;
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT * FROM {$bd_complemento}.area WHERE id_area = $id";
+    $result = mysqli_query($con, $sql);
 
-    $sql = "SELECT * FROM area WHERE id_area = $id";
-    $res = mysqli_query($con_comp, $sql);
-    $area = mysqli_fetch_assoc($res);
-
-    return $area;
+    $areas = [];
+    if ($result) {
+        while ($row = mysqli_fetch_assoc($result)) {
+            $areas[] = $row;
+        }
+    }
+    mysqli_close($con);
+    return $areas;
 }
 ?>

@@ -52,7 +52,7 @@
                                         <?php
                                         if ($listaObras && count($listaObras) > 0) {
                                             foreach ($listaObras as $obra) {
-                                                $selected = ($obra['id_obra'] == $id_obra) ? 'selected' : '';
+                                                $selected = ($obra['id_subestacion'] == $id_obra) ? 'selected' : '';
                                                 echo '<option value="' . $obra['id_subestacion'] . '" ' . $selected . '>' . htmlspecialchars($obra['nom_subestacion']) . '</option>';
                                             }
                                         }

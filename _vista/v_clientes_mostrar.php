@@ -35,7 +35,6 @@
                                                 <th>#</th>
                                                 <th>Nombre</th>
                                                 <th>Estado</th>
-                                                <th>Origen</th>
                                                 <th>Editar</th> 
                                             </tr>
                                         </thead>
@@ -55,14 +54,9 @@
                                                     <td><?php echo $c; ?></td>
                                                     <td><?php echo $nom_cliente; ?></td>
                                                     <td><?php echo $estado; ?></td>
-                                                    <td><?php echo $origen; ?></td>
                                                     <td>
                                                         <center>
-                                                            <?php if ($origen == 'Principal'): ?>
-                                                                <a class="btn btn-warning" href="clientes_editar.php?id_cliente=<?php echo $id_cliente; ?>"><i class="fa fa-edit"></i></a>
-                                                            <?php else: ?>
-                                                                <span>-</span>
-                                                            <?php endif; ?>
+                                                           <a class="btn btn-warning" href="clientes_editar.php?id_cliente=<?php echo $id_cliente; ?>"><i class="fa fa-edit"></i></a>
                                                         </center>
                                                     </td>
                                                 </tr>

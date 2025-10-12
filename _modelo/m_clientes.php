@@ -6,7 +6,7 @@ function GrabarClientes($nom, $est)
     include("../_conexion/conexion.php");
     
     // Verificar si ya existe un cliente con el mismo nombre
-    $sql_verificar = "SELECT COUNT(*) as total FROM cliente WHERE nom_cliente = ?";
+    $sql_verificar = "SELECT COUNT(*) as total FROM {$bd_complemento}.cliente WHERE nom_cliente = ?";
     $stmt = mysqli_prepare($con, $sql_verificar);
     mysqli_stmt_bind_param($stmt, "s", $nom);
     mysqli_stmt_execute($stmt);
@@ -19,7 +19,7 @@ function GrabarClientes($nom, $est)
     }
     
     // Insertar nuevo cliente
-    $sql = "INSERT INTO cliente (nom_cliente, est_cliente) VALUES (?, ?)";
+    $sql = "INSERT INTO {$bd_complemento}.cliente (nom_cliente, act_cliente) VALUES (?, ?)";
     $stmt = mysqli_prepare($con, $sql);
     mysqli_stmt_bind_param($stmt, "si", $nom, $est);
     
@@ -35,25 +35,25 @@ function GrabarClientes($nom, $est)
 //-----------------------------------------------------------------------
 function MostrarClientes()
 {
-    include("../_conexion/conexion_complemento.php");
+    include("../_conexion/conexion.php");
 
     $resultado = array();
 
     // Obtener clientes de la base complementaria (Inspecciones)
     $sql_comp = "SELECT id_cliente, nom_cliente, act_cliente as est_cliente, 'Inspecciones' as origen 
-                 FROM cliente 
+                 FROM {$bd_complemento}.cliente 
                  ORDER BY nom_cliente ASC";
-    $res_comp = mysqli_query($con_comp, $sql_comp);
+    $res_comp = mysqli_query($con, $sql_comp);
     
     if (!$res_comp) {
-        error_log("Error en MostrarClientes() - Base Inspecciones: " . mysqli_error($con_comp));
+        error_log("Error en MostrarClientes() - Base Inspecciones: " . mysqli_error($con));
     } else {
         while ($rowc = mysqli_fetch_array($res_comp, MYSQLI_ASSOC)) {
             $resultado[] = $rowc;
         }
     }
 
-    mysqli_close($con_comp);
+    mysqli_close($con);
     
     return $resultado;
 }
@@ -61,26 +61,26 @@ function MostrarClientes()
 //-----------------------------------------------------------------------
 function MostrarClientesActivos()
 {
-    include("../_conexion/conexion_complemento.php");
+    include("../_conexion/conexion.php");
 
     $resultado = array();
 
     // Clientes activos de la base complementaria
     $sql_comp = "SELECT id_cliente, nom_cliente, 'Inspecciones' as origen 
-                 FROM cliente 
+                 FROM {$bd_complemento}.cliente 
                  WHERE act_cliente = 1 
                  ORDER BY nom_cliente ASC";
-    $res_comp = mysqli_query($con_comp, $sql_comp);
+    $res_comp = mysqli_query($con, $sql_comp);
     
     if (!$res_comp) {
-        error_log("Error en MostrarClientesActivos() - Base Inspecciones: " . mysqli_error($con_comp));
+        error_log("Error en MostrarClientesActivos() - Base Inspecciones: " . mysqli_error($con));
     } else {
         while ($rowc = mysqli_fetch_array($res_comp, MYSQLI_ASSOC)) {
             $resultado[] = $rowc;
         }
     }
 
-    mysqli_close($con_comp);
+    mysqli_close($con);
     
     return $resultado;
 }
@@ -90,7 +90,7 @@ function ObtenerCliente($id_cliente)
 {
     include("../_conexion/conexion.php");
 
-    $sql = "SELECT * FROM cliente WHERE id_cliente = ?";
+    $sql = "SELECT * FROM {$bd_complemento}.cliente WHERE id_cliente = ?";
     $stmt = mysqli_prepare($con, $sql);
     mysqli_stmt_bind_param($stmt, "i", $id_cliente);
     mysqli_stmt_execute($stmt);
@@ -112,7 +112,7 @@ function EditarCliente($id_cliente, $nom, $est)
     include("../_conexion/conexion.php");
     
     // Verificar si ya existe otro cliente con el mismo nombre
-    $sql_verificar = "SELECT COUNT(*) as total FROM cliente WHERE nom_cliente = ? AND id_cliente != ?";
+    $sql_verificar = "SELECT COUNT(*) as total FROM {$bd_complemento}.cliente WHERE nom_cliente = ? AND id_cliente != ?";
     $stmt = mysqli_prepare($con, $sql_verificar);
     mysqli_stmt_bind_param($stmt, "si", $nom, $id_cliente);
     mysqli_stmt_execute($stmt);
@@ -125,7 +125,7 @@ function EditarCliente($id_cliente, $nom, $est)
     }
     
     // Actualizar cliente
-    $sql = "UPDATE cliente SET nom_cliente = ?, est_cliente = ? WHERE id_cliente = ?";
+    $sql = "UPDATE {$bd_complemento}.cliente SET nom_cliente = ?, act_cliente = ? WHERE id_cliente = ?";
     $stmt = mysqli_prepare($con, $sql);
     mysqli_stmt_bind_param($stmt, "sii", $nom, $est, $id_cliente);
     

@@ -36,9 +36,9 @@
                                         <thead>
                                             <tr>
                                                 <th>#</th>
+                                                <th>Almacén</th>
                                                 <th>Cliente</th>
                                                 <th>Obra</th>
-                                                <th>Nombre Almacén</th>
                                                 <th>Estado</th>
                                                 <th>Editar</th>
                                             </tr>
@@ -59,9 +59,9 @@
                                             ?>
                                                     <tr>
                                                         <td><?php echo $c; ?></td>
+                                                        <td><?php echo htmlspecialchars($nom_almacen); ?></td>
                                                         <td><?php echo htmlspecialchars($nom_cliente); ?></td>
                                                         <td><?php echo htmlspecialchars($nom_obra); ?></td>
-                                                        <td><?php echo htmlspecialchars($nom_almacen); ?></td>
                                                         <td><?php echo $estado; ?></td>
                                                         <td>
                                                             <center>

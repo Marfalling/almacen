@@ -35,7 +35,7 @@ if (!verificarPermisoEspecifico('editar_area')) {
 			//-------------------------------------------
 			if (isset($_REQUEST['registrar'])) {
 				$id_area = $_REQUEST['id_area'];
-				$nom = strtoupper($_REQUEST['nom']);
+				$nom = $_REQUEST['nom'];
 				$est = isset($_REQUEST['est']) ? 1 : 0;
 
 				$rpta = EditarArea($id_area, $nom, $est);
@@ -70,12 +70,12 @@ if (!verificarPermisoEspecifico('editar_area')) {
 			// Obtener datos del área a editar
 			$area_data = ObtenerArea($id_area);
 			if ($area_data) {
-				$nom = $area_data['nom_area'];
-				$est = ($area_data['act_area'] == 1) ? "checked" : "";
+				$nom = $area_data[0]['nom_area'];
+				$est = ($area_data[0]['act_area'] == 1) ? "checked" : "";
 			} else {
 			?>
 				<script Language="JavaScript">
-					location.href = 'dashboard.php?error=true';
+					//location.href = 'dashboard.php?error=true';
 				</script>
 			<?php
 				exit;

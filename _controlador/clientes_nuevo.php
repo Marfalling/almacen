@@ -32,7 +32,7 @@ if (!verificarPermisoEspecifico('crear_cliente')) {
             require_once("../_modelo/m_clientes.php");
 
             if (isset($_REQUEST['registrar'])) {
-                $nom = strtoupper($_REQUEST['nom']);
+                $nom = $_REQUEST['nom'];
                 $est = isset($_REQUEST['est']) ? 1 : 0;
 
                 $rpta = GrabarClientes($nom, $est);

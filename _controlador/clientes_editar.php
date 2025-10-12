@@ -34,7 +34,7 @@ if (!verificarPermisoEspecifico('editar_cliente')) {
 
             if (isset($_REQUEST['registrar'])) {
                 $id_cliente = $_REQUEST['id_cliente'];
-                $nom = strtoupper($_REQUEST['nom']);
+                $nom = $_REQUEST['nom'];
                 $est = isset($_REQUEST['est']) ? 1 : 0;
 
                 $rpta = EditarCliente($id_cliente, $nom, $est);
@@ -67,7 +67,7 @@ if (!verificarPermisoEspecifico('editar_cliente')) {
             $cliente_data = ObtenerCliente($id_cliente);
             if ($cliente_data) {
                 $nom = $cliente_data['nom_cliente'];
-                $est = ($cliente_data['est_cliente'] == 1) ? "checked" : "";
+                $est = ($cliente_data['act_cliente'] == 1) ? "checked" : "";
             } else {
             ?>
                 <script Language="JavaScript">
