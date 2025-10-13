@@ -801,7 +801,17 @@ function ObtenerItemsParaSalida($id_pedido)
                     AND mov.id_almacen = ped.id_almacen
                     AND mov.id_ubicacion = ped.id_ubicacion
                     AND mov.est_movimiento = 1), 0
-                ) AS stock_disponible
+                ) AS stock_disponible,
+                (
+                    SELECT id_movimiento
+                    FROM movimiento m
+                    WHERE m.id_producto = pd.id_producto
+                      AND m.id_pedido = pd.id_pedido
+                      AND m.tipo_orden = 5     -- movimiento de pedido (comprometido)
+                      AND m.est_movimiento = 1 -- aún activo
+                    ORDER BY m.id_movimiento ASC
+                    LIMIT 1
+                ) AS id_movimiento_comprometido
             FROM pedido_detalle pd
             INNER JOIN producto p ON pd.id_producto = p.id_producto
             WHERE pd.id_pedido = $id_pedido

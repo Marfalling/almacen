@@ -95,6 +95,16 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
                 mysqli_query($con, $sql_mov_ingreso);
             }
         }
+
+         // Si proviene de un pedido, liberar compromisos de stock
+        if ($id_pedido && $id_pedido > 0) {
+            $sql_liberar = "UPDATE movimiento 
+                            SET est_movimiento = 0 
+                            WHERE tipo_orden = 5 
+                              AND id_orden = $id_pedido 
+                              AND est_movimiento = 1";
+            mysqli_query($con, $sql_liberar);
+        }
         
         mysqli_close($con);
         return "SI";
@@ -504,15 +514,47 @@ function MostrarProductosConStockParaSalida($limit, $offset, $searchValue, $orde
     include("../_conexion/conexion.php");
 
     // Construir la consulta base
-    $sql = "SELECT p.id_producto, p.cod_material, p.nom_producto, p.mar_producto, p.mod_producto,
-                   pt.nom_producto_tipo, um.nom_unidad_medida,
-                   COALESCE(
-                       SUM(CASE
-                           WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
-                           WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
-                           ELSE 0
-                       END), 0
-                   ) AS stock_disponible
+    $sql = "SELECT 
+                p.id_producto, 
+                p.cod_material, 
+                p.nom_producto, 
+                p.mar_producto, 
+                p.mod_producto,
+                pt.nom_producto_tipo, 
+                um.nom_unidad_medida,
+
+                -- ==============================================
+                -- CÁLCULO DE STOCK FÍSICO (movimientos reales)
+                -- ==============================================
+                COALESCE(SUM(CASE
+                    WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden = 1 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 2 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
+                    ELSE 0
+                END), 0) AS stock_fisico,
+
+                -- ==============================================
+                -- CÁLCULO DE STOCK COMPROMETIDO (pedidos)
+                -- ==============================================
+                COALESCE(SUM(CASE
+                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 5 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                    ELSE 0
+                END), 0) AS stock_comprometido,
+
+                -- ==============================================
+                -- STOCK DISPONIBLE = físico - comprometido
+                -- ==============================================
+                COALESCE(SUM(CASE
+                    WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden = 1 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 2 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
+                    ELSE 0
+                END), 0)
+                -
+                COALESCE(SUM(CASE
+                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 5 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                    ELSE 0
+                END), 0)
+                AS stock_disponible
+
             FROM producto p 
             INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
             INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo
@@ -520,7 +562,6 @@ function MostrarProductosConStockParaSalida($limit, $offset, $searchValue, $orde
             LEFT JOIN movimiento mov ON p.id_producto = mov.id_producto 
                       AND mov.id_almacen = $id_almacen 
                       AND mov.id_ubicacion = $id_ubicacion
-                      AND mov.est_movimiento = 1
             WHERE p.est_producto = 1 
             AND pt.est_producto_tipo = 1
             AND mt.est_material_tipo = 1

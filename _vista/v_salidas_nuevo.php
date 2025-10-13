@@ -389,7 +389,7 @@
                                 <th>Unidad</th>
                                 <th>Marca</th>
                                 <th>Modelo</th>
-                                <th>Stock Disponible</th>
+                                <th>Stock Disponible/Físico</th>
                                 <th>Acción</th>
                             </tr>
                         </thead>
