@@ -271,6 +271,9 @@
                                                      style="background-color: #d4edda; font-weight: bold; color: #155724;">
                                                     <?php echo number_format($item['stock_disponible'], 2); ?>
                                                 </div>
+                                                <label><?php echo number_format($item['stock_disponible'], 2); ?> /
+                                                    <?php echo isset($item['stock_fisico']) ? number_format($item['stock_fisico'], 2) : '0.00'; ?></label>
+                                                
                                             </div>
                                         </div>
                                         <div class="row mt-2">
@@ -389,7 +392,7 @@
                                 <th>Unidad</th>
                                 <th>Marca</th>
                                 <th>Modelo</th>
-                                <th>Stock Disponible/Físico</th>
+                                <th>Stock Disponible</th>
                                 <th>Acción</th>
                             </tr>
                         </thead>

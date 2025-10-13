@@ -786,38 +786,87 @@ function ObtenerItemsParaSalida($id_pedido)
     
     $sql = "SELECT 
                 pd.id_producto,
-                pd.prod_pedido_detalle as descripcion,
-                pd.cant_pedido_detalle as cantidad,
+                pd.prod_pedido_detalle AS descripcion,
+                pd.cant_pedido_detalle AS cantidad,
                 p.nom_producto,
-                COALESCE(
-                    (SELECT SUM(CASE
-                        WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
-                        WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+
+                -- ==========================================
+                -- STOCK FÍSICO: entradas - salidas reales
+                -- ==========================================
+                COALESCE((
+                    SELECT SUM(CASE
+                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden = 1 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 2 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
                         ELSE 0
                     END)
                     FROM movimiento mov
                     INNER JOIN pedido ped ON pd.id_pedido = ped.id_pedido
-                    WHERE mov.id_producto = pd.id_producto 
-                    AND mov.id_almacen = ped.id_almacen
-                    AND mov.id_ubicacion = ped.id_ubicacion
-                    AND mov.est_movimiento = 1), 0
-                ) AS stock_disponible,
+                    WHERE mov.id_producto = pd.id_producto
+                      AND mov.id_almacen = ped.id_almacen
+                      AND mov.id_ubicacion = ped.id_ubicacion
+                ), 0) AS stock_fisico,
+
+                -- ==========================================
+                -- STOCK COMPROMETIDO: pedidos activos
+                -- ==========================================
+                COALESCE((
+                    SELECT SUM(mov.cant_movimiento)
+                    FROM movimiento mov
+                    INNER JOIN pedido ped ON pd.id_pedido = ped.id_pedido
+                    WHERE mov.id_producto = pd.id_producto
+                      AND mov.id_almacen = ped.id_almacen
+                      AND mov.id_ubicacion = ped.id_ubicacion
+                      AND mov.tipo_movimiento = 2
+                      AND mov.tipo_orden = 5
+                      AND mov.est_movimiento = 1
+                ), 0) AS stock_comprometido,
+
+                -- ==========================================
+                -- STOCK DISPONIBLE = físico - comprometido
+                -- ==========================================
+                COALESCE((
+                    SELECT SUM(CASE
+                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden = 1 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 2 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
+                        ELSE 0
+                    END)
+                    FROM movimiento mov
+                    INNER JOIN pedido ped ON pd.id_pedido = ped.id_pedido
+                    WHERE mov.id_producto = pd.id_producto
+                      AND mov.id_almacen = ped.id_almacen
+                      AND mov.id_ubicacion = ped.id_ubicacion
+                ), 0)
+                -
+                COALESCE((
+                    SELECT SUM(mov.cant_movimiento)
+                    FROM movimiento mov
+                    INNER JOIN pedido ped ON pd.id_pedido = ped.id_pedido
+                    WHERE mov.id_producto = pd.id_producto
+                      AND mov.id_almacen = ped.id_almacen
+                      AND mov.id_ubicacion = ped.id_ubicacion
+                      AND mov.tipo_movimiento = 2
+                      AND mov.tipo_orden = 5
+                      AND mov.est_movimiento = 1
+                ), 0)
+                AS stock_disponible,
+
                 (
                     SELECT id_movimiento
                     FROM movimiento m
                     WHERE m.id_producto = pd.id_producto
-                      AND m.id_pedido = pd.id_pedido
-                      AND m.tipo_orden = 5     -- movimiento de pedido (comprometido)
-                      AND m.est_movimiento = 1 -- aún activo
+                      AND m.id_orden = pd.id_pedido
+                      AND m.tipo_orden = 5
+                      AND m.est_movimiento = 1
                     ORDER BY m.id_movimiento ASC
                     LIMIT 1
                 ) AS id_movimiento_comprometido
+
             FROM pedido_detalle pd
             INNER JOIN producto p ON pd.id_producto = p.id_producto
             WHERE pd.id_pedido = $id_pedido
-            AND pd.est_pedido_detalle = 1
+              AND pd.est_pedido_detalle = 1
             ORDER BY pd.id_pedido_detalle";
-    
+
     $resultado = mysqli_query($con, $sql);
     $items = array();
     
@@ -828,6 +877,7 @@ function ObtenerItemsParaSalida($id_pedido)
     mysqli_close($con);
     return $items;
 }
+
 function FinalizarPedido($id_pedido)
 {
     include("../_conexion/conexion.php");
