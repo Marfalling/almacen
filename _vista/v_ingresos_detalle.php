@@ -257,6 +257,73 @@
                             </div>
                         </div>
 
+                        <!-- SECCIÓN: DOCUMENTOS ADJUNTOS -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="x_panel">
+                                    <div class="x_title">
+                                        <h2><i class="fa fa-paperclip"></i> Documentos Adjuntos</h2>
+                                        <div class="clearfix"></div>
+                                    </div>
+                                    <div class="x_content">
+                                        <?php
+                                        require_once("../_modelo/m_documentos.php");
+                                        $documentos_ingreso = MostrarDocumentos('ingresos', $detalle_ingreso['compra']['id_compra']);
+                                        
+                                        if (!empty($documentos_ingreso)) {
+                                        ?>
+                                            <div class="table-responsive">
+                                                <table class="table table-striped table-bordered">
+                                                    <thead>
+                                                        <tr>
+                                                            <th style="width: 5%;">#</th>
+                                                            <th style="width: 50%;">Documento</th>
+                                                            <th style="width: 25%;">Fecha de Carga</th>
+                                                            <th style="width: 20%;">Acciones</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <?php 
+                                                        $contador_docs = 1;
+                                                        foreach($documentos_ingreso as $doc) { 
+                                                        ?>
+                                                        <tr>
+                                                            <td class="text-center"><?php echo $contador_docs++; ?></td>
+                                                            <td>
+                                                                <i class="fa fa-file-<?php echo strpos($doc['documento'], '.pdf') !== false ? 'pdf' : 'text'; ?>-o"></i>
+                                                                <strong><?php echo $doc['documento']; ?></strong>
+                                                            </td>
+                                                            <td><?php echo date('d/m/Y H:i', strtotime($doc['fec_subida'])); ?></td>
+                                                            <td>
+                                                                <a href="../uploads/ingresos/<?php echo $doc['documento']; ?>" 
+                                                                target="_blank" 
+                                                                class="btn btn-primary btn-sm" 
+                                                                title="Ver documento">
+                                                                    <i class="fa fa-eye"></i> Ver
+                                                                </a>
+                                                                <a href="../uploads/ingresos/<?php echo $doc['documento']; ?>" 
+                                                                download 
+                                                                class="btn btn-success btn-sm" 
+                                                                title="Descargar">
+                                                                    <i class="fa fa-download"></i> Descargar
+                                                                </a>
+                                                            </td>
+                                                        </tr>
+                                                        <?php } ?>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        <?php } else { ?>
+                                            <div class="alert alert-info text-center">
+                                                <i class="fa fa-info-circle"></i> 
+                                                No se han adjuntado documentos para este ingreso.
+                                            </div>
+                                        <?php } ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Botones de Acción -->
                         <div class="row">
                             <div class="col-md-12">

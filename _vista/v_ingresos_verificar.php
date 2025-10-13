@@ -200,6 +200,48 @@
 
                         </form>
                     </div>
+                    <!-- NUEVA SECCIÓN: DOCUMENTOS OBLIGATORIOS -->
+                    <div class="x_panel">
+                        <div class="x_title">
+                            <h2>
+                                <i class="fa fa-file-text-o"></i> Documentos del Ingreso 
+                                <span class="text-danger">*Obligatorio</span>
+                            </h2>
+                            <div class="clearfix"></div>
+                        </div>
+                        <div class="x_content">
+                            <div class="alert alert-info">
+                                <i class="fa fa-info-circle"></i> 
+                                <strong>Importante:</strong> Debe adjuntar el documento (guía) para poder procesar el ingreso.
+                            </div>
+                            
+                            <!-- Formulario de Carga -->
+                            <div class="row mb-3">
+                                <div class="col-md-8">
+                                    <label><strong>Seleccionar Documento:</strong></label>
+                                    <input type="file" id="documento_ingreso" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                                    <small class="text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, DOCX (Máx. 5MB)</small>
+                                </div>
+                                <div class="col-md-4">
+                                    <label>&nbsp;</label>
+                                    <button type="button" onclick="subirDocumentoIngreso()" class="btn btn-primary btn-block">
+                                        <i class="fa fa-upload"></i> Subir Documento
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Lista de Documentos Subidos -->
+                            <div id="lista-documentos-ingreso">
+                                <h5><i class="fa fa-folder-open"></i> Documentos Cargados:</h5>
+                                <div id="contenedor-documentos" class="mt-2">
+                                    <div class="alert alert-warning text-center">
+                                        <i class="fa fa-exclamation-triangle"></i> 
+                                        Aún no se han cargado documentos
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <?php } else { ?>
@@ -222,6 +264,7 @@
         </div>
     </div>
 </div>
+
 
 <script>
 function toggleProducto(checkbox) {
@@ -412,6 +455,377 @@ function enviarFormularioAjax() {
                 text: errorMessage,
                 confirmButtonColor: '#dc3545',
             });
+        }
+    });
+}
+</script>
+
+<script>
+// Variable global para controlar documentos subidos
+let documentosSubidos = [];
+
+function toggleProducto(checkbox) {
+    const productId = checkbox.dataset.producto;
+    const cantidadInput = document.querySelector(`input[name="cantidades[${productId}]"]`);
+    
+    if (checkbox.checked) {
+        cantidadInput.value = checkbox.dataset.pendiente;
+        cantidadInput.style.backgroundColor = '#fff';
+        cantidadInput.focus();
+    } else {
+        cantidadInput.value = '';
+        cantidadInput.style.backgroundColor = '#f8f9fa';
+    }
+}
+
+function validarCantidad(input, maxCantidad) {
+    const value = parseFloat(input.value);
+    
+    if (value > maxCantidad) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Cantidad inválida',
+            text: `La cantidad ingresada no puede ser mayor a la cantidad pendiente (${maxCantidad})`,
+        });
+        input.value = maxCantidad;
+    }
+    
+    if (value <= 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Cantidad inválida',
+            text: 'La cantidad debe ser mayor a 0',
+        });
+        input.value = 0.01;
+    }
+    
+    const productId = input.name.match(/\[(\d+)\]/)[1];
+    const checkbox = document.querySelector(`input[data-producto="${productId}"]`);
+    checkbox.checked = value > 0;
+}
+
+// ============================================
+// NUEVA FUNCIÓN: SUBIR DOCUMENTO
+// ============================================
+function subirDocumentoIngreso() {
+    const archivo = document.getElementById('documento_ingreso').files[0];
+    
+    if (!archivo) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Archivo requerido',
+            text: 'Debe seleccionar un archivo para subir',
+        });
+        return;
+    }
+
+    // Validar tamaño (5MB máximo)
+    if (archivo.size > 5242880) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Archivo muy grande',
+            text: 'El archivo no debe superar los 5MB',
+        });
+        return;
+    }
+
+    // Validar extensión
+    const extensionesPermitidas = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
+    const extension = archivo.name.split('.').pop().toLowerCase();
+    
+    if (!extensionesPermitidas.includes(extension)) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Formato no permitido',
+            text: 'Solo se permiten archivos PDF, JPG, PNG, DOC o DOCX',
+        });
+        return;
+    }
+
+    // Preparar FormData
+    const formData = new FormData();
+    formData.append('entidad', 'ingresos');
+    formData.append('id_entidad', <?php echo $id_compra; ?>); 
+    formData.append('documento', archivo);
+
+    // Mostrar loading
+    Swal.fire({
+        title: 'Subiendo documento...',
+        text: 'Por favor espere',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // Enviar por AJAX
+    $.ajax({
+        url: 'compras_subir_documentos.php',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        dataType: 'json',
+        success: function(response) {
+            if (response.tipo_mensaje === 'success') {
+                documentosSubidos.push({
+                    nombre: archivo.name,
+                    timestamp: new Date().getTime()
+                });
+                
+                actualizarListaDocumentos();
+                document.getElementById('documento_ingreso').value = '';
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Documento cargado!',
+                    text: response.mensaje,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error al cargar',
+                    text: response.mensaje,
+                });
+            }
+        },
+        error: function() {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexión',
+                text: 'No se pudo conectar con el servidor',
+            });
+        }
+    });
+}
+
+// ============================================
+// ACTUALIZAR LISTA DE DOCUMENTOS
+// ============================================
+function actualizarListaDocumentos() {
+    const contenedor = document.getElementById('contenedor-documentos');
+    
+    if (documentosSubidos.length === 0) {
+        contenedor.innerHTML = `
+            <div class="alert alert-warning text-center">
+                <i class="fa fa-exclamation-triangle"></i> 
+                Aún no se han cargado documentos
+            </div>
+        `;
+    } else {
+        let html = '<div class="table-responsive"><table class="table table-bordered table-sm">';
+        html += '<thead><tr><th>#</th><th>Archivo</th><th>Estado</th></tr></thead><tbody>';
+        
+        documentosSubidos.forEach((doc, index) => {
+            html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td><i class="fa fa-file"></i> ${doc.nombre}</td>
+                    <td><span class="badge badge-success">Cargado</span></td>
+                </tr>
+            `;
+        });
+        
+        html += '</tbody></table></div>';
+        contenedor.innerHTML = html;
+    }
+}
+
+// ============================================
+// PROCESAR INGRESO (MODIFICADA - CON VALIDACIÓN DE DOCUMENTOS)
+// ============================================
+function procesarIngreso() {
+    //  VALIDACIÓN 1: Documentos obligatorios
+    if (documentosSubidos.length === 0) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Documentos requeridos',
+            text: 'Debe cargar al menos un documento (guía, factura, etc.) antes de procesar el ingreso',
+            confirmButtonColor: '#dc3545',
+        });
+        
+        // Scroll hacia la sección de documentos
+        document.querySelector('#lista-documentos-ingreso').scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+        
+        return false;
+    }
+
+    // VALIDACIÓN 2: Productos seleccionados
+    const checkboxesSeleccionados = document.querySelectorAll('.producto-checkbox:checked');
+    
+    if (checkboxesSeleccionados.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Selección requerida',
+            text: 'Debe marcar al menos un producto para ingresar',
+        });
+        return false;
+    }
+    
+    //  VALIDACIÓN 3: Cantidades válidas
+    let cantidadesValidas = true;
+    
+    checkboxesSeleccionados.forEach(checkbox => {
+        const productId = checkbox.dataset.producto;
+        const cantidadInput = document.querySelector(`input[name="cantidades[${productId}]"]`);
+        const cantidad = parseFloat(cantidadInput.value);
+        
+        if (!cantidad || cantidad <= 0) {
+            cantidadesValidas = false;
+        }
+    });
+    
+    if (!cantidadesValidas) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Cantidades inválidas',
+            text: 'Todos los productos seleccionados deben tener una cantidad válida mayor a 0',
+        });
+        return false;
+    }
+    
+    //  CONFIRMACIÓN
+    Swal.fire({
+        title: '¿Confirmar ingreso?',
+        html: `
+            <p>¿Está seguro de que desea procesar este ingreso?</p>
+            <div class="text-left mt-3" style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
+                <strong><i class="fa fa-check-circle text-success"></i> Productos a ingresar:</strong> ${checkboxesSeleccionados.length}<br>
+                <strong><i class="fa fa-file text-primary"></i> Documentos adjuntos:</strong> ${documentosSubidos.length}
+            </div>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fa fa-check"></i> Sí, procesar ingreso',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            enviarFormularioAjax();
+        }
+    });
+}
+
+// ============================================
+// ENVIAR FORMULARIO (SIN CAMBIOS)
+// ============================================
+function enviarFormularioAjax() {
+    Swal.fire({
+        title: 'Procesando ingreso...',
+        text: 'Por favor espere mientras se procesan los productos',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    const formData = new FormData();
+    formData.append('id_compra', <?php echo $id_compra; ?>);
+    
+    const checkboxesSeleccionados = document.querySelectorAll('.producto-checkbox:checked');
+    
+    checkboxesSeleccionados.forEach(checkbox => {
+        const productId = checkbox.dataset.producto;
+        const cantidadInput = document.querySelector(`input[name="cantidades[${productId}]"]`);
+        const cantidad = parseFloat(cantidadInput.value) || 0;
+        
+        if (cantidad > 0) {
+            formData.append(`cantidades[${productId}]`, cantidad);
+        }
+    });
+    
+    $.ajax({
+        url: 'ingresos_procesar.php',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        dataType: 'json',
+        success: function(response) {
+            if (response.tipo_mensaje === 'success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Ingreso exitoso!',
+                    text: response.mensaje,
+                    confirmButtonColor: '#28a745',
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else if (response.tipo_mensaje === 'warning') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Ingreso parcial',
+                    text: response.mensaje,
+                    confirmButtonColor: '#ffc107',
+                }).then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error en el ingreso',
+                    text: response.mensaje,
+                    confirmButtonColor: '#dc3545',
+                });
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error AJAX:', error);
+            
+            let errorMessage = 'No se pudo conectar con el servidor.';
+            try {
+                const errorResponse = JSON.parse(xhr.responseText);
+                if (errorResponse.mensaje) {
+                    errorMessage = errorResponse.mensaje;
+                }
+            } catch (e) {
+                if (xhr.responseText && xhr.responseText.length < 200) {
+                    errorMessage = xhr.responseText;
+                }
+            }
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexión',
+                text: errorMessage,
+                confirmButtonColor: '#dc3545',
+            });
+        }
+    });
+}
+
+// ============================================
+// INICIALIZACIÓN
+// ============================================
+$(document).ready(function() {
+    // Cargar documentos existentes si hay (para cuando se recarga la página)
+    cargarDocumentosExistentes();
+});
+
+function cargarDocumentosExistentes() {
+    $.ajax({
+        url: 'ingresos_obtener_documentos.php',
+        type: 'POST',
+        data: { id_compra: <?php echo $id_compra; ?> },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success && response.documentos.length > 0) {
+                documentosSubidos = response.documentos.map(doc => ({
+                    nombre: doc.documento,
+                    timestamp: new Date(doc.fec_subida).getTime()
+                }));
+                actualizarListaDocumentos();
+            }
         }
     });
 }
