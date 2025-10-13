@@ -23,11 +23,9 @@ $search_value = $_POST['search']['value'];
 
 // Construir condiciones de búsqueda
 $where_conditions = array();
-$where_conditions[] = "p.est_producto = 1"; // Solo productos activos
-$where_conditions[] = "mt.est_material_tipo = 1"; // Solo materiales activos
-$where_conditions[] = "pt.nom_producto_tipo = 'MATERIAL'"; // Solo tipo MATERIAL (no servicios)
-
-// CAMBIO CRÍTICO: Incluir CONSUMIBLES y HERRAMIENTAS
+$where_conditions[] = "p.est_producto = 1";
+$where_conditions[] = "mt.est_material_tipo = 1";
+$where_conditions[] = "pt.nom_producto_tipo = 'MATERIAL'";
 $where_conditions[] = "mt.nom_material_tipo IN ('CONSUMIBLES', 'HERRAMIENTAS')";
 
 // Construir condición de búsqueda
@@ -39,7 +37,7 @@ if (!empty($search_value)) {
                             OR mt.nom_material_tipo LIKE '%$search_value_safe%')";
 }
 
-// Consulta principal con JOIN a producto_tipo
+// Consulta principal CON CÁLCULO DE STOCK REAL
 $sql = "SELECT 
     p.id_producto,
     p.cod_material,
@@ -48,7 +46,21 @@ $sql = "SELECT
     p.mod_producto,
     mt.nom_material_tipo,
     pt.nom_producto_tipo,
-    um.nom_unidad_medida
+    um.nom_unidad_medida,
+    COALESCE(
+        (SELECT SUM(
+            CASE 
+                WHEN m.tipo_movimiento = 1 THEN m.cant_movimiento 
+                WHEN m.tipo_movimiento = 2 THEN -m.cant_movimiento 
+                ELSE 0 
+            END
+        )
+        FROM movimiento m
+        WHERE m.id_producto = p.id_producto
+        AND m.id_almacen = $id_almacen
+        AND m.id_ubicacion = $id_ubicacion
+        AND m.est_movimiento = 1), 
+    0) as stock_actual
 FROM producto p
 INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo
 INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
@@ -64,7 +76,7 @@ $result = mysqli_query($con, $sql);
 if (!$result) {
     echo json_encode([
         'error' => 'Error en la consulta: ' . mysqli_error($con),
-        'sql' => $sql // Para debug
+        'sql' => $sql
     ]);
     exit;
 }
@@ -114,11 +126,14 @@ while ($row = mysqli_fetch_assoc($result)) {
         $descripcion_completa .= ' (' . $row['mod_producto'] . ')';
     }
     
+    // Stock actual (ya calculado en la consulta)
+    $stock_actual = floatval($row['stock_actual']);
+    
     // Botón de acción para seleccionar el producto
     $action_btn = '<button type="button" class="btn btn-primary btn-sm" 
                     onclick="seleccionarProducto(' . $row['id_producto'] . ', \'' . 
                     addslashes($descripcion_completa) . '\', \'' . 
-                    addslashes($row['nom_unidad_medida']) . '\', 0)">
+                    addslashes($row['nom_unidad_medida']) . '\', ' . $stock_actual . ')">
                     <i class="fa fa-check"></i> Seleccionar
                   </button>';
     
@@ -127,7 +142,7 @@ while ($row = mysqli_fetch_assoc($result)) {
         htmlspecialchars($descripcion_completa),
         htmlspecialchars($row['nom_material_tipo']),
         htmlspecialchars($row['nom_unidad_medida']),
-        'N/A', // Stock no aplica para ingresos directos
+        number_format($stock_actual, 2), 
         $action_btn
     );
 }

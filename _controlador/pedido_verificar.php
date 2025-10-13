@@ -364,19 +364,22 @@ if ($id_pedido > 0) {
     require_once("../_vista/v_alertas.php");
     ?>
 
-    <?php if ($alerta): ?>
+    <?php if (isset($alerta) && !empty($alerta) && !empty($alerta['text'])): ?>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // 🔹 VALIDACIÓN: Solo mostrar si hay contenido real
         const alerta = <?php echo json_encode($alerta, JSON_UNESCAPED_UNICODE); ?>;
-
-        Swal.fire({
-            icon: alerta.icon,
-            title: alerta.title,
-            text: alerta.text,
-            showConfirmButton: !alerta.timer,
-            timer: alerta.timer || null,
-            allowOutsideClick: false
-        });
+        
+        if (alerta && alerta.text && alerta.text.trim() !== '') {
+            Swal.fire({
+                icon: alerta.icon || 'info',
+                title: alerta.title || 'Aviso',
+                text: alerta.text,
+                showConfirmButton: !alerta.timer,
+                timer: alerta.timer || null,
+                allowOutsideClick: false
+            });
+        }
     });
     </script>
     <?php endif; ?>

@@ -920,6 +920,14 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const urlActual = window.location.pathname;
+    const esVistaVerificar = urlActual.includes('pedido_verificar.php');
+    
+    if (!esVistaVerificar) {
+        console.log('Script de verificación omitido - no estamos en pedido_verificar.php');
+        return;
+    }
+    
     const esAutoOrden = <?php echo ($pedido['id_producto_tipo'] == 2) ? 'true' : 'false'; ?>;
     const pedidoAnulado = <?php echo ($pedido['est_pedido'] == 0) ? 'true' : 'false'; ?>;
     const modoEditar = <?php echo $modo_editar ? 'true' : 'false'; ?>;

@@ -315,10 +315,20 @@ function EliminarDocumento(id_doc) {
                                                         <?php } else { ?>
                                                             <span class="badge badge-info">Crédito (<?php echo $compra['plaz_compra']; ?> días)</span>
                                                             <?php
-                                                            // Mostrar fecha de vencimiento si está activa
-                                                            if ($compra['est_compra'] == 1) {
+                                                            // Mostrar fecha de vencimiento si NO está anulada
+                                                            if ($compra['est_compra'] != 0) {
                                                                 $fecha_vencimiento = date('d/m/Y', strtotime($compra['fec_compra'] . ' + ' . $compra['plaz_compra'] . ' days'));
-                                                                echo '<br><small class="text-muted">Vence: ' . $fecha_vencimiento . '</small>';
+                                                                $dias_restantes = (strtotime($compra['fec_compra'] . ' + ' . $compra['plaz_compra'] . ' days') - strtotime(date('Y-m-d'))) / 86400;
+                                                                
+                                                                // Agregar color según urgencia
+                                                                $clase_vencimiento = '';
+                                                                if ($dias_restantes <= 0) {
+                                                                    $clase_vencimiento = 'text-danger font-weight-bold';
+                                                                } elseif ($dias_restantes <= 3) {
+                                                                    $clase_vencimiento = 'text-warning font-weight-bold';
+                                                                }
+                                                                
+                                                                echo '<br><small class="' . $clase_vencimiento . ' text-muted">Vence: ' . $fecha_vencimiento . '</small>';
                                                             }
                                                             ?>
                                                         <?php } ?>
