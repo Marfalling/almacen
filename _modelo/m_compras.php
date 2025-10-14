@@ -1,5 +1,4 @@
 <?php
-
 function MostrarCompras()
 {
     include("../_conexion/conexion.php");

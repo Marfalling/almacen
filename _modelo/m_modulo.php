@@ -1,5 +1,4 @@
 <?php
-
 function GrabarModulo($nom_modulo, $acciones, $est) 
 {
     include("../_conexion/conexion.php");

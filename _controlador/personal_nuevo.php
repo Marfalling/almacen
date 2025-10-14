@@ -13,19 +13,42 @@ require_once("../_modelo/m_personal.php");
 require_once("../_conexion/conexion.php");
 
 // OBTENER LISTAS DE ÁREAS Y CARGOS
-function ObtenerAreas() {
+function ObtenerAreas()
+{
+    include("../_conexion/conexion.php");
 
-    $sql = "SELECT id_area, nom_area FROM {$bd_complemento}.area WHERE act_area = 1 ORDER BY nom_area";
+
+    $sql = "SELECT id_area, nom_area 
+            FROM {$bd_complemento}.area 
+            WHERE act_area = 1 
+            ORDER BY nom_area";
+
     $res = $con->query($sql);
-    return $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+
+    $areas = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+
+    mysqli_close($con);
+    return $areas;
 }
 
-function ObtenerCargos() {
+function ObtenerCargos()
+{
+    include("../_conexion/conexion.php");
+   
 
-    $sql = "SELECT id_cargo, nom_cargo FROM {$bd_complemento}.cargo WHERE act_cargo = 1 ORDER BY nom_cargo";
+    $sql = "SELECT id_cargo, nom_cargo 
+            FROM {$bd_complemento}.cargo 
+            WHERE act_cargo = 1 
+            ORDER BY nom_cargo";
+
     $res = $con->query($sql);
-    return $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+
+    $cargos = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+
+    mysqli_close($con);
+    return $cargos;
 }
+
 
 $areas = ObtenerAreas();
 $cargos = ObtenerCargos();
