@@ -111,11 +111,10 @@ function MostrarPagosCompra($id_compra) {
     $sql = "SELECT p.*, 
                    pc.banco_proveedor, 
                    pc.nro_cuenta_corriente AS num_cuenta,
-                   per.nom_personal,
-                   per.ape_personal
+                   per.nom_personal
             FROM pago p
             LEFT JOIN proveedor_cuenta pc ON p.id_proveedor_cuenta = pc.id_proveedor_cuenta
-            LEFT JOIN personal per ON p.id_personal = per.id_personal
+            LEFT JOIN {$bd_complemento}.personal per ON p.id_personal = per.id_personal
             WHERE p.id_compra = $id_compra
             ORDER BY p.fec_pago ASC";
     $res = mysqli_query($con, $sql);

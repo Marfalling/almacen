@@ -14,9 +14,9 @@ function MostrarCompras()
             FROM compra c
             LEFT JOIN pedido pe ON c.id_pedido = pe.id_pedido
             LEFT JOIN proveedor p ON c.id_proveedor = p.id_proveedor 
-            LEFT JOIN personal per1 ON c.id_personal = per1.id_personal
-            LEFT JOIN personal per2 ON c.id_personal_aprueba_tecnica = per2.id_personal
-            LEFT JOIN personal per3 ON c.id_personal_aprueba_financiera = per3.id_personal
+            LEFT JOIN {$bd_complemento}.personal per1 ON c.id_personal = per1.id_personal
+            LEFT JOIN {$bd_complemento}.personal per2 ON c.id_personal_aprueba_tecnica = per2.id_personal
+            LEFT JOIN {$bd_complemento}.personal per3 ON c.id_personal_aprueba_financiera = per3.id_personal
             ORDER BY c.id_compra DESC";
 
     $resc = mysqli_query($con, $sql);
@@ -51,9 +51,9 @@ function MostrarComprasFecha($fecha_inicio = null, $fecha_fin = null)
             FROM compra c
             LEFT JOIN pedido pe ON c.id_pedido = pe.id_pedido
             LEFT JOIN proveedor p ON c.id_proveedor = p.id_proveedor 
-            LEFT JOIN personal per1 ON c.id_personal = per1.id_personal
-            LEFT JOIN personal per2 ON c.id_personal_aprueba_tecnica = per2.id_personal
-            LEFT JOIN personal per3 ON c.id_personal_aprueba_financiera = per3.id_personal
+            LEFT JOIN {$bd_complemento}.personal per1 ON c.id_personal = per1.id_personal
+            LEFT JOIN {$bd_complemento}.personal per2 ON c.id_personal_aprueba_tecnica = per2.id_personal
+            LEFT JOIN {$bd_complemento}.personal per3 ON c.id_personal_aprueba_financiera = per3.id_personal
             $where
             ORDER BY c.id_compra DESC";
 
@@ -270,17 +270,14 @@ function ConsultarCompraPorId($id_compra)
                     ELSE 'S/.'
                 END as sim_moneda,
                 per.nom_personal,
-                per.ape_personal,
                 per_tec.nom_personal AS nom_aprobado_tecnica,
-                per_tec.ape_personal AS ape_aprobado_tecnica,
-                per_fin.nom_personal AS nom_aprobado_financiera,
-                per_fin.ape_personal AS ape_aprobado_financiera
+                per_fin.nom_personal AS nom_aprobado_financiera
             FROM compra c
             INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor
             INNER JOIN moneda m ON c.id_moneda = m.id_moneda
-            LEFT JOIN personal per ON c.id_personal = per.id_personal
-            LEFT JOIN personal per_tec ON c.id_personal_aprueba_tecnica = per_tec.id_personal
-            LEFT JOIN personal per_fin ON c.id_personal_aprueba_financiera = per_fin.id_personal
+            LEFT JOIN {$bd_complemento}.personal per ON c.id_personal = per.id_personal
+            LEFT JOIN {$bd_complemento}.personal per_tec ON c.id_personal_aprueba_tecnica = per_tec.id_personal
+            LEFT JOIN {$bd_complemento}.personal per_fin ON c.id_personal_aprueba_financiera = per_fin.id_personal
             WHERE c.id_compra = $id_compra";
     
     $resultado = mysqli_query($con, $sql);
@@ -308,15 +305,14 @@ function ConsultarCompra($id_pedido)
                 p.ruc_proveedor,
                 m.nom_moneda,
                 per.nom_personal,
-                per.ape_personal,
                 per_tec.nom_personal AS nom_aprobado_tecnica,
                 per_fin.nom_personal AS nom_aprobado_financiera
             FROM compra c
             INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor
             INNER JOIN moneda m ON c.id_moneda = m.id_moneda
-            LEFT JOIN personal per ON c.id_personal = per.id_personal
-            LEFT JOIN personal per_tec ON c.id_personal_aprueba_tecnica = per_tec.id_personal
-            LEFT JOIN personal per_fin ON c.id_personal_aprueba_financiera = per_fin.id_personal
+            LEFT JOIN {$bd_complemento}.personal per ON c.id_personal = per.id_personal
+            LEFT JOIN {$bd_complemento}.personal per_tec ON c.id_personal_aprueba_tecnica = per_tec.id_personal
+            LEFT JOIN {$bd_complemento}.personal per_fin ON c.id_personal_aprueba_financiera = per_fin.id_personal
             WHERE c.id_pedido = $id_pedido
             ORDER BY c.id_compra DESC";
     
