@@ -26,15 +26,12 @@
                                         <option value="">Seleccione personal</option>
                                         <?php if(isset($personal_sin_usuario) && !empty($personal_sin_usuario)) { ?>
                                             <?php foreach($personal_sin_usuario as $personal) { 
-                                                $origen_texto = ($personal['origen'] == 'Principal') ? '' : ' [BD Inspecciones]';
+                                                //$origen_texto = ($personal['origen'] == 'Principal') ? '' : ' [BD Inspecciones]';
                                             ?>
                                                 <option value="<?php echo $personal['id_personal']; ?>">
                                                     <?php 
                                                     $nombre_completo = $personal['nom_personal'];
-                                                    if (!empty($personal['ape_personal'])) {
-                                                        $nombre_completo .= ' ' . $personal['ape_personal'];
-                                                    }
-                                                    echo $nombre_completo . ' - ' . $personal['dni_personal'] . ' (' . $personal['nom_area'] . ' - ' . $personal['nom_cargo'] . ')' . $origen_texto; 
+                                                    echo $nombre_completo . ' - ' . $personal['dni_personal'] . ' (' . $personal['nom_area'] . ' - ' . $personal['nom_cargo'] . ')'; 
                                                     ?>
                                                 </option>
                                             <?php } ?>

@@ -144,7 +144,6 @@ require_once("../_modelo/m_rol.php");
             if ($usuario_data) {
                 $id_personal = $usuario_data['id_personal'];
                 $nom_personal = $usuario_data['nom_personal'];
-                $ape_personal = $usuario_data['ape_personal'];
                 $dni_personal = $usuario_data['dni_personal'];
                 $nom_area = $usuario_data['nom_area'];
                 $nom_cargo = $usuario_data['nom_cargo'];

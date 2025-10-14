@@ -1,11 +1,9 @@
 <?php
 
 //-----------------------------------------------------------------------
-//-----------------------------------------------------------------------
 function GrabarUsuario($id_personal, $usu, $pass, $est, $roles = array()) 
 {
     include("../_conexion/conexion.php");
-    include("../_conexion/conexion_complemento.php");
     
     // Verificar si ya existe un usuario con el mismo nombre de usuario
     $sql_verificar = "SELECT COUNT(*) as total FROM usuario WHERE usu_usuario = ?";
@@ -17,107 +15,10 @@ function GrabarUsuario($id_personal, $usu, $pass, $est, $roles = array())
     
     if ($fila['total'] > 0) {
         mysqli_close($con);
-        mysqli_close($con_comp);
         return "NO"; // Ya existe
     }
     
-    // Verificar si el personal existe en la base principal
-    $sql_verificar_personal = "SELECT COUNT(*) as total FROM personal WHERE id_personal = ?";
-    $stmt_personal = mysqli_prepare($con, $sql_verificar_personal);
-    mysqli_stmt_bind_param($stmt_personal, "i", $id_personal);
-    mysqli_stmt_execute($stmt_personal);
-    $resultado_personal = mysqli_stmt_get_result($stmt_personal);
-    $fila_personal = mysqli_fetch_assoc($resultado_personal);
-    
-    // Si el personal no existe en la base principal, buscarlo en la complementaria y sincronizarlo
-    if ($fila_personal['total'] == 0) {
-        // Buscar el personal en la base complementaria
-        $sql_comp = "SELECT p.*, a.nom_area, c.nom_cargo 
-                     FROM personal p 
-                     INNER JOIN area a ON p.id_area = a.id_area 
-                     INNER JOIN cargo c ON p.id_cargo = c.id_cargo 
-                     WHERE p.id_personal = ?";
-        $stmt_comp = mysqli_prepare($con_comp, $sql_comp);
-        mysqli_stmt_bind_param($stmt_comp, "i", $id_personal);
-        mysqli_stmt_execute($stmt_comp);
-        $resultado_comp = mysqli_stmt_get_result($stmt_comp);
-        
-        if ($row_comp = mysqli_fetch_assoc($resultado_comp)) {
-            // Verificar/crear área en la base principal
-            $id_area_comp = $row_comp['id_area'];
-            $nom_area = $row_comp['nom_area'];
-            
-            $sql_area = "SELECT id_area FROM area WHERE nom_area = ?";
-            $stmt_area = mysqli_prepare($con, $sql_area);
-            mysqli_stmt_bind_param($stmt_area, "s", $nom_area);
-            mysqli_stmt_execute($stmt_area);
-            $result_area = mysqli_stmt_get_result($stmt_area);
-            
-            if ($row_area = mysqli_fetch_assoc($result_area)) {
-                $id_area_principal = $row_area['id_area'];
-            } else {
-                // Crear el área si no existe
-                $sql_insert_area = "INSERT INTO area (nom_area, est_area) VALUES (?, 1)";
-                $stmt_insert_area = mysqli_prepare($con, $sql_insert_area);
-                mysqli_stmt_bind_param($stmt_insert_area, "s", $nom_area);
-                mysqli_stmt_execute($stmt_insert_area);
-                $id_area_principal = mysqli_insert_id($con);
-            }
-            
-            // Verificar/crear cargo en la base principal
-            $id_cargo_comp = $row_comp['id_cargo'];
-            $nom_cargo = $row_comp['nom_cargo'];
-            
-            $sql_cargo = "SELECT id_cargo FROM cargo WHERE nom_cargo = ?";
-            $stmt_cargo = mysqli_prepare($con, $sql_cargo);
-            mysqli_stmt_bind_param($stmt_cargo, "s", $nom_cargo);
-            mysqli_stmt_execute($stmt_cargo);
-            $result_cargo = mysqli_stmt_get_result($stmt_cargo);
-            
-            if ($row_cargo = mysqli_fetch_assoc($result_cargo)) {
-                $id_cargo_principal = $row_cargo['id_cargo'];
-            } else {
-                // Crear el cargo si no existe
-                $sql_insert_cargo = "INSERT INTO cargo (nom_cargo, est_cargo) VALUES (?, 1)";
-                $stmt_insert_cargo = mysqli_prepare($con, $sql_insert_cargo);
-                mysqli_stmt_bind_param($stmt_insert_cargo, "s", $nom_cargo);
-                mysqli_stmt_execute($stmt_insert_cargo);
-                $id_cargo_principal = mysqli_insert_id($con);
-            }
-            
-            // Ahora insertar el personal en la base principal
-            $nom_personal = $row_comp['nom_personal'];
-            $dni_personal = $row_comp['dni_personal'];
-            $email_personal = $row_comp['email_personal'];
-            $cel_personal = $row_comp['cel_personal'];
-            $act_personal = $row_comp['act_personal'];
-            
-            $sql_insert_personal = "INSERT INTO personal (id_personal, id_area, id_cargo, nom_personal, ape_personal, dni_personal, email_personal, tel_personal, est_personal) 
-                                   VALUES (?, ?, ?, ?, '', ?, ?, ?, ?)";
-            $stmt_insert_personal = mysqli_prepare($con, $sql_insert_personal);
-            mysqli_stmt_bind_param($stmt_insert_personal, "iiissssi", 
-                $id_personal, 
-                $id_area_principal, 
-                $id_cargo_principal, 
-                $nom_personal, 
-                $dni_personal, 
-                $email_personal, 
-                $cel_personal, 
-                $act_personal
-            );
-            
-            if (!mysqli_stmt_execute($stmt_insert_personal)) {
-                mysqli_close($con);
-                mysqli_close($con_comp);
-                return "ERROR_SINCRONIZAR";
-            }
-        } else {
-            mysqli_close($con);
-            mysqli_close($con_comp);
-            return "PERSONAL_NO_ENCONTRADO";
-        }
-    }
-    
+
     // Verificar si el personal ya tiene un usuario asignado
     $sql_verificar_usuario = "SELECT COUNT(*) as total FROM usuario WHERE id_personal = ?";
     $stmt2 = mysqli_prepare($con, $sql_verificar_usuario);
@@ -161,199 +62,104 @@ function GrabarUsuario($id_personal, $usu, $pass, $est, $roles = array())
         return "ERROR";
     }
 }
-
-
-//-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
 function EditarUsuario($id, $usu, $pass, $est, $roles = array())
 {
-    include("../_conexion/conexion.php");
-    include("../_conexion/conexion_complemento.php");
-    
-    // Verificar si ya existe otro usuario con el mismo nombre de usuario
-    $sql_verificar = "SELECT COUNT(*) as total FROM usuario WHERE usu_usuario = ? AND id_usuario != ?";
+    include("../_conexion/conexion.php"); // conexión a la base principal
+
+    // Verificar si ya existe otro usuario con el mismo nombre
+    $sql_verificar = "SELECT COUNT(*) AS total 
+                      FROM usuario 
+                      WHERE usu_usuario = ? AND id_usuario != ?";
     $stmt = mysqli_prepare($con, $sql_verificar);
     mysqli_stmt_bind_param($stmt, "si", $usu, $id);
     mysqli_stmt_execute($stmt);
     $resultado = mysqli_stmt_get_result($stmt);
     $fila = mysqli_fetch_assoc($resultado);
-    
+
     if ($fila['total'] > 0) {
         mysqli_close($con);
-        mysqli_close($con_comp);
-        return "NO"; // Ya existe
+        return "NO"; // Usuario duplicado
     }
-    
-    // Obtener el id_personal del usuario actual para verificar si existe en la base principal
-    $sql_personal_actual = "SELECT id_personal FROM usuario WHERE id_usuario = ?";
-    $stmt_personal = mysqli_prepare($con, $sql_personal_actual);
+
+    // Verificar que el id_personal asociado exista en la base complementaria
+    $sql_personal = "SELECT u.id_personal, 
+                            p.nom_personal, 
+                            p.dni_personal, 
+                            a.nom_area, 
+                            c.nom_cargo
+                     FROM usuario u
+                     LEFT JOIN {$bd_complemento}.personal p ON u.id_personal = p.id_personal
+                     LEFT JOIN {$bd_complemento}.area a ON p.id_area = a.id_area
+                     LEFT JOIN {$bd_complemento}.cargo c ON p.id_cargo = c.id_cargo
+                     WHERE u.id_usuario = ?";
+    $stmt_personal = mysqli_prepare($con, $sql_personal);
     mysqli_stmt_bind_param($stmt_personal, "i", $id);
     mysqli_stmt_execute($stmt_personal);
-    $result_personal = mysqli_stmt_get_result($stmt_personal);
-    
-    if ($row_personal = mysqli_fetch_assoc($result_personal)) {
-        $id_personal = $row_personal['id_personal'];
-        
-        // Verificar si el personal existe en la base principal
-        $sql_verificar_personal = "SELECT COUNT(*) as total FROM personal WHERE id_personal = ?";
-        $stmt_verif = mysqli_prepare($con, $sql_verificar_personal);
-        mysqli_stmt_bind_param($stmt_verif, "i", $id_personal);
-        mysqli_stmt_execute($stmt_verif);
-        $resultado_personal = mysqli_stmt_get_result($stmt_verif);
-        $fila_personal = mysqli_fetch_assoc($resultado_personal);
-        
-        // Si el personal no existe en la base principal, buscarlo en la complementaria y sincronizarlo
-        if ($fila_personal['total'] == 0) {
-            // Buscar el personal en la base complementaria
-            $sql_comp = "SELECT p.*, a.nom_area, c.nom_cargo 
-                         FROM personal p 
-                         INNER JOIN area a ON p.id_area = a.id_area 
-                         INNER JOIN cargo c ON p.id_cargo = c.id_cargo 
-                         WHERE p.id_personal = ?";
-            $stmt_comp = mysqli_prepare($con_comp, $sql_comp);
-            mysqli_stmt_bind_param($stmt_comp, "i", $id_personal);
-            mysqli_stmt_execute($stmt_comp);
-            $resultado_comp = mysqli_stmt_get_result($stmt_comp);
-            
-            if ($row_comp = mysqli_fetch_assoc($resultado_comp)) {
-                // Verificar/crear área en la base principal
-                $id_area_comp = $row_comp['id_area'];
-                $nom_area = $row_comp['nom_area'];
-                
-                $sql_area = "SELECT id_area FROM area WHERE nom_area = ?";
-                $stmt_area = mysqli_prepare($con, $sql_area);
-                mysqli_stmt_bind_param($stmt_area, "s", $nom_area);
-                mysqli_stmt_execute($stmt_area);
-                $result_area = mysqli_stmt_get_result($stmt_area);
-                
-                if ($row_area = mysqli_fetch_assoc($result_area)) {
-                    $id_area_principal = $row_area['id_area'];
-                } else {
-                    // Crear el área si no existe
-                    $sql_insert_area = "INSERT INTO area (nom_area, est_area) VALUES (?, 1)";
-                    $stmt_insert_area = mysqli_prepare($con, $sql_insert_area);
-                    mysqli_stmt_bind_param($stmt_insert_area, "s", $nom_area);
-                    mysqli_stmt_execute($stmt_insert_area);
-                    $id_area_principal = mysqli_insert_id($con);
-                }
-                
-                // Verificar/crear cargo en la base principal
-                $id_cargo_comp = $row_comp['id_cargo'];
-                $nom_cargo = $row_comp['nom_cargo'];
-                
-                $sql_cargo = "SELECT id_cargo FROM cargo WHERE nom_cargo = ?";
-                $stmt_cargo = mysqli_prepare($con, $sql_cargo);
-                mysqli_stmt_bind_param($stmt_cargo, "s", $nom_cargo);
-                mysqli_stmt_execute($stmt_cargo);
-                $result_cargo = mysqli_stmt_get_result($stmt_cargo);
-                
-                if ($row_cargo = mysqli_fetch_assoc($result_cargo)) {
-                    $id_cargo_principal = $row_cargo['id_cargo'];
-                } else {
-                    // Crear el cargo si no existe
-                    $sql_insert_cargo = "INSERT INTO cargo (nom_cargo, est_cargo) VALUES (?, 1)";
-                    $stmt_insert_cargo = mysqli_prepare($con, $sql_insert_cargo);
-                    mysqli_stmt_bind_param($stmt_insert_cargo, "s", $nom_cargo);
-                    mysqli_stmt_execute($stmt_insert_cargo);
-                    $id_cargo_principal = mysqli_insert_id($con);
-                }
-                
-                // Ahora insertar el personal en la base principal
-                $nom_personal = $row_comp['nom_personal'];
-                $dni_personal = $row_comp['dni_personal'];
-                $email_personal = $row_comp['email_personal'];
-                $cel_personal = $row_comp['cel_personal'];
-                $act_personal = $row_comp['act_personal'];
-                
-                $sql_insert_personal = "INSERT INTO personal (id_personal, id_area, id_cargo, nom_personal, ape_personal, dni_personal, email_personal, tel_personal, est_personal) 
-                                       VALUES (?, ?, ?, ?, '', ?, ?, ?, ?)";
-                $stmt_insert_personal = mysqli_prepare($con, $sql_insert_personal);
-                mysqli_stmt_bind_param($stmt_insert_personal, "iiissssi", 
-                    $id_personal, 
-                    $id_area_principal, 
-                    $id_cargo_principal, 
-                    $nom_personal, 
-                    $dni_personal, 
-                    $email_personal, 
-                    $cel_personal, 
-                    $act_personal
-                );
-                
-                if (!mysqli_stmt_execute($stmt_insert_personal)) {
-                    mysqli_close($con);
-                    mysqli_close($con_comp);
-                    return "ERROR_SINCRONIZAR";
-                }
-            } else {
-                mysqli_close($con);
-                mysqli_close($con_comp);
-                return "PERSONAL_NO_ENCONTRADO";
-            }
-        }
+    $res_personal = mysqli_stmt_get_result($stmt_personal);
+
+    if (!mysqli_fetch_assoc($res_personal)) {
+        mysqli_close($con);
+        return "PERSONAL_NO_ENCONTRADO";
     }
-    
-    // Actualizar usuario
+
+    // Actualizar datos del usuario
     if (!empty($pass)) {
-        // Si se proporciona nueva contraseña
-        $sql = "UPDATE usuario SET 
-                usu_usuario = ?, 
-                con_usuario = ?,
-                est_usuario = ? 
-                WHERE id_usuario = ?";
-        $stmt_update = mysqli_prepare($con, $sql);
+        $sql_update = "UPDATE usuario 
+                       SET usu_usuario = ?, 
+                           con_usuario = ?, 
+                           est_usuario = ?
+                       WHERE id_usuario = ?";
+        $stmt_update = mysqli_prepare($con, $sql_update);
         mysqli_stmt_bind_param($stmt_update, "ssii", $usu, $pass, $est, $id);
     } else {
-        // Si no se cambia la contraseña
-        $sql = "UPDATE usuario SET 
-                usu_usuario = ?, 
-                est_usuario = ? 
-                WHERE id_usuario = ?";
-        $stmt_update = mysqli_prepare($con, $sql);
+        $sql_update = "UPDATE usuario 
+                       SET usu_usuario = ?, 
+                           est_usuario = ?
+                       WHERE id_usuario = ?";
+        $stmt_update = mysqli_prepare($con, $sql_update);
         mysqli_stmt_bind_param($stmt_update, "sii", $usu, $est, $id);
     }
-    
-    if (mysqli_stmt_execute($stmt_update)) {
-        // Eliminar roles anteriores
-        $sql_delete_roles = "DELETE FROM usuario_rol WHERE id_usuario = ?";
-        $stmt_delete = mysqli_prepare($con, $sql_delete_roles);
-        mysqli_stmt_bind_param($stmt_delete, "i", $id);
-        mysqli_stmt_execute($stmt_delete);
-        
-        // Asignar nuevos roles
-        if (!empty($roles)) {
-            foreach ($roles as $id_rol) {
-                $sql_rol = "INSERT INTO usuario_rol (id_usuario, id_rol, est_usuario_rol) 
-                           VALUES (?, ?, 1)";
-                $stmt_rol = mysqli_prepare($con, $sql_rol);
-                mysqli_stmt_bind_param($stmt_rol, "ii", $id, $id_rol);
-                mysqli_stmt_execute($stmt_rol);
-            }
-        }
-        
-        mysqli_close($con);
-        mysqli_close($con_comp);
-        return "SI";
-    } else {
-        mysqli_close($con);
-        mysqli_close($con_comp);
-        return "ERROR";
-    }
-}
 
+    if (!mysqli_stmt_execute($stmt_update)) {
+        mysqli_close($con);
+        return "ERROR_UPDATE";
+    }
+
+    // Eliminar roles anteriores
+    $sql_delete_roles = "DELETE FROM usuario_rol WHERE id_usuario = ?";
+    $stmt_delete = mysqli_prepare($con, $sql_delete_roles);
+    mysqli_stmt_bind_param($stmt_delete, "i", $id);
+    mysqli_stmt_execute($stmt_delete);
+
+    // Insertar nuevos roles
+    if (!empty($roles)) {
+        $sql_insert_rol = "INSERT INTO usuario_rol (id_usuario, id_rol, est_usuario_rol) VALUES (?, ?, 1)";
+        $stmt_rol = mysqli_prepare($con, $sql_insert_rol);
+        foreach ($roles as $id_rol) {
+            mysqli_stmt_bind_param($stmt_rol, "ii", $id, $id_rol);
+            mysqli_stmt_execute($stmt_rol);
+        }
+    }
+
+    mysqli_close($con);
+    return "SI";
+}
 //-----------------------------------------------------------------------
 function MostrarUsuario()
 {
     include("../_conexion/conexion.php");
 
     $sqlc = "SELECT u.*, 
-                   p.nom_personal, p.ape_personal, p.dni_personal,
+                   p.nom_personal, 
+                   p.dni_personal,
                    a.nom_area,
                    c.nom_cargo,
                    GROUP_CONCAT(r.nom_rol SEPARATOR ', ') as roles
              FROM usuario u 
-             INNER JOIN personal p ON u.id_personal = p.id_personal
-             INNER JOIN area a ON p.id_area = a.id_area
-             INNER JOIN cargo c ON p.id_cargo = c.id_cargo
+             INNER JOIN {$bd_complemento}.personal p ON u.id_personal = p.id_personal
+             INNER JOIN {$bd_complemento}.area a ON p.id_area = a.id_area
+             INNER JOIN {$bd_complemento}.cargo c ON p.id_cargo = c.id_cargo
              LEFT JOIN usuario_rol ur ON u.id_usuario = ur.id_usuario AND ur.est_usuario_rol = 1
              LEFT JOIN rol r ON ur.id_rol = r.id_rol AND r.est_rol = 1
              GROUP BY u.id_usuario
@@ -370,17 +176,16 @@ function MostrarUsuario()
     
     return $resultado;
 }
-
 //-----------------------------------------------------------------------
 function MostrarUsuarioActivo()
 {
     include("../_conexion/conexion.php");
 
     $sqlc = "SELECT u.*, 
-                   p.nom_personal, p.ape_personal, p.dni_personal,
+                   p.nom_personal, p.dni_personal,
                    GROUP_CONCAT(r.nom_rol SEPARATOR ', ') as roles
              FROM usuario u 
-             INNER JOIN personal p ON u.id_personal = p.id_personal
+             INNER JOIN {$bd_complemento}.personal p ON u.id_personal = p.id_personal
              LEFT JOIN usuario_rol ur ON u.id_usuario = ur.id_usuario AND ur.est_usuario_rol = 1
              LEFT JOIN rol r ON ur.id_rol = r.id_rol AND r.est_rol = 1
              WHERE u.est_usuario = 1 
@@ -398,20 +203,20 @@ function MostrarUsuarioActivo()
     
     return $resultado;
 }
-
 //-----------------------------------------------------------------------
 function ObtenerUsuario($id)
 {
     include("../_conexion/conexion.php");
 
     $sql = "SELECT u.*, 
-                   p.nom_personal, p.ape_personal, p.dni_personal,
+                   p.nom_personal, 
+                   p.dni_personal,
                    a.nom_area,
                    c.nom_cargo
             FROM usuario u 
-            INNER JOIN personal p ON u.id_personal = p.id_personal
-            INNER JOIN area a ON p.id_area = a.id_area
-            INNER JOIN cargo c ON p.id_cargo = c.id_cargo
+            INNER JOIN {$bd_complemento}.personal p ON u.id_personal = p.id_personal
+            INNER JOIN {$bd_complemento}.area a ON p.id_area = a.id_area
+            INNER JOIN {$bd_complemento}.cargo c ON p.id_cargo = c.id_cargo
             WHERE u.id_usuario = ?";
     $stmt = mysqli_prepare($con, $sql);
     mysqli_stmt_bind_param($stmt, "i", $id);
@@ -441,16 +246,16 @@ function ObtenerUsuario($id)
     
     return $usuario;
 }
-
 //-----------------------------------------------------------------------
 function BuscarUsuarioPorNombre($usuario)
 {
     include("../_conexion/conexion.php");
 
     $sql = "SELECT u.*, 
-                   p.nom_personal, p.ape_personal, p.dni_personal
+                   p.nom_personal, 
+                   p.dni_personal
             FROM usuario u 
-            INNER JOIN personal p ON u.id_personal = p.id_personal
+            INNER JOIN {$bd_complemento}.personal p ON u.id_personal = p.id_personal
             WHERE u.usu_usuario = ?";
     $stmt = mysqli_prepare($con, $sql);
     mysqli_stmt_bind_param($stmt, "s", $usuario);
@@ -463,16 +268,15 @@ function BuscarUsuarioPorNombre($usuario)
     
     return $usuario_data;
 }
-
 //-----------------------------------------------------------------------
 function ValidarCredenciales($usuario, $password)
 {
     include("../_conexion/conexion.php");
 
     $sql = "SELECT u.*, 
-                   p.nom_personal, p.ape_personal
+                   p.nom_personal
             FROM usuario u 
-            INNER JOIN personal p ON u.id_personal = p.id_personal
+            INNER JOIN {$bd_complemento}.personal p ON u.id_personal = p.id_personal
             WHERE u.usu_usuario = ? AND u.est_usuario = 1";
     $stmt = mysqli_prepare($con, $sql);
     mysqli_stmt_bind_param($stmt, "s", $usuario);
@@ -501,74 +305,49 @@ function ValidarCredenciales($usuario, $password)
     mysqli_close($con);
     return false;
 }
-
-//-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
 function ObtenerPersonalSinUsuario()
 {
     include("../_conexion/conexion.php");
-    include("../_conexion/conexion_complemento.php");
 
     $resultado = array();
 
-    // Personal sin usuario de la base principal
-    $sql = "SELECT p.id_personal, p.nom_personal, p.ape_personal, p.dni_personal,
-                   a.nom_area, c.nom_cargo, 'Principal' as origen
-            FROM personal p 
-            INNER JOIN area a ON p.id_area = a.id_area 
-            INNER JOIN cargo c ON p.id_cargo = c.id_cargo 
-            LEFT JOIN usuario u ON p.id_personal = u.id_personal
-            WHERE p.est_personal = 1 AND u.id_usuario IS NULL
+    // Personal activo en la base complementaria sin usuario asociado en la principal
+    $sql = "SELECT 
+                p.id_personal, 
+                p.nom_personal, 
+                p.dni_personal,
+                a.nom_area, 
+                c.nom_cargo, 
+                'Inspecciones' AS origen
+            FROM {$bd_complemento}.personal p
+            INNER JOIN {$bd_complemento}.area a ON p.id_area = a.id_area
+            INNER JOIN {$bd_complemento}.cargo c ON p.id_cargo = c.id_cargo
+            LEFT JOIN usuario u 
+                   ON p.id_personal = u.id_personal
+                      OR p.dni_personal = (
+                          SELECT p2.dni_personal 
+                          FROM {$bd_complemento}.personal p2
+                          WHERE p2.id_personal = u.id_personal
+                          LIMIT 1
+                      )
+            WHERE p.act_personal = 1 
+              AND u.id_usuario IS NULL
             ORDER BY p.nom_personal ASC";
+
     $result = mysqli_query($con, $sql);
 
     if (!$result) {
-        error_log("Error en ObtenerPersonalSinUsuario() - Base principal: " . mysqli_error($con));
-    } else {
-        while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
-            $resultado[] = $row;
-        }
+        error_log("Error en ObtenerPersonalSinUsuario(): " . mysqli_error($con));
+        mysqli_close($con);
+        return [];
     }
 
-    // Personal activo sin usuario de la base complementaria (Inspecciones)
-    // Nota: La base complementaria no tiene tabla de usuarios, así que traemos todos los activos
-    $sql_comp = "SELECT p.id_personal, p.nom_personal, '' as ape_personal, p.dni_personal,
-                        a.nom_area, c.nom_cargo, 'Inspecciones' as origen
-                 FROM personal p 
-                 INNER JOIN area a ON p.id_area = a.id_area 
-                 INNER JOIN cargo c ON p.id_cargo = c.id_cargo 
-                 WHERE p.act_personal = 1
-                 ORDER BY p.nom_personal ASC";
-    $result_comp = mysqli_query($con_comp, $sql_comp);
-    
-    if (!$result_comp) {
-        error_log("Error en ObtenerPersonalSinUsuario() - Base Inspecciones: " . mysqli_error($con_comp));
-    } else {
-        while ($row = mysqli_fetch_array($result_comp, MYSQLI_ASSOC)) {
-            // Verificar que este personal de inspecciones no exista ya como usuario en la base principal
-            // usando el DNI como referencia
-            $dni_check = $row['dni_personal'];
-            $sql_check = "SELECT COUNT(*) as total FROM usuario u 
-                         INNER JOIN personal p ON u.id_personal = p.id_personal 
-                         WHERE p.dni_personal = '$dni_check'";
-            $result_check = mysqli_query($con, $sql_check);
-            $row_check = mysqli_fetch_assoc($result_check);
-            
-            // Solo agregar si no existe un usuario con ese DNI en la base principal
-            if ($row_check['total'] == 0) {
-                $resultado[] = $row;
-            }
-        }
+    while ($row = mysqli_fetch_array($result, MYSQLI_ASSOC)) {
+        $resultado[] = $row;
     }
-
-    // Ordenar todo por nombre
-    usort($resultado, function($a, $b) {
-        return strcmp($a['nom_personal'], $b['nom_personal']);
-    });
 
     mysqli_close($con);
-    mysqli_close($con_comp);
-    
     return $resultado;
 }
 

@@ -25,7 +25,7 @@
                                 <label class="control-label col-md-3 col-sm-3 ">Personal:</label>
                                 <div class="col-md-9 col-sm-9 ">
                                     <div class="form-control-static">
-                                        <?php echo $nom_personal . ' ' . $ape_personal . ' - ' . $dni_personal . ' (' . $nom_area . ' - ' . $nom_cargo . ')'; ?>
+                                        <?php echo $nom_personal  . ' - ' . $dni_personal . ' (' . $nom_area . ' - ' . $nom_cargo . ')'; ?>
                                     </div>
                                     <small class="form-text text-muted">El personal asociado no se puede cambiar desde esta vista</small>
                                 </div>
