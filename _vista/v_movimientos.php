@@ -72,22 +72,23 @@
                                         <td>
                                             <?php
                                             switch (intval($mov['tipo_orden'])) {
-                                                case 1: echo '<span class="badge badge-info badge_size">INGRESO</span>'; break;
-                                                case 2: echo '<span class="badge badge-warning badge_size">SALIDA</span>'; break;
-                                                case 3: echo '<span class="badge badge-secondary badge_size">DEVOLUCIÓN</span>'; break;
-                                                case 4: echo '<span class="badge badge-primary badge_size">USO</span>'; break;
-                                                default: echo '<span class="badge badge-light badge_size">OTRO</span>';
+                                                case 1: echo 'INGRESO'; break;
+                                                case 2: echo 'SALIDA'; break;
+                                                case 3: echo 'DEVOLUCIÓN'; break;
+                                                case 4: echo 'USO'; break;
+                                                case 5: echo 'PEDIDO'; break;
+                                                default: echo 'OTRO';
                                             }
                                             ?>
                                         </td>
                                         <td>
                                             <?php 
                                             if ($mov['tipo_movimiento'] == 1) {
-                                                echo '<span class="badge badge-success badge_size">Ingreso</span>';
+                                                echo 'Ingreso';
                                             } elseif ($mov['tipo_movimiento'] == 2) {
-                                                echo '<span class="badge badge-danger badge_size">Salida</span>';
+                                                echo 'Salida';
                                             } else {
-                                                echo '<span class="badge badge-secondary badge_size">Otro</span>';
+                                                echo 'Otro';
                                             }
                                             ?>
                                         </td>

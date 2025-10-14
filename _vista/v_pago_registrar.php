@@ -56,7 +56,9 @@
                     <div class="x_title">
                         <h2>Pagos Registrados</h2>
                         <div class="pull-right">
-                            <button class="btn btn-outline-success btn-sm" data-toggle="modal" data-target="#modalRegistrarPago">
+                            <button
+                                class="btn btn-sm <?php echo ($oc['est_compra'] == 4) ? 'btn-outline-secondary disabled' : 'btn-outline-success'; ?>"
+                                <?php echo ($oc['est_compra'] == 4) ? 'disabled title="Esta compra está cerrada"' : 'data-toggle="modal" data-target="#modalRegistrarPago"'; ?>>
                                 <i class="fa fa-plus"></i> Registrar Pago
                             </button>
                         </div>

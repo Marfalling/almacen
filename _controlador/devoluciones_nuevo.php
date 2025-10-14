@@ -3,6 +3,7 @@
 // CONTROLADORES DE SEGURIDAD PARA DEVOLUCIONES
 // ====================================================================
 require_once("../_conexion/sesion.php");
+require_once("../_conexion/conexion.php");
 
 if (!verificarPermisoEspecifico('crear_devoluciones')) {
     require_once("../_modelo/m_auditoria.php");
@@ -31,7 +32,7 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
             
-            require_once("../_conexion/conexion.php");
+            
             require_once("../_modelo/m_devolucion.php");
             require_once("../_modelo/m_almacen.php");
             require_once("../_modelo/m_ubicacion.php");

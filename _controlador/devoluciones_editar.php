@@ -59,7 +59,7 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
 
             $id_devolucion = intval($_GET['id']);
 
-            // Cargar datos de la salida
+            // Cargar datos de la devolucion
             $devolucion_datos = ConsultarDevolucion($id_devolucion);
             if (empty($devolucion_datos)) {
                 $mostrar_alerta = true;
@@ -77,7 +77,7 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
                 <?php
             }
 
-            // Cargar detalles de la salida
+            // Cargar detalles de la devolucion
             $devolucion_detalles = ConsultarDevolucionDetalle($id_devolucion);
 
             // Cargar datos para el formulario

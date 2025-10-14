@@ -139,7 +139,7 @@
                                                 // Calcular stock disponible actual + cantidad ya asignada
                                                 $stock_actual = ObtenerStockDisponible($detalle['id_producto'], $devolucion_datos[0]['id_almacen'], $devolucion_datos[0]['id_ubicacion']);
                                                 // si el cliente destino es ARCE (id = 1) no se suma la devolución
-                                                if ($devolucion_datos[0]['id_cliente_destino'] == 1) {
+                                                if ($devolucion_datos[0]['id_cliente_destino'] == 9) {
                                                     $stock_con_devolucion = $stock_actual;
                                                 } else {
                                                     // stock actual + cantidad previamente registrada

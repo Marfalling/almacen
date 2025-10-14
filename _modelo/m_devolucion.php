@@ -36,7 +36,7 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $id_cliente_
             
             if (mysqli_query($con, $sql_detalle)) {
                 
-                if ($id_cliente_destino == 1) {
+                if ($id_cliente_destino == 9) {
                     // DEVOLUCIÓN A ARCE → Genera 2 movimientos (traslado a base)
                     
                     // Movimiento 1: RESTA del almacén origen

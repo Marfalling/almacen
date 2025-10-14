@@ -525,9 +525,10 @@ function EliminarDocumento(id_doc) {
                                                                         <i class="fa fa-money"></i>
                                                                     </a>
                                                                 <?php } elseif ($compra['est_compra'] == 4) { ?>
-                                                                    <a href="#"
-                                                                    class="btn btn-outline-success btn-sm disabled"
-                                                                    title="Compra completamente pagada"
+                                                                    <!--debe poder verse la vista pero no registrar nuevos pagos-->
+                                                                    <a href="pago_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
+                                                                    class="btn btn-warning btn-sm"
+                                                                    title="Compra pagada"
                                                                     tabindex="-1" aria-disabled="true">
                                                                         <i class="fa fa-money"></i>
                                                                     </a>

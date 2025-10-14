@@ -40,7 +40,7 @@ if (file_exists($imagenLogo)) {
 }
 
 // Obtener datos de la compra
-$compra_data = ConsultarCompra($id_compra);
+$compra_data = ConsultarCompraPorId($id_compra);
 $compra_detalle = ConsultarCompraDetalle($id_compra);
 
 if (empty($compra_data)) {
@@ -88,6 +88,7 @@ switch($compra['est_compra']) {
     case 1: $estado_texto = 'PENDIENTE'; break;
     case 2: $estado_texto = 'APROBADO'; break;
     case 3: $estado_texto = 'APROBADO'; break;
+    case 4: $estado_texto = 'PAGADO'; break;
     case 0: $estado_texto = 'ANULADO'; break;
     default: $estado_texto = 'DESCONOCIDO';
 }
