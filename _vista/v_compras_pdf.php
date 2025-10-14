@@ -412,7 +412,7 @@ $html = '
             <div class="titulo-section">
                 <div class="titulo-compra">
                     ORDEN COMPRA<br>
-                    C' . $numero_orden . '
+                    C00' . $numero_orden . '
                 </div>
             </div>
         </div>

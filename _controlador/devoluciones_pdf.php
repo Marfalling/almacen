@@ -57,7 +57,7 @@ if (empty($devolucion_data)) {
 $devolucion = $devolucion_data[0];
 
 // Preparar datos para el PDF
-$numero_devolucion = str_pad($devolucion['id_devolucion'], 6, '0', STR_PAD_LEFT);
+$numero_devolucion = $devolucion['id_devolucion'] ?? '';
 $fecha_devolucion = date('d/m/Y H:i', strtotime($devolucion['fec_devolucion']));
 $nom_personal = trim(($devolucion['nom_personal'] ?? '') . ' ' . ($devolucion['ape_personal'] ?? ''));
 $observaciones = $devolucion['obs_devolucion'] ?? 'Sin observaciones especiales';

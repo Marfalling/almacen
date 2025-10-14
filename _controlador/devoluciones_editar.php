@@ -3,6 +3,7 @@
 // DEVOLUCIONES - EDITAR (devoluciones_editar.php)
 //=======================================================================
 require_once("../_conexion/sesion.php");
+require_once("../_conexion/conexion.php");
 
 if (!verificarPermisoEspecifico('editar_devoluciones')) {
     require_once("../_modelo/m_auditoria.php");
@@ -29,8 +30,7 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-            
-            require_once("../_conexion/conexion.php");
+
             require_once("../_modelo/m_devolucion.php");
             require_once("../_modelo/m_uso_material.php");
             require_once("../_modelo/m_almacen.php");

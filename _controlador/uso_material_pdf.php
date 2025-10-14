@@ -57,7 +57,7 @@ if (empty($uso_data)) {
 $uso = $uso_data[0];
 
 // Preparar datos para el PDF
-$numero_uso = str_pad($uso['id_uso_material'], 6, '0', STR_PAD_LEFT);
+$numero_uso = $uso['id_uso_material']?? 'NO ESPECIFICADO';
 $nombre_almacen = $uso['nom_almacen'] ?? 'NO ESPECIFICADO';
 $nombre_obra = $uso['nom_obra'] ?? 'NO ESPECIFICADO';
 $nombre_cliente = $uso['nom_cliente'] ?? 'NO ESPECIFICADO';

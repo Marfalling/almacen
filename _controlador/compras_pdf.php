@@ -57,7 +57,7 @@ if (empty($compra_data)) {
 $compra = $compra_data[0];
 
 // Preparar datos para el PDF
-$numero_orden = str_pad($compra['id_compra'], 6, '0', STR_PAD_LEFT);
+$numero_orden = $compra['id_compra'] ?? 'NO ESPECIFICADO';
 $codigo_pedido = $compra['cod_pedido'] ?? '';
 $nombre_obra = $compra['nom_obra'] ?? 'NO ESPECIFICADO';
 $fecha_compra = date('d/m/Y', strtotime($compra['fec_compra']));

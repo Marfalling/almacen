@@ -57,7 +57,7 @@ if (empty($salida_data)) {
 $salida = $salida_data[0];
 
 // Preparar datos para el PDF
-$numero_salida = str_pad($salida['id_salida'], 6, '0', STR_PAD_LEFT);
+$numero_salida = $salida['id_salida'] ?? 'NO ESPECIFICADO';
 $ndoc_salida = $salida['ndoc_salida'] ?? '';
 $tipo_material = $salida['nom_material_tipo'] ?? 'NO ESPECIFICADO';
 $fecha_salida = date('d/m/Y H:i', strtotime($salida['fec_salida']));

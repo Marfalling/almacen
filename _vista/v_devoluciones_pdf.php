@@ -322,7 +322,7 @@ $html = '
             <div class="titulo-section">
                 <div class="titulo-devolucion">
                     DEVOLUCIÓN<br>
-                    Nº ' . $numero_devolucion . '
+                    D00' . $numero_devolucion . '
                 </div>
             </div>
         </div>

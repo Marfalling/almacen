@@ -50,6 +50,7 @@
                                         <thead>
                                             <tr>
                                                 <th>#</th>
+                                                <th>Código Salida</th>
                                                 <th>Nº Documento</th>
                                                 <th>Tipo Material</th>
                                                 <th>Almacén Origen</th>
@@ -71,6 +72,7 @@
                                             ?>
                                                 <tr>
                                                     <td><?php echo $contador; ?></td>
+                                                    <td><?php echo 'S00' . $salida['id_salida']; ?></td>
                                                     <td><?php echo $salida['ndoc_salida']; ?></td>
                                                     <td><?php echo $salida['nom_material_tipo']; ?></td>
                                                     <td><?php echo $salida['nom_almacen_origen']; ?></td>

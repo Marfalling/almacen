@@ -316,7 +316,7 @@ $html = '
             <div class="titulo-section">
                 <div class="titulo-salida">
                     SALIDA DE MATERIALES<br>
-                    S' . $numero_salida . '
+                    S00' . $numero_salida . '
                 </div>
             </div>
         </div>

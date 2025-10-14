@@ -279,6 +279,7 @@
                                                 <thead>
                                                     <tr>
                                                         <th>#</th>
+                                                        <th>Código Ingreso</th>
                                                         <th>Tipo</th>
                                                         <th>N° Documento</th>
                                                         <th>Origen/Proveedor</th>
@@ -307,7 +308,17 @@
                                                     ?>
                                                         <tr>
                                                             <td><?php echo $contador; ?></td>
-                                                            
+                                                            <td>
+                                                                <strong>
+                                                                    I00<?php
+                                                                        if ($tipo == 'COMPRA') {
+                                                                            echo $id_compra;
+                                                                        } else {
+                                                                            echo $ingreso['id_ingreso'];
+                                                                        }
+                                                                    ?>
+                                                                </strong>
+                                                            </td>
                                                             <!-- COLUMNA: TIPO -->
                                                             <td>
                                                                 <?php if ($tipo == 'COMPRA') { ?>

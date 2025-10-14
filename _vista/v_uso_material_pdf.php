@@ -291,7 +291,7 @@ $html = '
             <div class="titulo-section">
                 <div class="uso-box">
                     USO DE MATERIAL<br>
-                    U' . $numero_uso . '
+                    U00' . $numero_uso . '
                 </div>
             </div>
         </div>

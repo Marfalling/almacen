@@ -101,7 +101,7 @@ function AnularUso(id_uso_material) {
                                         <thead>
                                             <tr>
                                                 <th>#</th>
-                                                <th>N° Uso</th>
+                                                <th>Código Uso</th>
                                                 <th>Almacén</th>
                                                 <th>Ubicación</th>
                                                 <th>Obra</th>
@@ -121,7 +121,7 @@ function AnularUso(id_uso_material) {
                                             ?>
                                                 <tr>
                                                     <td><?php echo $contador; ?></td>
-                                                    <td><?php echo $uso['id_uso_material']; ?></td>
+                                                    <td><?php echo 'U00' . $uso['id_uso_material']; ?></td>
                                                     <td><?php echo $uso['nom_almacen']; ?></td>
                                                     <td><?php echo $uso['nom_ubicacion']; ?></td>
                                                     <td><?php echo $uso['nom_obra']; ?></td>
