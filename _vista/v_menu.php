@@ -345,7 +345,7 @@ require_once("../_conexion/sesion.php");
               <?php endif; ?>
 
               <!-- Pedidos -->
-              <?php if (tieneAccesoModulo('Centro de Costo')): ?>
+              <?php if (tieneAccesoModulo('centro de costo')): ?>
               <li>
                 <a>Pedidos<span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
@@ -356,9 +356,9 @@ require_once("../_conexion/sesion.php");
               </li>
               <?php endif; ?>
 
-            </ul> <!-- 🔹 cierre del ul del menú Mantenimiento -->
-          </li> <!-- 🔹 cierre del li de Mantenimiento -->
-          <?php endif; ?> <!-- 🔹 cierre del if ($acceso_mantenimiento) -->
+            </ul> <!--  cierre del ul del menú Mantenimiento -->
+          </li> <!--  cierre del li de Mantenimiento -->
+          <?php endif; ?> <!--  cierre del if ($acceso_mantenimiento) -->
 
           <!-- AUDITORÍA -->
           <?php if (verificarPermisoEspecifico('ver_auditoria')): ?>

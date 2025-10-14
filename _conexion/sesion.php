@@ -176,7 +176,17 @@ function verificarAccesoControlador($nombre_controlador) {
         // ==================== MONEDA ====================
         'moneda_mostrar' => 'ver_moneda',
         'moneda_nuevo' => 'crear_moneda',
-        'moneda_editar' => 'editar_moneda'
+        'moneda_editar' => 'editar_moneda',
+
+        // ==================== DETRACCIÓN ====================
+        'detraccion_mostrar' => 'ver_detraccion',
+        'detraccion_nuevo' => 'crear_detraccion',
+        'detraccion_editar' => 'editar_detraccion',
+        
+        // ==================== CENTRO DE COSTO ====================
+        'centro_costo_mostrar' => 'ver_centro de costo',
+        'centro_costo_nuevo' => 'crear_centro de costo',
+        'centro_costo_editar' => 'editar_centro de costo'
     ];
     
     if (isset($mapeo_permisos[$nombre_controlador])) {
