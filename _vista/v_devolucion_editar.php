@@ -88,14 +88,14 @@
                             <div class="form-group row">
                                 <label class="control-label col-md-3">Cliente destino <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9">
-                                    <select id="id_cliente_destino" name="id_cliente_destino" class="form-control" required>
+                                    <select 
+                                        id="id_cliente_destino" 
+                                        name="id_cliente_destino" 
+                                        class="form-control" 
+                                        required
+                                        data-cliente-actual="<?php echo $id_cliente_actual; ?>"
+                                    >
                                         <option value="">Seleccionar Cliente</option>
-                                        <?php foreach ($clientes as $cliente) { ?>
-                                            <option value="<?php echo $cliente['id_cliente']; ?>"
-                                                <?php echo ($cliente['id_cliente'] == $devolucion_datos[0]['id_cliente_destino']) ? 'selected' : ''; ?>>
-                                                <?php echo $cliente['nom_cliente']; ?>
-                                            </option>
-                                        <?php } ?>
                                     </select>
                                 </div>
                             </div>
@@ -231,6 +231,8 @@
         </div>
     </div>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
 
@@ -577,4 +579,61 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 
+</script>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAlmacen = document.getElementById('id_almacen');
+    const selectCliente = document.getElementById('id_cliente_destino');
+    const clienteActual = selectCliente.dataset.clienteActual;
+
+    // 🔹 Cargar clientes por almacén
+    function cargarClientes(idAlmacen, clienteSeleccionado = null) {
+        selectCliente.innerHTML = '<option value="">Seleccionar Cliente</option>';
+        if (!idAlmacen) return;
+
+        fetch('../_controlador/clientes_por_almacen.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'id_almacen=' + idAlmacen
+        })
+        .then(res => res.json())
+        .then(data => {
+            let tieneArce = false;
+
+            data.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id_cliente;
+                opt.textContent = c.nom_cliente;
+                if (String(c.id_cliente) === String(clienteSeleccionado)) {
+                    opt.selected = true;
+                }
+                selectCliente.appendChild(opt);
+                if (parseInt(c.id_cliente) === 9) tieneArce = true;
+            });
+
+            // Agregar cliente ARCE si no está
+            if (!tieneArce) {
+                const optArce = document.createElement('option');
+                optArce.value = 9;
+                optArce.textContent = 'ARCE';
+                if (String(clienteSeleccionado) === '9') optArce.selected = true;
+                selectCliente.appendChild(optArce);
+            }
+        })
+        .catch(err => console.error('Error al cargar clientes:', err));
+    }
+
+    // 🔹 Cuando cambia el almacén
+    selectAlmacen.addEventListener('change', function() {
+        cargarClientes(this.value);
+    });
+
+    // 🔹 Carga inicial automática con el almacén y cliente actual
+    const almacenInicial = selectAlmacen.value;
+    if (almacenInicial) {
+        cargarClientes(almacenInicial, clienteActual);
+    }
+});
 </script>

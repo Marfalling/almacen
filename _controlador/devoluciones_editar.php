@@ -85,7 +85,9 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
             $ubicaciones = MostrarUbicacionesActivas();
             $personal = MostrarPersonal();
             $material_tipos = MostrarMaterialTipoActivos();
-            $clientes = ObtenerClientes(); // <-- lista de clientes para el select
+            $id_almacen_actual = $devolucion_datos[0]['id_almacen'];
+            $id_cliente_actual = $devolucion_datos[0]['id_cliente_destino'] ?? null;
+
 
             //=======================================================================
             // CONTROLADOR 

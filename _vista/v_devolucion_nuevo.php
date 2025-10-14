@@ -85,11 +85,7 @@
                                 <div class="col-md-9">
                                     <select id="id_cliente_destino" name="id_cliente_destino" class="form-control" required>
                                         <option value="">Seleccionar Cliente</option>
-                                        <?php foreach ($clientes as $cliente) { ?>
-                                            <option value="<?php echo $cliente['id_cliente']; ?>">
-                                                <?php echo $cliente['nom_cliente']; ?>
-                                            </option>
-                                        <?php } ?>
+                                        <!-- Los clientes se cargarán dinámicamente según el almacén -->
                                     </select>
                                 </div>
                             </div>
@@ -532,6 +528,44 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+});
+
+document.getElementById('id_almacen').addEventListener('change', function() {
+    const idAlmacen = this.value;
+    const selectCliente = document.getElementById('id_cliente_destino');
+
+    // Limpiar select
+    selectCliente.innerHTML = '<option value="">Seleccionar Cliente</option>';
+
+    if (!idAlmacen) return;
+
+    fetch('../_controlador/clientes_por_almacen.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'id_almacen=' + idAlmacen
+    })
+    .then(response => response.json())
+    .then(data => {
+        let tieneArce = false;
+
+        data.forEach(cliente => {
+            const option = document.createElement('option');
+            option.value = cliente.id_cliente;
+            option.textContent = cliente.nom_cliente;
+            selectCliente.appendChild(option);
+
+            if (parseInt(cliente.id_cliente) === 9) tieneArce = true;
+        });
+
+        // Si ARCE (id_cliente=9) no está en la lista, lo agregamos al final
+        if (!tieneArce) {
+            const optionArce = document.createElement('option');
+            optionArce.value = 9;
+            optionArce.textContent = 'ARCE';
+            selectCliente.appendChild(optionArce);
+        }
+    })
+    .catch(err => console.error('Error al cargar clientes:', err));
 });
 
 </script>

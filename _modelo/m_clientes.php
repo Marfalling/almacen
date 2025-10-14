@@ -136,3 +136,39 @@ function EditarCliente($id_cliente, $nom, $est)
         return "ERROR";
     }
 }
+
+// Función para obtener clientes por almacén
+function MostrarClientesPorAlmacen($id_almacen)
+{
+    include("../_conexion/conexion.php"); // Conexión principal
+
+    $resultado = array();
+    $bd_complemento = "arceperu";
+
+    $id_almacen = intval($id_almacen);
+    if ($id_almacen <= 0) return $resultado;
+
+    // Consulta SQL: clientes activos asociados al almacén
+    $sql = "
+        SELECT c.id_cliente, c.nom_cliente
+        FROM {$bd_complemento}.cliente c
+        INNER JOIN almacen a ON a.id_cliente = c.id_cliente
+        WHERE c.act_cliente = 1
+          AND a.id_almacen = $id_almacen
+        ORDER BY c.nom_cliente ASC
+    ";
+
+    $res = mysqli_query($con, $sql);
+
+    if (!$res) {
+        error_log("Error en MostrarClientesPorAlmacen(): " . mysqli_error($con));
+    } else {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $resultado[] = $row;
+        }
+    }
+
+    mysqli_close($con);
+
+    return $resultado;
+}

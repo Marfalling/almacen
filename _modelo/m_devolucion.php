@@ -51,13 +51,13 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $id_cliente_
                                     )";
                     mysqli_query($con, $sql_mov_resta);
                     
-                    // Movimiento 2: SUMA a ARCE BASE (id_almacen=1, id_ubicacion=1)
+                    // Movimiento 2: SUMA a ARCE BASE (id_almacen=3, id_ubicacion=1)
                     $sql_mov_suma = "INSERT INTO movimiento (
                                         id_personal, id_orden, id_producto, id_almacen, 
                                         id_ubicacion, tipo_orden, tipo_movimiento, 
                                         cant_movimiento, fec_movimiento, est_movimiento
                                     ) VALUES (
-                                        $id_personal, $id_devolucion, $id_producto, 1, 
+                                        $id_personal, $id_devolucion, $id_producto, 3, 
                                         1, 3, 1, 
                                         $cantidad, NOW(), 1
                                     )";
