@@ -15,12 +15,12 @@ function MostrarMovimientos($fecha_inicio = null, $fecha_fin = null) {
     }
 
     $sql = "SELECT m.*, 
-                   p.nom_personal, p.ape_personal,
+                   p.nom_personal,
                    pr.nom_producto,
                    a.nom_almacen,
                    u.nom_ubicacion
             FROM movimiento m
-            LEFT JOIN personal p ON m.id_personal = p.id_personal
+            LEFT JOIN {$bd_complemento}.personal p ON m.id_personal = p.id_personal
             LEFT JOIN producto pr ON m.id_producto = pr.id_producto
             LEFT JOIN almacen a ON m.id_almacen = a.id_almacen
             LEFT JOIN ubicacion u ON m.id_ubicacion = u.id_ubicacion
