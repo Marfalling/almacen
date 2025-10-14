@@ -13,17 +13,16 @@ $sql = "SELECT
             u.usu_usuario,
             u.id_personal,
             p.nom_personal,
-            p.ape_personal,
             c.nom_cargo,
             a.nom_area
         FROM usuario u
-        INNER JOIN personal p ON u.id_personal = p.id_personal
-        INNER JOIN cargo c ON p.id_cargo = c.id_cargo
-        INNER JOIN area a ON p.id_area = a.id_area
+        INNER JOIN {$bd_complemento}.personal p ON u.id_personal = p.id_personal
+        INNER JOIN {$bd_complemento}.cargo c ON p.id_cargo = c.id_cargo
+        INNER JOIN {$bd_complemento}.area a ON p.id_area = a.id_area
         WHERE u.usu_usuario = ? 
         AND u.con_usuario = ? 
         AND u.est_usuario = 1 
-        AND p.est_personal = 1";
+        AND p.act_personal = 1";
 
 $stmt = mysqli_prepare($con, $sql);
 mysqli_stmt_bind_param($stmt, "ss", $usu, $pass);
@@ -34,7 +33,7 @@ $row = mysqli_fetch_array($resultado);
 if ($row != null) {
     $id_usuario = $row['id_usuario'];
     $id_personal = $row['id_personal'];
-    $nom_usuario = $row['nom_personal'] . ' ' . $row['ape_personal'];
+    $nom_usuario = $row['nom_personal'];
     $nom_cargo = $row['nom_cargo'];
     $nom_area = $row['nom_area'];
     
