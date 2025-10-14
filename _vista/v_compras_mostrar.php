@@ -327,7 +327,7 @@ function EliminarDocumento(id_doc) {
                                             ?>
                                                 <tr class="<?php echo $clase_fila; ?>">
                                                     <td><?php echo $contador; ?></td>
-                                                    <td><?php echo 'U00' . $compra['id_compra']; ?></td>
+                                                    <td><?php echo 'C00' . $compra['id_compra']; ?></td>
                                                     <td>
                                                         <a class="btn btn-sm btn-outline-secondary" target="_blank" 
                                                         href="pedido_pdf.php?id=<?php echo $compra['id_pedido']; ?>">

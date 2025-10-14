@@ -69,7 +69,7 @@
                                             ?>
                                                 <tr>
                                                     <td><?php echo $contador; ?></td>
-                                                    <td><?php echo 'U00' . $devolucion['id_devolucion']; ?></td>
+                                                    <td><?php echo 'D00' . $devolucion['id_devolucion']; ?></td>
                                                     <td><?php echo $devolucion['nom_almacen']; ?></td>
                                                     <td><?php echo $devolucion['nom_ubicacion']; ?></td>
                                                     <td><?php echo $devolucion['nom_cliente_destino']; ?></td>
