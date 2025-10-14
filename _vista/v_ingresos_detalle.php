@@ -1,6 +1,6 @@
 <?php
 //=======================================================================
-// VISTA: v_ingresos_detalle.php
+// VISTA: v_ingresos_detalle.php - CORREGIDO
 //=======================================================================
 ?>
 <!-- page content -->
@@ -154,11 +154,10 @@
                                                     foreach ($detalle_ingreso['productos'] as $producto) {
                                                         $cantidad_ingresada = floatval($producto['cantidad_ingresada']) ?: 0;
                                                         $cantidad_pedida = floatval($producto['cant_compra_detalle']);
-                                                        $porcentaje = $cantidad_pedida > 0 ? ($cantidad_ingresada / $cantidad_pedida) * 100 : 0;
                                                         
-                                                        if ($porcentaje >= 100) {
+                                                        if ($cantidad_ingresada >= $cantidad_pedida) {
                                                             $estado_badge = '<span class="badge badge-success badge_size">COMPLETO</span>';
-                                                        } elseif ($porcentaje > 0) {
+                                                        } elseif ($cantidad_ingresada > 0) {
                                                             $estado_badge = '<span class="badge badge-warning badge_size">PARCIAL</span>';
                                                         } else {
                                                             $estado_badge = '<span class="badge badge-warning badge_size">PENDIENTE</span>';
@@ -199,7 +198,7 @@
                         </div>
 
                         
-                        <!-- Historial de Ingresos - VERSIÓN CORREGIDA -->
+                        <!-- Historial de Ingresos -->
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="x_panel">
@@ -277,9 +276,9 @@
                                                     <thead>
                                                         <tr>
                                                             <th style="width: 5%;">#</th>
-                                                            <th style="width: 50%;">Documento</th>
-                                                            <th style="width: 25%;">Fecha de Carga</th>
-                                                            <th style="width: 20%;">Acciones</th>
+                                                            <th style="width: 45%;">Documento</th>
+                                                            <th style="width: 20%;">Fecha de Carga</th>
+                                                            <th style="width: 30%;">Acciones</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -307,6 +306,13 @@
                                                                 title="Descargar">
                                                                     <i class="fa fa-download"></i> Descargar
                                                                 </a>
+                                                                <?php if ($detalle_ingreso['compra']['est_compra'] != 0) { ?>
+                                                                    <button class="btn btn-danger btn-sm" 
+                                                                            onclick="EliminarDocumentoIngreso(<?php echo $doc['id_doc']; ?>)"
+                                                                            title="Eliminar documento">
+                                                                        <i class="fa fa-trash"></i>
+                                                                    </button>
+                                                                <?php } ?>
                                                             </td>
                                                         </tr>
                                                         <?php } ?>
@@ -331,10 +337,29 @@
                                     <a href="ingresos_mostrar.php" class="btn btn-secondary">
                                         <i class="fa fa-arrow-left"></i> Volver al Listado
                                     </a>
-                                    <?php if ($detalle_ingreso['compra']['est_compra'] != 3) { ?>
-                                        <a href="ingresos_verificar.php?id_compra=<?php echo $detalle_ingreso['compra']['id_compra']; ?>" class="btn btn-info">
+                                    <?php 
+                                    //  CALCULAR SI HAY PRODUCTOS PENDIENTES DE INGRESAR
+                                    $hay_pendientes = false;
+                                    foreach ($detalle_ingreso['productos'] as $producto) {
+                                        $cantidad_ingresada = floatval($producto['cantidad_ingresada']) ?: 0;
+                                        $cantidad_pedida = floatval($producto['cant_compra_detalle']);
+                                        if ($cantidad_ingresada < $cantidad_pedida) {
+                                            $hay_pendientes = true;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    //  Mostrar botón solo si la orden NO está anulada Y hay productos pendientes
+                                    if ($detalle_ingreso['compra']['est_compra'] != 0 && $hay_pendientes) { 
+                                    ?>
+                                        <a href="ingresos_verificar.php?id_compra=<?php echo $detalle_ingreso['compra']['id_compra']; ?>" 
+                                        class="btn btn-info">
                                             <i class="fa fa-eye"></i> Verificar Orden
                                         </a>
+                                    <?php } elseif (!$hay_pendientes && $detalle_ingreso['compra']['est_compra'] != 0) { ?>
+                                        <span class="btn btn-success disabled">
+                                            <i class="fa fa-check-circle"></i> Ingreso Completo
+                                        </span>
                                     <?php } ?>
                                     <button type="button" class="btn btn-primary" onclick="window.print()">
                                         <i class="fa fa-print"></i> Imprimir Detalle
@@ -349,7 +374,41 @@
     </div>
 </div>
 <!-- /page content -->
-
+<script>
+    // Función para eliminar documentos en ingresos
+function EliminarDocumentoIngreso(id_doc) {
+    Swal.fire({
+        title: '¿Eliminar documento?',
+        text: "Esta acción no se puede deshacer.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: 'compras_eliminar_documento.php',
+                type: 'POST',
+                data: { id_doc: id_doc },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.tipo_mensaje === 'success') {
+                        Swal.fire('Eliminado', response.mensaje, 'success')
+                        .then(() => location.reload());
+                    } else {
+                        Swal.fire('Error', response.mensaje, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+                }
+            });
+        }
+    });
+}
+</script>
 <style>
 .badge-lg {
     font-size: 14px;

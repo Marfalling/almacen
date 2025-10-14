@@ -3,8 +3,7 @@ require_once("../_conexion/conexion.php");
 
 // Guardar documento para cualquier entidad
 function GuardarDocumento($entidad, $id_entidad, $nombre_archivo, $id_personal = null) {
-    global $con;
-
+    include("../_conexion/conexion.php");
     $entidad = mysqli_real_escape_string($con, $entidad);
     $id_entidad = intval($id_entidad);
     $nombre_archivo = mysqli_real_escape_string($con, $nombre_archivo);
@@ -19,7 +18,8 @@ function GuardarDocumento($entidad, $id_entidad, $nombre_archivo, $id_personal =
 
 // Mostrar documentos de una entidad
 function MostrarDocumentos($entidad, $id_entidad) {
-    global $con;
+    include("../_conexion/conexion.php");
+
 
     $entidad = mysqli_real_escape_string($con, $entidad);
     $id_entidad = intval($id_entidad);
@@ -40,7 +40,8 @@ function MostrarDocumentos($entidad, $id_entidad) {
 
 // Eliminar documento (incluye archivo físico)
 function EliminarDocumento($id_doc) {
-    global $con;
+    include("../_conexion/conexion.php");
+
 
     $id_doc = intval($id_doc);
 

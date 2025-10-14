@@ -44,8 +44,8 @@ try {
     
     if (empty($documentos_ingreso)) {
         echo json_encode([
-            "tipo_mensaje" => "error",
-            "mensaje" => " NO SE PUEDE PROCESAR EL INGRESO SIN DOCUMENTOS.\n\n" .
+            "tipo_mensaje" => "warning", 
+            "mensaje" => " NO PUEDE PROCESAR EL INGRESO SIN DOCUMENTOS.\n\n" .
                         "Debe adjuntar al menos un documento (guía de remisión, factura, etc.) " .
                         "antes de registrar el ingreso de productos.\n\n" .
                         "Por favor, use el botón 'Subir Documento' en la sección correspondiente."
