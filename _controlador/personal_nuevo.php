@@ -10,20 +10,20 @@ if (!verificarPermisoEspecifico('crear_personal')) {
 }
 
 require_once("../_modelo/m_personal.php");
-require_once("../_conexion/conexion_complemento.php");
+require_once("../_conexion/conexion.php");
 
 // OBTENER LISTAS DE ÁREAS Y CARGOS
 function ObtenerAreas() {
-    global $con_comp;
-    $sql = "SELECT id_area, nom_area FROM area WHERE act_area = 1 ORDER BY nom_area";
-    $res = $con_comp->query($sql);
+
+    $sql = "SELECT id_area, nom_area FROM {$bd_complemento}.area WHERE act_area = 1 ORDER BY nom_area";
+    $res = $con->query($sql);
     return $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
 }
 
 function ObtenerCargos() {
-    global $con_comp;
-    $sql = "SELECT id_cargo, nom_cargo FROM cargo WHERE act_cargo = 1 ORDER BY nom_cargo";
-    $res = $con_comp->query($sql);
+
+    $sql = "SELECT id_cargo, nom_cargo FROM {$bd_complemento}.cargo WHERE act_cargo = 1 ORDER BY nom_cargo";
+    $res = $con->query($sql);
     return $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
 }
 

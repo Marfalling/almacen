@@ -30,7 +30,6 @@ $lista_proveedores = obtenerListaProveedores($con);
 // CARDS PRINCIPALES
 // ========================================================================
 $cantidad_productos = obtenerTotalProductos($con);
-//$cantidad_usuarios = obtenerTotalUsuarios($con_complemento);
 $cantidad_almacenes = obtenerTotalAlmacenes($con);
 $cantidad_proveedores = obtenerTotalProveedores($con);
 

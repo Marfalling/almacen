@@ -29,7 +29,6 @@ function GrabarUsuario($id_personal, $usu, $pass, $est, $roles = array())
     
     if ($fila_usuario['total'] > 0) {
         mysqli_close($con);
-        mysqli_close($con_comp);
         return "PERSONAL_YA_ASIGNADO";
     }
     
@@ -54,11 +53,9 @@ function GrabarUsuario($id_personal, $usu, $pass, $est, $roles = array())
         }
         
         mysqli_close($con);
-        mysqli_close($con_comp);
         return "SI";
     } else {
         mysqli_close($con);
-        mysqli_close($con_comp);
         return "ERROR";
     }
 }

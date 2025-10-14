@@ -195,12 +195,6 @@ function obtenerTotalProductos($con) {
     return $result ? $result->fetch_assoc()['total'] : 0;
 }
 
-/*function obtenerTotalUsuarios($con_complemento) {
-    $sql = "SELECT COUNT(*) as total FROM personal WHERE est_personal = 1";
-    $result = $con_complemento->query($sql);
-    return $result ? $result->fetch_assoc()['total'] : 0;
-}*/
-
 function obtenerTotalAlmacenes($con) {
     $sql = "SELECT COUNT(*) as total FROM almacen WHERE est_almacen = 1";
     $result = $con->query($sql);
