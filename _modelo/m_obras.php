@@ -102,7 +102,3 @@ function ActualizarObra($id_obra, $nom, $est) {
 
     return $res ? "SI" : "ERROR";
 }
-?>
-
-
-

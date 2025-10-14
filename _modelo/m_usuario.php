@@ -1,5 +1,4 @@
 <?php
-
 //-----------------------------------------------------------------------
 function GrabarUsuario($id_personal, $usu, $pass, $est, $roles = array()) 
 {

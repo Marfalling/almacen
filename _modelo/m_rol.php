@@ -349,5 +349,4 @@ function EliminarRol($id_rol)
         return "ERROR";
     }
 }
-
 ?>

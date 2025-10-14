@@ -453,5 +453,4 @@ function AnularUsoMaterial($id_uso_material)
         return $e->getMessage();
     }
 }
-
 ?>

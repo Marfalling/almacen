@@ -259,4 +259,3 @@ function BuscarPersonalPorDNI($dni)
     return $row;
 }
 ?>
-
