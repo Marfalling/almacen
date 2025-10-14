@@ -79,7 +79,7 @@
                                                     <td><?php echo $salida['nom_ubicacion_destino']; ?></td>
                                                   <td><?php echo date('d/m/Y', strtotime($salida['fec_req_salida'])); ?></td>
                                                      <td><?php echo date('d/m/Y H:i', strtotime($salida['fec_salida'])); ?></td>
-                                                     <td><?php echo $salida['nom_personal'] . ' ' . $salida['ape_personal']; ?></td>
+                                                     <td><?php echo $salida['nom_personal']; ?></td>
                                                     <td>
                                                         <?php if($salida['est_salida'] == 1) { ?>
                                                             <span class="badge badge-success badge_size">Activo</span>
@@ -176,13 +176,13 @@ foreach($salidas as $salida) {
                             </tr>
                             <tr>
                                 <td><strong>Registrado por:</strong></td>
-                                <td><?php echo $salida_info['nom_personal'] . ' ' . $salida_info['ape_personal']; ?></td>
+                                <td><?php echo $salida_info['nom_personal']; ?></td>
                                 <td><strong>Personal Encargado:</strong></td>
-                                <td><?php echo ($salida_info['nom_encargado'] ? $salida_info['nom_encargado'] . ' ' . $salida_info['ape_encargado'] : 'No especificado'); ?></td>
+                                <td><?php echo ($salida_info['nom_encargado'] ? $salida_info['nom_encargado'] : 'No especificado'); ?></td>
                             </tr>
                             <tr>
                                 <td><strong>Personal que Recibe:</strong></td>
-                                <td><?php echo ($salida_info['nom_recibe'] ? $salida_info['nom_recibe'] . ' ' . $salida_info['ape_recibe'] : 'No especificado'); ?></td>
+                                <td><?php echo ($salida_info['nom_recibe'] ? $salida_info['nom_recibe'] : 'No especificado'); ?></td>
                                 <td colspan="1"></td>
                             </tr>
                             <?php if (!empty($salida_info['obs_salida'])) { ?>

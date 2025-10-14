@@ -126,20 +126,17 @@ function MostrarSalidas()
                 uo.nom_ubicacion as nom_ubicacion_origen,
                 ud.nom_ubicacion as nom_ubicacion_destino,
                 pr.nom_personal, 
-                pr.ape_personal,
                 pe.nom_personal as nom_encargado,
-                pe.ape_personal as ape_encargado,
-                prec.nom_personal as nom_recibe,
-                prec.ape_personal as ape_recibe
+                prec.nom_personal as nom_recibe
              FROM salida s 
              INNER JOIN material_tipo mt ON s.id_material_tipo = mt.id_material_tipo
              INNER JOIN almacen ao ON s.id_almacen_origen = ao.id_almacen
              INNER JOIN almacen ad ON s.id_almacen_destino = ad.id_almacen
              INNER JOIN ubicacion uo ON s.id_ubicacion_origen = uo.id_ubicacion
              INNER JOIN ubicacion ud ON s.id_ubicacion_destino = ud.id_ubicacion
-             INNER JOIN personal pr ON s.id_personal = pr.id_personal
-             LEFT JOIN personal pe ON s.id_personal_encargado = pe.id_personal
-             LEFT JOIN personal prec ON s.id_personal_recibe = prec.id_personal
+             INNER JOIN {$bd_complemento}.personal pr ON s.id_personal = pr.id_personal
+             LEFT JOIN {$bd_complemento}.personal pe ON s.id_personal_encargado = pe.id_personal
+             LEFT JOIN {$bd_complemento}.personal prec ON s.id_personal_recibe = prec.id_personal
              WHERE s.est_salida = 1
              ORDER BY s.fec_salida DESC";
 
@@ -172,20 +169,17 @@ function MostrarSalidasFecha($fecha_inicio = null, $fecha_fin = null)
                 uo.nom_ubicacion as nom_ubicacion_origen,
                 ud.nom_ubicacion as nom_ubicacion_destino,
                 pr.nom_personal, 
-                pr.ape_personal,
                 pe.nom_personal as nom_encargado,
-                pe.ape_personal as ape_encargado,
-                prec.nom_personal as nom_recibe,
-                prec.ape_personal as ape_recibe
+                prec.nom_personal as nom_recibe
              FROM salida s 
              INNER JOIN material_tipo mt ON s.id_material_tipo = mt.id_material_tipo
              INNER JOIN almacen ao ON s.id_almacen_origen = ao.id_almacen
              INNER JOIN almacen ad ON s.id_almacen_destino = ad.id_almacen
              INNER JOIN ubicacion uo ON s.id_ubicacion_origen = uo.id_ubicacion
              INNER JOIN ubicacion ud ON s.id_ubicacion_destino = ud.id_ubicacion
-             INNER JOIN personal pr ON s.id_personal = pr.id_personal
-             LEFT JOIN personal pe ON s.id_personal_encargado = pe.id_personal
-             LEFT JOIN personal prec ON s.id_personal_recibe = prec.id_personal
+             INNER JOIN {$bd_complemento}.personal pr ON s.id_personal = pr.id_personal
+             LEFT JOIN {$bd_complemento}.personal pe ON s.id_personal_encargado = pe.id_personal
+             LEFT JOIN {$bd_complemento}.personal prec ON s.id_personal_recibe = prec.id_personal
              WHERE s.est_salida = 1
              $whereFecha
              ORDER BY s.fec_salida DESC";
@@ -213,20 +207,17 @@ function ConsultarSalida($id_salida)
                 uo.nom_ubicacion as nom_ubicacion_origen,
                 ud.nom_ubicacion as nom_ubicacion_destino,
                 pr.nom_personal, 
-                pr.ape_personal,
                 pe.nom_personal as nom_encargado,
-                pe.ape_personal as ape_encargado,
-                prec.nom_personal as nom_recibe,
-                prec.ape_personal as ape_recibe
+                prec.nom_personal as nom_recibe
              FROM salida s 
              INNER JOIN material_tipo mt ON s.id_material_tipo = mt.id_material_tipo
              INNER JOIN almacen ao ON s.id_almacen_origen = ao.id_almacen
              INNER JOIN almacen ad ON s.id_almacen_destino = ad.id_almacen
              INNER JOIN ubicacion uo ON s.id_ubicacion_origen = uo.id_ubicacion
              INNER JOIN ubicacion ud ON s.id_ubicacion_destino = ud.id_ubicacion
-             INNER JOIN personal pr ON s.id_personal = pr.id_personal
-             LEFT JOIN personal pe ON s.id_personal_encargado = pe.id_personal
-             LEFT JOIN personal prec ON s.id_personal_recibe = prec.id_personal
+             INNER JOIN {$bd_complemento}.personal pr ON s.id_personal = pr.id_personal
+             LEFT JOIN {$bd_complemento}.personal pe ON s.id_personal_encargado = pe.id_personal
+             LEFT JOIN {$bd_complemento}.personal prec ON s.id_personal_recibe = prec.id_personal
              WHERE s.id_salida = $id_salida";
     
     $resc = mysqli_query($con, $sqlc);

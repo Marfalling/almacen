@@ -62,15 +62,15 @@ $ndoc_salida = $salida['ndoc_salida'] ?? '';
 $tipo_material = $salida['nom_material_tipo'] ?? 'NO ESPECIFICADO';
 $fecha_salida = date('d/m/Y H:i', strtotime($salida['fec_salida']));
 $fecha_requerida = date('d/m/Y', strtotime($salida['fec_req_salida']));
-$nom_personal = trim(($salida['nom_personal'] ?? '') . ' ' . ($salida['ape_personal'] ?? ''));
+$nom_personal = trim($salida['nom_personal'] ?? '');
 $observaciones = $salida['obs_salida'] ?? 'Sin observaciones especiales';
 
 // Datos de origen
 $almacen_origen = $salida['nom_almacen_origen'] ?? '';
 $ubicacion_origen = $salida['nom_ubicacion_origen'] ?? '';
 $personal_encargado = '';
-if (!empty($salida['nom_encargado']) && !empty($salida['ape_encargado'])) {
-    $personal_encargado = trim($salida['nom_encargado'] . ' ' . $salida['ape_encargado']);
+if (!empty($salida['nom_encargado'])) {
+    $personal_encargado = trim($salida['nom_encargado']);
 } else {
     $personal_encargado = 'No especificado';
 }
@@ -79,8 +79,8 @@ if (!empty($salida['nom_encargado']) && !empty($salida['ape_encargado'])) {
 $almacen_destino = $salida['nom_almacen_destino'] ?? '';
 $ubicacion_destino = $salida['nom_ubicacion_destino'] ?? '';
 $personal_recibe = '';
-if (!empty($salida['nom_recibe']) && !empty($salida['ape_recibe'])) {
-    $personal_recibe = trim($salida['nom_recibe'] . ' ' . $salida['ape_recibe']);
+if (!empty($salida['nom_recibe'])) {
+    $personal_recibe = trim($salida['nom_recibe']);
 } else {
     $personal_recibe = 'No especificado';
 }

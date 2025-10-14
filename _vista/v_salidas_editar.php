@@ -67,7 +67,7 @@
                                 <label class="control-label col-md-2 col-sm-2">Registrado por:</label>
                                 <div class="col-md-3 col-sm-3">
                                     <input type="text" class="form-control" 
-                                           value="<?php echo $salida_datos[0]['nom_personal'] . ' ' . $salida_datos[0]['ape_personal']; ?>" readonly>
+                                           value="<?php echo $salida_datos[0]['nom_personal']; ?>" readonly>
                                 </div>
                             </div>
 
