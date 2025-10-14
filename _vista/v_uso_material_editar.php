@@ -63,7 +63,7 @@
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Registrado por:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" class="form-control" value="<?php echo $uso['nom_registrado'] . ' ' . $uso['ape_registrado']; ?>" readonly>
+                                    <input type="text" class="form-control" value="<?php echo $uso['nom_registrado']; ?>" readonly>
                                 </div>
                             </div>
 

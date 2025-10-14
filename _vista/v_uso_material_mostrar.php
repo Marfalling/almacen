@@ -127,7 +127,7 @@ function AnularUso(id_uso_material) {
                                                     <td><?php echo $uso['nom_obra']; ?></td>
                                                     <td><?php echo $uso['nom_cliente']; ?></td>
                                                     <td><?php echo $uso['nom_completo_solicitante']; ?></td>
-                                                    <td><?php echo $uso['nom_registrado'] . ' ' . $uso['ape_registrado']; ?></td>
+                                                    <td><?php echo $uso['nom_registrado']; ?></td>
                                                     <td><?php echo date('d/m/Y H:i', strtotime($uso['fec_uso_material'])); ?></td>
                                                     <td>
                                                         <?php if($uso['est_uso_material'] == 2) { ?>

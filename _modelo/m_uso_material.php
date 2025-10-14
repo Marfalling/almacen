@@ -13,19 +13,18 @@ function MostrarUsoMaterial($fecha_inicio = null, $fecha_fin = null)
     
     $sql = "SELECT usm.*, 
                 alm.nom_almacen, 
-                o.nom_obra, 
+                o.nom_subestacion as nom_obra,
                 c.nom_cliente, 
                 u.nom_ubicacion, 
-                per1.nom_personal AS nom_registrado, 
-                per1.ape_personal AS ape_registrado,
-                COALESCE(CONCAT(per2.nom_personal, ' ', per2.ape_personal), '-') AS nom_completo_solicitante
+                per1.nom_personal AS nom_registrado,
+                COALESCE(per2.nom_personal, '-') AS nom_completo_solicitante
             FROM uso_material usm 
             LEFT JOIN almacen alm ON usm.id_almacen = alm.id_almacen 
-            LEFT JOIN obra o ON alm.id_obra = o.id_obra 
-            LEFT JOIN cliente c ON alm.id_cliente = c.id_cliente 
+            LEFT JOIN {$bd_complemento}.subestacion o ON alm.id_obra = o.id_subestacion
+            LEFT JOIN {$bd_complemento}.cliente c ON alm.id_cliente = c.id_cliente 
             LEFT JOIN ubicacion u ON usm.id_ubicacion = u.id_ubicacion 
-            LEFT JOIN personal per1 ON usm.id_personal = per1.id_personal     -- quien registra
-            LEFT JOIN personal per2 ON usm.id_solicitante = per2.id_personal -- solicitante
+            LEFT JOIN {$bd_complemento}.personal per1 ON usm.id_personal = per1.id_personal     -- quien registra
+            LEFT JOIN {$bd_complemento}.personal per2 ON usm.id_solicitante = per2.id_personal -- solicitante
             $where
             ORDER BY usm.fec_uso_material DESC";
     
@@ -48,20 +47,18 @@ function ConsultarUsoMaterial($id_uso_material)
 
     $sql = "SELECT usm.*, 
                 alm.nom_almacen, 
-                o.nom_obra, 
+                o.nom_subestacion as nom_obra,
                 c.nom_cliente, 
                 u.nom_ubicacion, 
                 per1.nom_personal AS nom_registrado, 
-                per1.ape_personal AS ape_registrado,
-                per2.nom_personal AS nom_solicitante,
-                per2.ape_personal AS ape_solicitante
+                per2.nom_personal AS nom_solicitante
             FROM uso_material usm 
             LEFT JOIN almacen alm ON usm.id_almacen = alm.id_almacen 
-            LEFT JOIN obra o ON alm.id_obra = o.id_obra 
-            LEFT JOIN cliente c ON alm.id_cliente = c.id_cliente 
+            LEFT JOIN {$bd_complemento}.subestacion o ON alm.id_obra = o.id_subestacion 
+            LEFT JOIN {$bd_complemento}.cliente c ON alm.id_cliente = c.id_cliente 
             LEFT JOIN ubicacion u ON usm.id_ubicacion = u.id_ubicacion 
-            LEFT JOIN personal per1 ON usm.id_personal = per1.id_personal 
-            LEFT JOIN personal per2 ON usm.id_solicitante = per2.id_personal 
+            LEFT JOIN {$bd_complemento}.personal per1 ON usm.id_personal = per1.id_personal 
+            LEFT JOIN {$bd_complemento}.personal per2 ON usm.id_solicitante = per2.id_personal 
             WHERE usm.id_uso_material = $id_uso_material";
     
     $resc = mysqli_query($con, $sql);

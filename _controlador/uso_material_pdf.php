@@ -63,8 +63,8 @@ $nombre_obra = $uso['nom_obra'] ?? 'NO ESPECIFICADO';
 $nombre_cliente = $uso['nom_cliente'] ?? 'NO ESPECIFICADO';
 $nombre_ubicacion = $uso['nom_ubicacion'] ?? 'NO ESPECIFICADO';
 $fecha_uso = date('d/m/Y H:i', strtotime($uso['fec_uso_material']));
-$nom_registrado = trim(($uso['nom_registrado'] ?? '') . ' ' . ($uso['ape_registrado'] ?? ''));
-$nom_solicitante = trim(($uso['nom_solicitante'] ?? '') . ' ' . ($uso['ape_solicitante'] ?? ''));
+$nom_registrado = trim($uso['nom_registrado'] ?? '');
+$nom_solicitante = trim($uso['nom_solicitante'] ?? '');
 
 // Estado del uso de material
 $estado_texto = '';
