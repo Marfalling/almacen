@@ -25,8 +25,8 @@ function ObtenerDetalleIngresoPorCompra($id_compra)
                 INNER JOIN pedido p ON c.id_pedido = p.id_pedido
                 INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
                 INNER JOIN almacen al ON p.id_almacen = al.id_almacen
-                LEFT JOIN personal pe1 ON c.id_personal = pe1.id_personal
-                LEFT JOIN personal pe2 ON c.id_personal_aprueba = pe2.id_personal
+                LEFT JOIN {$bd_complemento}.personal pe1 ON c.id_personal = pe1.id_personal
+                LEFT JOIN {$bd_complemento}.personal pe2 ON c.id_personal_aprueba = pe2.id_personal
                 WHERE c.id_compra = '$id_compra'";
                 
     $resultado_compra = mysqli_query($con, $sql_compra);
@@ -108,7 +108,7 @@ function ObtenerDetalleIngresoPorCompra($id_compra)
                             prod.nom_producto,
                             prod.cod_material
                         FROM ingreso i
-                        LEFT JOIN personal p ON i.id_personal = p.id_personal
+                        LEFT JOIN {$bd_complemento}.personal p ON i.id_personal = p.id_personal
                         INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso
                         INNER JOIN producto prod ON id2.id_producto = prod.id_producto
                         WHERE i.id_compra = '$id_compra'
@@ -173,8 +173,8 @@ function MostrarComprasAprobadas()
             INNER JOIN almacen al ON p.id_almacen = al.id_almacen
             INNER JOIN ubicacion ub ON p.id_ubicacion = ub.id_ubicacion
             INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
-            LEFT JOIN personal pe1 ON c.id_personal = pe1.id_personal
-            LEFT JOIN personal pe2 ON c.id_personal_aprueba = pe2.id_personal
+            LEFT JOIN {$bd_complemento}.personal pe1 ON c.id_personal = pe1.id_personal
+            LEFT JOIN {$bd_complemento}.personal pe2 ON c.id_personal_aprueba = pe2.id_personal
             WHERE c.est_compra IN (2, 3)  -- Compras aprobadas (2) y cerradas (3)
             ORDER BY c.fec_compra DESC";
             
@@ -862,7 +862,7 @@ function MostrarIngresosDirectos()
             FROM ingreso i
             INNER JOIN almacen a ON i.id_almacen = a.id_almacen
             INNER JOIN ubicacion u ON i.id_ubicacion = u.id_ubicacion
-            LEFT JOIN personal p ON i.id_personal = p.id_personal
+            LEFT JOIN {$bd_complemento}.personal p ON i.id_personal = p.id_personal
             LEFT JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso AND id2.est_ingreso_detalle = 1
             WHERE i.id_compra IS NULL  -- Solo ingresos directos
             AND i.est_ingreso = 1
@@ -895,13 +895,13 @@ function ObtenerDetalleIngresoDirecto($id_ingreso)
                         u.nom_ubicacion,
                         p.nom_personal,
                         c.nom_cliente,
-                        o.nom_obra
+                        o.nom_subestacion as nom_obra
                     FROM ingreso i
                     INNER JOIN almacen a ON i.id_almacen = a.id_almacen
                     INNER JOIN ubicacion u ON i.id_ubicacion = u.id_ubicacion
-                    INNER JOIN obra o ON a.id_obra = o.id_obra
-                    INNER JOIN cliente c ON a.id_cliente = c.id_cliente
-                    LEFT JOIN personal p ON i.id_personal = p.id_personal
+                    INNER JOIN {$bd_complemento}.subestacion o ON a.id_obra = o.id_subestacion
+                    INNER JOIN {$bd_complemento}.cliente c ON a.id_cliente = c.id_cliente
+                    LEFT JOIN {$bd_complemento}.personal p ON i.id_personal = p.id_personal
                     WHERE i.id_ingreso = '$id_ingreso' 
                     AND i.id_compra IS NULL";  
     // ELIMINAR: AND i.est_ingreso = 1  -- No filtrar por estado aquí
@@ -999,8 +999,8 @@ function MostrarTodosLosIngresos()
             INNER JOIN almacen al ON p.id_almacen = al.id_almacen
             INNER JOIN ubicacion ub ON p.id_ubicacion = ub.id_ubicacion
             INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
-            LEFT JOIN personal pe1 ON c.id_personal = pe1.id_personal
-            LEFT JOIN personal pe2 ON c.id_personal_aprueba = pe2.id_personal
+            LEFT JOIN {$bd_complemento}.personal pe1 ON c.id_personal = pe1.id_personal
+            LEFT JOIN {$bd_complemento}.personal pe2 ON c.id_personal_aprueba = pe2.id_personal
             WHERE c.est_compra IN (1, 2, 3, 4)  -- ✅ INCLUYE ESTADO 1 (Pendiente)
             AND c.id_personal_aprueba_tecnica IS NOT NULL
             AND c.id_personal_aprueba_financiera IS NOT NULL
@@ -1015,7 +1015,7 @@ function MostrarTodosLosIngresos()
                 i.fec_ingreso as fecha,
                 i.est_ingreso as estado,
                 CAST(NULL AS CHAR) as cod_pedido, 
-                CONCAT(cl.nom_cliente, ' - ', ob.nom_obra) as origen,
+                CONCAT(cl.nom_cliente, ' - ', ob.nom_subestacion) as origen,
                 pe.nom_personal as registrado_por,
                 NULL as aprobado_por,
                 al.nom_almacen,
@@ -1028,9 +1028,9 @@ function MostrarTodosLosIngresos()
             FROM ingreso i
             INNER JOIN almacen al ON i.id_almacen = al.id_almacen
             INNER JOIN ubicacion ub ON i.id_ubicacion = ub.id_ubicacion
-            INNER JOIN obra ob ON al.id_obra = ob.id_obra
-            INNER JOIN cliente cl ON al.id_cliente = cl.id_cliente
-            LEFT JOIN personal pe ON i.id_personal = pe.id_personal
+            INNER JOIN {$bd_complemento}.subestacion ob ON al.id_obra = ob.id_subestacion
+            INNER JOIN {$bd_complemento}.cliente cl ON al.id_cliente = cl.id_cliente
+            LEFT JOIN {$bd_complemento}.personal pe ON i.id_personal = pe.id_personal
             WHERE i.id_compra IS NULL
             AND i.est_ingreso IN (0, 1)
             
@@ -1100,8 +1100,8 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
             INNER JOIN almacen al ON p.id_almacen = al.id_almacen
             INNER JOIN ubicacion ub ON p.id_ubicacion = ub.id_ubicacion
             INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
-            LEFT JOIN personal pe1 ON c.id_personal = pe1.id_personal
-            LEFT JOIN personal pe2 ON c.id_personal_aprueba = pe2.id_personal
+            LEFT JOIN {$bd_complemento}.personal pe1 ON c.id_personal = pe1.id_personal
+            LEFT JOIN {$bd_complemento}.personal pe2 ON c.id_personal_aprueba = pe2.id_personal
             WHERE c.est_compra IN (1, 2, 3, 4) $whereCompras  -- ✅ INCLUYE ESTADO 1 (Pendiente)
             AND c.id_personal_aprueba_tecnica IS NOT NULL  -- Debe tener aprobación técnica
             AND c.id_personal_aprueba_financiera IS NOT NULL  -- Debe tener aprobación financiera
@@ -1116,7 +1116,7 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
                 i.fec_ingreso as fecha,
                 i.est_ingreso as estado,
                 CAST(NULL AS CHAR) as cod_pedido, 
-                CONCAT(cl.nom_cliente, ' - ', ob.nom_obra) as origen,
+                CONCAT(cl.nom_cliente, ' - ', ob.nom_subestacion) as origen,
                 pe.nom_personal as registrado_por,
                 NULL as aprobado_por,
                 al.nom_almacen,
@@ -1129,9 +1129,9 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
             FROM ingreso i
             INNER JOIN almacen al ON i.id_almacen = al.id_almacen
             INNER JOIN ubicacion ub ON i.id_ubicacion = ub.id_ubicacion
-            INNER JOIN obra ob ON al.id_obra = ob.id_obra
-            INNER JOIN cliente cl ON al.id_cliente = cl.id_cliente
-            LEFT JOIN personal pe ON i.id_personal = pe.id_personal
+            INNER JOIN {$bd_complemento}.subestacion ob ON al.id_obra = ob.id_subestacion
+            INNER JOIN {$bd_complemento}.cliente cl ON al.id_cliente = cl.id_cliente
+            LEFT JOIN {$bd_complemento}.personal pe ON i.id_personal = pe.id_personal
             WHERE i.id_compra IS NULL
               AND i.est_ingreso IN (0, 1)
               $whereDirectos
