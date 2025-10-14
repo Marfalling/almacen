@@ -1,6 +1,5 @@
 <?php
 // _modelo/m_anulaciones.php
-
 /**
  * Anula una orden de compra y revierte items del pedido si es necesario
  */
