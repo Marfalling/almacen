@@ -49,7 +49,7 @@
                                             foreach ($usuarios as $value) {
                                                 $c++;
                                                 $id_usuario = $value['id_usuario'];
-                                                $nombre_completo = $value['nom_personal'] . ' ' . $value['ape_personal'];
+                                                $nombre_completo = $value['nom_personal'];
                                                 $dni = $value['dni_personal'];
                                                 $usu_usuario = $value['usu_usuario'];
                                                 $nom_area = $value['nom_area'];

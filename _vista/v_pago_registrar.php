@@ -90,7 +90,7 @@
                                         <?php endif; ?>
                                     </td>
                                     <td><?php echo date('d/m/Y H:i', strtotime($pago['fecha_reg'])); ?></td>
-                                    <td><?php echo $pago['nom_personal'].' '.$pago['ape_personal']; ?></td>
+                                    <td><?php echo $pago['nom_personal']; ?></td>
                                 </tr>
                                 <?php } ?>
                                 <?php if(empty($pagos)) { ?>
