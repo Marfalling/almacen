@@ -2042,7 +2042,7 @@ function verificarSiGenerarSalida() {
                                 <span class="badge badge-${estadoClase}">${estadoTexto}</span>
                             </p>
                             <p style="margin: 5px 0; font-size: 13px;">
-                                <strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'} ${compra.ape_personal || ''}
+                                <strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'}
                             </p>
                             <p style="margin: 5px 0; font-size: 13px;">
                                 <strong>Plazo Entrega:</strong> ${compra.plaz_compra || 'No especificado'}

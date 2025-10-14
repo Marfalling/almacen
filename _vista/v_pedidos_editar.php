@@ -91,7 +91,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Solicitante:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" class="form-control" value="<?php echo $pedido['nom_personal'] . ' ' . $pedido['ape_personal']; ?>" readonly>
+                                    <input type="text" class="form-control" value="<?php echo $pedido['nom_personal']; ?>" readonly>
                                 </div>
                             </div>
 

@@ -104,10 +104,9 @@ function MostrarPedidos()
     include("../_conexion/conexion_complemento.php");
 
     $sqlc = "SELECT p.*, 
-                COALESCE(obp.nom_obra, oba.nom_obra, 'N/A') as nom_obra,
+                COALESCE(obp.nom_subestacion, oba.nom_subestacion, 'N/A') as nom_obra,
                 COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
                 COALESCE(pr.nom_personal, 'Sin asignar') as nom_personal,
-                COALESCE(pr.ape_personal, '') as ape_personal,
                 COALESCE(a.nom_almacen, 'N/A') as nom_almacen,
                 COALESCE(u.nom_ubicacion, 'N/A') as nom_ubicacion,
                 COALESCE(pt.nom_producto_tipo, 'N/A') as nom_producto_tipo,
@@ -123,12 +122,12 @@ function MostrarPedidos()
                     ELSE 0 
                 END AS tiene_verificados
              FROM pedido p 
-             LEFT JOIN obra obp ON p.id_obra = obp.id_obra AND obp.est_obra = 1
+             LEFT JOIN {$bd_complemento}.subestacion obp ON p.id_obra = obp.id_subestacion AND obp.act_subestacion = 1
              LEFT JOIN almacen a ON p.id_almacen = a.id_almacen AND a.est_almacen = 1
-             LEFT JOIN obra oba ON a.id_obra = oba.id_obra AND oba.est_obra = 1
-             LEFT JOIN cliente c ON a.id_cliente = c.id_cliente AND c.est_cliente = 1
+             LEFT JOIN {$bd_complemento}.subestacion oba ON a.id_obra = oba.id_subestacion AND oba.act_subestacion = 1
+             LEFT JOIN {$bd_complemento}.cliente c ON a.id_cliente = c.id_cliente AND c.act_cliente = 1
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion AND u.est_ubicacion = 1
-             LEFT JOIN personal pr ON p.id_personal = pr.id_personal AND pr.est_personal = 1
+             LEFT JOIN {$bd_complemento}.personal pr ON p.id_personal = pr.id_personal AND pr.act_personal = 1
              LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
              WHERE p.est_pedido IN (0, 1, 2, 3, 4, 5)
              ORDER BY p.fec_pedido DESC";
@@ -176,10 +175,9 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
     }
 
     $sqlc = "SELECT p.*, 
-                COALESCE(obp.nom_obra, oba.nom_obra, 'N/A') as nom_obra,
+                COALESCE(obp.nom_subestacion, oba.nom_subestacion, 'N/A') as nom_obra,
                 COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
                 COALESCE(pr.nom_personal, 'Sin asignar') as nom_personal,
-                COALESCE(pr.ape_personal, '') as ape_personal,
                 COALESCE(a.nom_almacen, 'N/A') as nom_almacen,
                 COALESCE(u.nom_ubicacion, 'N/A') as nom_ubicacion,
                 COALESCE(pt.nom_producto_tipo, 'N/A') as nom_producto_tipo,
@@ -195,12 +193,12 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
                     ELSE 0 
                 END AS tiene_verificados
              FROM pedido p 
-             LEFT JOIN obra obp ON p.id_obra = obp.id_obra AND obp.est_obra = 1
+             LEFT JOIN {$bd_complemento}.subestacion obp ON p.id_obra = obp.id_subestacion AND obp.act_subestacion = 1
              LEFT JOIN almacen a ON p.id_almacen = a.id_almacen AND a.est_almacen = 1
-             LEFT JOIN obra oba ON a.id_obra = oba.id_obra AND oba.est_obra = 1
-             LEFT JOIN cliente c ON a.id_cliente = c.id_cliente AND c.est_cliente = 1
+             LEFT JOIN {$bd_complemento}.subestacion oba ON a.id_obra = oba.id_subestacion AND oba.act_subestacion = 1
+             LEFT JOIN {$bd_complemento}.cliente c ON a.id_cliente = c.id_cliente AND c.act_cliente = 1
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion AND u.est_ubicacion = 1
-             LEFT JOIN personal pr ON p.id_personal = pr.id_personal AND pr.est_personal = 1
+             LEFT JOIN {$bd_complemento}.personal pr ON p.id_personal = pr.id_personal AND pr.act_personal = 1
              LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
              WHERE p.est_pedido IN (0, 1, 2, 3, 4, 5)
              $where_fecha
@@ -277,20 +275,19 @@ function ConsultarPedido($id_pedido)
     include("../_conexion/conexion_complemento.php");
 
     $sqlc = "SELECT p.*, 
-                COALESCE(obp.nom_obra, oba.nom_obra, 'N/A') as nom_obra,
+                COALESCE(obp.nom_subestacion, oba.nom_subestacion, 'N/A') as nom_obra,
                 COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
                 COALESCE(u.nom_ubicacion, 'N/A') as nom_ubicacion,
                 COALESCE(a.nom_almacen, 'N/A') as nom_almacen,
                 COALESCE(pr.nom_personal, 'Sin asignar') as nom_personal,
-                COALESCE(pr.ape_personal, '') as ape_personal,
                 COALESCE(pt.nom_producto_tipo, 'N/A') as nom_producto_tipo
              FROM pedido p 
-             LEFT JOIN obra obp ON p.id_obra = obp.id_obra
+             LEFT JOIN {$bd_complemento}.subestacion obp ON p.id_obra = obp.id_subestacion
              LEFT JOIN almacen a ON p.id_almacen = a.id_almacen
-             LEFT JOIN obra oba ON a.id_obra = oba.id_obra
-             LEFT JOIN cliente c ON a.id_cliente = c.id_cliente
+             LEFT JOIN {$bd_complemento}.subestacion oba ON a.id_obra = oba.id_subestacion
+             LEFT JOIN {$bd_complemento}.cliente c ON a.id_cliente = c.id_cliente
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion
-             LEFT JOIN personal pr ON p.id_personal = pr.id_personal
+             LEFT JOIN {$bd_complemento}.personal pr ON p.id_personal = pr.id_personal
              LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
              WHERE p.id_pedido = ?";
     
@@ -1252,40 +1249,38 @@ function ConsultarPedidoAnulado($id_pedido)
     include("../_conexion/conexion_complemento.php"); // AGREGAR
 
     $sqlc = "SELECT p.*, 
-                COALESCE(obp.nom_obra, oba.nom_obra, 'N/A') as nom_obra,
+                COALESCE(obp.nom_subestacion, oba.nom_subestacion, 'N/A') as nom_obra,
                 COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
                 COALESCE(u.nom_ubicacion, 'N/A') as nom_ubicacion,
                 COALESCE(a.nom_almacen, 'N/A') as nom_almacen,
                 COALESCE(pr.nom_personal, 'Sin asignar') as nom_personal,
-                COALESCE(pr.ape_personal, '') as ape_personal,
                 COALESCE(pt.nom_producto_tipo, 'N/A') as nom_producto_tipo
              FROM pedido p 
-             LEFT JOIN obra obp ON p.id_obra = obp.id_obra
+             LEFT JOIN {$bd_complemento}.subestacion obp ON p.id_obra = obp.id_subestacion
              LEFT JOIN almacen a ON p.id_almacen = a.id_almacen
-             LEFT JOIN obra oba ON a.id_obra = oba.id_obra
-             LEFT JOIN cliente c ON a.id_cliente = c.id_cliente
+             LEFT JOIN {$bd_complemento}.subestacion oba ON a.id_obra = oba.id_subestacion
+             LEFT JOIN {$bd_complemento}.cliente c ON a.id_cliente = c.id_cliente
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion
-             LEFT JOIN personal pr ON p.id_personal = pr.id_personal
+             LEFT JOIN {$bd_complemento}.personal pr ON p.id_personal = pr.id_personal
              LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
              WHERE p.id_pedido = ?";
 
     // Si tu versión de BD tiene columna id_producto_tipo tal cual, mantener pt join como antes.
     // Ajuste: usar la misma consulta que en ConsultarPedido (se sobreescribe el alias correcto más arriba)
     $sqlc = "SELECT p.*, 
-                COALESCE(obp.nom_obra, oba.nom_obra, 'N/A') as nom_obra,
+                COALESCE(obp.nom_subestacion, oba.nom_subestacion, 'N/A') as nom_obra,
                 COALESCE(c.nom_cliente, 'N/A') as nom_cliente,
                 COALESCE(u.nom_ubicacion, 'N/A') as nom_ubicacion,
                 COALESCE(a.nom_almacen, 'N/A') as nom_almacen,
                 COALESCE(pr.nom_personal, 'Sin asignar') as nom_personal,
-                COALESCE(pr.ape_personal, '') as ape_personal,
                 COALESCE(pt.nom_producto_tipo, 'N/A') as nom_producto_tipo
              FROM pedido p 
-             LEFT JOIN obra obp ON p.id_obra = obp.id_obra
+             LEFT JOIN {$bd_complemento}.subestacion obp ON p.id_obra = obp.id_subestacion
              LEFT JOIN almacen a ON p.id_almacen = a.id_almacen
-             LEFT JOIN obra oba ON a.id_obra = oba.id_obra
-             LEFT JOIN cliente c ON a.id_cliente = c.id_cliente
+             LEFT JOIN {$bd_complemento}.subestacion oba ON a.id_obra = oba.id_subestacion
+             LEFT JOIN {$bd_complemento}.cliente c ON a.id_cliente = c.id_cliente
              LEFT JOIN ubicacion u ON p.id_ubicacion = u.id_ubicacion
-             LEFT JOIN personal pr ON p.id_personal = pr.id_personal
+             LEFT JOIN {$bd_complemento}.personal pr ON p.id_personal = pr.id_personal
              LEFT JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
              WHERE p.id_pedido = ?";
     

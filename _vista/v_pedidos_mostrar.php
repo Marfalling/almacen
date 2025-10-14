@@ -88,7 +88,7 @@
                                                     <td><?php echo $pedido['nom_almacen']; ?></td>
                                                     <td><?php echo $pedido['nom_ubicacion']; ?></td>
                                                     <td><?php echo $pedido['nom_centro_costo']; ?></td>
-                                                    <td><?php echo $pedido['nom_personal'] . ' ' . $pedido['ape_personal']; ?></td>
+                                                    <td><?php echo $pedido['nom_personal']; ?></td>
                                                     <td><?php echo date('d/m/Y H:i', strtotime($pedido['fec_pedido'])); ?></td>
                                                     <td><?php echo date('d/m/Y', strtotime($pedido['fec_req_pedido'])); ?></td>
                                                     <td>
