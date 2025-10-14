@@ -114,4 +114,3 @@ function ObtenerArea($id)
     mysqli_close($con);
     return $areas;
 }
-?>
