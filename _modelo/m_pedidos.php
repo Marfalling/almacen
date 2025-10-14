@@ -1548,4 +1548,3 @@ function ObtenerStockProducto($id_producto, $id_almacen = null, $id_ubicacion = 
         'stock_incluye_compromisos' => $stock_incluye_comp
     ];
 }
-?>

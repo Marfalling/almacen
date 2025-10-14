@@ -439,5 +439,3 @@ function ObtenerClientes()
     mysqli_close($con);
     return $resultado;
 }
-
-?>

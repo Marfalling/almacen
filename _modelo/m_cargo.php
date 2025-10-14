@@ -112,4 +112,3 @@ function ObtenerCargo($id)
     mysqli_close($con);
     return $cargo;
 }
-?>

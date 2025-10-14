@@ -180,4 +180,3 @@ function ConsultarCompraPago($id_compra) {
     mysqli_close($con);
     return $compra;
 }
-?>

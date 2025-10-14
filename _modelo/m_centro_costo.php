@@ -136,4 +136,3 @@ function ObtenerNombreCentroCosto($id_centro_costo)
     mysqli_close($con);
     return 'N/A';
 }
-?>

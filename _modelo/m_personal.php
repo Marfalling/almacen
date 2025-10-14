@@ -258,4 +258,3 @@ function BuscarPersonalPorDNI($dni)
     mysqli_close($con);
     return $row;
 }
-?>

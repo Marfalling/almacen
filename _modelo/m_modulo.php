@@ -352,4 +352,3 @@ function ActualizarModuloCompleto($id_modulo, $nom_modulo, $acciones, $est)
         return "ERROR";
     }
 }
-?>

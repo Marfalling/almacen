@@ -434,4 +434,3 @@ function ObtenerComprasProximasVencer($dias_anticipacion = 3)
     mysqli_close($con);
     return $compras;
 }
-?>

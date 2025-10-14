@@ -616,4 +616,3 @@ function TieneSalidaActivaPedido($id_pedido)
     mysqli_close($con);
     return $tiene_salida;
 }
-?>

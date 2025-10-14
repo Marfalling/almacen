@@ -100,4 +100,3 @@ function EditarProductoTipo($id_producto_tipo, $nom, $est)
         return "ERROR";
     }
 }
-?>

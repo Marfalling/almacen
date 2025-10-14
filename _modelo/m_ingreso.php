@@ -1148,6 +1148,3 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
     mysqli_close($con);
     return $todos_ingresos;
 }
-
-
-?>

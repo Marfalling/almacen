@@ -52,5 +52,4 @@ function GrabarAuditoria($id_usuario, $nom_usuario, $accion, $modulo, $descripci
 	return $rpta;
 }
 */
-
 ?>

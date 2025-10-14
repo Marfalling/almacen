@@ -231,4 +231,3 @@ function obtenerTotalCompras($con, $fecha_inicio = null, $fecha_fin = null) {
     $result = $con->query($sql);
     return $result ? $result->fetch_assoc()['total'] : 0;
 }
-?>

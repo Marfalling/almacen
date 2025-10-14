@@ -88,4 +88,3 @@ function EditarMoneda($id_moneda, $nom, $est)
         return "ERROR";
     }
 }
-?>

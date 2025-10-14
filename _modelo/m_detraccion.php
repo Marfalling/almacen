@@ -99,5 +99,3 @@ function EliminarDetraccion($id) {
     mysqli_close($con);
     return $res ? "SI" : "ERROR";
 }
-?>
-

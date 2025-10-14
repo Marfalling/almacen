@@ -137,5 +137,3 @@ function EditarCliente($id_cliente, $nom, $est)
         return "ERROR";
     }
 }
-
-?>

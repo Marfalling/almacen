@@ -202,7 +202,3 @@ function GrabarCuentaProveedorConEstado($id_proveedor, $banco, $id_moneda, $cta_
     mysqli_query($con, $sql);
     mysqli_close($con);
 }
-?>
-
-
-

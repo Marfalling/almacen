@@ -746,5 +746,3 @@ function ObtenerProductosProximosVencer($dias_anticipacion = 30)
     mysqli_close($con);
     return $productos;
 }
-
-?>

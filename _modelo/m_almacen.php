@@ -282,4 +282,3 @@ function ConsultarAlmacenClientes($id_cliente)
     
     return $resultado;
 }
-?>

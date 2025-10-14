@@ -116,4 +116,3 @@ function ObtenerMaterialTipo($id)
         return false;
     }
 }
-?>
