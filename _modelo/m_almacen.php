@@ -154,7 +154,7 @@ function ConsultarAlmacenTotal()
             END) AS Cantidad
     FROM movimiento mov
     INNER JOIN producto   pro ON mov.id_producto   = pro.id_producto
-    INNER JOIN personal   per ON mov.id_personal   = per.id_personal
+    INNER JOIN {$bd_complemento}.personal   per ON mov.id_personal   = per.id_personal
     INNER JOIN almacen    alm ON mov.id_almacen    = alm.id_almacen
         INNER JOIN {$bd_complemento}.cliente    cli ON alm.id_cliente    = cli.id_cliente
         INNER JOIN {$bd_complemento}.subestacion obr ON alm.id_obra       = obr.id_subestacion
@@ -203,7 +203,7 @@ function ConsultarAlmacenArce()
         INNER JOIN producto_tipo  pti ON pro.id_producto_tipo = pti.id_producto_tipo
         INNER JOIN material_tipo mti ON pro.id_material_tipo  = mti.id_material_tipo
         INNER JOIN unidad_medida  umi ON pro.id_unidad_medida = umi.id_unidad_medida
-    INNER JOIN personal   per ON mov.id_personal   = per.id_personal
+    INNER JOIN {$bd_complemento}.personal   per ON mov.id_personal   = per.id_personal
     INNER JOIN almacen    alm ON mov.id_almacen    = alm.id_almacen
         INNER JOIN {$bd_complemento}.cliente    cli ON alm.id_cliente    = cli.id_cliente
         INNER JOIN {$bd_complemento}.subestacion obr ON alm.id_obra       = obr.id_subestacion
@@ -253,7 +253,7 @@ function ConsultarAlmacenClientes($id_cliente)
         INNER JOIN producto_tipo  pti ON pro.id_producto_tipo = pti.id_producto_tipo
         INNER JOIN material_tipo mti ON pro.id_material_tipo  = mti.id_material_tipo
         INNER JOIN unidad_medida  umi ON pro.id_unidad_medida = umi.id_unidad_medida
-    INNER JOIN personal   per ON mov.id_personal   = per.id_personal
+    INNER JOIN {$bd_complemento}.personal   per ON mov.id_personal   = per.id_personal
     INNER JOIN almacen    alm ON mov.id_almacen    = alm.id_almacen
         INNER JOIN {$bd_complemento}.cliente    cli ON alm.id_cliente    = cli.id_cliente
         INNER JOIN {$bd_complemento}.subestacion obr ON alm.id_obra       = obr.id_subestacion
