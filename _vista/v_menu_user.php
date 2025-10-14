@@ -200,7 +200,7 @@ $total_alertas_productos = count($productos_por_vencer);
                             $fecha_venc_formato = date('d/m/Y', strtotime($compra['fecha_vencimiento']));
                         ?>
                         <li class="nav-item alerta-item">
-                            <a class="dropdown-item" href="compras_mostrar.php">
+                            <a class="dropdown-item" href="compras_mostrar.php?abrir_modal=<?php echo $compra['id_compra']; ?>">
                                 <div class="alerta-card <?php echo $clase_urgencia; ?>">
                                     <div class="alerta-badge">
                                         <i class="fa <?php echo $icono; ?>"></i>

@@ -1,5 +1,8 @@
 <script src="../_complemento/js/sweetalert2.min.js"></script>
 <?php
+    // 🔹 VALIDACIÓN: Solo mostrar alertas si hay parámetros válidos en la URL
+    $mostrarAlerta = false;
+    $alertaConfig = [];
     if (isset($_GET['registrado']) && $_GET['registrado'] == 'true') {
         echo '
         <script>

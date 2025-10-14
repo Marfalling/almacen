@@ -22,28 +22,61 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
         <div class="clearfix"></div>
 
         <!-- Información básica del pedido -->
-        <div class="row mb-2">
+        <div class="row mb-3">
             <div class="col-md-12">
                 <div class="x_panel">
-                    <div class="x_title" style="padding: 10px 15px;">
-                        <h2 style="margin: 0; font-size: 18px;">Pedido <small><?php echo $pedido['cod_pedido']; ?></small></h2>
+                    <div class="x_title" style="padding: 10px 15px; background-color: #f8f9fa;">
+                        <h2 style="margin: 0; font-size: 18px;">
+                            <i class="fa fa-info-circle text-primary"></i> 
+                            Información General - Pedido <?php echo $pedido['cod_pedido']; ?>
+                        </h2>
                         <div class="clearfix"></div>
                     </div>
-                    <div class="x_content" style="padding: 10px 15px;">
-                        <div class="row" style="font-size: 13px;">
-                            <div class="col-md-3">
-                                <strong>Código:</strong> <?php echo $pedido['cod_pedido']; ?>
-                            </div>
-                            <div class="col-md-3">
-                                <strong>Nombre:</strong> <?php echo $pedido['nom_pedido']; ?>
-                            </div>
-                            <div class="col-md-3">
-                                <strong>Fecha:</strong> <?php echo date('d/m/Y', strtotime($pedido['fec_req_pedido'])); ?>
-                            </div>
-                            <div class="col-md-3">
-                                <strong>Lugar:</strong> <?php echo $pedido['lug_pedido']; ?>
-                            </div>
-                        </div>
+                    <div class="x_content" style="padding: 15px;">
+                        <table class="table table-bordered" style="font-size: 13px; margin-bottom: 0;">
+                            <tbody>
+                                <tr>
+                                    <td style="width: 20%; background-color: #f8f9fa;"><strong>Código del Pedido:</strong></td>
+                                    <td style="width: 30%;"><?php echo $pedido['cod_pedido']; ?></td>
+                                    <td style="width: 20%; background-color: #f8f9fa;"><strong>Fecha del Pedido:</strong></td>
+                                    <td style="width: 30%;"><?php echo date('d/m/Y H:i', strtotime($pedido['fec_pedido'])); ?></td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #f8f9fa;"><strong>Nombre del Pedido:</strong></td>
+                                    <td><?php echo $pedido['nom_pedido']; ?></td>
+                                    <td style="background-color: #f8f9fa;"><strong>Fecha de Necesidad:</strong></td>
+                                    <td><?php echo date('d/m/Y', strtotime($pedido['fec_req_pedido'])); ?></td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #f8f9fa;"><strong>OT/LCL/LCA:</strong></td>
+                                    <td><?php echo $pedido['ot_pedido']; ?></td>
+                                    <td style="background-color: #f8f9fa;"><strong>Contacto:</strong></td>
+                                    <td><?php echo $pedido['cel_pedido']; ?></td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #f8f9fa;"><strong>Lugar de Entrega:</strong></td>
+                                    <td colspan="3"><?php echo $pedido['lug_pedido']; ?></td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #f8f9fa;"><strong>Almacén:</strong></td>
+                                    <td><?php echo $pedido['nom_almacen']; ?></td>
+                                    <td style="background-color: #f8f9fa;"><strong>Ubicación:</strong></td>
+                                    <td><?php echo $pedido['nom_ubicacion']; ?></td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #f8f9fa;"><strong>Centro de Costos:</strong></td>
+                                    <td><?php echo $pedido['nom_centro_costo']; ?></td>
+                                    <td style="background-color: #f8f9fa;"><strong>Solicitante:</strong></td>
+                                    <td><?php echo $pedido['nom_personal']; ?></td>
+                                </tr>
+                                <?php if (!empty($pedido['acl_pedido'])) { ?>
+                                <tr>
+                                    <td style="background-color: #f8f9fa;"><strong>Aclaraciones:</strong></td>
+                                    <td colspan="3"><?php echo $pedido['acl_pedido']; ?></td>
+                                </tr>
+                                <?php } ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -77,19 +110,8 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                         $observaciones = trim($matches[1]);
                                     }
                                     
-                                    // Parsear requisitos
-                                    $requisitos = $detalle['req_pedido'];
-                                    $sst = $ma = $ca = '';
-                                    
-                                    if (preg_match('/SST:\s*([^|]*)\s*\|/', $requisitos, $matches)) {
-                                        $sst = trim($matches[1]);
-                                    }
-                                    if (preg_match('/MA:\s*([^|]*)\s*\|/', $requisitos, $matches)) {
-                                        $ma = trim($matches[1]);
-                                    }
-                                    if (preg_match('/CA:\s*(.*)$/', $requisitos, $matches)) {
-                                        $ca = trim($matches[1]);
-                                    }
+                                    // Obtener directamente la descripción SST/MA/CA
+                                    $descripcion_sst_completa = !empty($detalle['req_pedido']) ? $detalle['req_pedido'] : '';
 
                                     $esVerificado = !is_null($detalle['cant_fin_pedido_detalle']);
                                     $stockInsuficiente = $detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle'];
@@ -227,11 +249,7 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                     <span style="margin: 0 8px;">|</span>
                                     <strong>Unid:</strong> <?php echo $unidad; ?>
                                     <span style="margin: 0 8px;">|</span>
-                                    <strong>SST:</strong> <?php echo $sst; ?>
-                                    <span style="margin: 0 8px;">|</span>
-                                    <strong>MA:</strong> <?php echo $ma; ?>
-                                    <span style="margin: 0 8px;">|</span>
-                                    <strong>CA:</strong> <?php echo $ca; ?>
+                                    <strong>SST/MA/CA:</strong> <?php echo $descripcion_sst_completa; ?>
                                     
                                     <?php if ($esVerificado) { ?>
                                         <span style="margin: 0 8px;">|</span>
@@ -626,6 +644,7 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                             <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_compra_detalle]" value="<?php echo $item['id_compra_detalle']; ?>">
                                             <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_producto]" value="<?php echo $item['id_producto']; ?>">
                                             <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][cantidad]" value="<?php echo $item['cant_compra_detalle']; ?>">
+                                            <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][es_nuevo]" value="0">
                                             
                                             <div class="row align-items-center">
                                                 <div class="col-md-8">
@@ -1494,21 +1513,23 @@ function verificarSiGenerarSalida() {
         const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
         const itemElement = document.createElement('div');
         
-        // Generar ID único para el item
-        const itemId = modoEditar ? 'nuevo-' + Date.now() : item.idDetalle;
+        const itemId = 'nuevo-' + Date.now();
         itemElement.id = `item-orden-${itemId}`;
         itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
         
         itemElement.innerHTML = `
             <input type="hidden" name="items_orden[${itemId}][id_detalle]" value="${item.idDetalle}">
+            <input type="hidden" name="items_orden[${itemId}][id_pedido_detalle]" value="${item.idDetalle}">
             <input type="hidden" name="items_orden[${itemId}][id_producto]" value="${item.idProducto}">
             <input type="hidden" name="items_orden[${itemId}][cantidad]" value="${item.cantidadVerificada}">
+            <input type="hidden" name="items_orden[${itemId}][es_nuevo]" value="1">
             
             <div class="row align-items-center">
                 <div class="col-md-8">
                     <div style="font-size: 12px;">
                         <div class="mb-1">
                             <strong>Descripción:</strong> ${item.descripcion}
+                            ${modoEditar ? '<span class="badge badge-primary badge-sm ml-1">NUEVO</span>' : ''}
                         </div>
                         <div>
                             <strong>Cantidad:</strong> ${item.cantidadVerificada}
@@ -1547,7 +1568,16 @@ function verificarSiGenerarSalida() {
             </div>
         `;
         
-        contenedorItemsOrden.appendChild(itemElement);
+        // 🔹 CAMBIO CRÍTICO: Insertar ANTES del total
+        const totalElement = document.getElementById('total-orden');
+        if (totalElement) {
+            // Si existe el total, insertar antes de él
+            contenedorItemsOrden.insertBefore(itemElement, totalElement);
+        } else {
+            // Si no existe el total, agregar al final normalmente
+            contenedorItemsOrden.appendChild(itemElement);
+        }
+        
         itemsAgregadosOrden.add(itemId);
         
         if (item.botonOriginal) {
@@ -1563,7 +1593,6 @@ function verificarSiGenerarSalida() {
             actualizarTotalOrden();
         });
 
-        // Configurar botón remover
         const btnRemover = itemElement.querySelector('.btn-remover-item');
         btnRemover.addEventListener('click', function() {
             removerItemDeOrden(itemId, item.botonOriginal);
@@ -2042,7 +2071,7 @@ function verificarSiGenerarSalida() {
                                 <span class="badge badge-${estadoClase}">${estadoTexto}</span>
                             </p>
                             <p style="margin: 5px 0; font-size: 13px;">
-                                <strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'}
+                                <strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'} ${compra.ape_personal || ''}
                             </p>
                             <p style="margin: 5px 0; font-size: 13px;">
                                 <strong>Plazo Entrega:</strong> ${compra.plaz_compra || 'No especificado'}

@@ -145,7 +145,6 @@ if (isset($_REQUEST['actualizar_orden'])) {
     $fecha_orden = $_REQUEST['fecha_orden'];
     $items = $_REQUEST['items_orden'] ?? [];
     
-    // NUEVO: Capturar la detracción
     $id_detraccion = isset($_REQUEST['id_detraccion']) ? intval($_REQUEST['id_detraccion']) : null;
 
     if (empty($proveedor_sel) || empty($moneda_sel) || empty($fecha_orden)) {
@@ -161,6 +160,28 @@ if (isset($_REQUEST['actualizar_orden'])) {
             "text" => "Debe tener al menos un item en la orden"
         ];
     } else {
+        // 🔹 NUEVO: Separar items existentes de items nuevos
+        include("../_conexion/conexion.php");
+        
+        $items_existentes = [];
+        $items_nuevos = [];
+        
+        foreach ($items as $key => $item) {
+            $es_nuevo = isset($item['es_nuevo']) && $item['es_nuevo'] == '1';
+            
+            if ($es_nuevo) {
+                $items_nuevos[] = [
+                    'id_pedido_detalle' => intval($item['id_pedido_detalle']),
+                    'id_producto' => intval($item['id_producto']),
+                    'cantidad' => floatval($item['cantidad']),
+                    'precio_unitario' => floatval($item['precio_unitario'])
+                ];
+            } else {
+                $items_existentes[$key] = $item;
+            }
+        }
+        
+        // 1️⃣ Actualizar items existentes
         $rpta = ActualizarOrdenCompra(
             $id_compra,
             $proveedor_sel,
@@ -170,19 +191,47 @@ if (isset($_REQUEST['actualizar_orden'])) {
             $plazo_entrega,
             $porte,
             $fecha_orden,
-            $items,
+            $items_existentes,
             $id_detraccion  
         );
-
-        if ($rpta == "SI") {
-            header("Location: pedido_verificar.php?id=$id_pedido&success=actualizado");
-            exit;
-        } else {
+        
+        if ($rpta != "SI") {
             $alerta = [
                 "icon" => "error",
                 "title" => "Error",
                 "text" => "Error al actualizar orden: $rpta"
             ];
+        } else {
+            // 2️⃣ Agregar items nuevos
+            foreach ($items_nuevos as $nuevo_item) {
+                $id_producto = $nuevo_item['id_producto'];
+                $cantidad = $nuevo_item['cantidad'];
+                $precio = $nuevo_item['precio_unitario'];
+                $id_pedido_detalle = $nuevo_item['id_pedido_detalle'];
+                
+                // Insertar en compra_detalle
+                $sql_insert = "INSERT INTO compra_detalle (
+                                  id_compra, id_producto, cant_compra_detalle, prec_compra_detalle, est_compra_detalle
+                               ) VALUES (?, ?, ?, ?, 1)";
+                $stmt = $con->prepare($sql_insert);
+                $stmt->bind_param("iidd", $id_compra, $id_producto, $cantidad, $precio);
+                $stmt->execute();
+                $stmt->close();
+                
+                // Marcar pedido_detalle como cerrado (estado 2)
+                $sql_cerrar = "UPDATE pedido_detalle 
+                              SET est_pedido_detalle = 2 
+                              WHERE id_pedido_detalle = ?";
+                $stmt_cerrar = $con->prepare($sql_cerrar);
+                $stmt_cerrar->bind_param("i", $id_pedido_detalle);
+                $stmt_cerrar->execute();
+                $stmt_cerrar->close();
+            }
+            
+            mysqli_close($con);
+            
+            header("Location: pedido_verificar.php?id=$id_pedido&success=actualizado");
+            exit;
         }
     }
 }

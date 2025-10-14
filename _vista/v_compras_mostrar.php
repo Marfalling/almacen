@@ -250,7 +250,36 @@ function EliminarDocumento(id_doc) {
                             <button type="submit" class="btn btn-primary">
                                 <i class="fa fa-search"></i> Consultar
                             </button>
-                        </form>
+                       </form>
+
+                        <!-- Auto-abrir modal desde URL -->
+                        <?php if (isset($_GET['abrir_modal']) && !empty($_GET['abrir_modal'])): ?>
+                        <script>
+                        window.addEventListener('load', function() {
+                            // Esperar a que jQuery esté disponible
+                            (function esperarTodo() {
+                                if (typeof jQuery === 'undefined' || typeof abrirModalEditarOrden === 'undefined') {
+                                    setTimeout(esperarTodo, 200);
+                                    return;
+                                }
+                                
+                                const idCompraAbrir = <?php echo intval($_GET['abrir_modal']); ?>;
+                                console.log('=== TODO LISTO - Abriendo modal para orden:', idCompraAbrir, '===');
+                                
+                                setTimeout(function() {
+                                    abrirModalEditarOrden(idCompraAbrir);
+                                    
+                                    // Limpiar URL sin usar jQuery
+                                    setTimeout(function() {
+                                        const url = new URL(window.location);
+                                        url.searchParams.delete('abrir_modal');
+                                        window.history.replaceState({}, document.title, url.pathname + (url.search || ''));
+                                    }, 1000);
+                                }, 1000);
+                            })();
+                        });
+                        </script>
+                        <?php endif; ?>
 
                         <div class="row">
                             <div class="col-sm-12">
@@ -800,6 +829,18 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
     document.getElementById('edit_direccion_envio').value = orden.denv_compra || '';
     document.getElementById('edit_observaciones_orden').value = orden.obs_compra || '';
     document.getElementById('edit_tipo_porte').value = orden.port_compra || '';
+
+    let inputEliminados = document.getElementById('edit_items_eliminados');
+    if (!inputEliminados) {
+        inputEliminados = document.createElement('input');
+        inputEliminados.type = 'hidden';
+        inputEliminados.name = 'items_eliminados';
+        inputEliminados.id = 'edit_items_eliminados';
+        inputEliminados.value = '';
+        document.getElementById('form-editar-orden-modal').appendChild(inputEliminados);
+    } else {
+        inputEliminados.value = '';
+    }
     
     // Cargar proveedores
     const selectProveedor = document.getElementById('edit_proveedor_orden');
@@ -951,8 +992,21 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    // AGREGAR A LA LISTA DE ELIMINADOS
+                    const inputEliminados = document.getElementById('edit_items_eliminados');
+                    let eliminados = inputEliminados.value ? inputEliminados.value.split(',') : [];
+                    
+                    // Solo agregar si no es un item nuevo (los nuevos tienen prefijo 'nuevo-')
+                    if (!idDetalle.toString().startsWith('nuevo-')) {
+                        eliminados.push(idDetalle);
+                        inputEliminados.value = eliminados.join(',');
+                    }
+                    
+                    // Remover del DOM
                     document.getElementById('edit_item_' + idDetalle).remove();
                     calcularTotalOrdenModal();
+                    
+                    console.log('Items eliminados:', inputEliminados.value);
                 }
             });
         });
@@ -1080,9 +1134,11 @@ document.getElementById('btn-guardar-edicion-orden').addEventListener('click', f
 });
 
 // Limpiar modal al cerrar
-$('#modalEditarOrden').on('hidden.bs.modal', function () {
+document.getElementById('modalEditarOrden').addEventListener('hidden.bs.modal', function () {
     document.getElementById('form-editar-orden-modal').reset();
     document.getElementById('edit_items_container').innerHTML = '';
     document.getElementById('edit_total_orden').innerHTML = '';
 });
+
 </script>
+
