@@ -126,6 +126,16 @@ function AprobarCompraTecnica($id_compra, $id_personal)
 {
     include("../_conexion/conexion.php");
 
+    //  AGREGAR {$bd_complemento} 
+    $sql_validar = "SELECT id_personal FROM {$bd_complemento}.personal WHERE id_personal = '$id_personal'";
+    $res_validar = mysqli_query($con, $sql_validar);
+    
+    if (!$res_validar || mysqli_num_rows($res_validar) == 0) {
+        mysqli_close($con);
+        error_log("Error: id_personal $id_personal no existe en la tabla personal");
+        return false;
+    }
+
     $sql_check = "SELECT c.est_compra, c.id_pedido, c.id_personal_aprueba_tecnica, c.id_personal_aprueba_financiera 
                   FROM compra c 
                   WHERE c.id_compra = '$id_compra'";
@@ -148,11 +158,8 @@ function AprobarCompraTecnica($id_compra, $id_personal)
     $res_update = mysqli_query($con, $sql_update);
 
     if ($res_update) {
-        // Si ya tiene aprobación financiera, cambiar estado a aprobado
         if (!empty($row['id_personal_aprueba_financiera'])) {
             mysqli_query($con, "UPDATE compra SET est_compra = 2 WHERE id_compra = '$id_compra'");
-            
-            // AGREGAR: Verificar si todas las órdenes del pedido están aprobadas
             verificarYCompletarPedido($row['id_pedido'], $con);
         }
     }
@@ -164,6 +171,16 @@ function AprobarCompraTecnica($id_compra, $id_personal)
 function AprobarCompraFinanciera($id_compra, $id_personal)
 {
     include("../_conexion/conexion.php");
+
+    //  AGREGAR {$bd_complemento} 
+    $sql_validar = "SELECT id_personal FROM {$bd_complemento}.personal WHERE id_personal = '$id_personal'";
+    $res_validar = mysqli_query($con, $sql_validar);
+    
+    if (!$res_validar || mysqli_num_rows($res_validar) == 0) {
+        mysqli_close($con);
+        error_log("Error: id_personal $id_personal no existe en la tabla personal");
+        return false;
+    }
 
     $sql_check = "SELECT c.est_compra, c.id_pedido, c.id_personal_aprueba_tecnica, c.id_personal_aprueba_financiera 
                   FROM compra c 
@@ -187,11 +204,8 @@ function AprobarCompraFinanciera($id_compra, $id_personal)
     $res_update = mysqli_query($con, $sql_update);
 
     if ($res_update) {
-        // Si ya tiene aprobación técnica, cambiar estado a aprobado
         if (!empty($row['id_personal_aprueba_tecnica'])) {
             mysqli_query($con, "UPDATE compra SET est_compra = 2 WHERE id_compra = '$id_compra'");
-            
-            // AGREGAR: Verificar si todas las órdenes del pedido están aprobadas
             verificarYCompletarPedido($row['id_pedido'], $con);
         }
     }
@@ -199,6 +213,7 @@ function AprobarCompraFinanciera($id_compra, $id_personal)
     mysqli_close($con);
     return $res_update;
 }
+
 
 function verificarYCompletarPedido($id_pedido, $con = null)
 {
