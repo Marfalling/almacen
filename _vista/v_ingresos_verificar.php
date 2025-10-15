@@ -103,8 +103,7 @@
 
                         </div>
                     </div>
-                    </div>
-
+                </div>
 
                 <?php if (!empty($productos_pendientes)) { ?>
                 <!-- Panel de Productos Pendientes -->
@@ -124,7 +123,7 @@
                     </div>
                     <div class="x_content">
                         
-                        <form id="form-ingreso" class="form-horizontal form-label-left" method="POST" onsubmit="return validarFormulario()">
+                        <form id="form-ingreso" class="form-horizontal form-label-left" method="POST">
                             
                             <div class="row">
                                 <div class="col-sm-12">
@@ -171,8 +170,7 @@
                                                             max="<?php echo $producto['cantidad_pendiente']; ?>"
                                                             step="0.01"
                                                             placeholder=""
-                                                            onchange="validarCantidad(this, <?php echo $producto['cantidad_pendiente']; ?>)"
-                                                            style="">
+                                                            onchange="validarCantidad(this, <?php echo $producto['cantidad_pendiente']; ?>)">
                                                         <input type="hidden" name="productos_seleccionados[]" value="<?php echo $producto['id_producto']; ?>">
                                                     </td>
                                                     <td style="text-align: center;">
@@ -200,55 +198,13 @@
 
                         </form>
                     </div>
-                    <!-- NUEVA SECCIÓN: DOCUMENTOS OBLIGATORIOS -->
-                    <div class="x_panel">
-                        <div class="x_title">
-                            <h2>
-                                <i class="fa fa-file-text-o"></i> Documentos del Ingreso 
-                                <span class="text-danger">*Obligatorio</span>
-                            </h2>
-                            <div class="clearfix"></div>
-                        </div>
-                        <div class="x_content">
-                            <div class="alert alert-info">
-                                <i class="fa fa-info-circle"></i> 
-                                <strong>Importante:</strong> Debe adjuntar el documento (guía) para poder procesar el ingreso.
-                            </div>
-                            
-                            <!-- Formulario de Carga -->
-                            <div class="row mb-3">
-                                <div class="col-md-8">
-                                    <label><strong>Seleccionar Documento:</strong></label>
-                                    <input type="file" id="documento_ingreso" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
-                                    <small class="text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, DOCX (Máx. 5MB)</small>
-                                </div>
-                                <div class="col-md-4">
-                                    <label>&nbsp;</label>
-                                    <button type="button" onclick="subirDocumentoIngreso()" class="btn btn-primary btn-block">
-                                        <i class="fa fa-upload"></i> Subir Documento
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Lista de Documentos Subidos -->
-                            <div id="lista-documentos-ingreso">
-                                <h5><i class="fa fa-folder-open"></i> Documentos Cargados:</h5>
-                                <div id="contenedor-documentos" class="mt-2">
-                                    <div class="alert alert-warning text-center">
-                                        <i class="fa fa-exclamation-triangle"></i> 
-                                        Aún no se han cargado documentos
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <?php } else { ?>
                 <!-- Panel cuando no hay productos pendientes -->
                 <div class="x_panel">
                     <div class="x_title">
-                        <h2>Estado de la Orden <small></small></h2>
+                        <h2>Estado de la Orden</h2>
                         <div class="clearfix"></div>
                     </div>
                     <div class="x_content">
@@ -261,12 +217,109 @@
                 </div>
                 <?php } ?>
             </div>
+
+            <!-- SECCIÓN: DOCUMENTOS OBLIGATORIOS -->
+                <div class="x_panel">
+                    <div class="x_title">
+                        <h2>
+                            <i class="fa fa-file-text-o"></i> Documentos del Ingreso 
+                            <span class="text-danger">*Obligatorio</span>
+                        </h2>
+                        <div class="clearfix"></div>
+                    </div>
+                    <div class="x_content">
+                        <div class="alert alert-info">
+                            <i class="fa fa-info-circle"></i> 
+                            <strong>Importante:</strong> Debe adjuntar al menos un documento (guía) para poder procesar el ingreso.
+                        </div>
+                        
+                        <!-- Formulario de Carga -->
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <label><strong>Seleccionar Documento:</strong></label>
+                                <input type="file" id="documento_ingreso" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                                <small class="text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, DOCX (Máx. 5MB)</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label>&nbsp;</label>
+                                <button type="button" onclick="subirDocumentoIngreso()" class="btn btn-primary btn-block">
+                                    <i class="fa fa-upload"></i> Subir Documento
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Lista de Documentos Subidos -->
+                        <div id="lista-documentos-ingreso">
+                            <h5><i class="fa fa-folder-open"></i> Documentos Cargados:</h5>
+                            <div id="contenedor-documentos" class="mt-2">
+                                <?php if (empty($documentos_ingreso)) { ?>
+                                    <div class="alert alert-warning text-center">
+                                        <i class="fa fa-exclamation-triangle"></i> 
+                                        Aún no se han cargado documentos
+                                    </div>
+                                <?php } else { ?>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-striped table-sm">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 8%;">#</th>
+                                                    <th style="width: 62%;">Archivo</th>
+                                                    <th style="width: 20%;">Fecha</th>
+                                                    <th style="width: 10%;">Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php 
+                                                foreach ($documentos_ingreso as $index => $doc) { 
+                                                    $extension = strtolower(pathinfo($doc['documento'], PATHINFO_EXTENSION));
+                                                    $icono = 'fa-file-o';
+                                                    if ($extension == 'pdf') $icono = 'fa-file-pdf-o';
+                                                    elseif (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) $icono = 'fa-file-image-o';
+                                                    elseif (in_array($extension, ['doc', 'docx'])) $icono = 'fa-file-word-o';
+                                                    elseif (in_array($extension, ['xls', 'xlsx'])) $icono = 'fa-file-excel-o';
+                                                ?>
+                                                <tr>
+                                                    <td class="text-center font-weight-bold"><?php echo $index + 1; ?></td>
+                                                    <td>
+                                                        <a href="../uploads/ingresos/<?php echo $doc['documento']; ?>" target="_blank" class="text-primary">
+                                                            <i class="fa <?php echo $icono; ?>"></i> <?php echo $doc['documento']; ?>
+                                                        </a>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($doc['fec_subida'])); ?></small>
+                                                    </td>
+                                                    <td class="text-center">
+                                                        <button type="button" class="btn btn-danger btn-xs" 
+                                                                onclick="eliminarDocumentoIngreso(<?php echo $doc['id_doc']; ?>)">
+                                                            <i class="fa fa-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                <?php } ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <div class="alert alert-success mt-2 mb-0" style="display: flex; align-items: center; justify-content: center;">
+                                        <i class="fa fa-check-circle" style="font-size: 18px; margin-right: 8px;"></i> 
+                                        <span style="font-size: 14px;">
+                                            <strong><?php echo count($documentos_ingreso); ?></strong> documento(s) adjuntado(s) correctamente
+                                        </span>
+                                    </div>
+                                <?php } ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
         </div>
     </div>
 </div>
-
+<!-- /page content -->
 
 <script>
+// ============================================
+// FUNCIONES PARA MANEJO DE PRODUCTOS
+// ============================================
 function toggleProducto(checkbox) {
     const productId = checkbox.dataset.producto;
     const cantidadInput = document.querySelector(`input[name="cantidades[${productId}]"]`);
@@ -301,14 +354,38 @@ function validarCantidad(input, maxCantidad) {
         });
         input.value = 0.01;
     }
-    
     // Auto-marcar el checkbox si hay cantidad
+
     const productId = input.name.match(/\[(\d+)\]/)[1];
     const checkbox = document.querySelector(`input[data-producto="${productId}"]`);
     checkbox.checked = value > 0;
 }
 
 function procesarIngreso() {
+    // VALIDACIÓN 1: Verificar que hay documentos
+    const contenedorDocs = document.getElementById('contenedor-documentos');
+    const hayDocumentos = contenedorDocs.querySelector('table') !== null;
+    
+    if (!hayDocumentos) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Documentos requeridos',
+            html: '<p><strong>NO PUEDE PROCESAR EL INGRESO SIN DOCUMENTOS.</strong></p>' +
+                  '<p>Debe adjuntar al menos un documento (guía de remisión, factura, etc.) ' +
+                  'antes de registrar el ingreso de productos.</p>' +
+                  '<p>Por favor, use el botón <strong>"Subir Documento"</strong> en la sección correspondiente.</p>',
+            confirmButtonColor: '#dc3545',
+        });
+        
+        document.querySelector('#lista-documentos-ingreso').scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+        
+        return false;
+    }
+    
+    // VALIDACIÓN 2: Productos seleccionados
     const checkboxesSeleccionados = document.querySelectorAll('.producto-checkbox:checked');
     
     if (checkboxesSeleccionados.length === 0) {
@@ -320,8 +397,8 @@ function procesarIngreso() {
         return false;
     }
     
+    // VALIDACIÓN 3: Cantidades válidas
     let cantidadesValidas = true;
-    let productos_con_error = [];
     
     checkboxesSeleccionados.forEach(checkbox => {
         const productId = checkbox.dataset.producto;
@@ -330,7 +407,6 @@ function procesarIngreso() {
         
         if (!cantidad || cantidad <= 0) {
             cantidadesValidas = false;
-            productos_con_error.push(productId);
         }
     });
     
@@ -343,7 +419,7 @@ function procesarIngreso() {
         return false;
     }
     
-    // Confirmación antes de procesar
+    // CONFIRMACIÓN
     Swal.fire({
         title: '¿Confirmar ingreso?',
         text: `¿Está seguro de que desea agregar ${checkboxesSeleccionados.length} producto(s) al stock?`,
@@ -361,7 +437,6 @@ function procesarIngreso() {
 }
 
 function enviarFormularioAjax() {
-    // Mostrar loading
     Swal.fire({
         title: 'Procesando ingreso...',
         text: 'Por favor espere mientras se procesan los productos',
@@ -373,11 +448,9 @@ function enviarFormularioAjax() {
         }
     });
     
-    // Recopilar datos manualmente solo de productos seleccionados
     const formData = new FormData();
     formData.append('id_compra', <?php echo $id_compra; ?>);
     
-    // Solo enviar cantidades de productos seleccionados
     const checkboxesSeleccionados = document.querySelectorAll('.producto-checkbox:checked');
     
     checkboxesSeleccionados.forEach(checkbox => {
@@ -386,126 +459,57 @@ function enviarFormularioAjax() {
         const cantidad = parseFloat(cantidadInput.value) || 0;
         
         if (cantidad > 0) {
+            formData.append(`productos_seleccionados[]`, productId);
             formData.append(`cantidades[${productId}]`, cantidad);
         }
     });
     
-    // Debug: Ver qué datos se están enviando
-    for (let pair of formData.entries()) {
-        console.log(pair[0] + ': ' + pair[1]);
-    }
-    
-    $.ajax({
-        url: 'ingresos_procesar.php',
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        dataType: 'json',
-        success: function(response) {
-            if (response.tipo_mensaje === 'success') {
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Ingreso exitoso!',
-                    text: response.mensaje,
-                    confirmButtonColor: '#28a745',
-                }).then(() => {
-                    window.location.reload();
-                });
-            } else if (response.tipo_mensaje === 'warning') {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Ingreso parcial',
-                    text: response.mensaje,
-                    confirmButtonColor: '#ffc107',
-                }).then(() => {
-                    window.location.reload();
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error en el ingreso',
-                    text: response.mensaje,
-                    confirmButtonColor: '#dc3545',
-                });
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error('Error AJAX:', error);
-            console.error('Status:', status);
-            console.error('Response:', xhr.responseText);
-            
-            // Intentar parsear la respuesta como JSON para mostrar error específico
-            let errorMessage = 'No se pudo conectar con el servidor.';
-            try {
-                const errorResponse = JSON.parse(xhr.responseText);
-                if (errorResponse.mensaje) {
-                    errorMessage = errorResponse.mensaje;
-                }
-            } catch (e) {
-                // Si no se puede parsear como JSON, mostrar texto completo si es corto
-                if (xhr.responseText && xhr.responseText.length < 200) {
-                    errorMessage = xhr.responseText;
-                }
-            }
-            
+    fetch('ingresos_procesar.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.tipo_mensaje === 'success') {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Ingreso exitoso!',
+                text: data.mensaje,
+                confirmButtonColor: '#28a745',
+            }).then(() => {
+                window.location.reload();
+            });
+        } else if (data.tipo_mensaje === 'warning') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Atención',
+                text: data.mensaje,
+                confirmButtonColor: '#ffc107',
+            }).then(() => {
+                window.location.reload();
+            });
+        } else {
             Swal.fire({
                 icon: 'error',
-                title: 'Error de conexión',
-                text: errorMessage,
+                title: 'Error en el ingreso',
+                text: data.mensaje,
                 confirmButtonColor: '#dc3545',
             });
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No se pudo conectar con el servidor',
+            confirmButtonColor: '#dc3545',
+        });
     });
-}
-</script>
-
-<script>
-// Variable global para controlar documentos subidos
-let documentosSubidos = [];
-
-function toggleProducto(checkbox) {
-    const productId = checkbox.dataset.producto;
-    const cantidadInput = document.querySelector(`input[name="cantidades[${productId}]"]`);
-    
-    if (checkbox.checked) {
-        cantidadInput.value = checkbox.dataset.pendiente;
-        cantidadInput.style.backgroundColor = '#fff';
-        cantidadInput.focus();
-    } else {
-        cantidadInput.value = '';
-        cantidadInput.style.backgroundColor = '#f8f9fa';
-    }
-}
-
-function validarCantidad(input, maxCantidad) {
-    const value = parseFloat(input.value);
-    
-    if (value > maxCantidad) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Cantidad inválida',
-            text: `La cantidad ingresada no puede ser mayor a la cantidad pendiente (${maxCantidad})`,
-        });
-        input.value = maxCantidad;
-    }
-    
-    if (value <= 0) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Cantidad inválida',
-            text: 'La cantidad debe ser mayor a 0',
-        });
-        input.value = 0.01;
-    }
-    
-    const productId = input.name.match(/\[(\d+)\]/)[1];
-    const checkbox = document.querySelector(`input[data-producto="${productId}"]`);
-    checkbox.checked = value > 0;
 }
 
 // ============================================
-// NUEVA FUNCIÓN: SUBIR DOCUMENTO
+// FUNCIONES PARA SUBIR Y ELIMINAR DOCUMENTOS
 // ============================================
 function subirDocumentoIngreso() {
     const archivo = document.getElementById('documento_ingreso').files[0];
@@ -519,7 +523,6 @@ function subirDocumentoIngreso() {
         return;
     }
 
-    // Validar tamaño (5MB máximo)
     if (archivo.size > 5242880) {
         Swal.fire({
             icon: 'error',
@@ -529,7 +532,6 @@ function subirDocumentoIngreso() {
         return;
     }
 
-    // Validar extensión
     const extensionesPermitidas = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
     const extension = archivo.name.split('.').pop().toLowerCase();
     
@@ -542,13 +544,11 @@ function subirDocumentoIngreso() {
         return;
     }
 
-    // Preparar FormData
     const formData = new FormData();
     formData.append('entidad', 'ingresos');
     formData.append('id_entidad', <?php echo $id_compra; ?>); 
     formData.append('documento', archivo);
 
-    // Mostrar loading
     Swal.fire({
         title: 'Subiendo documento...',
         text: 'Por favor espere',
@@ -560,272 +560,85 @@ function subirDocumentoIngreso() {
         }
     });
 
-    // Enviar por AJAX
-    $.ajax({
-        url: 'compras_subir_documentos.php',
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        dataType: 'json',
-        success: function(response) {
-            if (response.tipo_mensaje === 'success') {
-                documentosSubidos.push({
-                    nombre: archivo.name,
-                    timestamp: new Date().getTime()
-                });
-                
-                actualizarListaDocumentos();
-                document.getElementById('documento_ingreso').value = '';
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Documento cargado!',
-                    text: response.mensaje,
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error al cargar',
-                    text: response.mensaje,
-                });
-            }
-        },
-        error: function() {
+    fetch('compras_subir_documentos.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.tipo_mensaje === 'success') {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Documento cargado!',
+                text: data.mensaje,
+                timer: 1500,
+                showConfirmButton: false
+            }).then(() => {
+                window.location.reload();
+            });
+        } else {
             Swal.fire({
                 icon: 'error',
-                title: 'Error de conexión',
-                text: 'No se pudo conectar con el servidor',
+                title: 'Error al cargar',
+                text: data.mensaje,
             });
         }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No se pudo conectar con el servidor',
+        });
     });
 }
 
-// ============================================
-// ACTUALIZAR LISTA DE DOCUMENTOS
-// ============================================
-function actualizarListaDocumentos() {
-    const contenedor = document.getElementById('contenedor-documentos');
-    
-    if (documentosSubidos.length === 0) {
-        contenedor.innerHTML = `
-            <div class="alert alert-warning text-center">
-                <i class="fa fa-exclamation-triangle"></i> 
-                Aún no se han cargado documentos
-            </div>
-        `;
-    } else {
-        let html = '<div class="table-responsive"><table class="table table-bordered table-sm">';
-        html += '<thead><tr><th>#</th><th>Archivo</th><th>Estado</th></tr></thead><tbody>';
-        
-        documentosSubidos.forEach((doc, index) => {
-            html += `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td><i class="fa fa-file"></i> ${doc.nombre}</td>
-                    <td><span class="badge badge-success">Cargado</span></td>
-                </tr>
-            `;
-        });
-        
-        html += '</tbody></table></div>';
-        contenedor.innerHTML = html;
-    }
-}
-
-// ============================================
-// PROCESAR INGRESO (MODIFICADA - CON VALIDACIÓN DE DOCUMENTOS)
-// ============================================
-function procesarIngreso() {
-    //  VALIDACIÓN 1: Documentos obligatorios
-    if (documentosSubidos.length === 0) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Documentos requeridos',
-            text: 'Debe cargar al menos un documento (guía, factura, etc.) antes de procesar el ingreso',
-            confirmButtonColor: '#dc3545',
-        });
-        
-        // Scroll hacia la sección de documentos
-        document.querySelector('#lista-documentos-ingreso').scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
-        });
-        
-        return false;
-    }
-
-    // VALIDACIÓN 2: Productos seleccionados
-    const checkboxesSeleccionados = document.querySelectorAll('.producto-checkbox:checked');
-    
-    if (checkboxesSeleccionados.length === 0) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Selección requerida',
-            text: 'Debe marcar al menos un producto para ingresar',
-        });
-        return false;
-    }
-    
-    //  VALIDACIÓN 3: Cantidades válidas
-    let cantidadesValidas = true;
-    
-    checkboxesSeleccionados.forEach(checkbox => {
-        const productId = checkbox.dataset.producto;
-        const cantidadInput = document.querySelector(`input[name="cantidades[${productId}]"]`);
-        const cantidad = parseFloat(cantidadInput.value);
-        
-        if (!cantidad || cantidad <= 0) {
-            cantidadesValidas = false;
-        }
-    });
-    
-    if (!cantidadesValidas) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Cantidades inválidas',
-            text: 'Todos los productos seleccionados deben tener una cantidad válida mayor a 0',
-        });
-        return false;
-    }
-    
-    //  CONFIRMACIÓN
+function eliminarDocumentoIngreso(id_doc) {
     Swal.fire({
-        title: '¿Confirmar ingreso?',
-        html: `
-            <p>¿Está seguro de que desea procesar este ingreso?</p>
-            <div class="text-left mt-3" style="background: #f8f9fa; padding: 15px; border-radius: 5px;">
-                <strong><i class="fa fa-check-circle text-success"></i> Productos a ingresar:</strong> ${checkboxesSeleccionados.length}<br>
-                <strong><i class="fa fa-file text-primary"></i> Documentos adjuntos:</strong> ${documentosSubidos.length}
-            </div>
-        `,
-        icon: 'question',
+        title: '¿Eliminar documento?',
+        text: "Esta acción no se puede deshacer.",
+        icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#28a745',
+        confirmButtonColor: '#d33',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fa fa-check"></i> Sí, procesar ingreso',
+        confirmButtonText: 'Sí, eliminar',
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
-            enviarFormularioAjax();
-        }
-    });
-}
-
-// ============================================
-// ENVIAR FORMULARIO (SIN CAMBIOS)
-// ============================================
-function enviarFormularioAjax() {
-    Swal.fire({
-        title: 'Procesando ingreso...',
-        text: 'Por favor espere mientras se procesan los productos',
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-        showConfirmButton: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-    
-    const formData = new FormData();
-    formData.append('id_compra', <?php echo $id_compra; ?>);
-    
-    const checkboxesSeleccionados = document.querySelectorAll('.producto-checkbox:checked');
-    
-    checkboxesSeleccionados.forEach(checkbox => {
-        const productId = checkbox.dataset.producto;
-        const cantidadInput = document.querySelector(`input[name="cantidades[${productId}]"]`);
-        const cantidad = parseFloat(cantidadInput.value) || 0;
-        
-        if (cantidad > 0) {
-            formData.append(`cantidades[${productId}]`, cantidad);
-        }
-    });
-    
-    $.ajax({
-        url: 'ingresos_procesar.php',
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        dataType: 'json',
-        success: function(response) {
-            if (response.tipo_mensaje === 'success') {
-                Swal.fire({
-                    icon: 'success',
-                    title: '¡Ingreso exitoso!',
-                    text: response.mensaje,
-                    confirmButtonColor: '#28a745',
-                }).then(() => {
-                    window.location.reload();
-                });
-            } else if (response.tipo_mensaje === 'warning') {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Ingreso parcial',
-                    text: response.mensaje,
-                    confirmButtonColor: '#ffc107',
-                }).then(() => {
-                    window.location.reload();
-                });
-            } else {
+            fetch('compras_eliminar_documento.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: 'id_doc=' + id_doc
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.tipo_mensaje === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Eliminado',
+                        text: data.mensaje,
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.mensaje
+                    });
+                }
+            })
+            .catch(error => {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error en el ingreso',
-                    text: response.mensaje,
-                    confirmButtonColor: '#dc3545',
+                    title: 'Error de conexión',
+                    text: 'No se pudo conectar con el servidor.'
                 });
-            }
-        },
-        error: function(xhr, status, error) {
-            console.error('Error AJAX:', error);
-            
-            let errorMessage = 'No se pudo conectar con el servidor.';
-            try {
-                const errorResponse = JSON.parse(xhr.responseText);
-                if (errorResponse.mensaje) {
-                    errorMessage = errorResponse.mensaje;
-                }
-            } catch (e) {
-                if (xhr.responseText && xhr.responseText.length < 200) {
-                    errorMessage = xhr.responseText;
-                }
-            }
-            
-            Swal.fire({
-                icon: 'error',
-                title: 'Error de conexión',
-                text: errorMessage,
-                confirmButtonColor: '#dc3545',
             });
-        }
-    });
-}
-
-// ============================================
-// INICIALIZACIÓN
-// ============================================
-$(document).ready(function() {
-    // Cargar documentos existentes si hay (para cuando se recarga la página)
-    cargarDocumentosExistentes();
-});
-
-function cargarDocumentosExistentes() {
-    $.ajax({
-        url: 'ingresos_obtener_documentos.php',
-        type: 'POST',
-        data: { id_compra: <?php echo $id_compra; ?> },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success && response.documentos.length > 0) {
-                documentosSubidos = response.documentos.map(doc => ({
-                    nombre: doc.documento,
-                    timestamp: new Date(doc.fec_subida).getTime()
-                }));
-                actualizarListaDocumentos();
-            }
         }
     });
 }
