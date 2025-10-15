@@ -356,11 +356,11 @@ require_once("../_conexion/sesion.php");
               </li>
               <?php endif; ?>
 
-            </ul> <!--  cierre del ul del menú Mantenimiento -->
-          </li> <!--  cierre del li de Mantenimiento -->
-          <?php endif; ?> <!--  cierre del if ($acceso_mantenimiento) -->
+            </ul> <!--  Cierre del ul del menú Mantenimiento -->
+          </li> <!--  Cierre del li de Mantenimiento -->
+          <?php endif; ?> <!--  Cierre del if ($acceso_mantenimiento) -->
 
-          <!-- AUDITORÍA -->
+          <!-- AUDITORÍA --> 
           <?php if (verificarPermisoEspecifico('ver_auditoria')): ?>
           <li>
             <a href="#"><i class="fa fa-eye"></i> Auditoría</a>
