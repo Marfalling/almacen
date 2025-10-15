@@ -12,7 +12,7 @@ if (!verificarPermisoEspecifico('ver_ingresos')) {
 }
 
 require_once("../_modelo/m_ingreso.php");
-
+require_once("../_modelo/m_documentos.php");
 // Verificar si se recibió el ID de compra
 if (!isset($_GET['id_compra'])) {
     header("location: ingresos_mostrar.php");
@@ -30,6 +30,7 @@ if (!$comprax) {
 
 // Obtener productos pendientes de ingreso
 $productos_pendientes = ObtenerProductosPendientesIngreso($id_compra);
+$documentos_ingreso = MostrarDocumentos('ingresos', $id_compra);
 
 ?>
 
