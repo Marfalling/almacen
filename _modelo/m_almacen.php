@@ -147,11 +147,50 @@ function ConsultarAlmacenTotal()
         obr.nom_subestacion    AS Obra,
         alm.nom_almacen        AS Almacen,
         ubi.nom_ubicacion      AS Ubicacion,
-        SUM(CASE 
-                WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
-                WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
-                ELSE 0 
-            END) AS Cantidad
+        -- STOCK FÍSICO (actual)
+            SUM(
+                CASE 
+                    WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
+                    WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
+                    ELSE 0 
+                END
+            ) AS Stock_Fisico,
+
+            -- STOCK RESERVADO (pedidos tipo_orden=5)
+            (
+                SELECT 
+                    IFNULL(SUM(mr.cant_movimiento), 0)
+                FROM movimiento mr
+                WHERE mr.id_producto = mov.id_producto
+                  AND mr.id_almacen = mov.id_almacen
+                  AND mr.id_ubicacion = mov.id_ubicacion
+                  AND mr.tipo_orden = 5
+                  AND mr.tipo_movimiento = 2
+                  AND mr.est_movimiento = 1
+            ) AS Stock_Reservado,
+
+            -- STOCK DISPONIBLE = Físico - Reservado
+            (
+                SUM(
+                    CASE 
+                        WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
+                        WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
+                        ELSE 0 
+                    END
+                )
+                -
+                (
+                    SELECT 
+                        IFNULL(SUM(mr.cant_movimiento), 0)
+                    FROM movimiento mr
+                    WHERE mr.id_producto = mov.id_producto
+                      AND mr.id_almacen = mov.id_almacen
+                      AND mr.id_ubicacion = mov.id_ubicacion
+                      AND mr.tipo_orden = 5
+                      AND mr.tipo_movimiento = 2
+                      AND mr.est_movimiento = 1
+                )
+            ) AS Stock_Disponible
     FROM movimiento mov
     INNER JOIN producto   pro ON mov.id_producto   = pro.id_producto
     INNER JOIN {$bd_complemento}.personal   per ON mov.id_personal   = per.id_personal
@@ -193,11 +232,46 @@ function ConsultarAlmacenArce()
         pti.nom_producto_tipo  AS Tipo_Producto,
         mti.nom_material_tipo  AS Tipo_Material,
         umi.nom_unidad_medida  AS Unidad_Medida,
-        SUM(CASE 
-                WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
-                WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
-                ELSE 0 
-            END) AS Cantidad
+        -- STOCK FÍSICO (entradas - salidas)
+            SUM(
+                CASE 
+                    WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
+                    WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
+                    ELSE 0 
+                END
+            ) AS Stock_Fisico,
+
+            -- STOCK RESERVADO (solo pedidos activos)
+            (
+                SELECT 
+                    IFNULL(SUM(mr.cant_movimiento), 0)
+                FROM movimiento mr
+                WHERE mr.id_producto = mov.id_producto
+                  AND mr.tipo_orden = 5
+                  AND mr.tipo_movimiento = 2
+                  AND mr.est_movimiento = 1
+            ) AS Stock_Reservado,
+
+            -- STOCK DISPONIBLE = Físico - Reservado
+            (
+                SUM(
+                    CASE 
+                        WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
+                        WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
+                        ELSE 0 
+                    END
+                )
+                -
+                (
+                    SELECT 
+                        IFNULL(SUM(mr.cant_movimiento), 0)
+                    FROM movimiento mr
+                    WHERE mr.id_producto = mov.id_producto
+                      AND mr.tipo_orden = 5
+                      AND mr.tipo_movimiento = 2
+                      AND mr.est_movimiento = 1
+                )
+            ) AS Stock_Disponible
     FROM movimiento mov
     INNER JOIN producto   pro ON mov.id_producto   = pro.id_producto
         INNER JOIN producto_tipo  pti ON pro.id_producto_tipo = pti.id_producto_tipo
@@ -243,11 +317,50 @@ function ConsultarAlmacenClientes($id_cliente)
         alm.nom_almacen       AS Almacen,
         obr.nom_subestacion   AS Obra,
         ubi.nom_ubicacion      AS Ubicacion,
-        SUM(CASE 
-                WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
-                WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
-                ELSE 0 
-            END) AS Cantidad
+        -- STOCK FÍSICO (entradas - salidas)
+            SUM(
+                CASE 
+                    WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
+                    WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
+                    ELSE 0 
+                END
+            ) AS Stock_Fisico,
+
+            -- STOCK RESERVADO (pedidos activos)
+            (
+                SELECT 
+                    IFNULL(SUM(mr.cant_movimiento), 0)
+                FROM movimiento mr
+                WHERE mr.id_producto = mov.id_producto
+                  AND mr.id_almacen = mov.id_almacen
+                  AND mr.id_ubicacion = mov.id_ubicacion
+                  AND mr.tipo_orden = 5
+                  AND mr.tipo_movimiento = 2
+                  AND mr.est_movimiento = 1
+            ) AS Stock_Reservado,
+
+            -- STOCK DISPONIBLE = físico - reservado
+            (
+                SUM(
+                    CASE 
+                        WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
+                        WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
+                        ELSE 0 
+                    END
+                )
+                -
+                (
+                    SELECT 
+                        IFNULL(SUM(mr.cant_movimiento), 0)
+                    FROM movimiento mr
+                    WHERE mr.id_producto = mov.id_producto
+                      AND mr.id_almacen = mov.id_almacen
+                      AND mr.id_ubicacion = mov.id_ubicacion
+                      AND mr.tipo_orden = 5
+                      AND mr.tipo_movimiento = 2
+                      AND mr.est_movimiento = 1
+                )
+            ) AS Stock_Disponible
     FROM movimiento mov
     INNER JOIN producto   pro ON mov.id_producto   = pro.id_producto
         INNER JOIN producto_tipo  pti ON pro.id_producto_tipo = pti.id_producto_tipo
