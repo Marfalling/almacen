@@ -300,7 +300,7 @@
                                                                 title="Ver documento">
                                                                     <i class="fa fa-eye"></i> Ver
                                                                 </a>
-                                                                <a href="../uploads/ingresos/<?php echo $doc['documento']; ?>" 
+                                                                <!--a href="../uploads/ingresos/<?php echo $doc['documento']; ?>" 
                                                                 download 
                                                                 class="btn btn-success btn-sm" 
                                                                 title="Descargar">
@@ -310,7 +310,7 @@
                                                                     <button class="btn btn-danger btn-sm" 
                                                                             onclick="EliminarDocumentoIngreso(<?php echo $doc['id_doc']; ?>)"
                                                                             title="Eliminar documento">
-                                                                        <i class="fa fa-trash"></i>
+                                                                        <i class="fa fa-trash"></i-->
                                                                     </button>
                                                                 <?php } ?>
                                                             </td>
@@ -374,41 +374,6 @@
     </div>
 </div>
 <!-- /page content -->
-<script>
-    // Función para eliminar documentos en ingresos
-function EliminarDocumentoIngreso(id_doc) {
-    Swal.fire({
-        title: '¿Eliminar documento?',
-        text: "Esta acción no se puede deshacer.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: 'compras_eliminar_documento.php',
-                type: 'POST',
-                data: { id_doc: id_doc },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.tipo_mensaje === 'success') {
-                        Swal.fire('Eliminado', response.mensaje, 'success')
-                        .then(() => location.reload());
-                    } else {
-                        Swal.fire('Error', response.mensaje, 'error');
-                    }
-                },
-                error: function() {
-                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
-                }
-            });
-        }
-    });
-}
-</script>
 <style>
 .badge-lg {
     font-size: 14px;

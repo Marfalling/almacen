@@ -1,6 +1,6 @@
 <?php 
 //=======================================================================
-// VISTA: v_ingresos_mostrar.php - LÓGICA DE BOTÓN CORREGIDA
+// VISTA: v_ingresos_mostrar.php - CORREGIDO CON LÓGICA DE BOTONES
 //=======================================================================
 ?>
 <!-- page content -->
@@ -66,7 +66,6 @@
                                     <span class="badge badge-warning badge_size"><?php echo count(array_filter($ingresos, function($ing) { return $ing['tipo'] == 'COMPRA' || !isset($ing['tipo']); })); ?></span>
                                 </a>
                             </li>
-                            
                             <li role="presentation">
                                 <a href="#ingresos-directos" aria-controls="ingresos-directos" role="tab" data-toggle="tab">
                                     <i class="fa fa-plus-circle"></i> Ingresos Directos
@@ -77,7 +76,172 @@
 
                         <!-- Tab panes -->
                         <div class="tab-content" style="margin-top: 15px;">
-                            <!-- TAB 1: ÓRDENES DE COMPRA -->
+                            <!-- ============================================ -->
+                            <!-- TAB 1: TODOS LOS INGRESOS -->
+                            <!-- ============================================ -->
+                            <div role="tabpanel" class="tab-pane active" id="todos-ingresos">
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="card-box table-responsive">
+                                            <table id="datatable-todos" class="table table-striped table-bordered" style="width:100%">
+                                                <thead>
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>Código Orden</th>
+                                                        <th>Código Pedido</th>
+                                                        <th>Proveedor/Origen</th>
+                                                        <th>Almacén</th>
+                                                        <th>Ubicación</th>
+                                                        <th>Fecha Registro</th>
+                                                        <th>Registrado Por</th>
+                                                        <th>Estado</th>
+                                                        <th>Productos</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php
+                                                    $contador = 1;
+                                                    foreach ($ingresos as $ingreso) {
+                                                        $tipo = isset($ingreso['tipo']) ? $ingreso['tipo'] : 'COMPRA';
+                                                        $id_compra = isset($ingreso['id_compra']) ? $ingreso['id_compra'] : (isset($ingreso['id_orden']) ? $ingreso['id_orden'] : '');
+                                                        $est_compra = isset($ingreso['est_compra']) ? $ingreso['est_compra'] : (isset($ingreso['estado']) ? $ingreso['estado'] : 0);
+                                                        $fec_compra = isset($ingreso['fec_compra']) ? $ingreso['fec_compra'] : (isset($ingreso['fecha']) ? $ingreso['fecha'] : '');
+                                                        $nom_proveedor = isset($ingreso['nom_proveedor']) ? $ingreso['nom_proveedor'] : (isset($ingreso['origen']) ? $ingreso['origen'] : '');
+                                                        
+                                                        //  CALCULAR SI HAY PRODUCTOS PENDIENTES (LÓGICA DEL SEGUNDO CÓDIGO)
+                                                        $cantidad_pedida = isset($ingreso['cantidad_total_pedida']) ? floatval($ingreso['cantidad_total_pedida']) : 0;
+                                                        $cantidad_ingresada = isset($ingreso['cantidad_total_ingresada']) ? floatval($ingreso['cantidad_total_ingresada']) : 0;
+                                                        $hay_pendientes = ($cantidad_ingresada < $cantidad_pedida);
+                                                    ?>
+                                                        <tr>
+                                                            <td><?php echo $contador; ?></td>
+                                                            
+                                                            <!-- COLUMNA: CÓDIGO ORDEN -->
+                                                            <td>
+                                                                <?php if ($tipo == 'COMPRA') { ?>
+                                                                    <a class="btn btn-sm btn-outline-secondary" target="_blank" href="compras_pdf.php?id=<?php echo $id_compra; ?>">
+                                                                        C00<?php echo $id_compra; ?>
+                                                                    </a>
+                                                                <?php } else { ?>
+                                                                    I00<?php echo $ingreso['id_ingreso']; ?>
+                                                                <?php } ?>
+                                                            </td>
+                                                            
+                                                            <!-- COLUMNA: CÓDIGO PEDIDO -->
+                                                            <td>
+                                                                <?php if ($tipo == 'COMPRA' && isset($ingreso['id_pedido']) && isset($ingreso['cod_pedido'])) { ?>
+                                                                    <a class="btn btn-sm btn-outline-secondary" target="_blank" href="pedido_pdf.php?id=<?php echo $ingreso['id_pedido']; ?>">
+                                                                        <?php echo $ingreso['cod_pedido']; ?>
+                                                                    </a>
+                                                                <?php } else { ?>
+                                                                    -
+                                                                <?php } ?>
+                                                            </td>
+                                                            
+                                                            <!-- COLUMNA: PROVEEDOR/ORIGEN -->
+                                                            <td><?php echo $nom_proveedor; ?></td>
+                                                            
+                                                            <!-- COLUMNA: ALMACÉN -->
+                                                            <td><?php echo $ingreso['nom_almacen']; ?></td>
+                                                            
+                                                            <!-- COLUMNA: UBICACIÓN -->
+                                                            <td><?php echo $ingreso['nom_ubicacion']; ?></td>
+                                                            
+                                                            <!-- COLUMNA: FECHA -->
+                                                            <td><?php echo date('d/m/Y H:i', strtotime($fec_compra)); ?></td>
+                                                            
+                                                            <!-- COLUMNA: REGISTRADO POR -->
+                                                            <td><?php echo $ingreso['registrado_por'] ?? '-'; ?></td>
+                                                            
+                                                            <!-- COLUMNA: ESTADO -->
+                                                            <td>
+                                                                <?php 
+                                                                if ($tipo == 'COMPRA') { 
+                                                                    $est_compra = intval($est_compra);
+                                                                    
+                                                                    if ($est_compra == 0) { ?>
+                                                                        <span class="badge badge-danger badge_size">Anulado</span>
+                                                                    <?php } elseif ($est_compra == 1) { ?>
+                                                                        <span class="badge badge-warning badge_size">Pendiente</span>
+                                                                    <?php } elseif ($est_compra == 2) { ?>
+                                                                        <span class="badge badge-success badge_size">Aprobado</span>
+                                                                    <?php } elseif ($est_compra == 3) { ?>
+                                                                        <span class="badge badge-info badge_size">Cerrada</span>
+                                                                    <?php } elseif ($est_compra == 4) { ?>
+                                                                        <span class="badge badge-primary badge_size">Pagada</span>
+                                                                    <?php } ?>
+                                                                <?php } else { ?>
+                                                                    <?php if ($ingreso['estado'] == 0) { ?>
+                                                                        <span class="badge badge-danger badge_size">Anulado</span>
+                                                                    <?php } else { ?>
+                                                                        <span class="badge badge-success badge_size">Registrado</span>
+                                                                    <?php } ?>
+                                                                <?php } ?>
+                                                            </td>
+                                                            
+                                                            <!-- COLUMNA: PRODUCTOS -->
+                                                            <td>
+                                                                <span class="badge badge-primary badge_size"><?php echo $ingreso['total_productos']; ?></span>
+                                                            </td>
+                                                            
+                                                            <!-- COLUMNA: ACCIONES -  LÓGICA CORREGIDA -->
+                                                            <td>
+                                                                <div class="d-flex flex-wrap gap-2">
+                                                                    <?php if ($tipo == 'COMPRA') { 
+                                                                        $est_compra = intval($est_compra);
+                                                                    ?>
+                                                                        <?php
+                                                                        // MOSTRAR BOTÓN SOLO SI NO está anulada Y hay pendientes
+                                                                        if ($est_compra != 0 && $hay_pendientes) { 
+                                                                        ?>
+                                                                        <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
+                                                                           class="btn btn-success btn-sm"
+                                                                           title="Verificar ingreso">
+                                                                            <i class="fa fa-check"></i>
+                                                                        </a>
+                                                                        <?php } ?>
+                                                                        
+                                                                        <a href="ingresos_detalle.php?id_compra=<?php echo $id_compra; ?>" 
+                                                                            class="btn btn-secondary btn-sm"
+                                                                            title="Ver ingresos">
+                                                                            <i class="fa fa-eye"></i>
+                                                                        </a>
+                                                                    <?php } else { ?>
+                                                                        <a href="ingresos_detalle_directo.php?id_ingreso=<?php echo $ingreso['id_ingreso']; ?>" 
+                                                                            class="btn btn-secondary btn-sm" 
+                                                                            title="Ver detalles">
+                                                                            <i class="fa fa-eye"></i>
+                                                                        </a>
+                                                                        <?php if ($ingreso['estado'] == 1) { ?>
+                                                                            <button onclick="anularIngresoDirecto(<?php echo $ingreso['id_ingreso']; ?>)" 
+                                                                                class="btn btn-danger btn-sm" 
+                                                                                title="Anular ingreso">
+                                                                                <i class="fa fa-times"></i>
+                                                                            </button>
+                                                                        <?php } else { ?>
+                                                                            <span class="btn btn-outline-secondary btn-sm disabled" title="Ya anulado">
+                                                                                <i class="fa fa-ban"></i>
+                                                                            </span>
+                                                                        <?php } ?>
+                                                                    <?php } ?>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    <?php 
+                                                        $contador++;
+                                                    } 
+                                                    ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ============================================ -->
+                            <!-- TAB 2: ÓRDENES DE COMPRA -->
+                            <!-- ============================================ -->
                             <div role="tabpanel" class="tab-pane" id="ordenes-compra">
                                 <div class="row">
                                     <div class="col-sm-12">
@@ -86,14 +250,13 @@
                                                 <thead>
                                                     <tr>
                                                         <th>#</th>
-                                                        <th>N° Orden</th>
+                                                        <th>Código Orden</th>
                                                         <th>Código Pedido</th>
                                                         <th>Proveedor</th>
                                                         <th>Almacén</th>
                                                         <th>Ubicación</th>
                                                         <th>Fecha Registro</th>
                                                         <th>Registrado Por</th>
-                                                        <th>Aprobado Por</th>
                                                         <th>Estado</th>
                                                         <th>Acciones</th>
                                                     </tr>
@@ -116,32 +279,35 @@
                                                     ?>
                                                         <tr>
                                                             <td><?php echo $contador; ?></td>
-                                                            <td><strong>OC-<?php echo $id_compra; ?></strong></td>
+                                                            <td>
+                                                                <a class="btn btn-sm btn-outline-secondary" target="_blank" href="compras_pdf.php?id=<?php echo $id_compra; ?>">
+                                                                    C00<?php echo $id_compra; ?>
+                                                                </a>
+                                                            </td>
                                                             <td>
                                                                 <?php if (isset($ingreso['id_pedido']) && isset($ingreso['cod_pedido'])) { ?>
                                                                 <a class="btn btn-sm btn-outline-secondary" target="_blank" href="pedido_pdf.php?id=<?php echo $ingreso['id_pedido']; ?>">
                                                                     <?php echo $ingreso['cod_pedido']; ?>
                                                                 </a>
                                                                 <?php } else { ?>
-                                                                    N/A
+                                                                    -
                                                                 <?php } ?>
                                                             </td>
                                                             <td><?php echo $nom_proveedor; ?></td>
                                                             <td><?php echo $ingreso['nom_almacen']; ?></td>
                                                             <td><?php echo $ingreso['nom_ubicacion']; ?></td>
                                                             <td><?php echo date('d/m/Y H:i', strtotime($fec_compra)); ?></td>
-                                                            <td><?php echo $ingreso['registrado_por'] ?? 'No especificado'; ?></td>
-                                                            <td><?php echo $ingreso['aprobado_por'] ?? 'Pendiente'; ?></td>
+                                                            <td><?php echo $ingreso['registrado_por'] ?? '-'; ?></td>
                                                             <td>
                                                                 <?php 
                                                                 $est_compra = intval($est_compra);
                                                                 
                                                                 if ($est_compra == 0) { ?>
-                                                                    <span class="badge badge-danger badge_size">Anulada</span>
+                                                                    <span class="badge badge-danger badge_size">Anulado</span>
                                                                 <?php } elseif ($est_compra == 1) { ?>
                                                                     <span class="badge badge-warning badge_size">Pendiente</span>
                                                                 <?php } elseif ($est_compra == 2) { ?>
-                                                                    <span class="badge badge-success badge_size">Aprobada</span>
+                                                                    <span class="badge badge-success badge_size">Aprobado</span>
                                                                 <?php } elseif ($est_compra == 3) { ?>
                                                                     <span class="badge badge-info badge_size">Cerrada</span>
                                                                 <?php } elseif ($est_compra == 4) { ?>
@@ -149,28 +315,7 @@
                                                                 <?php } ?>
                                                             </td>
                                                             <td>
-                                                                <div class="d-flex flex-wrap gap-2">
-                                                                    <?php 
-                                                                    //  MOSTRAR BOTÓN SOLO SI:
-                                                                    // - NO está anulada (est_compra != 0)
-                                                                    // - Y hay productos pendientes de ingresar
-                                                                    if ($est_compra != 0 && $hay_pendientes) { 
-                                                                    ?>
-                                                                        <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
-                                                                           class="btn btn-success btn-sm"
-                                                                           title="Realizar ingreso de productos">
-                                                                            <i class="fa fa-download"></i> Ingresar
-                                                                        </a>
-                                                                    <?php } elseif (!$hay_pendientes && $est_compra != 0) { ?>
-                                                                        <!-- BOTÓN COMPLETADO - AHORA ES UN BOTÓN PEQUEÑO CON EL OJO -->
-                                                                        <a href="ingresos_detalle.php?id_compra=<?php echo $id_compra; ?>" 
-                                                                            class="btn btn-success btn-sm"
-                                                                            title="Ver detalle de ingresos completados">
-                                                                            <i class="fa fa-plus"></i>
-                                                                        </a>
-                                                                    <?php } ?>
-                                                                    
-                                                                    <!-- Botón para ver historial siempre visible (excepto si está anulada) -->
+                                                                <div class="d-flex flex-wrap gap-2">                                                                    
                                                                     <?php if ($est_compra != 0) { ?>
                                                                     <a href="ingresos_detalle.php?id_compra=<?php echo $id_compra; ?>" 
                                                                         class="btn btn-secondary btn-sm"
@@ -192,7 +337,9 @@
                                 </div>
                             </div>
 
-                            <!-- TAB 2: INGRESOS DIRECTOS -->
+                            <!-- ============================================ -->
+                            <!-- TAB 3: INGRESOS DIRECTOS -->
+                            <!-- ============================================ -->
                             <div role="tabpanel" class="tab-pane" id="ingresos-directos">
                                 <div class="row">
                                     <div class="col-sm-12">
@@ -201,14 +348,15 @@
                                                 <thead>
                                                     <tr>
                                                         <th>#</th>
-                                                        <th>N° Ingreso</th>
-                                                        <th>Tipo</th>
+                                                        <th>Código Orden</th>
+                                                        <th>Código Pedido</th>
+                                                        <th>Origen</th>
                                                         <th>Almacén</th>
                                                         <th>Ubicación</th>
-                                                        <th>Fecha</th>
+                                                        <th>Fecha Registro</th>
                                                         <th>Registrado Por</th>
-                                                        <th>Productos</th>
                                                         <th>Estado</th>
+                                                        <th>Productos</th>
                                                         <th>Acciones</th>
                                                     </tr>
                                                 </thead>
@@ -220,17 +368,13 @@
                                                     ?>
                                                         <tr>
                                                             <td><?php echo $contador; ?></td>
-                                                            <td><strong>ING-<?php echo $ingreso['id_ingreso']; ?></strong></td>
-                                                            <td>
-                                                                <span class="badge badge-info badge_size">DIRECTO</span>
-                                                            </td>
+                                                            <td>I00<?php echo $ingreso['id_ingreso']; ?></td>
+                                                            <td>-</td>
+                                                            <td><?php echo $ingreso['origen']; ?></td>
                                                             <td><?php echo $ingreso['nom_almacen']; ?></td>
                                                             <td><?php echo $ingreso['nom_ubicacion']; ?></td>
                                                             <td><?php echo date('d/m/Y H:i', strtotime($ingreso['fecha'])); ?></td>
-                                                            <td><?php echo $ingreso['registrado_por'] ?? 'No especificado'; ?></td>
-                                                            <td>
-                                                                <span class="badge badge-primary badge_size"><?php echo $ingreso['total_productos']; ?></span>
-                                                            </td>
+                                                            <td><?php echo $ingreso['registrado_por'] ?? '-'; ?></td>
                                                             <td>
                                                                 <?php if ($ingreso['estado'] == 0) { ?>
                                                                     <span class="badge badge-danger badge_size">Anulado</span>
@@ -239,11 +383,14 @@
                                                                 <?php } ?>
                                                             </td>
                                                             <td>
+                                                                <span class="badge badge-primary badge_size"><?php echo $ingreso['total_productos']; ?></span>
+                                                            </td>
+                                                            <td>
                                                                 <div class="d-flex flex-wrap gap-2">
                                                                     <a href="ingresos_detalle_directo.php?id_ingreso=<?php echo $ingreso['id_ingreso']; ?>" 
                                                                         class="btn btn-secondary btn-sm"
                                                                         title="Ver ingresos">
-                                                                        <i class="fa fa-plus"></i>
+                                                                        <i class="fa fa-eye"></i>
                                                                     </a>
                                                                     <?php if ($ingreso['estado'] == 1) { ?>
                                                                         <button onclick="anularIngresoDirecto(<?php echo $ingreso['id_ingreso']; ?>)" 
@@ -255,170 +402,6 @@
                                                                         <span class="btn btn-outline-secondary btn-sm disabled" title="Ya anulado">
                                                                             <i class="fa fa-ban"></i> Anulado
                                                                         </span>
-                                                                    <?php } ?>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    <?php 
-                                                        $contador++;
-                                                    } 
-                                                    ?>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- TAB 3: TODOS LOS INGRESOS -->
-                            <div role="tabpanel" class="tab-pane active" id="todos-ingresos">
-                                <div class="row">
-                                    <div class="col-sm-12">
-                                        <div class="card-box table-responsive">
-                                            <table id="datatable-todos" class="table table-striped table-bordered" style="width:100%">
-                                                <thead>
-                                                    <tr>
-                                                        <th>#</th>
-                                                        <th>Código Ingreso</th>
-                                                        <th>Tipo</th>
-                                                        <th>N° Documento</th>
-                                                        <th>Origen/Proveedor</th>
-                                                        <th>Almacén</th>
-                                                        <th>Ubicación</th>
-                                                        <th>Fecha</th>
-                                                        <th>Estado</th>
-                                                        <th>Productos</th>
-                                                        <th>Acciones</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    <?php
-                                                    $contador = 1;
-                                                    foreach ($ingresos as $ingreso) {
-                                                        $tipo = isset($ingreso['tipo']) ? $ingreso['tipo'] : 'COMPRA';
-                                                        $id_compra = isset($ingreso['id_compra']) ? $ingreso['id_compra'] : (isset($ingreso['id_orden']) ? $ingreso['id_orden'] : '');
-                                                        $est_compra = isset($ingreso['est_compra']) ? $ingreso['est_compra'] : (isset($ingreso['estado']) ? $ingreso['estado'] : 0);
-                                                        $fec_compra = isset($ingreso['fec_compra']) ? $ingreso['fec_compra'] : (isset($ingreso['fecha']) ? $ingreso['fecha'] : '');
-                                                        $nom_proveedor = isset($ingreso['nom_proveedor']) ? $ingreso['nom_proveedor'] : (isset($ingreso['origen']) ? $ingreso['origen'] : '');
-                                                        
-                                                        // ✅ CALCULAR SI HAY PRODUCTOS PENDIENTES
-                                                        $cantidad_pedida = isset($ingreso['cantidad_total_pedida']) ? floatval($ingreso['cantidad_total_pedida']) : 0;
-                                                        $cantidad_ingresada = isset($ingreso['cantidad_total_ingresada']) ? floatval($ingreso['cantidad_total_ingresada']) : 0;
-                                                        $hay_pendientes = ($cantidad_ingresada < $cantidad_pedida);
-                                                    ?>
-                                                        <tr>
-                                                            <td><?php echo $contador; ?></td>
-                                                            <td>
-                                                                <strong>
-                                                                    I00<?php
-                                                                        if ($tipo == 'COMPRA') {
-                                                                            echo $id_compra;
-                                                                        } else {
-                                                                            echo $ingreso['id_ingreso'];
-                                                                        }
-                                                                    ?>
-                                                                </strong>
-                                                            </td>
-                                                            <!-- COLUMNA: TIPO -->
-                                                            <td>
-                                                                <?php if ($tipo == 'COMPRA') { ?>
-                                                                    <span class="badge badge-warning badge_size">COMPRA</span>
-                                                                <?php } else { ?>
-                                                                    <span class="badge badge-info badge_size">DIRECTO</span>
-                                                                <?php } ?>
-                                                            </td>
-                                                            
-                                                            <!-- COLUMNA: N° DOCUMENTO -->
-                                                            <td>
-                                                                <?php if ($tipo == 'COMPRA') { ?>
-                                                                    <strong>OC-<?php echo $id_compra; ?></strong>
-                                                                <?php } else { ?>
-                                                                    <strong>ING-<?php echo $ingreso['id_ingreso']; ?></strong>
-                                                                <?php } ?>
-                                                            </td>
-                                                            
-                                                            <!-- COLUMNA: ORIGEN/PROVEEDOR -->
-                                                            <td><?php echo $nom_proveedor; ?></td>
-                                                            
-                                                            <!-- COLUMNA: ALMACÉN -->
-                                                            <td><?php echo $ingreso['nom_almacen']; ?></td>
-                                                            
-                                                            <!-- COLUMNA: UBICACIÓN -->
-                                                            <td><?php echo $ingreso['nom_ubicacion']; ?></td>
-                                                            
-                                                            <!-- COLUMNA: FECHA -->
-                                                            <td><?php echo date('d/m/Y H:i', strtotime($fec_compra)); ?></td>
-                                                            
-                                                            <!-- COLUMNA: ESTADO -->
-                                                            <td>
-                                                                <?php 
-                                                                if ($tipo == 'COMPRA') { 
-                                                                    $est_compra = intval($est_compra);
-                                                                    
-                                                                    if ($est_compra == 0) { ?>
-                                                                        <span class="badge badge-danger badge_size">Anulada</span>
-                                                                    <?php } elseif ($est_compra == 1) { ?>
-                                                                        <span class="badge badge-warning badge_size">Pendiente</span>
-                                                                    <?php } elseif ($est_compra == 2) { ?>
-                                                                        <span class="badge badge-success badge_size">Aprobada</span>
-                                                                    <?php } elseif ($est_compra == 3) { ?>
-                                                                        <span class="badge badge-info badge_size">Cerrada</span>
-                                                                    <?php } elseif ($est_compra == 4) { ?>
-                                                                        <span class="badge badge-primary badge_size">Pagada</span>
-                                                                    <?php } ?>
-                                                                <?php } else { ?>
-                                                                    <?php if ($ingreso['estado'] == 0) { ?>
-                                                                        <span class="badge badge-danger badge_size">Anulado</span>
-                                                                    <?php } else { ?>
-                                                                        <span class="badge badge-success badge_size">Registrado</span>
-                                                                    <?php } ?>
-                                                                <?php } ?>
-                                                            </td>
-                                                            
-                                                            <!-- COLUMNA: PRODUCTOS -->
-                                                            <td>
-                                                                <span class="badge badge-primary badge_size"><?php echo $ingreso['total_productos']; ?></span>
-                                                            </td>
-                                                            
-                                                            <!-- COLUMNA: ACCIONES -->
-                                                            <td>
-                                                                <div class="d-flex flex-wrap gap-2">
-                                                                    <?php if ($tipo == 'COMPRA') { 
-                                                                        $est_compra = intval($est_compra);
-                                                                    ?>
-                                                                        <?php 
-                                                                        //  MOSTRAR BOTÓN SOLO SI NO está anulada Y hay pendientes
-                                                                        if ($est_compra != 0 && $hay_pendientes) { 
-                                                                        ?>
-                                                                        <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
-                                                                           class="btn btn-success btn-sm"
-                                                                           title="Verificar ingreso">
-                                                                            <i class="fa fa-check"></i>
-                                                                        </a>
-                                                                        <?php } ?>
-                                                                        
-                                                                        <a href="ingresos_detalle.php?id_compra=<?php echo $id_compra; ?>" 
-                                                                            class="btn btn-secondary btn-sm"
-                                                                            title="Ver ingresos">
-                                                                            <i class="fa fa-plus"></i>
-                                                                        </a>
-                                                                    <?php } else { ?>
-                                                                        <a href="ingresos_detalle_directo.php?id_ingreso=<?php echo $ingreso['id_ingreso']; ?>" 
-                                                                            class="btn btn-secondary btn-sm" 
-                                                                            title="Ver detalles">
-                                                                            <i class="fa fa-plus"></i>
-                                                                        </a>
-                                                                        <?php if ($ingreso['estado'] == 1) { ?>
-                                                                            <button onclick="anularIngresoDirecto(<?php echo $ingreso['id_ingreso']; ?>)" 
-                                                                                class="btn btn-danger btn-sm" 
-                                                                                title="Anular ingreso">
-                                                                                <i class="fa fa-times"></i>
-                                                                            </button>
-                                                                        <?php } else { ?>
-                                                                            <span class="btn btn-outline-secondary btn-sm disabled" title="Ya anulado">
-                                                                                <i class="fa fa-ban"></i>
-                                                                            </span>
-                                                                        <?php } ?>
                                                                     <?php } ?>
                                                                 </div>
                                                             </td>
