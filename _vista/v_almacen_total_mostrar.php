@@ -37,7 +37,9 @@
                                                 <th>Cliente</th>
                                                 <th>Obra</th>
                                                 <th>Ubicación</th>
-                                                <th>Cantidad</th>
+                                                <th>Stock Físico</th>
+                                                <th>Stock Reservado</th>
+                                                <th>Stock Disponible</th>
                                             </tr>
                                         </thead>
 
@@ -51,7 +53,9 @@
                                             echo "<td>" . htmlspecialchars($almacen['Cliente']) . "</td>";
                                             echo "<td>" . htmlspecialchars($almacen['Obra']) . "</td>";
                                             echo "<td>" . htmlspecialchars($almacen['Ubicacion']) . "</td>";
-                                            echo "<td>" . htmlspecialchars($almacen['Cantidad']) . "</td>";
+                                            echo "<td>" . htmlspecialchars($almacen['Stock_Fisico']) . "</td>";
+                                            echo "<td>" . htmlspecialchars($almacen['Stock_Reservado']) . "</td>";
+                                            echo "<td>" . htmlspecialchars($almacen['Stock_Disponible']) . "</td>";
                                             echo "</tr>";
                                         }
                                         ?>

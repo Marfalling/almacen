@@ -17,7 +17,7 @@ if ($_POST) {
 </head>
 <body>
     <hgroup>
-        <img src="../_complemento/images/logoarcee.png" />
+        <img src="../_complemento/images/icon.png" width="12%"/>
         <h2>Iniciar Sesión</h2>
     </hgroup>
     

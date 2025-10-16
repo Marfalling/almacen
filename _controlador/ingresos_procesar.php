@@ -12,49 +12,81 @@ if (!verificarPermisoEspecifico('crear_ingresos') && !verificarPermisoEspecifico
 header('Content-Type: application/json; charset=utf-8');
 
 try {
-    // Incluir archivos necesarios
     require_once("../_modelo/m_ingreso.php");
     require_once("../_modelo/m_pedidos.php");
     require_once("../_modelo/m_documentos.php");
     
-    // Verificar sesión
     if (!isset($id_personal) || empty($id_personal)) {
         throw new Exception("Error de sesión: Usuario no identificado");
     }
 
-    // Verificar método POST
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         throw new Exception("Método no permitido. Solo se acepta POST");
     }
 
-    // Recibir datos
     $id_compra = isset($_POST['id_compra']) ? intval($_POST['id_compra']) : null;
     $productos_seleccionados = $_POST['productos_seleccionados'] ?? array();
     $cantidades = $_POST['cantidades'] ?? array();
 
-    // Validar datos básicos
     if (!$id_compra || empty($productos_seleccionados)) {
         throw new Exception("Datos incompletos. Debe seleccionar al menos un producto.");
     }
 
     // ============================================
-    // VALIDACIÓN OBLIGATORIA: VERIFICAR DOCUMENTOS
+    // VALIDACIÓN 1: VERIFICAR QUE HAYA DOCUMENTOS
     // ============================================
     $documentos_ingreso = MostrarDocumentos('ingresos', $id_compra);
     
     if (empty($documentos_ingreso)) {
         echo json_encode([
             "tipo_mensaje" => "warning", 
-            "mensaje" => " NO PUEDE PROCESAR EL INGRESO SIN DOCUMENTOS.\n\n" .
+            "mensaje" => "NO PUEDE PROCESAR EL INGRESO SIN DOCUMENTOS.\n\n" .
                         "Debe adjuntar al menos un documento (guía de remisión, factura, etc.) " .
                         "antes de registrar el ingreso de productos.\n\n" .
                         "Por favor, use el botón 'Subir Documento' en la sección correspondiente."
         ]);
         exit;
     }
+
+    // ============================================
+    // VALIDACIÓN 2: VERIFICAR DOCUMENTO NUEVO
+    // ============================================
+    include("../_conexion/conexion.php");
+    
+    // Obtener la fecha del último ingreso para esta compra
+    $sql_ultimo_ingreso = "SELECT MAX(fec_ingreso) as ultima_fecha 
+                          FROM ingreso 
+                          WHERE id_compra = $id_compra";
+    $res_ultimo = mysqli_query($con, $sql_ultimo_ingreso);
+    $row_ultimo = mysqli_fetch_assoc($res_ultimo);
+    $fecha_ultimo_ingreso = $row_ultimo['ultima_fecha'];
+    
+    if ($fecha_ultimo_ingreso) {
+        // Ya hubo ingresos previos, verificar que haya documento nuevo
+        $sql_doc_nuevo = "SELECT COUNT(*) as total 
+                         FROM documentos 
+                         WHERE entidad = 'ingresos' 
+                         AND id_entidad = $id_compra 
+                         AND fec_subida > '$fecha_ultimo_ingreso'";
+        $res_doc_nuevo = mysqli_query($con, $sql_doc_nuevo);
+        $row_doc_nuevo = mysqli_fetch_assoc($res_doc_nuevo);
+        
+        if ($row_doc_nuevo['total'] == 0) {
+            mysqli_close($con);
+            echo json_encode([
+                "tipo_mensaje" => "warning",
+                "mensaje" => "DEBE SUBIR UN NUEVO DOCUMENTO PARA ESTE INGRESO.\n\n" .
+                            "Ya se realizó un ingreso anterior. Cada ingreso requiere su propia guía de remisión.\n\n" .
+                            "Último ingreso: " . date('d/m/Y H:i', strtotime($fecha_ultimo_ingreso)) . "\n\n" .
+                            "Por favor, suba el nuevo documento antes de continuar."
+            ]);
+            exit;
+        }
+    }
+    
+    mysqli_close($con);
     // ============================================
 
-    // Verificar función de procesamiento
     if (!function_exists('ProcesarIngresoProducto')) {
         throw new Exception("Función ProcesarIngresoProducto no encontrada");
     }
@@ -70,7 +102,6 @@ try {
         if ($cantidad > 0) {
             $total_productos++;
             
-            // Verificar cantidad disponible
             $cantidad_disponible = VerificarCantidadDisponible($id_compra, $id_producto);
             
             if ($cantidad > $cantidad_disponible) {
@@ -78,7 +109,6 @@ try {
                 continue;
             }
             
-            // Procesar ingreso
             $resultado = ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_personal);
 
             if ($resultado['success']) {
@@ -104,7 +134,6 @@ try {
             $id_pedido_asociado = $pedido_data['id_pedido'];
             $estado_actual_pedido = $pedido_data['est_pedido'];
             
-            // Actualizar a INGRESADO (4) si está en APROBADO (3)
             if ($estado_actual_pedido == 3) {
                 $sql_update_pedido = "UPDATE pedido SET est_pedido = 4 WHERE id_pedido = $id_pedido_asociado";
                 mysqli_query($con, $sql_update_pedido);
@@ -118,12 +147,12 @@ try {
     if ($resultados_exitosos == $total_productos && $total_productos > 0) {
         $response = [
             "tipo_mensaje" => "success",
-            "mensaje" => " Ingreso procesado exitosamente.\n\n" .
+            "mensaje" => "Ingreso procesado exitosamente.\n\n" .
                         "$resultados_exitosos producto(s) agregado(s) al stock.\n" .
                         "Documentos adjuntos: " . count($documentos_ingreso)
         ];
     } elseif ($resultados_exitosos > 0) {
-        $mensaje_parcial = " Ingreso parcial: $resultados_exitosos de $total_productos productos ingresados correctamente.";
+        $mensaje_parcial = "Ingreso parcial: $resultados_exitosos de $total_productos productos ingresados correctamente.";
         if (!empty($errores)) {
             $mensaje_parcial .= "\n\nErrores: " . implode("; ", array_slice($errores, 0, 2));
         }
@@ -132,7 +161,7 @@ try {
             "mensaje" => $mensaje_parcial
         ];
     } else {
-        $mensaje_error = " No se pudo procesar el ingreso.";
+        $mensaje_error = "No se pudo procesar el ingreso.";
         if (!empty($errores)) {
             $mensaje_error .= "\n\nErrores: " . implode("; ", array_slice($errores, 0, 2));
         }

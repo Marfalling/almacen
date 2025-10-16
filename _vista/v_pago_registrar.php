@@ -1,6 +1,43 @@
 <?php
 // VISTA: v_pagos_registrar.php
+
 ?>
+
+
+<script>
+function AnularPago(id_pago) {
+    Swal.fire({
+        title: '¿Seguro que deseas anular este pago?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, anular',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '../_controlador/pago_anular.php',  // <-- tu ruta real
+                type: 'POST',
+                data: { id_pago: id_pago },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire('¡Anulado!', response.message, 'success')
+                        .then(() => { location.reload(); });
+                    } else {
+                        Swal.fire('Error', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+                }
+            });
+        }
+    });
+}
+</script>
+
 <div class="right_col" role="main">
     <div class="">
         <div class="page-title">
@@ -74,6 +111,7 @@
                                     <th>Comprobante</th>
                                     <th>Fecha</th>
                                     <th>Registrado por</th>
+                                    <th>Acción</th> <!--NUEVO-->
                                 </tr>
                             </thead>
                             <tbody>
@@ -91,6 +129,15 @@
                                     </td>
                                     <td><?php echo date('d/m/Y H:i', strtotime($pago['fecha_reg'])); ?></td>
                                     <td><?php echo $pago['nom_personal']; ?></td>
+                                    <td class="text-center">
+                                        <?php if (!isset($pago['est_pago']) || $pago['est_pago'] == 1): ?>
+                                            <button class="btn btn-danger btn-sm" onclick="AnularPago(<?php echo $pago['id_pago']; ?>)">
+                                                <i class="fa fa-times"></i> Anular
+                                            </button>
+                                        <?php else: ?>
+                                            <span class="badge bg-secondary">Anulado</span>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                                 <?php } ?>
                                 <?php if(empty($pagos)) { ?>

@@ -164,7 +164,8 @@ function ConsultarCompraPago($id_compra) {
     // Calcular monto pagado
     $sql_pagado = "SELECT SUM(monto) as pagado
                    FROM pago
-                   WHERE id_compra = $id_compra";
+                   WHERE id_compra = $id_compra
+                     AND est_pago = 1";
     $res_pagado = mysqli_query($con, $sql_pagado);
     $fila_pagado = mysqli_fetch_assoc($res_pagado);
     $monto_pagado = $fila_pagado['pagado'] ?? 0;
@@ -179,4 +180,105 @@ function ConsultarCompraPago($id_compra) {
 
     mysqli_close($con);
     return $compra;
+}
+
+// Anular pago
+function AnularPago($id_pago)
+{
+    include("../_conexion/conexion.php");
+
+    $id_pago = intval($id_pago);
+
+    if ($id_pago <= 0) {
+        mysqli_close($con);
+        return ['success' => false, 'message' => 'Pago inválido.'];
+    }
+
+    // Iniciar transacción
+    mysqli_begin_transaction($con);
+
+    try {
+        // 1) Obtener pago y verificar
+        $sql = "SELECT p.*, c.id_compra, c.est_compra
+                FROM pago p
+                LEFT JOIN compra c ON p.id_compra = c.id_compra
+                WHERE p.id_pago = $id_pago
+                FOR UPDATE";
+        $res = mysqli_query($con, $sql);
+        if (!$res || mysqli_num_rows($res) == 0) {
+            mysqli_rollback($con);
+            mysqli_close($con);
+            return ['success' => false, 'message' => 'Pago no encontrado.'];
+        }
+        $pago = mysqli_fetch_assoc($res);
+
+        if (intval($pago['est_pago']) === 0) {
+            mysqli_rollback($con);
+            mysqli_close($con);
+            return ['success' => false, 'message' => 'El pago ya está anulado.'];
+        }
+
+        $id_compra = intval($pago['id_compra']);
+        if ($id_compra <= 0) {
+            mysqli_rollback($con);
+            mysqli_close($con);
+            return ['success' => false, 'message' => 'Pago sin compra asociada.'];
+        }
+
+        // 2) Anular el pago (marcar est_pago = 0)
+        $sql_upd = "UPDATE pago
+                    SET est_pago = 0
+                    WHERE id_pago = $id_pago";
+        if (!mysqli_query($con, $sql_upd)) {
+            $err = mysqli_error($con);
+            mysqli_rollback($con);
+            mysqli_close($con);
+            return ['success' => false, 'message' => "Error al anular pago: $err"];
+        }
+
+        // 3) Recalcular monto pagado válido para la compra (solo est_pago = 1)
+        $sql_pagado = "SELECT COALESCE(SUM(monto),0) AS pagado
+                       FROM pago
+                       WHERE id_compra = $id_compra
+                         AND est_pago = 1";
+        $res_pagado = mysqli_query($con, $sql_pagado);
+        $fila_pagado = mysqli_fetch_assoc($res_pagado);
+        $monto_pagado = floatval($fila_pagado['pagado']);
+
+        // 4) Calcular monto total de la OC (igual que ConsultarCompraPago)
+        $sql_total = "SELECT COALESCE(SUM(cd.cant_compra_detalle * cd.prec_compra_detalle),0) as total
+                      FROM compra_detalle cd
+                      WHERE cd.id_compra = $id_compra";
+        $res_total = mysqli_query($con, $sql_total);
+        $fila_total = mysqli_fetch_assoc($res_total);
+        $monto_total = floatval($fila_total['total']);
+
+        $nuevoSaldo = round($monto_total - $monto_pagado, 2);
+
+        // 5) Si la compra estaba marcada como PAGADA (4) y ahora queda saldo, revertir a APROBADA (2)
+        $sql_compra = "";
+        if (intval($pago['est_compra']) === 4 && $nuevoSaldo > 0) {
+            $sql_compra = "UPDATE compra SET est_compra = 2 WHERE id_compra = $id_compra";
+            if (!mysqli_query($con, $sql_compra)) {
+                $err = mysqli_error($con);
+                mysqli_rollback($con);
+                mysqli_close($con);
+                return ['success' => false, 'message' => "Error al actualizar estado de compra: $err"];
+            }
+        }
+
+        mysqli_commit($con);
+        mysqli_close($con);
+        return [
+            'success' => true,
+            'message' => 'Pago anulado correctamente.',
+            'id_compra' => $id_compra,
+            'nuevo_saldo' => $nuevoSaldo
+        ];
+
+    } catch (Exception $e) {
+        mysqli_rollback($con);
+        mysqli_close($con);
+        return ['success' => false, 'message' => 'Excepción: ' . $e->getMessage()];
+    }
 }

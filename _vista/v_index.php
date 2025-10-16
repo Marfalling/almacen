@@ -35,8 +35,8 @@
                 <br />
 
                 <div>
-                  <h1><!-- <i class="fa fa-paw"></i> --> Alicorp</h1>
-                  <p>©2021 Todoss los derechos reservados.</p>
+                  <h1><!-- <i class="fa fa-paw"></i> --></h1>
+                  <p>©2025 Todos los derechos reservados.</p>
                 </div>
               </div>
 
