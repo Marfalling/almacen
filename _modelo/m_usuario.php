@@ -641,4 +641,31 @@ function ObtenerRolesUsuario($id_usuario)
     
     return $roles;
 }
+
+function CambiarPassword($id_usuario, $password_actual, $password_nueva)
+{
+    include("../_conexion/conexion.php");
+
+    // Verificar contraseña actual
+    $sql = "SELECT con_usuario FROM usuario WHERE id_usuario = ?";
+    $stmt = mysqli_prepare($con, $sql);
+    mysqli_stmt_bind_param($stmt, "i", $id_usuario);
+    mysqli_stmt_execute($stmt);
+    $result = mysqli_stmt_get_result($stmt);
+    $fila = mysqli_fetch_assoc($result);
+
+    if (!$fila || $fila['con_usuario'] !== $password_actual) {
+        mysqli_close($con);
+        return false; // contraseña actual incorrecta
+    }
+
+    // Actualizar la contraseña
+    $sql_update = "UPDATE usuario SET con_usuario = ? WHERE id_usuario = ?";
+    $stmt_update = mysqli_prepare($con, $sql_update);
+    mysqli_stmt_bind_param($stmt_update, "si", $password_nueva, $id_usuario);
+    $res = mysqli_stmt_execute($stmt_update);
+
+    mysqli_close($con);
+    return $res;
+}
 ?>

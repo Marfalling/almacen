@@ -52,7 +52,7 @@
                     <div class="x_title">
                         <div class="row">
                             <div class="col-sm-10">
-                                <h2>Listado de Centros de Costo</h2>
+                                <h2>Listado de Centro de Costo</h2>
                             </div>
                             <div class="col-sm-2">
                                 <?php if (verificarPermisoEspecifico('crear_centro de costo')): ?>
