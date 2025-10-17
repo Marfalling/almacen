@@ -13,9 +13,11 @@ $sql = "SELECT
             u.usu_usuario,
             u.id_personal,
             p.nom_personal,
+            c.nom_cargo,
             a.nom_area
         FROM usuario u
         INNER JOIN {$bd_complemento}.personal p ON u.id_personal = p.id_personal
+        INNER JOIN {$bd_complemento}.cargo c ON p.id_cargo = c.id_cargo
         INNER JOIN {$bd_complemento}.area a ON p.id_area = a.id_area
         WHERE u.usu_usuario = ? 
         AND u.con_usuario = ? 
