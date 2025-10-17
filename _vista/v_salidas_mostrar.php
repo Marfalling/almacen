@@ -3,6 +3,42 @@
 // VISTA: v_salidas_mostrar.php
 //=======================================================================
 ?>
+
+<script>
+function AnularSalida(id_salida) {
+    Swal.fire({
+        title: '¿Seguro que deseas anular esta salida?',
+        text: 'Se actualizarán los movimientos asociados',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, anular',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '../_controlador/salidas_anular.php', // ajusta la ruta si tu vista no está en _vista/
+                type: 'POST',
+                data: { id: id_salida },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire('¡Anulada!', response.message, 'success')
+                        .then(() => { location.reload(); });
+                    } else {
+                        Swal.fire('Error', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+                }
+            });
+        }
+    });
+}
+</script>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -84,9 +120,9 @@
                                                      <td><?php echo $salida['nom_personal']; ?></td>
                                                     <td>
                                                         <?php if($salida['est_salida'] == 1) { ?>
-                                                            <span class="badge badge-success badge_size">Activo</span>
+                                                            <span class="badge badge-success badge_size">Registrado</span>
                                                         <?php } else { ?>
-                                                            <span class="badge badge-danger badge_size">Inactivo</span>
+                                                            <span class="badge badge-danger badge_size">Anulado</span>
                                                         <?php } ?>
                                                     </td>
                                                     <td>
@@ -111,6 +147,17 @@
                                                                target="_blank">
                                                                 <i class="fa fa-file-pdf-o"></i>
                                                             </a>
+
+                                                            <?php if ($salida['est_salida'] == 1) { ?>
+                                                                <button class="btn btn-outline-danger btn-sm" title="Anular salida"
+                                                                        onclick="AnularSalida(<?php echo $salida['id_salida']; ?>)">
+                                                                    <i class="fa fa-times"></i>
+                                                                </button>
+                                                            <?php } else { ?>
+                                                                <button class="btn btn-outline-secondary btn-sm" title="Anulada" disabled>
+                                                                    <i class="fa fa-times"></i>
+                                                                </button>
+                                                            <?php } ?>
                                                         </div>
                                                     </td>
                                                 </tr>

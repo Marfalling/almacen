@@ -111,7 +111,8 @@ function AnularPago(id_pago) {
                                     <th>Comprobante</th>
                                     <th>Fecha</th>
                                     <th>Registrado por</th>
-                                    <th>Acción</th> <!--NUEVO-->
+                                    <th>Estado</th>
+                                    <th>Acción</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -131,11 +132,22 @@ function AnularPago(id_pago) {
                                     <td><?php echo $pago['nom_personal']; ?></td>
                                     <td class="text-center">
                                         <?php if (!isset($pago['est_pago']) || $pago['est_pago'] == 1): ?>
-                                            <button class="btn btn-danger btn-sm" onclick="AnularPago(<?php echo $pago['id_pago']; ?>)">
-                                                <i class="fa fa-times"></i> Anular
+                                            <span class="badge badge-success badge_size">Registrado</span>
+                                        <?php else: ?>
+                                            <span class="badge badge-danger badge_size">Anulado</span>
+                                        <?php endif; ?>
+                                    </td>
+
+                                    <td class="text-center">
+                                        <?php if (!isset($pago['est_pago']) || $pago['est_pago'] == 1): ?>
+                                            <button class="btn btn-outline-danger btn-sm" title="Anular Pago" onclick="AnularPago(<?php echo $pago['id_pago']; ?>)">
+                                                <i class="fa fa-times"></i>
                                             </button>
                                         <?php else: ?>
-                                            <span class="badge bg-secondary">Anulado</span>
+                                            <button class="btn btn-outline-secondary btn-sm" title="Anulado" disabled>
+                                                <i class="fa fa-times"></i>
+                                                
+                                            </button>
                                         <?php endif; ?>
                                     </td>
                                 </tr>

@@ -340,6 +340,13 @@
 
                             <div class="ln_solid"></div>
 
+                            <div class="form-group">
+                                <label>Subir Documento (opcional)</label>
+                                <input type="file" name="documento[]" id="documento" class="form-control" multiple>
+                            </div>
+
+                            <div class="ln_solid"></div>
+
                             <div class="form-group row">
                                 <div class="col-md-6 offset-md-3">
                                     <div class="row">

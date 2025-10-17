@@ -107,7 +107,10 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
         }
         
         mysqli_close($con);
-        return "SI";
+        return array(
+            'success' => true,
+            'id_salida' => intval($id_salida)
+        );
     } else {
         mysqli_close($con);
         return "ERROR: " . mysqli_error($con);
@@ -137,7 +140,7 @@ function MostrarSalidas()
              INNER JOIN {$bd_complemento}.personal pr ON s.id_personal = pr.id_personal
              LEFT JOIN {$bd_complemento}.personal pe ON s.id_personal_encargado = pe.id_personal
              LEFT JOIN {$bd_complemento}.personal prec ON s.id_personal_recibe = prec.id_personal
-             WHERE s.est_salida = 1
+             
              ORDER BY s.fec_salida DESC";
 
     $resc = mysqli_query($con, $sqlc);
@@ -180,7 +183,7 @@ function MostrarSalidasFecha($fecha_inicio = null, $fecha_fin = null)
              INNER JOIN {$bd_complemento}.personal pr ON s.id_personal = pr.id_personal
              LEFT JOIN {$bd_complemento}.personal pe ON s.id_personal_encargado = pe.id_personal
              LEFT JOIN {$bd_complemento}.personal prec ON s.id_personal_recibe = prec.id_personal
-             WHERE s.est_salida = 1
+             
              $whereFecha
              ORDER BY s.fec_salida DESC";
 
@@ -615,4 +618,53 @@ function TieneSalidaActivaPedido($id_pedido)
     
     mysqli_close($con);
     return $tiene_salida;
+}
+
+/**
+ * Anula una salida: desactiva la salida, desactiva los movimientos generados por la salida
+ * si la salida proviene de un pedido- reactiva los compromisos del pedido.
+ */
+function AnularSalida($id_salida, $id_usuario_anulacion = null)
+{
+    include("../_conexion/conexion.php");
+
+    // Iniciar transacción para mantener consistencia ¿primordial?
+    mysqli_begin_transaction($con);
+
+    try {
+        // 1) Obtener la salida (para ubicar id_pedido )
+        $id_salida = intval($id_salida);
+        $sql_sel = "SELECT id_salida, id_pedido FROM salida WHERE id_salida = $id_salida AND est_salida = 1 LIMIT 1";
+        $res_sel = mysqli_query($con, $sql_sel);
+        if (!$res_sel) throw new Exception("Error al consultar la salida: " . mysqli_error($con));
+        $row = mysqli_fetch_assoc($res_sel);
+        if (!$row) {
+            throw new Exception("Salida no encontrada o ya anulada.");
+        }
+        $id_pedido = isset($row['id_pedido']) ? intval($row['id_pedido']) : 0;
+
+        // 2) Marcar la salida como anulada (est_salida = 0). 
+        $sql_up = "UPDATE salida SET est_salida = 0";
+        $sql_up .= " WHERE id_salida = $id_salida"; /*¿editar?*/
+        if (!mysqli_query($con, $sql_up)) throw new Exception("Error al anular la salida: " . mysqli_error($con));
+
+        // 3) Desactivar todos los movimientos que fueron creados por esta salida
+        $sql_mov_off = "UPDATE movimiento SET est_movimiento = 0 WHERE tipo_orden = 2 AND id_orden = $id_salida";
+        if (!mysqli_query($con, $sql_mov_off)) throw new Exception("Error al desactivar movimientos de la salida: " . mysqli_error($con));
+
+        // 4) Si la salida viene de un pedido, reactivar los compromisos (tipo_orden = 5) del pedido
+        if ($id_pedido && $id_pedido > 0) {
+
+            $sql_reactivar = "UPDATE movimiento SET est_movimiento = 1 WHERE tipo_orden = 5 AND id_orden = $id_pedido";
+            if (!mysqli_query($con, $sql_reactivar)) throw new Exception("Error al reactivar compromisos del pedido: " . mysqli_error($con));
+        }
+
+        mysqli_commit($con);
+        mysqli_close($con);
+        return "SI";
+    } catch (Exception $e) {
+        mysqli_rollback($con);
+        mysqli_close($con);
+        return "ERROR: " . $e->getMessage();
+    }
 }

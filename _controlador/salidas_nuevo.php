@@ -153,7 +153,35 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                             $id_personal_recibe, $id_personal, $materiales, $id_pedido_para_salida
                         );
                         
-                        if ($resultado === "SI") {
+                        if ($resultado === "SI" || (is_array($resultado) && isset($resultado['success']) && $resultado['success'] === true)) {
+
+                            // ======================================
+                            // 🆕 NUEVO: SUBIDA DE DOCUMENTOS
+                            // ======================================
+                            $id_salida = is_array($resultado) ? $resultado['id_salida'] : mysqli_insert_id($con ?? null);
+                            
+                            if (isset($_FILES['documento']) && count($_FILES['documento']['name']) > 0) {
+                                include_once("../_modelo/m_documentos.php");
+
+                                $entidad = "salidas";
+                                $target_dir = __DIR__ . "/../uploads/" . $entidad . "/";
+                                if (!is_dir($target_dir)) {
+                                    mkdir($target_dir, 0777, true);
+                                }
+
+                                foreach ($_FILES['documento']['name'] as $i => $nombre_original) {
+                                    if (!empty($nombre_original)) {
+                                        $nombre_archivo = $entidad . "_" . $id_salida . "_" . time() . "_" . basename($nombre_original);
+                                        $target_file = $target_dir . $nombre_archivo;
+
+                                        if (move_uploaded_file($_FILES["documento"]["tmp_name"][$i], $target_file)) {
+                                            GuardarDocumento($entidad, $id_salida, $nombre_archivo, $_SESSION['id_personal']);
+                                        }
+                                    }
+                                }
+                            }
+                            // ======================================
+
                             $id_pedido_origen = isset($_REQUEST['id_pedido_origen']) ? intval($_REQUEST['id_pedido_origen']) : 0;
                             
                             if ($id_pedido_origen > 0) {
