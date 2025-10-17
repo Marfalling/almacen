@@ -897,50 +897,30 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
     // Cargar items
     const itemsContainer = document.getElementById('edit_items_container');
     itemsContainer.innerHTML = '';
-    
+
     const simboloMoneda = orden.id_moneda == 1 ? 'S/.' : 'US$';
-    
+
     detalles.forEach((item, index) => {
         const subtotal = parseFloat(item.cant_compra_detalle) * parseFloat(item.prec_compra_detalle);
+        const igvPorcentaje = parseFloat(item.igv_compra_detalle) || 18;
+        const montoIgv = subtotal * (igvPorcentaje / 100);
+        const total = subtotal + montoIgv;
         
         itemsContainer.innerHTML += `
-            <div class="alert alert-light p-2 mb-2" id="edit_item_${item.id_compra_detalle}" style="border-left: 3px solid #28a745;">
+            <div class="alert alert-light p-2 mb-2" id="edit_item_${item.id_compra_detalle}">
                 <input type="hidden" name="items_orden[${item.id_compra_detalle}][id_compra_detalle]" value="${item.id_compra_detalle}">
-                <input type="hidden" name="items_orden[${item.id_compra_detalle}][cantidad]" value="${item.cant_compra_detalle}">
+                <input type="hidden" name="items_orden[${item.id_compra_detalle}][id_producto]" value="${item.id_producto}">
+                <input type="hidden" name="items_orden[${item.id_compra_detalle}][es_nuevo]" value="0">
                 
-                <div class="row align-items-center">
-                    <div class="col-md-1 text-center">
-                        <strong style="font-size: 14px; color: #28a745;">${index + 1}</strong>
-                    </div>
-                    <div class="col-md-7">
+                <!-- Descripción del producto -->
+                <div class="row align-items-center mb-2">
+                    <div class="col-md-11">
                         <div style="font-size: 12px;">
-                            <div class="mb-1">
-                                <strong>Descripción:</strong> ${item.nom_producto}
-                            </div>
-                            <div>
-                                <strong>Cantidad:</strong> ${item.cant_compra_detalle}
-                            </div>
+                            <strong>Descripción:</strong> ${item.nom_producto}
+                            <span class="badge badge-info badge-sm ml-1">EDITANDO</span>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <label style="font-size: 11px; font-weight: bold;">Precio Unit.:</label>
-                        <div class="input-group input-group-sm">
-                            <div class="input-group-prepend">
-                                <span class="input-group-text edit-simbolo-moneda" style="font-size: 11px;">${simboloMoneda}</span>
-                            </div>
-                            <input type="number" 
-                                   class="form-control form-control-sm edit-precio-item" 
-                                   name="items_orden[${item.id_compra_detalle}][precio_unitario]"
-                                   data-id-detalle="${item.id_compra_detalle}"
-                                   data-cantidad="${item.cant_compra_detalle}"
-                                   value="${item.prec_compra_detalle}"
-                                   step="0.01" 
-                                   min="0"
-                                   style="font-size: 11px;"
-                                   required>
-                        </div>
-                    </div>
-                    <div class="col-md-1 text-center">
+                    <div class="col-md-1 text-right">
                         <button type="button" class="btn btn-danger btn-sm btn-remover-item" 
                                 data-id-detalle="${item.id_compra_detalle}"
                                 title="Eliminar item">
@@ -948,30 +928,113 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
                         </button>
                     </div>
                 </div>
-                <div class="row mt-2">
-                    <div class="col-md-12">
-                        <div class="edit-subtotal-item text-right" 
-                             id="edit_subtotal_${item.id_compra_detalle}" 
-                             style="font-size: 12px; font-weight: bold; color: #28a745;">
-                            Subtotal: ${simboloMoneda} ${subtotal.toFixed(2)}
+                
+                <!-- Campos en una sola línea: Cantidad, Precio, IGV, Homologación -->
+                <div class="row">
+                    <!-- Cantidad -->
+                    <div class="col-md-2">
+                        <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Cantidad:</label>
+                        <input type="number" 
+                            class="form-control form-control-sm edit-cantidad-item" 
+                            name="items_orden[${item.id_compra_detalle}][cantidad]"
+                            data-id-detalle="${item.id_compra_detalle}"
+                            value="${item.cant_compra_detalle}"
+                            min="0.01" 
+                            step="0.01"
+                            style="font-size: 12px;"
+                            required>
+                    </div>
+                    
+                    <!-- Precio Unitario -->
+                    <div class="col-md-2">
+                        <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Precio Unit.:</label>
+                        <div class="input-group input-group-sm">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text edit-simbolo-moneda" style="font-size: 11px; background-color: #f8f9fa; border: 1px solid #ced4da;">
+                                    ${simboloMoneda}
+                                </span>
+                            </div>
+                            <input type="number" 
+                                class="form-control form-control-sm edit-precio-item" 
+                                name="items_orden[${item.id_compra_detalle}][precio_unitario]"
+                                data-id-detalle="${item.id_compra_detalle}"
+                                value="${item.prec_compra_detalle}"
+                                step="0.01" 
+                                min="0"
+                                style="font-size: 11px;"
+                                required>
+                        </div>
+                    </div>
+                    
+                    <!-- IGV (%) -->
+                    <div class="col-md-2">
+                        <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">IGV (%):</label>
+                        <input type="number" 
+                            class="form-control form-control-sm edit-igv-item" 
+                            name="items_orden[${item.id_compra_detalle}][igv]"
+                            data-id-detalle="${item.id_compra_detalle}"
+                            value="${igvPorcentaje}"
+                            min="0" 
+                            max="100"
+                            step="0.01"
+                            style="font-size: 12px;"
+                            required>
+                    </div>
+                    
+                    <!-- Homologación -->
+                    <div class="col-md-3">
+                        <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Homologación:</label>
+                        ${item.hom_compra_detalle ? `
+                            <div class="mb-1">
+                                <a href="../_archivos/homologaciones/${item.hom_compra_detalle}" target="_blank" 
+                                class="text-success" style="font-size: 11px;">
+                                    <i class="fa fa-file-pdf-o"></i> Ver archivo actual
+                                </a>
+                            </div>
+                        ` : ''}
+                        <input type="file" 
+                            class="form-control-file" 
+                            name="homologacion[${item.id_compra_detalle}]"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            style="font-size: 11px; padding-top: 4px;">
+                        <small class="text-muted" style="font-size: 10px;">PDF, JPG, PNG</small>
+                    </div>
+                    
+                    <!-- Cálculos (Subtotal, IGV, Total) -->
+                    <div class="col-md-3 text-right">
+                        <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block; visibility: hidden;">-</label>
+                        <div class="edit-calculo-item" id="edit_calculo_${item.id_compra_detalle}" 
+                            style="font-size: 11px; line-height: 1.4;">
+                            <div class="edit-subtotal-text">Subtotal: ${simboloMoneda} ${subtotal.toFixed(2)}</div>
+                            <div class="edit-igv-text">IGV: ${simboloMoneda} ${montoIgv.toFixed(2)}</div>
+                            <div class="edit-total-text" style="font-weight: bold; color: #28a745;">Total: ${simboloMoneda} ${total.toFixed(2)}</div>
                         </div>
                     </div>
                 </div>
             </div>
         `;
     });
-    
-    // Configurar eventos de precios
-    document.querySelectorAll('.edit-precio-item').forEach(input => {
+        
+        // Configurar eventos de cálculo (cantidad, precio, IGV)
+    document.querySelectorAll('.edit-cantidad-item, .edit-precio-item, .edit-igv-item').forEach(input => {
         input.addEventListener('input', function() {
             const idDetalle = this.getAttribute('data-id-detalle');
-            const cantidad = parseFloat(this.getAttribute('data-cantidad'));
-            const precio = parseFloat(this.value) || 0;
+            const itemDiv = document.getElementById('edit_item_' + idDetalle);
+            
+            const cantidad = parseFloat(itemDiv.querySelector('.edit-cantidad-item').value) || 0;
+            const precio = parseFloat(itemDiv.querySelector('.edit-precio-item').value) || 0;
+            const igvPorcentaje = parseFloat(itemDiv.querySelector('.edit-igv-item').value) || 0;
+            
             const subtotal = cantidad * precio;
+            const montoIgv = subtotal * (igvPorcentaje / 100);
+            const total = subtotal + montoIgv;
             
             const simbolo = document.getElementById('edit_moneda_orden').value == 1 ? 'S/.' : 'US$';
-            document.getElementById('edit_subtotal_' + idDetalle).textContent = 
-                `Subtotal: ${simbolo} ${subtotal.toFixed(2)}`;
+            const calculoDiv = document.getElementById('edit_calculo_' + idDetalle);
+            
+            calculoDiv.querySelector('.edit-subtotal-text').textContent = `Subtotal: ${simbolo} ${subtotal.toFixed(2)}`;
+            calculoDiv.querySelector('.edit-igv-text').textContent = `IGV: ${simbolo} ${montoIgv.toFixed(2)}`;
+            calculoDiv.querySelector('.edit-total-text').textContent = `Total: ${simbolo} ${total.toFixed(2)}`;
             
             calcularTotalOrdenModal();
         });
@@ -1026,13 +1089,26 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
 }
 
 function calcularTotalOrdenModal() {
-    const items = document.querySelectorAll('.edit-precio-item');
-    let total = 0;
+    const items = document.querySelectorAll('[id^="edit_item_"]');
+    let subtotalGeneral = 0;
+    let totalIgv = 0;
     
-    items.forEach(input => {
-        const cantidad = parseFloat(input.getAttribute('data-cantidad')) || 0;
-        const precio = parseFloat(input.value) || 0;
-        total += cantidad * precio;
+    items.forEach(item => {
+        const cantidadInput = item.querySelector('.edit-cantidad-item');
+        const precioInput = item.querySelector('.edit-precio-item');
+        const igvInput = item.querySelector('.edit-igv-item');
+        
+        if (cantidadInput && precioInput && igvInput) {
+            const cantidad = parseFloat(cantidadInput.value) || 0;
+            const precio = parseFloat(precioInput.value) || 0;
+            const igvPorcentaje = parseFloat(igvInput.value) || 0;
+            
+            const subtotal = cantidad * precio;
+            const montoIgv = subtotal * (igvPorcentaje / 100);
+            
+            subtotalGeneral += subtotal;
+            totalIgv += montoIgv;
+        }
     });
     
     const checkboxDetraccion = document.querySelector('.edit-detraccion-checkbox:checked');
@@ -1043,38 +1119,40 @@ function calcularTotalOrdenModal() {
     if (checkboxDetraccion) {
         porcentajeDetraccion = parseFloat(checkboxDetraccion.getAttribute('data-porcentaje')) || 0;
         nombreDetraccion = checkboxDetraccion.getAttribute('data-nombre') || '';
-        montoDetraccion = (total * porcentajeDetraccion) / 100;
+        montoDetraccion = (subtotalGeneral * porcentajeDetraccion) / 100;
     }
     
-    const totalFinal = total - montoDetraccion;
+    const totalFinal = subtotalGeneral + totalIgv - montoDetraccion;
     const simboloMoneda = document.getElementById('edit_moneda_orden').value == 1 ? 'S/.' : 'US$';
     
     let html = `
-        <div class="text-end" style="font-size: 14px; padding: 15px; background-color: #fff; border: 1px solid #ddd; border-radius: 8px;">
-            <div class="mb-2" style="font-size: 13px;">
+        <div style="font-size: 15px; padding: 10px 15px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;">
+            <div class="mb-2">
                 <i class="fa fa-calculator text-secondary"></i>
                 <strong class="text-secondary"> Subtotal:</strong>
-                <span class="text-dark">${simboloMoneda} ${total.toFixed(2)}</span>
+                <span class="text-dark">${simboloMoneda} ${subtotalGeneral.toFixed(2)}</span>
+            </div>
+            <div class="mb-2">
+                <i class="fa fa-percent text-secondary"></i>
+                <strong class="text-secondary"> IGV Total:</strong>
+                <span class="text-dark">${simboloMoneda} ${totalIgv.toFixed(2)}</span>
             </div>`;
     
     if (montoDetraccion > 0) {
         html += `
-            <div class="mb-2" style="font-size: 13px; color: #dc3545;">
-                <i class="fa fa-minus-circle"></i>
-                <strong> Detracción ${nombreDetraccion} (${porcentajeDetraccion}%):</strong>
-                <span>-${simboloMoneda} ${montoDetraccion.toFixed(2)}</span>
-            </div>
-            <div class="alert alert-info text-center mb-0" style="font-size: 16px; font-weight: bold; padding: 12px;">
-                <i class="fa fa-money"></i> TOTAL A PAGAR: ${simboloMoneda} ${totalFinal.toFixed(2)}
-            </div>`;
-    } else {
-        html += `
-            <div class="alert alert-info text-center mb-0" style="font-size: 16px; font-weight: bold; padding: 12px;">
-                <i class="fa fa-money"></i> TOTAL: ${simboloMoneda} ${total.toFixed(2)}
+            <div class="mb-2">
+                <i class="fa fa-minus-circle text-danger"></i>
+                <strong class="text-danger"> Detracción ${nombreDetraccion} (${porcentajeDetraccion}%):</strong>
+                <span class="text-danger">-${simboloMoneda} ${montoDetraccion.toFixed(2)}</span>
             </div>`;
     }
     
-    html += `</div>`;
+    html += `
+            <div style="font-size: 18px; font-weight: bold; padding: 10px; background-color: #28a745; color: white; border-radius: 6px; text-align: center; margin-top: 10px;">
+                <i class="fa fa-money"></i> 
+                TOTAL ${montoDetraccion > 0 ? 'A PAGAR' : ''}: ${simboloMoneda} ${totalFinal.toFixed(2)}
+            </div>
+        </div>`;
     
     document.getElementById('edit_total_orden').innerHTML = html;
 }

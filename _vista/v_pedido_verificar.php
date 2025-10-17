@@ -99,6 +99,8 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                             <?php 
                                 $contador_detalle = 1;
                                 foreach ($pedido_detalle as $detalle) { 
+                                    $detalle['cantidad_ya_ordenada'] = ObtenerCantidadYaOrdenada($id_pedido, $detalle['id_producto']);
+                                    $detalle['cantidad_pendiente'] = ObtenerCantidadPendienteOrdenar($id_pedido, $detalle['id_producto']);
                                     $comentario = $detalle['com_pedido_detalle'];
                                     $unidad = '';
                                     $observaciones = '';
@@ -207,6 +209,7 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                                 data-id-producto="<?php echo $detalle['id_producto']; ?>"
                                                 data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
                                                 data-cantidad-verificada="<?php echo htmlspecialchars($detalle['cant_fin_pedido_detalle']); ?>"
+                                                data-cantidad-ordenada="<?php echo isset($detalle['cantidad_ya_ordenada']) ? $detalle['cantidad_ya_ordenada'] : '0'; ?>"
                                                 title="Agregar a Orden" 
                                                 style="padding: 2px 8px; font-size: 11px;">
                                             <i class="fa fa-check"></i> Agregar a Orden
@@ -254,6 +257,17 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                     <?php if ($esVerificado) { ?>
                                         <span style="margin: 0 8px;">|</span>
                                         <strong>Cant. Verificada:</strong> <?php echo $detalle['cant_fin_pedido_detalle']; ?>
+                                        <?php 
+                                        // Mostrar cantidad ya ordenada si existe
+                                        if (isset($detalle['cantidad_ya_ordenada']) && $detalle['cantidad_ya_ordenada'] > 0) { ?>
+                                            <span style="margin: 0 8px;">|</span>
+                                            <strong style="color: #28a745;">Ya Ordenado:</strong> <?php echo $detalle['cantidad_ya_ordenada']; ?>
+                                        <?php } 
+                                        // Mostrar cantidad pendiente
+                                        if (isset($detalle['cantidad_pendiente']) && $detalle['cantidad_pendiente'] > 0) { ?>
+                                            <span style="margin: 0 8px;">|</span>
+                                            <strong style="color: #ffc107;">Pendiente:</strong> <?php echo $detalle['cantidad_pendiente']; ?>
+                                        <?php } ?>
                                     <?php } ?>
                                 </div>
                             </div>
@@ -497,7 +511,7 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
 
                         <!-- FORMULARIO PARA CREAR/EDITAR ORDEN -->
                         <div id="contenedor-nueva-orden" <?php echo $modo_editar ? 'style="display: block;"' : 'style="display: none;"'; ?>>
-                            <form id="form-nueva-orden" method="POST" action="">
+                            <form id="form-nueva-orden" method="POST" action="" enctype="multipart/form-data">
                                 <?php if ($modo_editar): ?>
                                 <input type="hidden" name="actualizar_orden" value="1">
                                 <input type="hidden" name="id_compra" value="<?php echo $id_compra_editar; ?>">
@@ -637,45 +651,27 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                         </div>
                                     </div>
                                 </div>
+                                <!-- Reemplaza esta sección en la versión 2, dentro del formulario de nueva orden -->
                                 <div id="contenedor-items-orden" class="mb-3">
                                     <?php if ($modo_editar && !empty($orden_detalle)): ?>
                                         <?php foreach ($orden_detalle as $item): ?>
                                         <div class="alert alert-light p-2 mb-2" id="item-orden-<?php echo $item['id_compra_detalle']; ?>">
+                                            <!-- Inputs hidden -->
                                             <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_compra_detalle]" value="<?php echo $item['id_compra_detalle']; ?>">
                                             <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_producto]" value="<?php echo $item['id_producto']; ?>">
-                                            <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][cantidad]" value="<?php echo $item['cant_compra_detalle']; ?>">
                                             <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][es_nuevo]" value="0">
                                             
-                                            <div class="row align-items-center">
-                                                <div class="col-md-8">
+                                            <!-- Descripción del producto -->
+                                            <div class="row align-items-center mb-2">
+                                                <div class="col-md-11">
                                                     <div style="font-size: 12px;">
-                                                        <div class="mb-1">
-                                                            <strong>Descripción:</strong> <?php echo htmlspecialchars($item['nom_producto']); ?>
-                                                        </div>
-                                                        <div>
-                                                            <strong>Cantidad:</strong> <?php echo $item['cant_compra_detalle']; ?>
-                                                        </div>
+                                                        <strong>Descripción:</strong> <?php echo htmlspecialchars($item['nom_producto']); ?>
+                                                        <?php if ($modo_editar): ?>
+                                                        <span class="badge badge-info badge-sm ml-1">EDITANDO</span>
+                                                        <?php endif; ?>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-3">
-                                                    <label style="font-size: 11px; font-weight: bold;">Precio Unit.:</label>
-                                                    <div class="input-group input-group-sm">
-                                                        <div class="input-group-prepend">
-                                                            <span class="input-group-text" style="font-size: 11px;">
-                                                                <?php echo ($orden_data['id_moneda'] == 1) ? 'S/.' : 'US$'; ?>
-                                                            </span>
-                                                        </div>
-                                                        <input type="number" 
-                                                            class="form-control form-control-sm precio-item" 
-                                                            name="items_orden[<?php echo $item['id_compra_detalle']; ?>][precio_unitario]"
-                                                            value="<?php echo $item['prec_compra_detalle']; ?>"
-                                                            step="0.01" 
-                                                            min="0"
-                                                            style="font-size: 11px;"
-                                                            required>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-1">
+                                                <div class="col-md-1 text-right">
                                                     <button type="button" class="btn btn-danger btn-sm btn-remover-item" 
                                                             data-id-detalle="<?php echo $item['id_compra_detalle']; ?>"
                                                             data-id-compra-detalle="<?php echo $item['id_compra_detalle']; ?>">
@@ -683,12 +679,85 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                                     </button>
                                                 </div>
                                             </div>
-                                            <div class="row mt-2">
-                                                <div class="col-md-12">
-                                                    <div class="subtotal-item text-right" id="subtotal-<?php echo $item['id_compra_detalle']; ?>" 
-                                                         style="font-size: 12px; font-weight: bold; color: #007bff;">
-                                                        Subtotal: <?php echo ($orden_data['id_moneda'] == 1) ? 'S/.' : 'US$'; ?> 
-                                                        <?php echo number_format($item['cant_compra_detalle'] * $item['prec_compra_detalle'], 2); ?>
+                                            
+                                            <!-- Campos en una sola línea: Cantidad, Precio, IGV, Homologación -->
+                                            <div class="row align-items-end">
+                                                <!-- Cantidad -->
+                                                <div class="col-md-2">
+                                                    <label style="font-size: 11px; font-weight: bold; margin-bottom: 2px;">Cantidad:</label>
+                                                    <input type="number" 
+                                                        class="form-control form-control-sm cantidad-item" 
+                                                        name="items_orden[<?php echo $item['id_compra_detalle']; ?>][cantidad]"
+                                                        data-id-detalle="<?php echo $item['id_compra_detalle']; ?>"
+                                                        value="<?php echo $item['cant_compra_detalle']; ?>"
+                                                        min="0.01" 
+                                                        step="0.01"
+                                                        style="font-size: 12px;"
+                                                        required>
+                                                </div>
+                                                
+                                                <!-- Precio Unitario -->
+                                                <div class="col-md-2">
+                                                    <label style="font-size: 11px; font-weight: bold; margin-bottom: 2px;">Precio Unit.:</label>
+                                                    <div class="input-group input-group-sm">
+                                                        <div class="input-group-prepend">
+                                                            <span class="input-group-text" style="font-size: 11px; background-color: #f8f9fa; border: 1px solid #ced4da;">
+                                                                <?php echo ($orden_data['id_moneda'] == 1) ? 'S/.' : 'US$'; ?>
+                                                            </span>
+                                                        </div>
+                                                        <input type="number" 
+                                                            class="form-control form-control-sm precio-item" 
+                                                            name="items_orden[<?php echo $item['id_compra_detalle']; ?>][precio_unitario]"
+                                                            data-id-detalle="<?php echo $item['id_compra_detalle']; ?>"
+                                                            value="<?php echo $item['prec_compra_detalle']; ?>"
+                                                            step="0.01" 
+                                                            min="0"
+                                                            style="font-size: 11px;"
+                                                            required>
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- IGV (%) -->
+                                                <div class="col-md-2">
+                                                    <label style="font-size: 11px; font-weight: bold; margin-bottom: 2px;">IGV (%):</label>
+                                                    <input type="number" 
+                                                        class="form-control form-control-sm igv-item" 
+                                                        name="items_orden[<?php echo $item['id_compra_detalle']; ?>][igv]"
+                                                        data-id-detalle="<?php echo $item['id_compra_detalle']; ?>"
+                                                        value="<?php echo $item['igv_compra_detalle'] ?? 18; ?>"
+                                                        min="0" 
+                                                        max="100"
+                                                        step="0.01"
+                                                        style="font-size: 12px;"
+                                                        required>
+                                                </div>
+                                                
+                                                <!-- Homologación -->
+                                                <div class="col-md-3">
+                                                    <label style="font-size: 11px; font-weight: bold; margin-bottom: 2px;">Homologación:</label>
+                                                    <?php if (!empty($item['hom_compra_detalle'])): ?>
+                                                    <div class="mb-1">
+                                                        <a href="../_archivos/homologaciones/<?php echo $item['hom_compra_detalle']; ?>" target="_blank" 
+                                                        class="text-success" style="font-size: 11px;">
+                                                            <i class="fa fa-file-pdf-o"></i> Ver archivo actual
+                                                        </a>
+                                                    </div>
+                                                    <?php endif; ?>
+                                                    <input type="file" 
+                                                        class="form-control-file" 
+                                                        name="homologacion[<?php echo $item['id_compra_detalle']; ?>]"
+                                                        accept=".pdf,.jpg,.jpeg,.png"
+                                                        style="font-size: 11px;">
+                                                    <small class="text-muted" style="font-size: 10px;">PDF, JPG, PNG</small>
+                                                </div>
+                                                
+                                                <!-- Cálculos (Subtotal, IGV, Total) -->
+                                                <div class="col-md-3 text-right">
+                                                    <div class="calculo-item" id="calculo-<?php echo $item['id_compra_detalle']; ?>" 
+                                                        style="font-size: 11px; line-height: 1.4;">
+                                                        <div class="subtotal-text">Subtotal: --</div>
+                                                        <div class="igv-text">IGV: --</div>
+                                                        <div class="total-text" style="font-weight: bold; color: #28a745;">Total: --</div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -952,13 +1021,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const modoEditar = <?php echo $modo_editar ? 'true' : 'false'; ?>;
     let itemsAgregadosOrden = new Set();
 
-    // Verificar si generar salida al cargar la página
+    // ============================================
+    // INICIALIZACIÓN
+    // ============================================
     if (!esAutoOrden && !pedidoAnulado && !modoEditar) {
-        setTimeout(function() {
-            verificarSiGenerarSalida();
-        }, 1000);
+        setTimeout(verificarSiGenerarSalida, 1000);
     }
-    // Si es auto-orden, preparar formulario automático
+    
     if (esAutoOrden && !modoEditar) {
         setTimeout(function() {
             mostrarFormularioNuevaOrdenAuto();
@@ -966,415 +1035,229 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 800);
     }
 
-    // Si estamos en modo edición, configurar eventos específicos
     if (modoEditar) {
         configurarEventosEdicion();
-        actualizarTotalOrden();
     }
 
-    // Configurar eventos generales
     configurarEventListeners();
+    configurarModalProveedor();
 
-    // ====================================================================
-    // NUEVO: CONFIGURAR MODAL DE PROVEEDOR
-    // ====================================================================
-    const tablaCuentasModal = document.getElementById("tabla-cuentas-modal");
-    const btnAgregarModal = document.getElementById("agregarCuentaModal");
-
-    // Acción para agregar nueva fila de cuenta bancaria
-    if (btnAgregarModal) {
-        btnAgregarModal.addEventListener("click", function() {
-            const nuevaFila = document.createElement("tr");
-            nuevaFila.innerHTML = `
-                <td><input type="text" name="banco[]" class="form-control form-control-sm"></td>
-                <td>
-                    <select name="id_moneda[]" class="form-control form-control-sm">
-                        <option value="">-- Moneda --</option>
-                        <?php foreach ($moneda as $m) { ?>
-                            <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
-                        <?php } ?>
-                    </select>
-                </td>
-                <td><input type="text" name="cta_corriente[]" class="form-control form-control-sm"></td>
-                <td><input type="text" name="cta_interbancaria[]" class="form-control form-control-sm"></td>
-                <td><button type="button" class="btn btn-danger btn-sm eliminar-fila-modal">X</button></td>
-            `;
-            tablaCuentasModal.appendChild(nuevaFila);
-        });
-    }
-
-    // Acción para eliminar fila de cuenta bancaria
-    if (tablaCuentasModal) {
-        tablaCuentasModal.addEventListener("click", function(e) {
-            if (e.target.classList.contains("eliminar-fila-modal")) {
-                const filas = tablaCuentasModal.querySelectorAll("tr");
-                if (filas.length > 1) {
-                    e.target.closest("tr").remove();
-                } else {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Advertencia',
-                        text: 'Debe mantener al menos una fila'
-                    });
-                }
-            }
-        });
-    }
-
-    // Abrir modal de nuevo proveedor
-    const btnAgregarProveedor = document.getElementById('btn-agregar-proveedor');
-    if (btnAgregarProveedor) {
-        btnAgregarProveedor.addEventListener('click', function() {
-            $('#modalNuevoProveedor').modal('show');
-        });
-    }
-
-    // Guardar nuevo proveedor desde modal
-    const btnGuardarProveedorModal = document.getElementById('btn-guardar-proveedor-modal');
-    if (btnGuardarProveedorModal) {
-        btnGuardarProveedorModal.addEventListener('click', function() {
-            const form = document.getElementById('form-nuevo-proveedor-modal');
-            
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
-            
-            // Validar RUC manualmente
-            const rucInput = form.querySelector('input[name="ruc_proveedor"]');
-            const ruc = rucInput.value.trim();
-            
-            if (ruc.length !== 11 || !/^\d+$/.test(ruc)) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'RUC inválido',
-                    text: 'El RUC debe contener exactamente 11 dígitos numéricos'
-                });
-                rucInput.focus();
-                return;
-            }
-            
-            const formData = new FormData(form);
-            formData.append('registrar_ajax', '1');
-            
-            // Deshabilitar botón durante el proceso
-            const btnGuardar = this;
-            btnGuardar.disabled = true;
-            btnGuardar.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Guardando...';
-            
-            fetch('proveedor_nuevo_directo.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Agregar nuevo proveedor al select
-                    const selectProveedor = document.getElementById('proveedor_orden');
-                    const newOption = new Option(data.nombre_proveedor, data.id_proveedor, true, true);
-                    selectProveedor.add(newOption);
-                    
-                    // Cerrar modal y limpiar formulario
-                    $('#modalNuevoProveedor').modal('hide');
-                    form.reset();
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Proveedor agregado!',
-                        text: data.message,
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: data.message
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error de conexión',
-                    text: 'No se pudo conectar con el servidor. Verifique su conexión.'
-                });
-            })
-            .finally(() => {
-                btnGuardar.disabled = false;
-                btnGuardar.innerHTML = '<i class="fa fa-save"></i> Registrar';
-            });
-        });
-    }
-
-    // Limpiar formulario al cerrar modal
-    $('#modalNuevoProveedor').on('hidden.bs.modal', function () {
-        const form = document.getElementById('form-nuevo-proveedor-modal');
-        if (form) {
-            form.reset();
-            // Limpiar tabla de cuentas dejando solo una fila
-            const tablaCuentas = document.getElementById('tabla-cuentas-modal');
-            if (tablaCuentas) {
-                const filas = tablaCuentas.querySelectorAll('tr');
-                for (let i = filas.length - 1; i > 0; i--) {
-                    filas[i].remove();
-                }
-            }
-        }
-    });
-
-// Estados: 0=Anulado, 1=Pendiente, 2=Completado, 3=Aprobado, 4=Ingresado, 5=Finalizado
-
-function verificarSiGenerarSalida() {
-    const itemsPendientes = document.querySelectorAll('.item-pendiente');
-    let tieneItems = false;
-    let todosConStockCompleto = true;
-    
-    itemsPendientes.forEach(function(item) {
-        tieneItems = true;
+    // ============================================
+    // FUNCIONES DE VERIFICACIÓN DE SALIDA
+    // ============================================
+    function verificarSiGenerarSalida() {
+        const itemsPendientes = document.querySelectorAll('.item-pendiente');
+        let tieneItems = false;
+        let todosConStockCompleto = true;
         
-        const estadoSpan = item.querySelector('span[class*="badge"], .text-success, .text-warning, .text-primary, .text-danger');
-        
-        if (estadoSpan) {
-            const textoEstado = estadoSpan.textContent.trim();
-            
-            if (!textoEstado.includes('Completo')) {
+        itemsPendientes.forEach(function(item) {
+            tieneItems = true;
+            const estadoSpan = item.querySelector('span[class*="badge"], .text-success, .text-warning, .text-primary, .text-danger');
+            if (estadoSpan && !estadoSpan.textContent.trim().includes('Completo')) {
                 todosConStockCompleto = false;
             }
-        }
-    });
-    
-    // Verificar el estado del pedido
-    const estadoPedido = <?php echo $pedido['est_pedido']; ?>;
-    const tieneSalidaActiva = <?php echo isset($tiene_salida_activa) && $tiene_salida_activa ? 'true' : 'false'; ?>;
-
-    // Si ya tiene salida activa, NO mostrar mensaje
-    if (tieneSalidaActiva) {
-        console.log('Este pedido ya tiene una salida activa registrada');
-        return;
-    }
-
-    // Si todos los items tienen stock
-    if (tieneItems && todosConStockCompleto) {
-
-        // --- PEDIDO FINALIZADO (5) ---
-        if (estadoPedido === 5) {
-            Swal.fire({
-                title: '¡Pedido Finalizado!',
-                html: '<div style="text-align: left; padding: 10px;">' +
-                    '<p style="margin-bottom: 10px;">Este pedido ya está marcado como <strong style="color: #28a745;">FINALIZADO</strong>.</p>' +
-                    '<p style="margin-bottom: 0;"><strong>¿Deseas ver las salidas relacionadas?</strong></p>' +
-                    '</div>',
-                icon: 'success',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fa fa-eye"></i> Ver Salidas',
-                cancelButtonText: '<i class="fa fa-arrow-left"></i> Volver a pedidos',
-                allowOutsideClick: false
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = 'salidas_mostrar.php?pedido=<?php echo $id_pedido; ?>';
-                } else {
-                    window.location.href = 'pedidos_mostrar.php';
-                }
-            });
-            return;
-        }
-
-        // --- PEDIDO APROBADO (3) o INGRESADO (4): sugerir generar salida ---
-        if (estadoPedido === 3 || estadoPedido === 4) {
-            const estadoTexto = estadoPedido === 3 ? 'aprobado' : 'ingresado a almacén';
-            Swal.fire({
-                title: '¡Pedido con stock disponible!',
-                html: '<div style="text-align: left; padding: 10px;">' +
-                    '<p style="margin-bottom: 10px;">Este pedido está ' + estadoTexto + ' y todos los items tienen stock en almacén.</p>' +
-                    '<p style="margin-bottom: 0;"><strong>¿Deseas generar una salida de almacén ahora?</strong></p>' +
-                    '</div>',
-                icon: 'info',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
-                cancelButtonText: '<i class="fa fa-arrow-left"></i> Volver a pedidos',
-                allowOutsideClick: false
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = 'salidas_nuevo.php?desde_pedido=<?php echo $id_pedido; ?>';
-                } else {
-                    window.location.href = 'pedidos_mostrar.php';
-                }
-            });
-            return;
-        }
-
-        // --- PEDIDO COMPLETADO (2): ya tiene stock, puede generar salida ---
-        if (estadoPedido === 2) {
-            Swal.fire({
-                title: '¡Pedido Completado!',
-                html: '<div style="text-align: left; padding: 10px;">' +
-                    '<p style="margin-bottom: 10px;">Este pedido fue completado automáticamente porque tiene todo el stock disponible.</p>' +
-                    '<p style="margin-bottom: 0;"><strong>¿Deseas generar una salida de almacén ahora?</strong></p>' +
-                    '</div>',
-                icon: 'success',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#6c757d',
-                confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
-                cancelButtonText: '<i class="fa fa-arrow-left"></i> Volver a pedidos',
-                allowOutsideClick: false
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = 'salidas_nuevo.php?desde_pedido=<?php echo $id_pedido; ?>';
-                } else {
-                    window.location.href = 'pedidos_mostrar.php';
-                }
-            });
-            return;
-        }
-
-        // --- PEDIDO PENDIENTE (1): actualizar automáticamente a COMPLETADO (2) ---
-        if (estadoPedido === 1) {
-            // Mostrar loading
-            Swal.fire({
-                title: 'Verificando disponibilidad...',
-                text: 'Por favor espere',
-                allowOutsideClick: false,
-                showConfirmButton: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-            
-            // Marcar como COMPLETADO (estado 2) automáticamente
-            fetch('pedido_actualizar_estado.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'id_pedido=<?php echo $id_pedido; ?>&accion=completar_automatico'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        title: '¡Stock Completo - Pedido Completado!',
-                        html: '<div style="text-align: left; padding: 10px;">' +
-                            '<p style="margin-bottom: 10px;">Todos los items tienen stock disponible en el almacén.</p>' +
-                            '<p style="margin-bottom: 10px;">El pedido se ha marcado como <strong style="color: #17a2b8;">COMPLETADO</strong> automáticamente.</p>' +
-                            '<p style="margin-bottom: 0;"><strong>¿Desea generar una salida de almacén ahora?</strong></p>' +
-                            '</div>',
-                        icon: 'success',
-                        showCancelButton: true,
-                        confirmButtonColor: '#28a745',
-                        cancelButtonColor: '#6c757d',
-                        confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
-                        cancelButtonText: '<i class="fa fa-arrow-left"></i> Volver a pedidos',
-                        allowOutsideClick: false
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            window.location.href = 'salidas_nuevo.php?desde_pedido=<?php echo $id_pedido; ?>';
-                        } else {
-                            window.location.href = 'pedidos_mostrar.php';
-                        }
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'No se pudo actualizar el estado del pedido. Intente nuevamente.'
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error de conexión',
-                    text: 'No se pudo conectar con el servidor. Intente nuevamente.'
-                });
-            });
-            return;
-        }
-    }
-}
-    // ====================================================================
-    // FIN NUEVO: MODAL DE PROVEEDOR
-    // ====================================================================
-    
-    function configurarEventosEdicion() {
-        // Configurar eventos para items existentes en edición
-        document.querySelectorAll('.precio-item').forEach(function(input) {
-            input.addEventListener('input', function() {
-                const idDetalle = this.closest('[id^="item-orden-"]').id.replace('item-orden-', '');
-                const cantidad = this.closest('.alert').querySelector('input[name$="[cantidad]"]').value;
-                actualizarSubtotalItem(idDetalle, cantidad);
-                actualizarTotalOrden();
-            });
         });
+        
+        const estadoPedido = <?php echo $pedido['est_pedido']; ?>;
+        const tieneSalidaActiva = <?php echo isset($tiene_salida_activa) && $tiene_salida_activa ? 'true' : 'false'; ?>;
 
-        // Configurar botones de remover en edición
-        document.addEventListener('click', function(event) {
-            const btnRemover = event.target.closest('.btn-remover-item');
-            if (btnRemover && btnRemover.hasAttribute('data-id-compra-detalle')) {
-                event.preventDefault();
-                const idCompraDetalle = btnRemover.getAttribute('data-id-compra-detalle');
-                removerItemDeOrdenEdicion(idCompraDetalle);
+        if (tieneSalidaActiva) {
+            console.log('Este pedido ya tiene una salida activa registrada');
+            return;
+        }
+
+        if (tieneItems && todosConStockCompleto) {
+            if (estadoPedido === 5) {
+                mostrarAlertaPedidoFinalizado();
+            } else if (estadoPedido === 3 || estadoPedido === 4) {
+                mostrarAlertaPedidoAprobado(estadoPedido);
+            } else if (estadoPedido === 2) {
+                mostrarAlertaPedidoCompletado();
+            } else if (estadoPedido === 1) {
+                completarPedidoAutomaticamente();
             }
-        });
+        }
     }
 
-    function removerItemDeOrdenEdicion(idCompraDetalle) {
+    function mostrarAlertaPedidoFinalizado() {
         Swal.fire({
-            title: '¿Está seguro?',
-            text: 'Este item se eliminará de la orden',
-            icon: 'warning',
+            title: '¡Pedido Finalizado!',
+            html: '<div style="text-align: left; padding: 10px;">' +
+                '<p style="margin-bottom: 10px;">Este pedido ya está marcado como <strong style="color: #28a745;">FINALIZADO</strong>.</p>' +
+                '<p style="margin-bottom: 0;"><strong>¿Deseas ver las salidas relacionadas?</strong></p></div>',
+            icon: 'success',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar'
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fa fa-eye"></i> Ver Salidas',
+            cancelButtonText: '<i class="fa fa-arrow-left"></i> Volver a pedidos',
+            allowOutsideClick: false
         }).then((result) => {
             if (result.isConfirmed) {
-                const itemElement = document.getElementById(`item-orden-${idCompraDetalle}`);
-                if (itemElement) {
-                    itemElement.remove();
-                    actualizarTotalOrden();
-                    
-                    // Mostrar mensaje de éxito
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Item eliminado',
-                        text: 'El item ha sido removido de la orden',
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-                }
+                window.location.href = 'salidas_mostrar.php?pedido=<?php echo $id_pedido; ?>';
+            } else {
+                window.location.href = 'pedidos_mostrar.php';
             }
+        });
+    }
+
+    function mostrarAlertaPedidoAprobado(estadoPedido) {
+        const estadoTexto = estadoPedido === 3 ? 'aprobado' : 'ingresado a almacén';
+        Swal.fire({
+            title: '¡Pedido con stock disponible!',
+            html: `<div style="text-align: left; padding: 10px;">
+                <p style="margin-bottom: 10px;">Este pedido está ${estadoTexto} y todos los items tienen stock en almacén.</p>
+                <p style="margin-bottom: 0;"><strong>¿Deseas generar una salida de almacén ahora?</strong></p></div>`,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
+            cancelButtonText: '<i class="fa fa-arrow-left"></i> Volver a pedidos',
+            allowOutsideClick: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = 'salidas_nuevo.php?desde_pedido=<?php echo $id_pedido; ?>';
+            } else {
+                window.location.href = 'pedidos_mostrar.php';
+            }
+        });
+    }
+
+    function mostrarAlertaPedidoCompletado() {
+        Swal.fire({
+            title: '¡Pedido Completado!',
+            html: '<div style="text-align: left; padding: 10px;">' +
+                '<p style="margin-bottom: 10px;">Este pedido fue completado automáticamente porque tiene todo el stock disponible.</p>' +
+                '<p style="margin-bottom: 0;"><strong>¿Deseas generar una salida de almacén ahora?</strong></p></div>',
+            icon: 'success',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
+            cancelButtonText: '<i class="fa fa-arrow-left"></i> Volver a pedidos',
+            allowOutsideClick: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = 'salidas_nuevo.php?desde_pedido=<?php echo $id_pedido; ?>';
+            } else {
+                window.location.href = 'pedidos_mostrar.php';
+            }
+        });
+    }
+
+    function completarPedidoAutomaticamente() {
+        Swal.fire({
+            title: 'Verificando disponibilidad...',
+            text: 'Por favor espere',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => Swal.showLoading()
+        });
+        
+        fetch('pedido_actualizar_estado.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'id_pedido=<?php echo $id_pedido; ?>&accion=completar_automatico'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({
+                    title: '¡Stock Completo - Pedido Completado!',
+                    html: '<div style="text-align: left; padding: 10px;">' +
+                        '<p style="margin-bottom: 10px;">Todos los items tienen stock disponible en el almacén.</p>' +
+                        '<p style="margin-bottom: 10px;">El pedido se ha marcado como <strong style="color: #17a2b8;">COMPLETADO</strong> automáticamente.</p>' +
+                        '<p style="margin-bottom: 0;"><strong>¿Desea generar una salida de almacén ahora?</strong></p></div>',
+                    icon: 'success',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
+                    cancelButtonText: '<i class="fa fa-arrow-left"></i> Volver a pedidos',
+                    allowOutsideClick: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = 'salidas_nuevo.php?desde_pedido=<?php echo $id_pedido; ?>';
+                    } else {
+                        window.location.href = 'pedidos_mostrar.php';
+                    }
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudo actualizar el estado del pedido. Intente nuevamente.'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexión',
+                text: 'No se pudo conectar con el servidor. Intente nuevamente.'
+            });
+        });
+    }
+
+    // ============================================
+    // CONFIGURACIÓN DE EVENTOS
+    // ============================================
+    function configurarEventosEdicion() {
+        document.querySelectorAll('[id^="item-orden-"]').forEach(function(item) {
+            const cantidadInput = item.querySelector('.cantidad-item');
+            const precioInput = item.querySelector('.precio-item');
+            const igvInput = item.querySelector('.igv-item');
+            const idDetalle = item.id.replace('item-orden-', '');
+            
+            function calcularTotales() {
+                const cantidad = parseFloat(cantidadInput.value) || 0;
+                const precio = parseFloat(precioInput.value) || 0;
+                const igvPorcentaje = parseFloat(igvInput.value) || 0;
+                
+                const subtotal = cantidad * precio;
+                const montoIgv = subtotal * (igvPorcentaje / 100);
+                const total = subtotal + montoIgv;
+                
+                const simboloMoneda = obtenerSimboloMoneda();
+                const calculoDiv = document.getElementById(`calculo-${idDetalle}`);
+                if (calculoDiv) {
+                    calculoDiv.querySelector('.subtotal-text').textContent = `Subtotal: ${simboloMoneda} ${subtotal.toFixed(2)}`;
+                    calculoDiv.querySelector('.igv-text').textContent = `IGV: ${simboloMoneda} ${montoIgv.toFixed(2)}`;
+                    calculoDiv.querySelector('.total-text').textContent = `Total: ${simboloMoneda} ${total.toFixed(2)}`;
+                }
+                actualizarTotalGeneral();
+            }
+            
+            if (cantidadInput) cantidadInput.addEventListener('input', calcularTotales);
+            if (precioInput) precioInput.addEventListener('input', calcularTotales);
+            if (igvInput) igvInput.addEventListener('input', calcularTotales);
+            
+            calcularTotales();
         });
     }
 
     function configurarEventListeners() {
+        // Anular orden
         document.addEventListener('click', function(event) {
             const btnAnular = event.target.closest('.btn-anular-orden');
             if (btnAnular) {
                 event.preventDefault();
                 event.stopPropagation();
-                
                 const idCompra = btnAnular.getAttribute('data-id-compra');
                 const idPedido = btnAnular.getAttribute('data-id-pedido');
                 AnularCompra(idCompra, idPedido);
             }
         });
         
-        // Botón Nueva Orden / Ver Órdenes
+        // Nueva orden
         const btnNuevaOrden = document.getElementById('btn-nueva-orden');
         if (btnNuevaOrden) {
             btnNuevaOrden.addEventListener('click', toggleFormularioOrden);
         }
 
-        // Botón Editar Orden
+        // Editar orden
         document.addEventListener('click', function(event) {
             const btnEditar = event.target.closest('.btn-editar-orden');
             if (btnEditar) {
@@ -1384,28 +1267,21 @@ function verificarSiGenerarSalida() {
             }
         });
 
-        // Listener para cambios en moneda
+        // Cambio de moneda
         const selectMoneda = document.getElementById('moneda_orden');
         if (selectMoneda) {
             selectMoneda.addEventListener('change', function() {
                 actualizarEtiquetasMoneda(this.value);
-                actualizarTotalOrden();
             });
         }
 
-        // Botones agregar a orden
+        // Agregar a orden
         document.addEventListener('click', function(event) {
             const btnAgregar = event.target.closest('.btn-agregarOrden');
             if (btnAgregar) {
                 event.preventDefault();
                 event.stopPropagation();
                 
-                const idDetalle = btnAgregar.dataset.idDetalle;
-                const idProducto = btnAgregar.dataset.idProducto;
-                const descripcion = btnAgregar.dataset.descripcion;
-                const cantidadVerificada = btnAgregar.dataset.cantidadVerificada;
-                
-                // Si estamos en modo edición, asegurar que el formulario esté visible
                 if (modoEditar) {
                     const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
                     if (contenedorNuevaOrden.style.display === 'none') {
@@ -1419,18 +1295,18 @@ function verificarSiGenerarSalida() {
                 }
                 
                 agregarItemAOrden({
-                    idDetalle: idDetalle,
-                    idProducto: idProducto,
-                    descripcion: descripcion,
-                    cantidadVerificada: cantidadVerificada,
+                    idDetalle: btnAgregar.dataset.idDetalle,
+                    idProducto: btnAgregar.dataset.idProducto,
+                    descripcion: btnAgregar.dataset.descripcion,
+                    cantidadVerificada: btnAgregar.dataset.cantidadVerificada,
+                    cantidadOrdenada: btnAgregar.dataset.cantidadOrdenada || '0',
                     botonOriginal: btnAgregar
                 });
             }
         });
 
-        // Modal verificar
-        const verificarBtns = document.querySelectorAll('.verificar-btn');
-        verificarBtns.forEach(btn => {
+        // Verificar modal
+        document.querySelectorAll('.verificar-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const idDetalle = this.getAttribute('data-id-detalle');
                 const cantidadActual = this.getAttribute('data-cantidad-actual');
@@ -1439,34 +1315,196 @@ function verificarSiGenerarSalida() {
 
                 document.getElementById('id_pedido_detalle_input').value = idDetalle;
                 document.getElementById('fin_cant_pedido_detalle').value = diferencia;
-
                 $('#verificarModal').modal('show');
-            });
+            }); 
         });
 
-        // Botón ver detalle
+        // Ver detalle
         document.addEventListener('click', function(event) {
             const btnVerDetalle = event.target.closest('.btn-ver-detalle');
             if (btnVerDetalle) {
                 event.preventDefault();
                 event.stopPropagation();
-                
                 const idCompra = btnVerDetalle.getAttribute('data-id-compra');
                 mostrarDetalleCompra(idCompra);
             }
         });
 
-        // Validación del formulario
+        // Validar formulario
         const formNuevaOrden = document.getElementById('form-nueva-orden');
         if (formNuevaOrden) {
             formNuevaOrden.addEventListener('submit', validarFormularioOrden);
         }
-    }        
-    
+
+        // Remover items en edición
+        document.addEventListener('click', function(event) {
+            const btnRemover = event.target.closest('.btn-remover-item');
+            if (btnRemover && btnRemover.hasAttribute('data-id-compra-detalle')) {
+                event.preventDefault();
+                const idCompraDetalle = btnRemover.getAttribute('data-id-compra-detalle');
+                removerItemDeOrdenEdicion(idCompraDetalle);
+            }
+        });
+
+        // Detracción
+        document.addEventListener('change', function(event) {
+            if (event.target.classList.contains('detraccion-checkbox')) {
+                document.querySelectorAll('.detraccion-checkbox').forEach(cb => {
+                    if (cb !== event.target) cb.checked = false;
+                });
+                actualizarTotalGeneral();
+            }
+        });
+    }
+
+    // ============================================
+    // CONFIGURACIÓN MODAL PROVEEDOR
+    // ============================================
+    function configurarModalProveedor() {
+        const tablaCuentasModal = document.getElementById("tabla-cuentas-modal");
+        const btnAgregarModal = document.getElementById("agregarCuentaModal");
+
+        if (btnAgregarModal) {
+            btnAgregarModal.addEventListener("click", function() {
+                const nuevaFila = document.createElement("tr");
+                nuevaFila.innerHTML = `
+                    <td><input type="text" name="banco[]" class="form-control form-control-sm"></td>
+                    <td>
+                        <select name="id_moneda[]" class="form-control form-control-sm">
+                            <option value="">-- Moneda --</option>
+                            <?php foreach ($moneda as $m) { ?>
+                                <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
+                            <?php } ?>
+                        </select>
+                    </td>
+                    <td><input type="text" name="cta_corriente[]" class="form-control form-control-sm"></td>
+                    <td><input type="text" name="cta_interbancaria[]" class="form-control form-control-sm"></td>
+                    <td><button type="button" class="btn btn-danger btn-sm eliminar-fila-modal">X</button></td>
+                `;
+                tablaCuentasModal.appendChild(nuevaFila);
+            });
+        }
+
+        if (tablaCuentasModal) {
+            tablaCuentasModal.addEventListener("click", function(e) {
+                if (e.target.classList.contains("eliminar-fila-modal")) {
+                    const filas = tablaCuentasModal.querySelectorAll("tr");
+                    if (filas.length > 1) {
+                        e.target.closest("tr").remove();
+                    } else {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Advertencia',
+                            text: 'Debe mantener al menos una fila'
+                        });
+                    }
+                }
+            });
+        }
+
+        const btnAgregarProveedor = document.getElementById('btn-agregar-proveedor');
+        if (btnAgregarProveedor) {
+            btnAgregarProveedor.addEventListener('click', () => $('#modalNuevoProveedor').modal('show'));
+        }
+
+        const btnGuardarProveedorModal = document.getElementById('btn-guardar-proveedor-modal');
+        if (btnGuardarProveedorModal) {
+            btnGuardarProveedorModal.addEventListener('click', guardarProveedorModal);
+        }
+
+        $('#modalNuevoProveedor').on('hidden.bs.modal', limpiarFormularioProveedor);
+    }
+
+    function guardarProveedorModal() {
+        const form = document.getElementById('form-nuevo-proveedor-modal');
+        
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const rucInput = form.querySelector('input[name="ruc_proveedor"]');
+        const ruc = rucInput.value.trim();
+        
+        if (ruc.length !== 11 || !/^\d+$/.test(ruc)) {
+            Swal.fire({
+                icon: 'error',
+                title: 'RUC inválido',
+                text: 'El RUC debe contener exactamente 11 dígitos numéricos'
+            });
+            rucInput.focus();
+            return;
+        }
+        
+        const formData = new FormData(form);
+        formData.append('registrar_ajax', '1');
+        
+        const btnGuardar = document.getElementById('btn-guardar-proveedor-modal');
+        btnGuardar.disabled = true;
+        btnGuardar.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Guardando...';
+        
+        fetch('proveedor_nuevo_directo.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const selectProveedor = document.getElementById('proveedor_orden');
+                const newOption = new Option(data.nombre_proveedor, data.id_proveedor, true, true);
+                selectProveedor.add(newOption);
+                
+                $('#modalNuevoProveedor').modal('hide');
+                form.reset();
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Proveedor agregado!',
+                    text: data.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.message
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de conexión',
+                text: 'No se pudo conectar con el servidor.'
+            });
+        })
+        .finally(() => {
+            btnGuardar.disabled = false;
+            btnGuardar.innerHTML = '<i class="fa fa-save"></i> Registrar';
+        });
+    }
+
+    function limpiarFormularioProveedor() {
+        const form = document.getElementById('form-nuevo-proveedor-modal');
+        if (form) {
+            form.reset();
+            const tablaCuentas = document.getElementById('tabla-cuentas-modal');
+            if (tablaCuentas) {
+                const filas = tablaCuentas.querySelectorAll('tr');
+                for (let i = filas.length - 1; i > 0; i--) {
+                    filas[i].remove();
+                }
+            }
+        }
+    }
+
+    // ============================================
+    // FUNCIONES DE ORDEN
+    // ============================================
     function toggleFormularioOrden() {
         const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
-        const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
-        
         if (contenedorTabla.style.display === 'none') {
             mostrarTablaOrdenes();
         } else {
@@ -1475,13 +1513,10 @@ function verificarSiGenerarSalida() {
     }
 
     function mostrarFormularioNuevaOrden() {
-        const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
-        const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
+        document.getElementById('contenedor-tabla-ordenes').style.display = 'none';
+        document.getElementById('contenedor-nueva-orden').style.display = 'block';
+        
         const btnNuevaOrden = document.getElementById('btn-nueva-orden');
-        
-        contenedorTabla.style.display = 'none';
-        contenedorNuevaOrden.style.display = 'block';
-        
         if (btnNuevaOrden) {
             btnNuevaOrden.innerHTML = '<i class="fa fa-table"></i> Ver Órdenes';
             btnNuevaOrden.classList.remove('btn-primary');
@@ -1492,13 +1527,10 @@ function verificarSiGenerarSalida() {
     }
 
     function mostrarTablaOrdenes() {
-        const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
-        const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
+        document.getElementById('contenedor-tabla-ordenes').style.display = 'block';
+        document.getElementById('contenedor-nueva-orden').style.display = 'none';
+        
         const btnNuevaOrden = document.getElementById('btn-nueva-orden');
-        
-        contenedorTabla.style.display = 'block';
-        contenedorNuevaOrden.style.display = 'none';
-        
         if (btnNuevaOrden) {
             btnNuevaOrden.innerHTML = '<i class="fa fa-plus"></i> Nueva Orden';
             btnNuevaOrden.classList.remove('btn-secondary');
@@ -1507,74 +1539,100 @@ function verificarSiGenerarSalida() {
     }
 
     function agregarItemAOrden(item) {
-        const idMonedaSeleccionada = document.getElementById('moneda_orden').value;
-        const simboloMoneda = idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
+    const idMonedaSeleccionada = document.getElementById('moneda_orden').value;
+    const simboloMoneda = idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
+    
+    const itemId = 'nuevo-' + Date.now();
+    const cantidadVerificada = parseFloat(item.cantidadVerificada) || 0;
+    const cantidadOrdenada = parseFloat(item.cantidadOrdenada) || 0;
+    const cantidadPendiente = cantidadVerificada - cantidadOrdenada;
+    
+    const itemElement = document.createElement('div');
+    itemElement.id = `item-orden-${itemId}`;
+    itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
+    
+    itemElement.innerHTML = `
+    <input type="hidden" name="items_orden[${itemId}][id_detalle]" value="${item.idDetalle}">
+    <input type="hidden" name="items_orden[${itemId}][id_pedido_detalle]" value="${item.idDetalle}">
+    <input type="hidden" name="items_orden[${itemId}][id_producto]" value="${item.idProducto}">
+    <input type="hidden" name="items_orden[${itemId}][es_nuevo]" value="1">
+    
+    <div class="row align-items-center mb-2">
+        <div class="col-md-11">
+            <div style="font-size: 12px;">
+                <strong>Descripción:</strong> ${item.descripcion}
+                ${modoEditar ? '<span class="badge badge-info badge-sm ml-1">NUEVO</span>' : ''}
+            </div>
+            <small class="text-muted" style="font-size: 11px;">
+                Verificado: ${cantidadVerificada} | Ya ordenado: ${cantidadOrdenada} | 
+                <strong class="text-warning">Pendiente: ${cantidadPendiente}</strong>
+            </small>
+        </div>
+        <div class="col-md-1 text-right">
+            <button type="button" class="btn btn-danger btn-sm btn-remover-item" data-id-detalle="${itemId}">
+                <i class="fa fa-trash"></i>
+            </button>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Cantidad -->
+        <div class="col-md-2">
+            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Cantidad:</label>
+            <input type="number" class="form-control form-control-sm cantidad-item" 
+                name="items_orden[${itemId}][cantidad]" data-id-detalle="${itemId}"
+                value="${cantidadPendiente}" min="0.01" max="${cantidadPendiente}" step="0.01"
+                style="font-size: 12px;" required>
+            <small class="text-info" style="font-size: 10px;">Máx: ${cantidadPendiente}</small>
+        </div>
+        
+        <!-- Precio Unitario -->
+        <div class="col-md-2">
+            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Precio Unit.:</label>
+            <div class="input-group input-group-sm">
+                <div class="input-group-prepend">
+                    <span class="input-group-text" style="font-size: 11px; background-color: #f8f9fa; border: 1px solid #ced4da;">${simboloMoneda}</span>
+                </div>
+                <input type="number" class="form-control form-control-sm precio-item" 
+                    name="items_orden[${itemId}][precio_unitario]" data-id-detalle="${itemId}"
+                    step="0.01" min="0" placeholder="0.00" style="font-size: 11px;" required>
+            </div>
+        </div>
+        
+        <!-- IGV (%) -->
+        <div class="col-md-2">
+            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">IGV (%):</label>
+            <input type="number" class="form-control form-control-sm igv-item" 
+                name="items_orden[${itemId}][igv]" data-id-detalle="${itemId}"
+                value="18" min="0" max="100" step="0.01" style="font-size: 12px;" required>
+        </div>
+        
+        <!-- Homologación -->
+        <div class="col-md-3">
+            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Homologación:</label>
+            <input type="file" class="form-control-file" name="homologacion[${item.idDetalle}]"
+                accept=".pdf,.jpg,.jpeg,.png" style="font-size: 11px; padding-top: 4px;">
+            <small class="text-muted" style="font-size: 10px;">PDF, JPG, PNG</small>
+        </div>
+        
+        <!-- Cálculos -->
+        <div class="col-md-3 text-right">
+            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block; visibility: hidden;">-</label>
+            <div class="calculo-item" id="calculo-${itemId}" style="font-size: 11px; line-height: 1.4;">
+                <div class="subtotal-text">Subtotal: ${simboloMoneda} 0.00</div>
+                <div class="igv-text">IGV: ${simboloMoneda} 0.00</div>
+                <div class="total-text" style="font-weight: bold; color: #28a745;">Total: ${simboloMoneda} 0.00</div>
+            </div>
+        </div>
+    </div>
+`;
+    
         
         const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-        const itemElement = document.createElement('div');
-        
-        const itemId = 'nuevo-' + Date.now();
-        itemElement.id = `item-orden-${itemId}`;
-        itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
-        
-        itemElement.innerHTML = `
-            <input type="hidden" name="items_orden[${itemId}][id_detalle]" value="${item.idDetalle}">
-            <input type="hidden" name="items_orden[${itemId}][id_pedido_detalle]" value="${item.idDetalle}">
-            <input type="hidden" name="items_orden[${itemId}][id_producto]" value="${item.idProducto}">
-            <input type="hidden" name="items_orden[${itemId}][cantidad]" value="${item.cantidadVerificada}">
-            <input type="hidden" name="items_orden[${itemId}][es_nuevo]" value="1">
-            
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <div style="font-size: 12px;">
-                        <div class="mb-1">
-                            <strong>Descripción:</strong> ${item.descripcion}
-                            ${modoEditar ? '<span class="badge badge-primary badge-sm ml-1">NUEVO</span>' : ''}
-                        </div>
-                        <div>
-                            <strong>Cantidad:</strong> ${item.cantidadVerificada}
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <label style="font-size: 11px; font-weight: bold;">Precio Unit.:</label>
-                    <div class="input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text" style="font-size: 11px;">${simboloMoneda}</span>
-                        </div>
-                        <input type="number" 
-                            class="form-control form-control-sm precio-item" 
-                            name="items_orden[${itemId}][precio_unitario]"
-                            data-id-detalle="${itemId}"
-                            step="0.01" 
-                            min="0"
-                            placeholder="0.00"
-                            style="font-size: 11px;"
-                            required>
-                    </div>
-                </div>
-                <div class="col-md-1">
-                    <button type="button" class="btn btn-danger btn-sm btn-remover-item" data-id-detalle="${itemId}">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="row mt-2">
-                <div class="col-md-12">
-                    <div class="subtotal-item text-right" id="subtotal-${itemId}" style="font-size: 12px; font-weight: bold; color: #007bff;">
-                        Subtotal: ${simboloMoneda} 0.00
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // 🔹 CAMBIO CRÍTICO: Insertar ANTES del total
         const totalElement = document.getElementById('total-orden');
         if (totalElement) {
-            // Si existe el total, insertar antes de él
             contenedorItemsOrden.insertBefore(itemElement, totalElement);
         } else {
-            // Si no existe el total, agregar al final normalmente
             contenedorItemsOrden.appendChild(itemElement);
         }
         
@@ -1587,12 +1645,34 @@ function verificarSiGenerarSalida() {
             item.botonOriginal.classList.add('btn-success');
         }
         
-        const inputPrecio = itemElement.querySelector('.precio-item');
-        inputPrecio.addEventListener('input', function() {
-            actualizarSubtotalItem(itemId, item.cantidadVerificada);
-            actualizarTotalOrden();
-        });
+        const cantidadInput = itemElement.querySelector('.cantidad-item');
+        const precioInput = itemElement.querySelector('.precio-item');
+        const igvInput = itemElement.querySelector('.igv-item');
 
+
+function calcularTotalesItem() {
+            const cantidad = parseFloat(cantidadInput.value) || 0;
+            const precio = parseFloat(precioInput.value) || 0;
+            const igvPorcentaje = parseFloat(igvInput.value) || 0;
+            
+            const subtotal = cantidad * precio;
+            const montoIgv = subtotal * (igvPorcentaje / 100);
+            const total = subtotal + montoIgv;
+            
+            const simboloMoneda = obtenerSimboloMoneda();
+            const calculoDiv = document.getElementById(`calculo-${itemId}`);
+            if (calculoDiv) {
+                calculoDiv.querySelector('.subtotal-text').textContent = `Subtotal: ${simboloMoneda} ${subtotal.toFixed(2)}`;
+                calculoDiv.querySelector('.igv-text').textContent = `IGV: ${simboloMoneda} ${montoIgv.toFixed(2)}`;
+                calculoDiv.querySelector('.total-text').textContent = `Total: ${simboloMoneda} ${total.toFixed(2)}`;
+            }
+            actualizarTotalGeneral();
+        }
+        
+        cantidadInput.addEventListener('input', calcularTotalesItem);
+        precioInput.addEventListener('input', calcularTotalesItem);
+        igvInput.addEventListener('input', calcularTotalesItem);
+        
         const btnRemover = itemElement.querySelector('.btn-remover-item');
         btnRemover.addEventListener('click', function() {
             removerItemDeOrden(itemId, item.botonOriginal);
@@ -1613,37 +1693,67 @@ function verificarSiGenerarSalida() {
             botonOriginal.classList.add('btn-primary');
         }
         
-        actualizarTotalOrden();
+        actualizarTotalGeneral();
     }
 
-    function actualizarSubtotalItem(idDetalle, cantidad) {
-        const inputPrecio = document.querySelector(`input[data-id-detalle="${idDetalle}"]`);
-        const subtotalElement = document.getElementById(`subtotal-${idDetalle}`);
-        
-        if (inputPrecio && subtotalElement) {
-            const precio = parseFloat(inputPrecio.value) || 0;
-            const subtotal = (parseFloat(cantidad) * precio).toFixed(2);
-            const simboloMoneda = obtenerSimboloMoneda();
-            subtotalElement.textContent = `Subtotal: ${simboloMoneda} ${subtotal}`;
-        }
+    function removerItemDeOrdenEdicion(idCompraDetalle) {
+        Swal.fire({
+            title: '¿Está seguro?',
+            text: 'Este item se eliminará de la orden',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const itemElement = document.getElementById(`item-orden-${idCompraDetalle}`);
+                if (itemElement) {
+                    itemElement.remove();
+                    actualizarTotalGeneral();
+                    
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Item eliminado',
+                        text: 'El item ha sido removido de la orden',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                }
+            }
+        });
     }
 
-    function actualizarTotalOrden() {
-        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-        const items = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
-        let total = 0;
+    // ============================================
+    // FUNCIONES DE CÁLCULO
+    // ============================================
+    function actualizarTotalGeneral() {
+        const items = document.querySelectorAll('[id^="item-orden-"]');
+        let totalGeneral = 0;
+        let totalIgv = 0;
+        let subtotalGeneral = 0;
         
         items.forEach(item => {
-            const cantidadInput = item.querySelector('input[name$="[cantidad]"]');
-            const inputPrecio = item.querySelector('.precio-item');
+            const cantidadInput = item.querySelector('.cantidad-item');
+            const precioInput = item.querySelector('.precio-item');
+            const igvInput = item.querySelector('.igv-item');
             
-            if (cantidadInput && inputPrecio) {
+            if (cantidadInput && precioInput && igvInput) {
                 const cantidad = parseFloat(cantidadInput.value) || 0;
-                const precio = parseFloat(inputPrecio.value) || 0;
-                total += cantidad * precio;
+                const precio = parseFloat(precioInput.value) || 0;
+                const igvPorcentaje = parseFloat(igvInput.value) || 0;
+                
+                const subtotal = cantidad * precio;
+                const montoIgv = subtotal * (igvPorcentaje / 100);
+                
+                subtotalGeneral += subtotal;
+                totalIgv += montoIgv;
+                totalGeneral += (subtotal + montoIgv);
             }
         });
         
+        // Calcular detracción si existe
         let montoDetraccion = 0;
         let porcentajeDetraccion = 0;
         let nombreDetraccion = '';
@@ -1651,100 +1761,60 @@ function verificarSiGenerarSalida() {
         if (checkboxDetraccion) {
             porcentajeDetraccion = parseFloat(checkboxDetraccion.getAttribute('data-porcentaje')) || 0;
             nombreDetraccion = checkboxDetraccion.getAttribute('data-nombre') || '';
-            montoDetraccion = (total * porcentajeDetraccion) / 100;
+            montoDetraccion = (subtotalGeneral * porcentajeDetraccion) / 100;
         }
         
-        const totalConDetraccion = total - montoDetraccion;
+        const totalFinal = subtotalGeneral + totalIgv - montoDetraccion;
         
-        let totalElement = document.getElementById('total-orden');
-        let totalInput = document.getElementById('total_orden_input');
-        
-        if (!totalElement && items.length > 0) {
-            totalElement = document.createElement('div');
-            totalElement.id = 'total-orden';
-            totalElement.className = 'text-end';
-            totalElement.style.fontSize = '14px';
-            totalElement.style.fontWeight = 'bold';
-            totalElement.style.padding = '12px';
-            totalElement.style.marginTop = '10px';
-            
-            totalInput = document.createElement('input');
-            totalInput.type = 'hidden';
-            totalInput.name = 'total_orden';
-            totalInput.id = 'total_orden_input';
+        let resumenDiv = document.getElementById('resumen-total-orden');
+        if (!resumenDiv && items.length > 0) {
+            resumenDiv = document.createElement('div');
+            resumenDiv.id = 'resumen-total-orden';
+            resumenDiv.className = '';
+            document.getElementById('contenedor-items-orden').appendChild(resumenDiv);
         }
         
-        if (totalElement && items.length > 0) {
+        if (resumenDiv && items.length > 0) {
             const simboloMoneda = obtenerSimboloMoneda();
-            
             let html = `
-            <div class="text-end" style="font-size: 15px; padding: 10px 15px; background-color: #fff; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px;">
-                <div class="mb-2">
-                    <i class="fa fa-calculator text-secondary"></i>
-                    <strong class="text-secondary"> Subtotal:</strong>
-                    <span class="text-dark">${simboloMoneda} ${total.toFixed(2)}</span>
-                </div>`;
+                <div style="font-size: 15px; padding: 10px 15px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;">
+                    <div class="mb-2">
+                        <i class="fa fa-calculator text-secondary"></i>
+                        <strong class="text-secondary"> Subtotal:</strong>
+                        <span class="text-dark">${simboloMoneda} ${subtotalGeneral.toFixed(2)}</span>
+                    </div>
+                    <div class="mb-2">
+                        <i class="fa fa-percent text-secondary"></i>
+                        <strong class="text-secondary"> IGV Total:</strong>
+                        <span class="text-dark">${simboloMoneda} ${totalIgv.toFixed(2)}</span>
+                    </div>`;
             
             if (montoDetraccion > 0) {
                 html += `
-                <div class="mb-2">
-                    <i class="fa fa-minus-circle text-secondary"></i>
-                    <strong class="text-secondary"> Detracción ${nombreDetraccion} (${porcentajeDetraccion}%):</strong>
-                    <span class="text-dark">-${simboloMoneda} ${montoDetraccion.toFixed(2)}</span>
-                </div>
+                    <div class="mb-2">
+                        <i class="fa fa-minus-circle text-danger"></i>
+                        <strong class="text-danger"> Detracción ${nombreDetraccion} (${porcentajeDetraccion}%):</strong>
+                        <span class="text-danger">-${simboloMoneda} ${montoDetraccion.toFixed(2)}</span>
+                    </div>`;
+            }
+            
+            html += `
+                    <div style="font-size: 18px; font-weight: bold; padding: 10px; background-color: #28a745; color: white; border-radius: 6px; text-align: center; margin-top: 10px;">
+                        <i class="fa fa-money"></i> 
+                        TOTAL ${montoDetraccion > 0 ? 'A PAGAR' : ''}: ${simboloMoneda} ${totalFinal.toFixed(2)}
+                    </div>
+                </div>`;
+            
+            resumenDiv.innerHTML = html;
 
-                <div style="
-                    font-size: 18px; 
-                    font-weight: bold; 
-                    padding: 10px; 
-                    background-color: #28a745; 
-                    color: white; 
-                    border-radius: 6px;
-                    text-align: center;
-                    ">
-                    <i class="fa fa-money"></i> 
-                    TOTAL A PAGAR: ${simboloMoneda} ${totalConDetraccion.toFixed(2)}
-                </div>`;
-            } else {
-                html += `
-                <div style="
-                    font-size: 18px; 
-                    font-weight: bold; 
-                    padding: 10px; 
-                    background-color: #28a745; 
-                    color: white; 
-                    border-radius: 6px;
-                    text-align: center;
-                    ">
-                    <i class="fa fa-money"></i> 
-                    TOTAL: ${simboloMoneda} ${total.toFixed(2)}
-                </div>`;
-            }
-            
-            html += `</div>`;
-            
-            totalElement.innerHTML = html;
-            
-            if (totalInput) {
-                totalInput.value = total.toFixed(2);
-            }
-            
-            if (!totalElement.parentNode) {
-                contenedorItemsOrden.appendChild(totalElement);
-                if (totalInput) {
-                    contenedorItemsOrden.appendChild(totalInput);
-                }
-            }
-        } else if (totalElement && items.length === 0) {
-            totalElement.remove();
-            if (totalInput) totalInput.remove();
+        } else if (resumenDiv && items.length === 0) {
+            resumenDiv.remove();
         }
     }
 
     function obtenerSimboloMoneda() {
         const selectMoneda = document.getElementById('moneda_orden');
         if (!selectMoneda || !selectMoneda.value) return 'S/.';
-        
         const idMonedaSeleccionada = selectMoneda.value;
         return idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
     }
@@ -1758,19 +1828,12 @@ function verificarSiGenerarSalida() {
             }
         });
         
-        const itemsOrden = document.querySelectorAll('[id^="item-orden-"]');
-        itemsOrden.forEach(item => {
-            const cantidadInput = item.querySelector('input[name$="[cantidad]"]');
-            if (cantidadInput) {
-                const idDetalle = item.id.replace('item-orden-', '');
-                const cantidad = parseFloat(cantidadInput.value);
-                actualizarSubtotalItem(idDetalle, cantidad);
-            }
-        });
-        
-        actualizarTotalOrden();
+        actualizarTotalGeneral();
     }
 
+    // ============================================
+    // VALIDACIÓN Y OTRAS FUNCIONES
+    // ============================================
     function validarFormularioOrden(e) {
         const fecha = document.getElementById('fecha_orden').value;
         const proveedor = document.getElementById('proveedor_orden').value;
@@ -1806,7 +1869,6 @@ function verificarSiGenerarSalida() {
         return true;
     }
 
-    // Función para anular órdenes de compra
     function AnularCompra(id_compra, id_pedido) {
         Swal.fire({
             title: '¿Qué deseas anular?',
@@ -1859,6 +1921,9 @@ function verificarSiGenerarSalida() {
         });
     }
 
+    // ============================================
+    // FUNCIONES AUTO-ORDEN
+    // ============================================
     function mostrarFormularioNuevaOrdenAuto() {
         const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
         const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
@@ -1912,40 +1977,22 @@ function verificarSiGenerarSalida() {
         const itemElement = document.createElement('div');
         itemElement.id = `item-orden-${item.idDetalle}`;
         itemElement.classList.add('alert', 'alert-primary', 'p-2', 'mb-2');
+        
         itemElement.innerHTML = `
             <input type="hidden" name="items_orden[${item.idDetalle}][id_detalle]" value="${item.idDetalle}">
             <input type="hidden" name="items_orden[${item.idDetalle}][id_producto]" value="${item.idProducto}">
             <input type="hidden" name="items_orden[${item.idDetalle}][cantidad]" value="${item.cantidadVerificada}">
             
-            <div class="row align-items-center">
-                <div class="col-md-8">
+            <div class="row align-items-center mb-2">
+                <div class="col-md-11">
                     <div style="font-size: 12px;">
-                        <div class="mb-1">
-                            <i class="fa fa-cog text-primary"></i>
-                            <strong>Descripción:</strong> ${item.descripcion}
-                            <span class="badge badge-primary badge-sm ml-1">AUTO</span>
-                        </div>
-                        <div>
-                            <strong>Cantidad:</strong> ${item.cantidadVerificada}
-                        </div>
+                        <i class="fa fa-cog text-primary"></i>
+                        <strong>Descripción:</strong> ${item.descripcion}
+                        <span class="badge badge-primary badge-sm ml-1">AUTO</span>
                     </div>
-                </div>
-                <div class="col-md-3">
-                    <label style="font-size: 11px; font-weight: bold;">Precio Unit.:</label>
-                    <div class="input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text" style="font-size: 11px;">S/.</span>
-                        </div>
-                        <input type="number" 
-                            class="form-control form-control-sm precio-item" 
-                            name="items_orden[${item.idDetalle}][precio_unitario]"
-                            data-id-detalle="${item.idDetalle}"
-                            step="0.01" 
-                            min="0"
-                            placeholder="0.00"
-                            style="font-size: 11px;"
-                            required>
-                    </div>
+                    <small class="text-muted" style="font-size: 11px;">
+                        <strong>Cantidad:</strong> ${item.cantidadVerificada}
+                    </small>
                 </div>
                 <div class="col-md-1">
                     <span class="badge badge-primary" title="Item agregado automáticamente" style="padding: 4px 6px;">
@@ -1953,10 +2000,45 @@ function verificarSiGenerarSalida() {
                     </span>
                 </div>
             </div>
-            <div class="row mt-2">
-                <div class="col-md-12">
-                    <div class="subtotal-item text-right" id="subtotal-${item.idDetalle}" style="font-size: 12px; font-weight: bold; color: #2196f3;">
-                        Subtotal: S/. 0.00
+            
+            <div class="row align-items-end">
+                <div class="col-md-2">
+                    <label style="font-size: 11px; font-weight: bold;">Precio Unit.:</label>
+                    <div class="input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text" style="font-size: 11px;">S/.</span>
+                        </div>
+                        <input type="number" class="form-control form-control-sm precio-item" 
+                            name="items_orden[${item.idDetalle}][precio_unitario]"
+                            data-id-detalle="${item.idDetalle}"
+                            step="0.01" min="0" placeholder="0.00"
+                            style="font-size: 11px;" required>
+                    </div>
+                </div>
+                
+                <div class="col-md-2">
+                    <label style="font-size: 11px; font-weight: bold;">IGV (%):</label>
+                    <input type="number" class="form-control form-control-sm igv-item" 
+                        name="items_orden[${item.idDetalle}][igv]"
+                        data-id-detalle="${item.idDetalle}"
+                        value="" min="0" max="100" step="0.01"
+                        style="font-size: 12px;" required>
+                </div>
+                
+                <div class="col-md-3">
+                    <label style="font-size: 11px; font-weight: bold;">Homologación:</label>
+                    <input type="file" class="form-control-file" 
+                        name="homologacion[${item.idDetalle}]"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        style="font-size: 11px;">
+                    <small class="text-muted" style="font-size: 10px;">PDF, JPG, PNG</small>
+                </div>
+                
+                <div class="col-md-5 text-right">
+                    <div class="calculo-item" id="calculo-${item.idDetalle}" style="font-size: 11px; line-height: 1.4;">
+                        <div class="subtotal-text">Subtotal: S/. 0.00</div>
+                        <div class="igv-text">IGV: S/. 0.00</div>
+                        <div class="total-text" style="font-weight: bold; color: #2196f3;">Total: S/. 0.00</div>
                     </div>
                 </div>
             </div>
@@ -1964,13 +2046,35 @@ function verificarSiGenerarSalida() {
         
         contenedorItemsOrden.appendChild(itemElement);
         
-        const inputPrecio = itemElement.querySelector('.precio-item');
-        inputPrecio.addEventListener('input', function() {
-            actualizarSubtotalItem(item.idDetalle, item.cantidadVerificada);
-            actualizarTotalOrden();
-        });
+        const precioInput = itemElement.querySelector('.precio-item');
+        const igvInput = itemElement.querySelector('.igv-item');
+        
+        function calcularTotales() {
+            const cantidad = parseFloat(item.cantidadVerificada) || 0;
+            const precio = parseFloat(precioInput.value) || 0;
+            const igvPorcentaje = parseFloat(igvInput.value) || 0;
+            
+            const subtotal = cantidad * precio;
+            const montoIgv = subtotal * (igvPorcentaje / 100);
+            const total = subtotal + montoIgv;
+            
+            const simboloMoneda = obtenerSimboloMoneda();
+            const calculoDiv = document.getElementById(`calculo-${item.idDetalle}`);
+            if (calculoDiv) {
+                calculoDiv.querySelector('.subtotal-text').textContent = `Subtotal: ${simboloMoneda} ${subtotal.toFixed(2)}`;
+                calculoDiv.querySelector('.igv-text').textContent = `IGV: ${simboloMoneda} ${montoIgv.toFixed(2)}`;
+                calculoDiv.querySelector('.total-text').textContent = `Total: ${simboloMoneda} ${total.toFixed(2)}`;
+            }
+            actualizarTotalGeneral();
+        }
+        
+        precioInput.addEventListener('input', calcularTotales);
+        igvInput.addEventListener('input', calcularTotales);
     }
 
+    // ============================================
+    // MODAL DETALLE COMPRA
+    // ============================================
     function mostrarDetalleCompra(idCompra) {
         $('#modalDetalleCompra').modal('show');
         
@@ -1989,7 +2093,6 @@ function verificarSiGenerarSalida() {
         .then(response => response.json())
         .then(data => {
             document.getElementById('loading-spinner').style.display = 'none';
-            
             if (data.success) {
                 mostrarContenidoDetalle(data.compra, data.detalles);
             } else {
@@ -2004,112 +2107,58 @@ function verificarSiGenerarSalida() {
     }
 
     function mostrarContenidoDetalle(compra, detalles) {
-    const titulo = document.getElementById('modalDetalleCompraLabel');
-    titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de Compra - ORD-${compra.id_compra}`;
-    
-    const contenido = document.getElementById('contenido-detalle-compra');
-    const fechaFormateada = new Date(compra.fec_compra).toLocaleDateString('es-PE');
-    const estadoCompra = parseInt(compra.est_compra);
-    
-    // CORRECCIÓN: Definir TODOS los estados posibles
-    let estadoTexto = 'Desconocido';
-    let estadoClase = 'secondary';
-    
+        const titulo = document.getElementById('modalDetalleCompraLabel');
+        titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de Compra - ORD-${compra.id_compra}`;
+        
+        const contenido = document.getElementById('contenido-detalle-compra');
+        const fechaFormateada = new Date(compra.fec_compra).toLocaleDateString('es-PE');
+        const estadoCompra = parseInt(compra.est_compra);
+        
+        let estadoTexto = 'Desconocido';
+        let estadoClase = 'secondary';
+        
         switch(estadoCompra) {
-            case 0:
-                estadoTexto = 'Anulada';
-                estadoClase = 'danger';
-                break;
-            case 1:
-                estadoTexto = 'Pendiente';
-                estadoClase = 'warning';
-                break;
-            case 2:
-                estadoTexto = 'Aprobada';
-                estadoClase = 'success';
-                break;
-            case 3:
-                estadoTexto = 'Cerrada';
-                estadoClase = 'info';
-                break;
-            case 4:
-                estadoTexto = 'Pagada';
-                estadoClase = 'primary';
-                break;
+            case 0: estadoTexto = 'Anulada'; estadoClase = 'danger'; break;
+            case 1: estadoTexto = 'Pendiente'; estadoClase = 'warning'; break;
+            case 2: estadoTexto = 'Aprobada'; estadoClase = 'success'; break;
+            case 3: estadoTexto = 'Cerrada'; estadoClase = 'info'; break;
+            case 4: estadoTexto = 'Pagada'; estadoClase = 'primary'; break;
         }
         
         let html = `
             <div class="card mb-3">
                 <div class="card-header" style="background-color: #e3f2fd; padding: 10px 15px;">
-                    <h6 class="mb-0">
-                        <i class="fa fa-info-circle text-primary"></i> 
-                        Información General
-                    </h6>
+                    <h6 class="mb-0"><i class="fa fa-info-circle text-primary"></i> Información General</h6>
                 </div>
                 <div class="card-body" style="padding: 15px;">
                     <div class="row">
                         <div class="col-md-6">
-                            <p style="margin: 5px 0; font-size: 13px;">
-                                <strong>N° Orden:</strong> ORD-${compra.id_compra}
-                            </p>
-                            <p style="margin: 5px 0; font-size: 13px;">
-                                <strong>Proveedor:</strong> ${compra.nom_proveedor || 'No especificado'}
-                            </p>
-                            <p style="margin: 5px 0; font-size: 13px;">
-                                <strong>RUC:</strong> ${compra.ruc_proveedor || 'No especificado'}
-                            </p>
-                            <p style="margin: 5px 0; font-size: 13px;">
-                                <strong>Moneda:</strong> ${compra.nom_moneda || 'No especificada'}
-                            </p>
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>N° Orden:</strong> ORD-${compra.id_compra}</p>
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>Proveedor:</strong> ${compra.nom_proveedor || 'No especificado'}</p>
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>RUC:</strong> ${compra.ruc_proveedor || 'No especificado'}</p>
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>Moneda:</strong> ${compra.nom_moneda || 'No especificada'}</p>
                         </div>
                         <div class="col-md-6">
-                            <p style="margin: 5px 0; font-size: 13px;">
-                                <strong>Fecha:</strong> ${fechaFormateada}
-                            </p>
-                            <p style="margin: 5px 0; font-size: 13px;">
-                                <strong>Estado:</strong> 
-                                <span class="badge badge-${estadoClase}">${estadoTexto}</span>
-                            </p>
-                            <p style="margin: 5px 0; font-size: 13px;">
-                                <strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'} ${compra.ape_personal || ''}
-                            </p>
-                            <p style="margin: 5px 0; font-size: 13px;">
-                                <strong>Plazo Entrega:</strong> ${compra.plaz_compra || 'No especificado'}
-                            </p>
-                            ${compra.nombre_detraccion ? `
-                                <p style="margin: 5px 0; font-size: 13px;">
-                                    <strong>Detracción:</strong> 
-                                    <span class="badge badge-warning">${compra.nombre_detraccion} (${compra.porcentaje_detraccion}%)</span>
-                                </p>
-                            ` : ''}
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>Fecha:</strong> ${fechaFormateada}</p>
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>Estado:</strong> <span class="badge badge-${estadoClase}">${estadoTexto}</span></p>
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'} ${compra.ape_personal || ''}</p>
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>Plazo Entrega:</strong> ${compra.plaz_compra || 'No especificado'}</p>
+                            ${compra.nombre_detraccion ? `<p style="margin: 5px 0; font-size: 13px;"><strong>Detracción:</strong> <span class="badge badge-warning">${compra.nombre_detraccion} (${compra.porcentaje_detraccion}%)</span></p>` : ''}
                         </div>
-                    </div>
-        `;
+                    </div>`;
         
         if (compra.denv_compra || compra.obs_compra || compra.port_compra) {
-            html += `
-                    <div class="row mt-3">
-                        <div class="col-md-12">
-                            <div class="border-top pt-2">
-                                ${compra.denv_compra ? `<p style="margin: 5px 0; font-size: 13px;"><strong>Dirección de Envío:</strong> ${compra.denv_compra}</p>` : ''}
-                                ${compra.obs_compra ? `<p style="margin: 5px 0; font-size: 13px;"><strong>Observaciones:</strong> ${compra.obs_compra}</p>` : ''}
-                                ${compra.port_compra ? `<p style="margin: 5px 0; font-size: 13px;"><strong>Tipo de Porte:</strong> ${compra.port_compra}</p>` : ''}
-                            </div>
-                        </div>
-                    </div>
-            `;
+            html += `<div class="row mt-3"><div class="col-md-12"><div class="border-top pt-2">`;
+            if (compra.denv_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Dirección de Envío:</strong> ${compra.denv_compra}</p>`;
+            if (compra.obs_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Observaciones:</strong> ${compra.obs_compra}</p>`;
+            if (compra.port_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Tipo de Porte:</strong> ${compra.port_compra}</p>`;
+            html += `</div></div></div>`;
         }
         
-        html += `
-                </div>
-            </div>
-            
+        html += `</div></div>
             <div class="card">
                 <div class="card-header" style="background-color: #e8f5e8; padding: 10px 15px;">
-                    <h6 class="mb-0">
-                        <i class="fa fa-list-alt text-success"></i> 
-                        Productos de la Orden
-                    </h6>
+                    <h6 class="mb-0"><i class="fa fa-list-alt text-success"></i> Productos de la Orden</h6>
                 </div>
                 <div class="card-body" style="padding: 15px;">
                     <div class="table-responsive">
@@ -2124,8 +2173,7 @@ function verificarSiGenerarSalida() {
                                     <th style="width: 13%;">Subtotal</th>
                                 </tr>
                             </thead>
-                            <tbody>
-        `;
+                            <tbody>`;
         
         let total = 0;
         const simboloMoneda = compra.sim_moneda || (compra.id_moneda == 1 ? 'S/.' : 'US$');
@@ -2133,58 +2181,37 @@ function verificarSiGenerarSalida() {
         detalles.forEach((detalle, index) => {
             const subtotal = parseFloat(detalle.cant_compra_detalle) * parseFloat(detalle.prec_compra_detalle);
             total += subtotal;
-            
-            html += `
-                                <tr>
-                                    <td style="font-weight: bold;">${index + 1}</td>
-                                    <td>${detalle.cod_material || 'N/A'}</td>
-                                    <td>${detalle.nom_producto}</td>
-                                    <td class="text-center">${detalle.cant_compra_detalle}</td>
-                                    <td class="text-right">${simboloMoneda} ${parseFloat(detalle.prec_compra_detalle).toFixed(2)}</td>
-                                    <td class="text-right" style="font-weight: bold;">${simboloMoneda} ${subtotal.toFixed(2)}</td>
-                                </tr>
-            `;
+            html += `<tr>
+                        <td style="font-weight: bold;">${index + 1}</td>
+                        <td>${detalle.cod_material || 'N/A'}</td>
+                        <td>${detalle.nom_producto}</td>
+                        <td class="text-center">${detalle.cant_compra_detalle}</td>
+                        <td class="text-right">${simboloMoneda} ${parseFloat(detalle.prec_compra_detalle).toFixed(2)}</td>
+                        <td class="text-right" style="font-weight: bold;">${simboloMoneda} ${subtotal.toFixed(2)}</td>
+                    </tr>`;
         });
         
-        html += `
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <div class="row mt-3">
-                        <div class="col-md-12">`;
+        html += `</tbody></table></div><div class="row mt-3"><div class="col-md-12">`;
 
-        // Calcular detracción si existe
         let montoDetraccion = 0;
         let totalFinal = total;
 
         if (compra.porcentaje_detraccion && compra.porcentaje_detraccion > 0) {
             montoDetraccion = (total * parseFloat(compra.porcentaje_detraccion)) / 100;
             totalFinal = total - montoDetraccion;
-            
-            html += `
-                            <div class="alert alert-light" style="margin-bottom: 10px; padding: 10px;">
-                                <div style="font-size: 14px; text-align: center; margin-bottom: 5px;">
-                                    <strong>SUBTOTAL:</strong> ${simboloMoneda} ${total.toFixed(2)}
-                                </div>
-                                <div style="font-size: 13px; text-align: center; color: #dc3545; margin-bottom: 5px;">
-                                    <i class="fa fa-minus-circle"></i> 
-                                    <strong>Detracción (${compra.porcentaje_detraccion}%):</strong> 
-                                    -${simboloMoneda} ${montoDetraccion.toFixed(2)}
-                                </div>
-                            </div>`;
+            html += `<div class="alert alert-light" style="margin-bottom: 10px; padding: 10px;">
+                        <div style="font-size: 14px; text-align: center; margin-bottom: 5px;">
+                            <strong>SUBTOTAL:</strong> ${simboloMoneda} ${total.toFixed(2)}
+                        </div>
+                        <div style="font-size: 13px; text-align: center; color: #dc3545; margin-bottom: 5px;">
+                            <i class="fa fa-minus-circle"></i> <strong>Detracción (${compra.porcentaje_detraccion}%):</strong> -${simboloMoneda} ${montoDetraccion.toFixed(2)}
+                        </div>
+                    </div>`;
         }
 
-        html += `
-                            <div class="alert alert-info text-center" style="font-size: 16px; font-weight: bold; margin: 0;">
-                                <i class="fa fa-calculator"></i> 
-                                ${montoDetraccion > 0 ? 'TOTAL A PAGAR' : 'TOTAL'}: ${simboloMoneda} ${totalFinal.toFixed(2)}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+        html += `<div class="alert alert-info text-center" style="font-size: 16px; font-weight: bold; margin: 0;">
+                    <i class="fa fa-calculator"></i> ${montoDetraccion > 0 ? 'TOTAL A PAGAR' : 'TOTAL'}: ${simboloMoneda} ${totalFinal.toFixed(2)}
+                </div></div></div></div></div>`;
         
         contenido.innerHTML = html;
         contenido.style.display = 'block';
@@ -2195,19 +2222,5 @@ function verificarSiGenerarSalida() {
         errorDiv.querySelector('p').textContent = mensaje;
         errorDiv.style.display = 'block';
     }
-    // Manejar checkboxes de detracción (solo uno seleccionado a la vez)
-    document.addEventListener('change', function(event) {
-        if (event.target.classList.contains('detraccion-checkbox')) {
-            // Desmarcar otros checkboxes
-            document.querySelectorAll('.detraccion-checkbox').forEach(cb => {
-                if (cb !== event.target) {
-                    cb.checked = false;
-                }
-            });
-            
-            // Actualizar totales
-            actualizarTotalOrden();
-        }
-    });
 });
 </script>

@@ -285,13 +285,34 @@ function ConsultarCompraPorId($id_compra)
                 END as sim_moneda,
                 per.nom_personal,
                 per_tec.nom_personal AS nom_aprobado_tecnica,
-                per_fin.nom_personal AS nom_aprobado_financiera
+                per_fin.nom_personal AS nom_aprobado_financiera,
+                COALESCE(obp.nom_subestacion, oba.nom_subestacion, 'N/A') AS nom_obra,
+                COALESCE(cli.nom_cliente, 'N/A') AS nom_cliente,
+                ped.cod_pedido,
+                ped.fec_req_pedido,
+                ped.ot_pedido,
+                ped.lug_pedido,
+                ped.cel_pedido,
+                ped.acl_pedido,
+                COALESCE(alm.nom_almacen, 'N/A') AS nom_almacen,
+                COALESCE(ub.nom_ubicacion, 'N/A') AS nom_ubicacion
             FROM compra c
             INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor
             INNER JOIN moneda m ON c.id_moneda = m.id_moneda
             LEFT JOIN {$bd_complemento}.personal per ON c.id_personal = per.id_personal
             LEFT JOIN {$bd_complemento}.personal per_tec ON c.id_personal_aprueba_tecnica = per_tec.id_personal
             LEFT JOIN {$bd_complemento}.personal per_fin ON c.id_personal_aprueba_financiera = per_fin.id_personal
+            LEFT JOIN pedido ped ON c.id_pedido = ped.id_pedido
+            LEFT JOIN {$bd_complemento}.subestacion obp 
+                ON ped.id_obra = obp.id_subestacion AND obp.act_subestacion = 1
+            LEFT JOIN almacen alm 
+                ON ped.id_almacen = alm.id_almacen AND alm.est_almacen = 1
+            LEFT JOIN {$bd_complemento}.subestacion oba 
+                ON alm.id_obra = oba.id_subestacion AND oba.act_subestacion = 1
+            LEFT JOIN {$bd_complemento}.cliente cli 
+                ON alm.id_cliente = cli.id_cliente AND cli.act_cliente = 1
+            LEFT JOIN ubicacion ub 
+                ON ped.id_ubicacion = ub.id_ubicacion AND ub.est_ubicacion = 1
             WHERE c.id_compra = $id_compra";
     
     $resultado = mysqli_query($con, $sql);
@@ -320,13 +341,34 @@ function ConsultarCompra($id_pedido)
                 m.nom_moneda,
                 per.nom_personal,
                 per_tec.nom_personal AS nom_aprobado_tecnica,
-                per_fin.nom_personal AS nom_aprobado_financiera
+                per_fin.nom_personal AS nom_aprobado_financiera,
+                COALESCE(obp.nom_subestacion, oba.nom_subestacion, 'N/A') AS nom_obra,
+                COALESCE(cli.nom_cliente, 'N/A') AS nom_cliente,
+                ped.cod_pedido,
+                ped.fec_req_pedido,
+                ped.ot_pedido,
+                ped.lug_pedido,
+                ped.cel_pedido,
+                ped.acl_pedido,
+                COALESCE(alm.nom_almacen, 'N/A') AS nom_almacen,
+                COALESCE(ub.nom_ubicacion, 'N/A') AS nom_ubicacion
             FROM compra c
             INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor
             INNER JOIN moneda m ON c.id_moneda = m.id_moneda
             LEFT JOIN {$bd_complemento}.personal per ON c.id_personal = per.id_personal
             LEFT JOIN {$bd_complemento}.personal per_tec ON c.id_personal_aprueba_tecnica = per_tec.id_personal
             LEFT JOIN {$bd_complemento}.personal per_fin ON c.id_personal_aprueba_financiera = per_fin.id_personal
+            LEFT JOIN pedido ped ON c.id_pedido = ped.id_pedido
+            LEFT JOIN {$bd_complemento}.subestacion obp 
+                ON ped.id_obra = obp.id_subestacion AND obp.act_subestacion = 1
+            LEFT JOIN almacen alm 
+                ON ped.id_almacen = alm.id_almacen AND alm.est_almacen = 1
+            LEFT JOIN {$bd_complemento}.subestacion oba 
+                ON alm.id_obra = oba.id_subestacion AND oba.act_subestacion = 1
+            LEFT JOIN {$bd_complemento}.cliente cli 
+                ON alm.id_cliente = cli.id_cliente AND cli.act_cliente = 1
+            LEFT JOIN ubicacion ub 
+                ON ped.id_ubicacion = ub.id_ubicacion AND ub.est_ubicacion = 1
             WHERE c.id_pedido = $id_pedido
             ORDER BY c.id_compra DESC";
     

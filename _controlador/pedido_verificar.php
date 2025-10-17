@@ -132,7 +132,6 @@ if (isset($_REQUEST['verificar_item'])) {
         }
     }
 }
-
 // ACTUALIZAR ORDEN
 if (isset($_REQUEST['actualizar_orden'])) {
     $id_compra = $_REQUEST['id_compra'];
@@ -146,6 +145,12 @@ if (isset($_REQUEST['actualizar_orden'])) {
     $items = $_REQUEST['items_orden'] ?? [];
     
     $id_detraccion = isset($_REQUEST['id_detraccion']) ? intval($_REQUEST['id_detraccion']) : null;
+
+    // Manejar archivos de homologación
+    $archivos_homologacion = [];
+    if (isset($_FILES['homologacion'])) {
+        $archivos_homologacion = $_FILES['homologacion'];
+    }
 
     if (empty($proveedor_sel) || empty($moneda_sel) || empty($fecha_orden)) {
         $alerta = [
@@ -174,7 +179,8 @@ if (isset($_REQUEST['actualizar_orden'])) {
                     'id_pedido_detalle' => intval($item['id_pedido_detalle']),
                     'id_producto' => intval($item['id_producto']),
                     'cantidad' => floatval($item['cantidad']),
-                    'precio_unitario' => floatval($item['precio_unitario'])
+                    'precio_unitario' => floatval($item['precio_unitario']),
+                    'igv' => floatval($item['igv'])
                 ];
             } else {
                 $items_existentes[$key] = $item;
@@ -192,7 +198,8 @@ if (isset($_REQUEST['actualizar_orden'])) {
             $porte,
             $fecha_orden,
             $items_existentes,
-            $id_detraccion  
+            $id_detraccion,
+            $archivos_homologacion  
         );
         
         if ($rpta != "SI") {
@@ -207,14 +214,33 @@ if (isset($_REQUEST['actualizar_orden'])) {
                 $id_producto = $nuevo_item['id_producto'];
                 $cantidad = $nuevo_item['cantidad'];
                 $precio = $nuevo_item['precio_unitario'];
+                $igv = $nuevo_item['igv'];
                 $id_pedido_detalle = $nuevo_item['id_pedido_detalle'];
+                
+                // Manejar archivo de homologación para items nuevos
+                $nombre_archivo_hom = null;
+                if (isset($archivos_homologacion[$id_pedido_detalle]) && !empty($archivos_homologacion[$id_pedido_detalle]['name'])) {
+                    $archivo = $archivos_homologacion[$id_pedido_detalle];
+                    $extension = pathinfo($archivo['name'], PATHINFO_EXTENSION);
+                    $nombre_archivo_hom = "hom_compra_" . $id_compra . "_prod_" . $id_producto . "_" . uniqid() . "." . $extension;
+                    $ruta_destino = "../_archivos/homologaciones/" . $nombre_archivo_hom;
+                    
+                    // Crear directorio si no existe
+                    if (!file_exists("../_archivos/homologaciones/")) {
+                        mkdir("../_archivos/homologaciones/", 0777, true);
+                    }
+                    
+                    move_uploaded_file($archivo['tmp_name'], $ruta_destino);
+                }
+                
+                $hom_sql = $nombre_archivo_hom ? "'" . mysqli_real_escape_string($con, $nombre_archivo_hom) . "'" : "NULL";
                 
                 // Insertar en compra_detalle
                 $sql_insert = "INSERT INTO compra_detalle (
-                                  id_compra, id_producto, cant_compra_detalle, prec_compra_detalle, est_compra_detalle
-                               ) VALUES (?, ?, ?, ?, 1)";
+                                  id_compra, id_producto, cant_compra_detalle, prec_compra_detalle, igv_compra_detalle, hom_compra_detalle, est_compra_detalle
+                               ) VALUES (?, ?, ?, ?, ?, $hom_sql, 1)";
                 $stmt = $con->prepare($sql_insert);
-                $stmt->bind_param("iidd", $id_compra, $id_producto, $cantidad, $precio);
+                $stmt->bind_param("iiddd", $id_compra, $id_producto, $cantidad, $precio, $igv);
                 $stmt->execute();
                 $stmt->close();
                 
@@ -236,7 +262,8 @@ if (isset($_REQUEST['actualizar_orden'])) {
     }
 }
 
-/// CREAR ORDEN
+
+// CREAR ORDEN con homologación
 if (isset($_REQUEST['crear_orden'])) {
     $id_pedido = $_REQUEST['id'];
     $proveedor = $_REQUEST['proveedor_orden'];
@@ -248,22 +275,46 @@ if (isset($_REQUEST['crear_orden'])) {
     $porte = $_REQUEST['tipo_porte'];
     $fecha_orden = $_REQUEST['fecha_orden'];
     $items = $_REQUEST['items_orden'];
-    
-    // NUEVO: Capturar la detracción
     $id_detraccion = isset($_REQUEST['id_detraccion']) ? intval($_REQUEST['id_detraccion']) : null;
-
-    $rpta = CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items, $id_detraccion);
-
-    error_log("Respuesta CrearOrdenCompra: " . $rpta);
-    error_log("ID Pedido: " . $id_pedido);
+    
+    //Manejar ambos tipos de archivos (existentes y nuevos)
+    $archivos_homologacion = [];
+    
+    // Archivos de items nuevos
+    if (isset($_FILES['homologacion_nuevo'])) {
+        foreach ($_FILES['homologacion_nuevo']['name'] as $key => $nombre) {
+            if (!empty($nombre)) {
+                $archivos_homologacion[$key] = [
+                    'name' => $_FILES['homologacion_nuevo']['name'][$key],
+                    'type' => $_FILES['homologacion_nuevo']['type'][$key],
+                    'tmp_name' => $_FILES['homologacion_nuevo']['tmp_name'][$key],
+                    'error' => $_FILES['homologacion_nuevo']['error'][$key],
+                    'size' => $_FILES['homologacion_nuevo']['size'][$key]
+                ];
+            }
+        }
+    }
+    
+    // Archivos de items en edición (si aplica)
+    if (isset($_FILES['homologacion'])) {
+        foreach ($_FILES['homologacion']['name'] as $key => $nombre) {
+            if (!empty($nombre)) {
+                $archivos_homologacion[$key] = [
+                    'name' => $_FILES['homologacion']['name'][$key],
+                    'type' => $_FILES['homologacion']['type'][$key],
+                    'tmp_name' => $_FILES['homologacion']['tmp_name'][$key],
+                    'error' => $_FILES['homologacion']['error'][$key],
+                    'size' => $_FILES['homologacion']['size'][$key]
+                ];
+            }
+        }
+    }
+    
+    $rpta = CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, 
+                            $observacion, $direccion, $plazo_entrega, $porte, 
+                            $fecha_orden, $items, $id_detraccion, $archivos_homologacion);
     
     if ($rpta == "SI") {
-        include("../_conexion/conexion.php");
-        $check = mysqli_query($con, "SELECT * FROM compra WHERE id_pedido = $id_pedido ORDER BY id_compra DESC LIMIT 1");
-        $ultima_orden = mysqli_fetch_assoc($check);
-        error_log("Última orden creada ID: " . ($ultima_orden ? $ultima_orden['id_compra'] : 'NINGUNA'));
-        mysqli_close($con);
-        
         header("Location: pedido_verificar.php?id=$id_pedido&success=creado");
         exit;
     } else {

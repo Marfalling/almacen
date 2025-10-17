@@ -1075,7 +1075,9 @@ function verificarPedidoListo($id_pedido, $con = null)
     ];
 }
 //-----------------------------------------------------------------------
-function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items, $id_detraccion = null) 
+function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observacion, 
+                         $direccion, $plazo_entrega, $porte, $fecha_orden, $items, 
+                         $id_detraccion = null, $archivos_homologacion = []) 
 {
     include("../_conexion/conexion.php");
 
@@ -1094,48 +1096,70 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
             ) VALUES (
                 $id_pedido, $proveedor, $moneda, $id_personal, NULL, 
                 '$observacion', '$direccion', '$plazo_entrega', '$porte', $id_detraccion_sql, 
-                NOW(), 1
+                '$fecha_orden', 1
             )";
 
     if (mysqli_query($con, $sql)) {
         $id_compra = mysqli_insert_id($con);
         
-        // Insertar detalles de la orden
+        // Insertar detalles de la orden con IGV y homologación
         foreach ($items as $item) {
-            $cantidad = floatval($item['cantidad']);
             $id_producto = intval($item['id_producto']);
+            $cantidad = floatval($item['cantidad']);
             $precio_unitario = floatval($item['precio_unitario']);
+            $igv = floatval($item['igv']); 
             $id_detalle = intval($item['id_detalle']);
             
-            // 🔍 Validación: Si la cantidad es 0, usar la cantidad del pedido_detalle
-            if ($cantidad <= 0) {
-                $sql_get_cantidad = "SELECT cant_pedido_detalle 
-                                    FROM pedido_detalle 
-                                    WHERE id_pedido_detalle = $id_detalle";
-                $res_cantidad = mysqli_query($con, $sql_get_cantidad);
-                if ($res_cantidad && mysqli_num_rows($res_cantidad) > 0) {
-                    $row_cantidad = mysqli_fetch_assoc($res_cantidad);
-                    $cantidad = floatval($row_cantidad['cant_pedido_detalle']);
+            // Manejar archivo de homologación si existe
+            $nombre_archivo_hom = null;
+            if (isset($archivos_homologacion[$id_detalle]) && !empty($archivos_homologacion[$id_detalle]['name'])) {
+                $archivo = $archivos_homologacion[$id_detalle];
+                $extension = pathinfo($archivo['name'], PATHINFO_EXTENSION);
+                $nombre_archivo_hom = "hom_compra_" . $id_compra . "_prod_" . $id_producto . "_" . uniqid() . "." . $extension;
+                $ruta_destino = "../_archivos/homologaciones/" . $nombre_archivo_hom;
+                
+                // Crear directorio si no existe
+                if (!file_exists("../_archivos/homologaciones/")) {
+                    mkdir("../_archivos/homologaciones/", 0777, true);
                 }
+                
+                move_uploaded_file($archivo['tmp_name'], $ruta_destino);
             }
             
+            $hom_sql = $nombre_archivo_hom ? "'" . mysqli_real_escape_string($con, $nombre_archivo_hom) . "'" : "NULL";
             
-            
+            // Insertar detalle con IGV y homologación
             $sql_detalle = "INSERT INTO compra_detalle (
-                                id_compra, id_producto, cant_compra_detalle, prec_compra_detalle, est_compra_detalle
+                                id_compra, id_producto, cant_compra_detalle, 
+                                prec_compra_detalle, igv_compra_detalle, hom_compra_detalle,
+                                est_compra_detalle
                             ) VALUES (
-                                $id_compra, $id_producto, $cantidad, $precio_unitario, 1
+                                $id_compra, $id_producto, $cantidad, 
+                                $precio_unitario, $igv, $hom_sql,
+                                1
                             )";
             
             if (!mysqli_query($con, $sql_detalle)) {
                 error_log("ERROR al insertar detalle: " . mysqli_error($con));
             }
 
-            // Marcar el detalle del pedido como "en proceso de compra" (estado 2)
-            $sql_update = "UPDATE pedido_detalle 
-                       SET est_pedido_detalle = 2 
-                       WHERE id_pedido_detalle = $id_detalle";
-            mysqli_query($con, $sql_update);
+            // NO marcar como cerrado automáticamente si la cantidad es parcial
+            $cant_ordenada_total = ObtenerCantidadYaOrdenada($id_pedido, $id_producto);
+            
+            $sql_get_verificada = "SELECT cant_fin_pedido_detalle 
+                                   FROM pedido_detalle 
+                                   WHERE id_pedido_detalle = $id_detalle";
+            $res_ver = mysqli_query($con, $sql_get_verificada);
+            $row_ver = mysqli_fetch_assoc($res_ver);
+            $cant_verificada = $row_ver ? floatval($row_ver['cant_fin_pedido_detalle']) : 0;
+            
+            // Solo cerrar el item si ya se ordenó todo lo verificado
+            if ($cant_ordenada_total >= $cant_verificada) {
+                $sql_update = "UPDATE pedido_detalle 
+                           SET est_pedido_detalle = 2 
+                           WHERE id_pedido_detalle = $id_detalle";
+                mysqli_query($con, $sql_update);
+            }
         }
         
         mysqli_close($con);
@@ -1145,6 +1169,50 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
         mysqli_close($con);
         return "ERROR: " . $err;
     }
+}
+
+// Nueva función para obtener cantidad ya ordenada
+function ObtenerCantidadYaOrdenada($id_pedido, $id_producto) {
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT COALESCE(SUM(cd.cant_compra_detalle), 0) as total_ordenado
+            FROM compra_detalle cd
+            INNER JOIN compra c ON cd.id_compra = c.id_compra
+            WHERE c.id_pedido = $id_pedido 
+            AND cd.id_producto = $id_producto
+            AND c.est_compra != 0
+            AND cd.est_compra_detalle = 1";
+    
+    $resultado = mysqli_query($con, $sql);
+    $row = mysqli_fetch_assoc($resultado);
+    
+    mysqli_close($con);
+    return floatval($row['total_ordenado']);
+}
+
+// Función para obtener cantidad pendiente
+function ObtenerCantidadPendienteOrdenar($id_pedido, $id_producto) {
+    include("../_conexion/conexion.php");
+    
+    // Obtener cantidad verificada
+    $sql_verificada = "SELECT pd.cant_fin_pedido_detalle
+                       FROM pedido_detalle pd
+                       WHERE pd.id_pedido = $id_pedido 
+                       AND pd.id_producto = $id_producto
+                       AND pd.est_pedido_detalle IN (1, 2)
+                       LIMIT 1";
+    
+    $res_verificada = mysqli_query($con, $sql_verificada);
+    $row_verificada = mysqli_fetch_assoc($res_verificada);
+    $cant_verificada = $row_verificada ? floatval($row_verificada['cant_fin_pedido_detalle']) : 0;
+    
+    // Obtener cantidad ya ordenada
+    $cant_ordenada = ObtenerCantidadYaOrdenada($id_pedido, $id_producto);
+    
+    mysqli_close($con);
+    
+    $cantidad_pendiente = $cant_verificada - $cant_ordenada;
+    return max(0, $cantidad_pendiente);
 }
 
 //-----------------------------------------------------------------------
@@ -1192,7 +1260,7 @@ function ObtenerDetalleOrden($id_compra) {
     return $detalles;
 }
 //-----------------------------------------------------------------------
-function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items, $id_detraccion = null) {
+function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items, $id_detraccion = null, $archivos_homologacion = []) {
     include("../_conexion/conexion.php");
     
     $observacion = mysqli_real_escape_string($con, $observacion);
@@ -1215,11 +1283,38 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
     if (mysqli_query($con, $sql)) {
         foreach ($items as $id_detalle => $item) {
             $id_detalle = intval($id_detalle);
+            $cantidad = floatval($item['cantidad']); // Cantidad editable
             $precio_unitario = floatval($item['precio_unitario']);
+            $igv = floatval($item['igv']); // IGV editable
             
+            // Manejar archivo de homologación si existe
+            $nombre_archivo_hom = null;
+            if (isset($archivos_homologacion[$id_detalle]) && !empty($archivos_homologacion[$id_detalle]['name'])) {
+                $archivo = $archivos_homologacion[$id_detalle];
+                $extension = pathinfo($archivo['name'], PATHINFO_EXTENSION);
+                $nombre_archivo_hom = "hom_compra_" . $id_compra . "_det_" . $id_detalle . "_" . uniqid() . "." . $extension;
+                $ruta_destino = "../_archivos/homologaciones/" . $nombre_archivo_hom;
+                
+                // Crear directorio si no existe
+                if (!file_exists("../_archivos/homologaciones/")) {
+                    mkdir("../_archivos/homologaciones/", 0777, true);
+                }
+                
+                move_uploaded_file($archivo['tmp_name'], $ruta_destino);
+            }
+            
+            // Construir la consulta UPDATE
             $sql_detalle = "UPDATE compra_detalle 
-                           SET prec_compra_detalle = $precio_unitario 
-                           WHERE id_compra_detalle = $id_detalle";
+                           SET cant_compra_detalle = $cantidad,
+                               prec_compra_detalle = $precio_unitario,
+                               igv_compra_detalle = $igv";
+            
+            // Si hay un nuevo archivo, actualizar el campo hom_compra_detalle
+            if ($nombre_archivo_hom) {
+                $sql_detalle .= ", hom_compra_detalle = '" . mysqli_real_escape_string($con, $nombre_archivo_hom) . "'";
+            }
+            
+            $sql_detalle .= " WHERE id_compra_detalle = $id_detalle";
             
             if (!mysqli_query($con, $sql_detalle)) {
                 $error = mysqli_error($con);
