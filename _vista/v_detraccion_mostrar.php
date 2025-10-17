@@ -71,6 +71,7 @@
                                         <thead>
                                             <tr>
                                                 <th>#</th>
+                                                <th>Código</th>
                                                 <th>Nombre</th>
                                                 <th>Porcentaje (%)</th>
                                                 <th>Estado</th>
@@ -87,9 +88,13 @@
                                                     $nom = $value['nombre_detraccion'];
                                                     $porcentaje = $value['porcentaje'];
                                                     $estado = isset($value['est_detraccion']) ? $value['est_detraccion'] : 1;
+
+                                                // Generar el código concatenado (D001, D002, etc)
+                                                $codigo = 'D' . str_pad($id, 3, '0', STR_PAD_LEFT);
                                             ?>
                                                 <tr>
                                                     <td><?php echo $c; ?></td>
+                                                    <td><?php echo $codigo; ?></td>
                                                     <td><?php echo $nom; ?></td>
                                                     <td><?php echo number_format($porcentaje, 2); ?> %</td>
                                                     <td class="text-center">

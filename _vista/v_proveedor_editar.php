@@ -48,7 +48,7 @@
                                         <tr>
                                             <td><input type="text" name="banco[]" value="<?php echo $c['banco_proveedor']; ?>" class="form-control" required></td>
                                             <td>
-                                                <select name="id_moneda[]" class="form-control" required>
+                                                <select name="id_moneda[]" class="form-control select2" required>
                                                     <option value="">-- Moneda --</option>
                                                     <?php foreach ($monedas as $m) {
                                                         $selected = ($m['id_moneda'] == $c['id_moneda']) ? "selected" : "";
@@ -82,9 +82,20 @@
 </div>
 <!-- /page content -->
 
+<!-- Librerías Select2 -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <!-- Script dinámico para manejar cuentas bancarias -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+    // Inicializar Select2 en todos los selects con clase .select2
+    $('.select2').select2({
+        placeholder: "Seleccione una opción",
+        allowClear: true,
+        width: '100%'
+    });
+
     const tablaCuentas = document.getElementById("tabla-cuentas");
     const btnAgregar = document.getElementById("agregarCuenta");
 
@@ -94,7 +105,7 @@ document.addEventListener("DOMContentLoaded", function() {
         nuevaFila.innerHTML = `
             <td><input type="text" name="banco[]" class="form-control" required></td>
             <td>
-                <select name="id_moneda[]" class="form-control" required>
+                <select name="id_moneda[]" class="form-control select2" required>
                     <option value="">-- Moneda --</option>
                     <?php foreach ($monedas as $m) { ?>
                         <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
@@ -106,6 +117,13 @@ document.addEventListener("DOMContentLoaded", function() {
             <td><button type="button" class="btn btn-danger btn-sm eliminar-fila">X</button></td>
         `;
         tablaCuentas.appendChild(nuevaFila);
+
+        // Inicializar Select2 en el nuevo select agregado dinámicamente
+        $(nuevaFila).find('.select2').select2({
+            placeholder: "Seleccione una opción",
+            allowClear: true,
+            width: '100%'
+        });
     });
 
     // Acción para eliminar fila
@@ -116,3 +134,4 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 </script>
+

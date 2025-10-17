@@ -4,7 +4,7 @@
 // Descripción: Muestra el listado del personal desde la BD arceperucomplemento
 //=======================================================================
 
-require_once("../_conexion/conexion_complemento.php");
+require_once("../_conexion/conexion.php");
 require_once("../_modelo/m_personal.php");
 
 // Obtenemos la lista del personal

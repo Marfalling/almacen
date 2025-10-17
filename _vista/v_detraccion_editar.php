@@ -2,7 +2,7 @@
 require_once("../_conexion/sesion.php");
 
 //=======================================================================
-// CONTROLADOR: detraccion_editar.php 
+// VISTA: v_detraccion_editar.php 
 //=======================================================================
 
 // Verificar permiso
@@ -20,52 +20,48 @@ if (isset($_POST['registrar'])) {
     $id_detraccion = intval($_POST['id_detraccion']);
     $nom = strtoupper(trim($_POST['nom']));
     $porcentaje = floatval($_POST['porcentaje']);
-    $estado = isset($_POST['estado']) ? 1 : 0; // Switch activo = 1, inactivo = 0
+    $estado = isset($_POST['estado']) ? 1 : 0;
 
     $rpta = EditarDetraccion($id_detraccion, $nom, $porcentaje, $estado);
 
     require_once("../_modelo/m_auditoria.php");
 
     if ($rpta === "SI") {
-        // Registrar auditoría de edición exitosa
         GrabarAuditoria($id, $usuario_sesion, 'MODIFICACIÓN', 'DETRACCION', "Se editó la detracción '$nom' (ID: $id_detraccion)");
         header("Location: detraccion_mostrar.php?actualizado=true");
         exit;
     } elseif ($rpta === "NO") {
-        // Duplicado detectado
         GrabarAuditoria($id, $usuario_sesion, 'ERROR MODIFICACIÓN', 'DETRACCION', "Intento duplicado al editar '$nom'");
         header("Location: detraccion_mostrar.php?error=duplicado");
         exit;
     } else {
-        // Error general
         GrabarAuditoria($id, $usuario_sesion, 'ERROR MODIFICACIÓN', 'DETRACCION', "Error al editar '$nom'");
         header("Location: detraccion_mostrar.php?error=true");
         exit;
     }
 }
 
-// Obtener ID desde GET
 $id_detraccion = isset($_GET['id_detraccion']) ? intval($_GET['id_detraccion']) : 0;
 if ($id_detraccion <= 0) {
     header("Location: detraccion_mostrar.php?error=true");
     exit;
 }
 
-// Obtener datos de la detracción
 $detraccion_data = ObtenerDetraccionPorId($id_detraccion);
 if (!$detraccion_data) {
     header("Location: detraccion_mostrar.php?error=true");
     exit;
 }
 
-// Variables para la vista
 $nom = $detraccion_data['nombre_detraccion'];
 $porcentaje = $detraccion_data['porcentaje'];
 $estado = $detraccion_data['est_detraccion'];
+
+// Generar código de detracción dinámico (sin guardar en BD)
+$codigo_detraccion = 'D' . str_pad($id_detraccion, 3, '0', STR_PAD_LEFT);
 ?>
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="utf-8">
     <title>Editar Detracción</title>
@@ -92,6 +88,12 @@ $estado = $detraccion_data['est_detraccion'];
                         <div class="x_content">
                             <form action="" method="POST">
                                 <input type="hidden" name="id_detraccion" value="<?php echo $id_detraccion; ?>">
+
+                                <!-- Campo mostrado pero no editable -->
+                                <div class="form-group">
+                                    <label for="codigo">Código de Detracción</label>
+                                    <input type="text" class="form-control" id="codigo" value="<?php echo $codigo_detraccion; ?>" readonly>
+                                </div>
 
                                 <div class="form-group">
                                     <label for="nom">Nombre</label>

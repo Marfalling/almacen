@@ -3,7 +3,6 @@
 // VISTA: v_uso_material_mostrar.php
 //=======================================================================
 ?>
-
 <script>
 function AnularUso(id_uso_material) {
     Swal.fire({

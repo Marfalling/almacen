@@ -300,16 +300,18 @@
                                                     </button>
                                                 </div>
                                             </div>
-                                            <div class="col-md-3">
+                                            <div class="col-md-6">
                                                 <label>Cantidad <span class="text-danger">*</span>:</label>
                                                 <input type="number" name="cantidad[]" class="form-control" step="0.01" required>
                                             </div>
+                                            <!--
                                             <div class="col-md-3">
                                                 <label>Stock Disponible:</label>
                                                 <div class="form-control" id="stock-disponible-0" style="background-color: #f8f9fa;">
                                                     0.00
                                                 </div>
                                             </div>
+                                            -->
                                         </div>
                                         <div class="row mt-2">
                                             <div class="col-md-12 d-flex justify-content-end">

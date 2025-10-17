@@ -156,7 +156,7 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                         if ($resultado === "SI" || (is_array($resultado) && isset($resultado['success']) && $resultado['success'] === true)) {
 
                             // ======================================
-                            // 🆕 NUEVO: SUBIDA DE DOCUMENTOS
+                            // NUEVO: SUBIDA DE DOCUMENTOS
                             // ======================================
                             $id_salida = is_array($resultado) ? $resultado['id_salida'] : mysqli_insert_id($con ?? null);
                             

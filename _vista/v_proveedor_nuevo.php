@@ -93,7 +93,7 @@
                                             <tr>
                                                 <td><input type="text" name="banco[]" class="form-control" required></td>
                                                 <td>
-                                                    <select name="id_moneda[]" class="form-control" required>
+                                                    <select name="id_moneda[]" class="form-control select2_single" required>
                                                         <option value="">-- Moneda --</option>
                                                         <?php foreach ($monedas as $m) { ?>
                                                             <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
@@ -158,7 +158,7 @@ document.addEventListener("DOMContentLoaded", function() {
         nuevaFila.innerHTML = `
             <td><input type="text" name="banco[]" class="form-control" required></td>
             <td>
-                <select name="id_moneda[]" class="form-control" required>
+                <select name="id_moneda[]" class="form-control select2_single" required>
                     <option value="">-- Moneda --</option>
                     <?php foreach ($monedas as $m) { ?>
                         <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
@@ -170,6 +170,13 @@ document.addEventListener("DOMContentLoaded", function() {
             <td><button type="button" class="btn btn-danger btn-sm eliminar-fila">X</button></td>
         `;
         tablaCuentas.appendChild(nuevaFila);
+
+        // Inicializar Select2 en la nueva fila
+        $(nuevaFila).find('.select2_single').select2({
+            placeholder: "Seleccione una moneda",
+            allowClear: true,
+            width: '100%'
+        });
     });
 
     // Acción para eliminar fila
@@ -178,5 +185,16 @@ document.addEventListener("DOMContentLoaded", function() {
             e.target.closest("tr").remove();
         }
     });
+
+    // Inicialización inicial de Select2
+    $('.select2_single').select2({
+        placeholder: "Seleccione una moneda",
+        allowClear: true,
+        width: '100%'
+    });
 });
 </script>
+
+<!-- Librerías Select2 -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>

@@ -619,7 +619,6 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', function(e) {
             let archivosInvalidos = false;
             let mensajeError = '';
-            // Buscar todos los inputs de archivos
             const archivosInputs = form.querySelectorAll('input[type="file"][name^="archivos_"]');
             archivosInputs.forEach(input => {
                 for (let i = 0; i < input.files.length; i++) {
@@ -641,9 +640,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     alert(mensajeError);
                 }
-                // El formulario NO se envía y los datos NO se pierden
             }
         });
     }
+});
+</script>
+
+<!-- ===================== -->
+<!-- Librerías Select2 -->
+<!-- ===================== -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- ===================== -->
+<!-- Inicialización Select2 -->
+<!-- ===================== -->
+<script>
+$(document).ready(function() {
+    $('select[name="id_solicitante"]').select2({
+        placeholder: "Seleccionar solicitante",
+        allowClear: true,
+        width: '100%',
+        language: {
+            noResults: function() {
+                return "No se encontraron resultados";
+            }
+        }
+    });
 });
 </script>

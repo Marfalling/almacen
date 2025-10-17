@@ -255,7 +255,7 @@ foreach($salidas as $salida) {
                                         <th>Producto/Material</th>
                                         <th>Cantidad</th>
                                         <th>Unidad</th>
-                                        <th>Stock Origen</th>
+                                        <!--<th>Stock Origen</th> -->
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -268,11 +268,13 @@ foreach($salidas as $salida) {
                                             <td><?php echo $detalle['prod_salida_detalle']; ?></td>
                                             <td><?php echo $detalle['cant_salida_detalle']; ?></td>
                                             <td><?php echo $detalle['nom_unidad_medida']; ?></td>
+                                            <!-- STOCK ORIGEN
                                             <td>
                                                 <span class="badge badge-info badge_size">
                                                     <?php echo $detalle['cantidad_disponible_origen']; ?>
                                                 </span>
                                             </td>
+                                            -->
                                         </tr>
                                     <?php 
                                         $contador_detalle++;

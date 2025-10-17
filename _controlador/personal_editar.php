@@ -2,7 +2,7 @@
 //=======================================================================
 // CONTROLADOR: personal_editar.php
 //=======================================================================
-require_once("../_conexion/conexion_complemento.php");
+require_once("../_conexion/conexion.php");
 require_once("../_conexion/sesion.php");
 require_once("../_modelo/m_personal.php");
 require_once("../_modelo/m_area.php");

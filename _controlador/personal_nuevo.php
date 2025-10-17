@@ -17,7 +17,6 @@ function ObtenerAreas()
 {
     include("../_conexion/conexion.php");
 
-
     $sql = "SELECT id_area, nom_area 
             FROM {$bd_complemento}.area 
             WHERE act_area = 1 
@@ -34,7 +33,6 @@ function ObtenerAreas()
 function ObtenerCargos()
 {
     include("../_conexion/conexion.php");
-   
 
     $sql = "SELECT id_cargo, nom_cargo 
             FROM {$bd_complemento}.cargo 
@@ -48,7 +46,6 @@ function ObtenerCargos()
     mysqli_close($con);
     return $cargos;
 }
-
 
 $areas = ObtenerAreas();
 $cargos = ObtenerCargos();
@@ -243,5 +240,21 @@ if (isset($_REQUEST['registrar'])) {
 require_once("../_vista/v_script.php");
 require_once("../_vista/v_alertas.php");
 ?>
+
+<!-- Librerías Select2 -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- Inicialización de Select2 -->
+<script>
+$(document).ready(function() {
+    $('.select2_single').select2({
+        placeholder: "Seleccione una opción",
+        allowClear: true,
+        width: '100%'
+    });
+});
+</script>
+
 </body>
 </html>
