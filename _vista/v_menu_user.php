@@ -10,6 +10,7 @@ $total_alertas_compras = count($compras_por_vencer);
 // Obtener productos próximos a vencer calibrado/operatividad (15 días antes)
 $productos_por_vencer = ObtenerProductosProximosVencer(15);
 $total_alertas_productos = count($productos_por_vencer);
+
 ?>
 
 <!-- top navigation -->
@@ -27,7 +28,7 @@ $total_alertas_productos = count($productos_por_vencer);
                         <img src="../_complemento/images/img.jpg" alt="">
                     </a>
                     <div class="dropdown-menu dropdown-usermenu pull-right" aria-labelledby="navbarDropdown">
-                        <a class="dropdown-item" href="reset_password.php?id=<?php echo $id; ?>">
+                        <a class="dropdown-item" href="../_controlador/cambio_password.php">
                             <i class="fa fa-key pull-right"></i> Cambiar Contraseña
                         </a>
                         <a class="dropdown-item" href="../_conexion/cerrarsesion.php">

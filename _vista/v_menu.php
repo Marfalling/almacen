@@ -265,9 +265,10 @@ require_once("../_conexion/sesion.php");
                   <?php if (verificarPermisoEspecifico('ver_rol de usuario')): ?>
                   <li><a href="rol_usuario_mostrar.php">Rol de Usuario</a></li>
                   <?php endif; ?>
-                  <?php if (verificarPermisoEspecifico('ver_area')): ?>
+                  
+                  <?php /* if (verificarPermisoEspecifico('ver_area')): ?>
                   <li><a href="area_mostrar.php">Área</a></li>
-                  <?php endif; ?>
+                  <?php endif;*/ ?> 
                   <?php if (verificarPermisoEspecifico('ver_cargo')): ?>
                   <li><a href="cargo_mostrar.php">Cargo</a></li>
                   <?php endif; ?>
