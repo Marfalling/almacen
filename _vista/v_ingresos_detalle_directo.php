@@ -20,7 +20,7 @@
                     <div class="x_title">
                         <div class="row">
                             <div class="col-sm-10">
-                                <h2>Ingreso Directo #ING-<?php echo $detalle_ingreso_directo['ingreso']['id_ingreso']; ?> <small>Sin Orden de Compra</small></h2>
+                                <h2>Ingreso Directo I00<?php echo $detalle_ingreso_directo['ingreso']['id_ingreso']; ?> <small>Sin Orden de Compra</small></h2>
                             </div>
                             <div class="col-sm-2 no-print">
                                 <a href="ingresos_mostrar.php?tab=todos-ingresos" class="btn btn-outline-secondary btn-sm btn-block">
@@ -44,7 +44,7 @@
                                         <table class="table table-striped">
                                             <tr>
                                                 <td><strong>N° Ingreso Directo:</strong></td>
-                                                <td>ING-<?php echo $detalle_ingreso_directo['ingreso']['id_ingreso']; ?></td>
+                                                <td>I00<?php echo $detalle_ingreso_directo['ingreso']['id_ingreso']; ?></td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Tipo de Ingreso:</strong></td>
