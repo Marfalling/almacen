@@ -3,7 +3,8 @@ require_once("../_conexion/sesion.php");
 require_once("../_conexion/conexion.php");
 
 // Configurar la respuesta JSON
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
+error_reporting(0);
 
 // Verificar si es una petición POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -57,7 +58,9 @@ $sql = "SELECT
     p.nom_producto,
     mt.nom_material_tipo,
     um.nom_unidad_medida,
-    COALESCE(stock_actual, 0) as stock_actual
+    COALESCE(stock_actual, 0) as stock_actual,
+    COALESCE(stock_reservado, 0) as stock_reservado,
+    (COALESCE(stock_actual, 0) - COALESCE(stock_reservado, 0)) as stock_disponible
 FROM producto p
 INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo
 INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
@@ -68,9 +71,13 @@ LEFT JOIN (
         id_ubicacion,
         SUM(CASE
             WHEN tipo_movimiento = 1 THEN cant_movimiento
-            WHEN tipo_movimiento = 2 THEN -cant_movimiento
+            WHEN tipo_movimiento = 2 AND tipo_orden != 5 THEN -cant_movimiento
             ELSE 0
-        END) AS stock_actual
+        END) AS stock_actual,
+        SUM(CASE
+            WHEN tipo_movimiento = 2 AND tipo_orden = 5 AND est_movimiento = 1 THEN cant_movimiento
+            ELSE 0
+        END) AS stock_reservado
     FROM movimiento 
     WHERE est_movimiento = 1
     " . ($id_almacen > 0 ? " AND id_almacen = $id_almacen" : "") . "
@@ -91,9 +98,13 @@ LEFT JOIN (
         id_ubicacion,
         SUM(CASE
             WHEN tipo_movimiento = 1 THEN cant_movimiento
-            WHEN tipo_movimiento = 2 THEN -cant_movimiento
+            WHEN tipo_movimiento = 2 AND tipo_orden != 5 THEN -cant_movimiento
             ELSE 0
-        END) AS stock_actual
+        END) AS stock_actual,
+        SUM(CASE
+            WHEN tipo_movimiento = 2 AND tipo_orden = 5 AND est_movimiento = 1 THEN cant_movimiento
+            ELSE 0
+        END) AS stock_reservado
     FROM movimiento 
     WHERE est_movimiento = 1
     " . ($id_almacen > 0 ? " AND id_almacen = $id_almacen" : "") . "
@@ -123,7 +134,7 @@ while ($row = mysqli_fetch_assoc($result)) {
                     onclick="seleccionarProducto(' . $row['id_producto'] . ', \'' . 
                     addslashes($row['nom_producto']) . '\', \'' . 
                     addslashes($row['nom_unidad_medida']) . '\', ' . 
-                    $row['stock_actual'] . ')">
+                    $row['stock_disponible'] . ')">
                     <i class="fa fa-check"></i> Seleccionar
                   </button>';
     
@@ -132,7 +143,9 @@ while ($row = mysqli_fetch_assoc($result)) {
         $row['nom_producto'],
         $row['nom_material_tipo'],
         $row['nom_unidad_medida'],
-        number_format($row['stock_actual'], 2),
+        number_format($row['stock_actual'], 2),       // Físico
+        number_format($row['stock_reservado'], 2),    // Reservado
+        number_format($row['stock_disponible'], 2),   // Disponible
         $action_btn
     );
 }

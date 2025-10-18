@@ -151,7 +151,7 @@ function ConsultarAlmacenTotal()
             SUM(
                 CASE 
                     WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
-                    WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
+                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento 
                     ELSE 0 
                 END
             ) AS Stock_Fisico,
@@ -174,7 +174,7 @@ function ConsultarAlmacenTotal()
                 SUM(
                     CASE 
                         WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
-                        WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
+                        WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento
                         ELSE 0 
                     END
                 )
@@ -236,7 +236,7 @@ function ConsultarAlmacenArce()
             SUM(
                 CASE 
                     WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
-                    WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
+                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento
                     ELSE 0 
                 END
             ) AS Stock_Fisico,
@@ -257,7 +257,7 @@ function ConsultarAlmacenArce()
                 SUM(
                     CASE 
                         WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
-                        WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
+                        WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento 
                         ELSE 0 
                     END
                 )
@@ -321,7 +321,7 @@ function ConsultarAlmacenClientes($id_cliente)
             SUM(
                 CASE 
                     WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
-                    WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
+                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento 
                     ELSE 0 
                 END
             ) AS Stock_Fisico,
@@ -344,7 +344,7 @@ function ConsultarAlmacenClientes($id_cliente)
                 SUM(
                     CASE 
                         WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
-                        WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento 
+                        WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento
                         ELSE 0 
                     END
                 )

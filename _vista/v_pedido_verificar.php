@@ -116,7 +116,7 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                     $descripcion_sst_completa = !empty($detalle['req_pedido']) ? $detalle['req_pedido'] : '';
 
                                     $esVerificado = !is_null($detalle['cant_fin_pedido_detalle']);
-                                    $stockInsuficiente = $detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle'];
+                                    $stockInsuficiente = $detalle['cantidad_disponible_real'] < $detalle['cant_pedido_detalle'];
                                     $pedidoAnulado = ($pedido['est_pedido'] == 0);
                                     $esAutoOrden = ($pedido['id_producto_tipo'] == 2);
                                     
@@ -169,9 +169,15 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                     }
                                 ?>
                                 
-                            <div class="item-pendiente border mb-2" 
-                                style="background-color: <?php echo $colorFondo; ?>; border-left: 4px solid <?php echo $colorBorde; ?> !important; padding: 8px 12px; border-radius: 4px;" 
-                                data-item="<?php echo $contador_detalle; ?>">
+                            <div class="item-pendiente border mb-2"
+                                    style="background-color: <?php echo $colorFondo; ?>; border-left: 4px solid <?php echo $colorBorde; ?> !important; padding: 8px 12px; border-radius: 4px;"
+                                    data-item="<?php echo $contador_detalle; ?>"
+                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                    data-cant-pedido="<?php echo number_format($detalle['cant_pedido_detalle'], 2, '.', ''); ?>"
+                                    data-cant-disponible="<?php echo number_format($detalle['cantidad_disponible_real'], 2, '.', ''); ?>"
+                                >
+                                
                                 
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="<?php echo $claseTexto; ?>" style="font-weight: 600; font-size: 14px;">
@@ -197,7 +203,7 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                         <button type="button" class="btn btn-success btn-xs verificar-btn"
                                                 data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
                                                 data-cantidad-actual="<?php echo $detalle['cant_pedido_detalle']; ?>"
-                                                data-cantidad-almacen="<?php echo $detalle['cantidad_disponible_almacen']; ?>"
+                                                data-cantidad-almacen="<?php echo $detalle['cantidad_disponible_real']; ?>"
                                                 title="Verificar Item" style="padding: 2px 8px; font-size: 11px;">
                                             Verificar
                                         </button>
@@ -1052,10 +1058,19 @@ document.addEventListener('DOMContentLoaded', function() {
         
         itemsPendientes.forEach(function(item) {
             tieneItems = true;
-            const estadoSpan = item.querySelector('span[class*="badge"], .text-success, .text-warning, .text-primary, .text-danger');
-            if (estadoSpan && !estadoSpan.textContent.trim().includes('Completo')) {
+
+            // 🔹 Nuevo cálculo real basado en cantidades del backend
+            const cantPedido = parseFloat(item.getAttribute('data-cant-pedido')) || 0;
+            const cantDisponible = parseFloat(item.getAttribute('data-cant-disponible')) || 0;
+
+            if (cantDisponible < cantPedido) {
                 todosConStockCompleto = false;
             }
+
+            /*const estadoSpan = item.querySelector('span[class*="badge"], .text-success, .text-warning, .text-primary, .text-danger');
+            if (estadoSpan && !estadoSpan.textContent.trim().includes('Completo')) {
+                todosConStockCompleto = false;
+            }*/
         });
         
         const estadoPedido = <?php echo $pedido['est_pedido']; ?>;

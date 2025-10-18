@@ -20,7 +20,6 @@ if (!verificarPermisoEspecifico('crear_uso de material')) {
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
     <title>Nuevo Uso de Material</title>
 
     <?php require_once("../_vista/v_estilo.php"); ?>

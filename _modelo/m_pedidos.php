@@ -14,6 +14,7 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
                      $materiales, $archivos_subidos, $id_obra = null) 
 {
     include("../_conexion/conexion.php");
+    require_once("../_modelo/m_stock.php");
 
     $id_obra_sql = ($id_obra && $id_obra > 0) ? intval($id_obra) : "NULL";
 
@@ -66,6 +67,28 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
             
             if (mysqli_query($con, $sql_detalle)) {
                 $id_detalle = mysqli_insert_id($con);
+
+                // ----------------------------------------------------------------
+                // 🔍 Verificar stock y registrar reserva si hay disponible
+                // ----------------------------------------------------------------
+                $stock = ObtenerStock($id_producto, $id_almacen, $id_ubicacion);
+                $stock_disponible = floatval($stock['disponible']);
+
+                if ($stock_disponible > 0) {
+                    // Si hay stock total o parcial
+                    $cantidad_a_reservar = min($cantidad, $stock_disponible);
+
+                    $sql_insert_mov = "INSERT INTO movimiento (
+                                            id_personal, id_orden, id_producto, id_almacen, 
+                                            id_ubicacion, tipo_orden, tipo_movimiento, 
+                                            cant_movimiento, fec_movimiento, est_movimiento
+                                        ) VALUES (
+                                            '$id_personal', '$id_pedido', '$id_producto', '$id_almacen',
+                                            '$id_ubicacion', 5, 2,
+                                            '$cantidad_a_reservar', NOW(), 1
+                                        )";
+                    mysqli_query($con, $sql_insert_mov);
+                }
                 
                 // Guardar archivos si existen
                 if (isset($archivos_subidos[$index]) && !empty($archivos_subidos[$index]['name'][0])) {
@@ -608,9 +631,7 @@ function ConsultarDetallePorId($id_pedido_detalle) {
 //-----------------------------------------------------------------------
 /**
  * RegistrarMovimientoPedido
- * Inserta un movimiento tipo pedido (compromiso) en la tabla movimiento.
- * Espera $data array con claves:
- *  'id_producto','id_almacen','id_ubicacion','id_personal','id_tipo_orden','id_tipo_mov','id_pedido','cantidad','descripcion'
+ * Inserta un movimiento tipo pedido (reservado) en la tabla movimiento.
  */
 function RegistrarMovimientoPedido($id_pedido, $id_producto, $id_almacen, $id_ubicacion, $cantidad)
 {
