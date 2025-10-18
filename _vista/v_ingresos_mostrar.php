@@ -120,7 +120,7 @@
                                                         <tr>
                                                             <td><?php echo $contador; ?></td>
                                                             <!-- COLUMNA: CÓDIGO ORDEN -->
-                                                            <td><?php echo $ingreso['id_ingreso']; ?></td>
+                                                            <td><?php echo $ingreso['cod_ingreso']; ?></td>
                                                            
                                                             <td>
                                                                 <?php 
@@ -293,7 +293,7 @@
                                                     ?>
                                                         <tr>
                                                             <td><?php echo $contador; ?></td>
-                                                            <td><?php echo $ingreso['id_ingreso']; ?></td>
+                                                            <td><?php echo $ingreso['cod_ingreso']; ?></td>
                                                             <td>
                                                                 <a class="btn btn-sm btn-outline-secondary" target="_blank" href="compras_pdf.php?id=<?php echo $id_compra; ?>">
                                                                     C00<?php echo $id_compra; ?>
@@ -385,7 +385,7 @@
                                                     ?>
                                                         <tr>
                                                             <td><?php echo $contador; ?></td>
-                                                            <td><?php echo $ingreso['id_ingreso']; ?></td>
+                                                            <td><?php echo $ingreso['cod_ingreso']; ?></td>
                                                             <td>-</td>
                                                             <td>-</td>
                                                             <!-- <td><?php echo $ingreso['origen']; ?></td> -->

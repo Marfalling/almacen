@@ -1071,7 +1071,8 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
                     FROM ingreso i2
                     WHERE i2.id_compra = c.id_compra
                     AND i2.est_ingreso = 1
-                ) AS id_ingreso,
+                ) AS cod_ingreso,
+                NULL as id_ingreso,
                 c.id_pedido,
                 c.fec_compra AS fecha,
                 c.est_compra AS estado,
@@ -1128,7 +1129,8 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
             SELECT 
                 'DIRECTO' as tipo,
                 NULL as id_orden,
-                CONCAT('I00', i.id_ingreso) as id_ingreso,
+                CONCAT('I00', i.id_ingreso) as cod_ingreso,
+                i.id_ingreso,
                 NULL as id_pedido,
                 i.fec_ingreso as fecha,
                 i.est_ingreso as estado,

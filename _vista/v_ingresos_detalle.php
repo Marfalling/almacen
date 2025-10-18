@@ -20,7 +20,7 @@
                     <div class="x_title">
                         <div class="row">
                             <div class="col-sm-10">
-                                <h2>Orden de Compra #<?php echo $detalle_ingreso['compra']['id_compra']; ?> <small><?php echo $detalle_ingreso['compra']['cod_pedido']; ?></small></h2>
+                                <h2>Orden de Compra: C00<?php echo $detalle_ingreso['compra']['id_compra']; ?> / <small><?php echo "Pedido: " . $detalle_ingreso['compra']['cod_pedido']; ?></small></h2>
                             </div>
                             <div class="col-sm-2">
                                 <a href="ingresos_mostrar.php" class="btn btn-outline-secondary btn-sm btn-block">
@@ -238,7 +238,7 @@
                                                                     </span>
                                                                 </td>
                                                                 <td>
-                                                                    <small class="text-muted">ING-<?php echo $ingreso['id_ingreso']; ?></small>
+                                                                    <small class="text-muted">I00<?php echo $ingreso['id_ingreso']; ?></small>
                                                                 </td>
                                                             </tr>
                                                         <?php } ?>
