@@ -1063,38 +1063,53 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
         $whereDirectos  = " AND DATE(i.fec_ingreso) = CURDATE() ";
     }
 
-    $sql = "SELECT 
-                'COMPRA' as tipo,
-                c.id_compra as id_orden,
-                NULL as id_ingreso,
+        $sql = "SELECT 
+                'COMPRA' AS tipo,
+                c.id_compra AS id_orden,
+                (
+                    SELECT GROUP_CONCAT(CONCAT('I00', i2.id_ingreso) ORDER BY i2.id_ingreso SEPARATOR ', ')
+                    FROM ingreso i2
+                    WHERE i2.id_compra = c.id_compra
+                    AND i2.est_ingreso = 1
+                ) AS id_ingreso,
                 c.id_pedido,
-                c.fec_compra as fecha,
-                c.est_compra as estado,
+                c.fec_compra AS fecha,
+                c.est_compra AS estado,
                 p.cod_pedido,
-                pr.nom_proveedor as origen,
-                pe1.nom_personal as registrado_por,
-                pe2.nom_personal as aprobado_por,
+                pr.nom_proveedor AS origen,
+                pe1.nom_personal AS registrado_por,
+                pe2.nom_personal AS aprobado_por,
                 al.nom_almacen,
                 ub.nom_ubicacion,
                 mon.nom_moneda,
-                (SELECT COUNT(*) FROM compra_detalle cd WHERE cd.id_compra = c.id_compra AND cd.est_compra_detalle = 1) as total_productos,
-                COALESCE((SELECT SUM(cd.cant_compra_detalle) 
-                         FROM compra_detalle cd 
-                         WHERE cd.id_compra = c.id_compra 
-                         AND cd.est_compra_detalle = 1), 0) as cantidad_total_pedida,
-                COALESCE((SELECT SUM(id2.cant_ingreso_detalle) 
-                         FROM ingreso i 
-                         INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso 
-                         WHERE i.id_compra = c.id_compra 
-                         AND i.est_ingreso = 1
-                         AND id2.est_ingreso_detalle = 1), 0) as cantidad_total_ingresada,
-                COALESCE((SELECT COUNT(DISTINCT id2.id_producto) 
-                         FROM ingreso i 
-                         INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso 
-                         WHERE i.id_compra = c.id_compra
-                         AND i.est_ingreso = 1
-                         AND id2.est_ingreso_detalle = 1), 0) as productos_ingresados
+                (SELECT COUNT(*) 
+                FROM compra_detalle cd 
+                WHERE cd.id_compra = c.id_compra 
+                AND cd.est_compra_detalle = 1) AS total_productos,
+                COALESCE((
+                    SELECT SUM(cd.cant_compra_detalle) 
+                    FROM compra_detalle cd 
+                    WHERE cd.id_compra = c.id_compra 
+                    AND cd.est_compra_detalle = 1
+                ), 0) AS cantidad_total_pedida,
+                COALESCE((
+                    SELECT SUM(id2.cant_ingreso_detalle) 
+                    FROM ingreso i 
+                    INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso 
+                    WHERE i.id_compra = c.id_compra 
+                    AND i.est_ingreso = 1
+                    AND id2.est_ingreso_detalle = 1
+                ), 0) AS cantidad_total_ingresada,
+                COALESCE((
+                    SELECT COUNT(DISTINCT id2.id_producto) 
+                    FROM ingreso i 
+                    INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso 
+                    WHERE i.id_compra = c.id_compra
+                    AND i.est_ingreso = 1
+                    AND id2.est_ingreso_detalle = 1
+                ), 0) AS productos_ingresados
             FROM compra c
+            -- 🔹 quitamos el LEFT JOIN ingreso para evitar duplicados
             INNER JOIN pedido p ON c.id_pedido = p.id_pedido
             INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
             INNER JOIN almacen al ON p.id_almacen = al.id_almacen
@@ -1102,16 +1117,18 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
             INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
             LEFT JOIN {$bd_complemento}.personal pe1 ON c.id_personal = pe1.id_personal
             LEFT JOIN {$bd_complemento}.personal pe2 ON c.id_personal_aprueba = pe2.id_personal
-            WHERE c.est_compra IN (1, 2, 3, 4) $whereCompras  -- ✅ INCLUYE ESTADO 1 (Pendiente)
-            AND c.id_personal_aprueba_tecnica IS NOT NULL  -- Debe tener aprobación técnica
-            AND c.id_personal_aprueba_financiera IS NOT NULL  -- Debe tener aprobación financiera
+            WHERE c.est_compra IN (1, 2, 3, 4) $whereCompras  -- ✅ mantenido igual
+            AND c.id_personal_aprueba_tecnica IS NOT NULL     -- ✅ mantenido igual
+            AND c.id_personal_aprueba_financiera IS NOT NULL -- ✅ mantenido igual
+
+
 
             UNION ALL
 
             SELECT 
                 'DIRECTO' as tipo,
                 NULL as id_orden,
-                i.id_ingreso,
+                CONCAT('I00', i.id_ingreso) as id_ingreso,
                 NULL as id_pedido,
                 i.fec_ingreso as fecha,
                 i.est_ingreso as estado,

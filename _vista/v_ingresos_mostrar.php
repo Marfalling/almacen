@@ -87,15 +87,16 @@
                                                 <thead>
                                                     <tr>
                                                         <th>#</th>
+                                                        <th>Código Ingreso</th>
                                                         <th>Código Orden</th>
                                                         <th>Código Pedido</th>
-                                                        <th>Proveedor/Origen</th>
+                                                        <!-- <th>Proveedor/Origen</th> -->
                                                         <th>Almacén</th>
                                                         <th>Ubicación</th>
                                                         <th>Fecha Registro</th>
                                                         <th>Registrado Por</th>
                                                         <th>Estado</th>
-                                                        <th>Productos</th>
+                                                        <!-- <th>Productos</th> -->
                                                         <th>Acciones</th>
                                                     </tr>
                                                 </thead>
@@ -104,7 +105,7 @@
                                                     $contador = 1;
                                                     foreach ($ingresos as $ingreso) {
                                                         $tipo = isset($ingreso['tipo']) ? $ingreso['tipo'] : 'COMPRA';
-                                                        $id_compra = isset($ingreso['id_compra']) ? $ingreso['id_compra'] : (isset($ingreso['id_orden']) ? $ingreso['id_orden'] : '');
+                                                        $id_compra = isset($ingreso['id_orden']) ? $ingreso['id_orden'] : '';
                                                         $est_compra = isset($ingreso['est_compra']) ? $ingreso['est_compra'] : (isset($ingreso['estado']) ? $ingreso['estado'] : 0);
                                                         $fec_compra = isset($ingreso['fec_compra']) ? $ingreso['fec_compra'] : (isset($ingreso['fecha']) ? $ingreso['fecha'] : '');
                                                         $nom_proveedor = isset($ingreso['nom_proveedor']) ? $ingreso['nom_proveedor'] : (isset($ingreso['origen']) ? $ingreso['origen'] : '');
@@ -113,19 +114,29 @@
                                                         $cantidad_pedida = isset($ingreso['cantidad_total_pedida']) ? floatval($ingreso['cantidad_total_pedida']) : 0;
                                                         $cantidad_ingresada = isset($ingreso['cantidad_total_ingresada']) ? floatval($ingreso['cantidad_total_ingresada']) : 0;
                                                         $hay_pendientes = ($cantidad_ingresada < $cantidad_pedida);
+
+                                                  
                                                     ?>
                                                         <tr>
                                                             <td><?php echo $contador; ?></td>
-                                                            
                                                             <!-- COLUMNA: CÓDIGO ORDEN -->
+                                                            <td><?php echo $ingreso['id_ingreso']; ?></td>
+                                                           
                                                             <td>
-                                                                <?php if ($tipo == 'COMPRA') { ?>
-                                                                    <a class="btn btn-sm btn-outline-secondary" target="_blank" href="compras_pdf.php?id=<?php echo $id_compra; ?>">
-                                                                        C00<?php echo $id_compra; ?>
-                                                                    </a>
-                                                                <?php } else { ?>
-                                                                    I00<?php echo $ingreso['id_ingreso']; ?>
-                                                                <?php } ?>
+                                                                <?php 
+                                                                if(isset($ingreso['id_orden']))
+                                                                {
+                                                                ?>
+                                                                <a class="btn btn-sm btn-outline-secondary" target="_blank" href="compras_pdf.php?id=<?php echo $id_compra; ?>">
+                                                                    C00<?php echo $id_compra; ?>
+                                                                </a>
+                                                                <?php 
+                                                                }
+                                                                else
+                                                                {
+                                                                    echo "-";
+                                                                }
+                                                                ?>
                                                             </td>
                                                             
                                                             <!-- COLUMNA: CÓDIGO PEDIDO -->
@@ -140,7 +151,7 @@
                                                             </td>
                                                             
                                                             <!-- COLUMNA: PROVEEDOR/ORIGEN -->
-                                                            <td><?php echo $nom_proveedor; ?></td>
+                                                           <!-- <td><?php echo $nom_proveedor; ?></td> -->
                                                             
                                                             <!-- COLUMNA: ALMACÉN -->
                                                             <td><?php echo $ingreso['nom_almacen']; ?></td>
@@ -181,9 +192,11 @@
                                                             </td>
                                                             
                                                             <!-- COLUMNA: PRODUCTOS -->
+                                                            <!--
                                                             <td>
                                                                 <span class="badge badge-primary badge_size"><?php echo $ingreso['total_productos']; ?></span>
                                                             </td>
+                                                             -->
                                                             
                                                             <!-- COLUMNA: ACCIONES -  LÓGICA CORREGIDA -->
                                                             <td>
@@ -250,9 +263,10 @@
                                                 <thead>
                                                     <tr>
                                                         <th>#</th>
+                                                        <th>Código Ingreso</th>
                                                         <th>Código Orden</th>
                                                         <th>Código Pedido</th>
-                                                        <th>Proveedor</th>
+                                                        <!-- <th>Proveedor</th> -->
                                                         <th>Almacén</th>
                                                         <th>Ubicación</th>
                                                         <th>Fecha Registro</th>
@@ -279,6 +293,7 @@
                                                     ?>
                                                         <tr>
                                                             <td><?php echo $contador; ?></td>
+                                                            <td><?php echo $ingreso['id_ingreso']; ?></td>
                                                             <td>
                                                                 <a class="btn btn-sm btn-outline-secondary" target="_blank" href="compras_pdf.php?id=<?php echo $id_compra; ?>">
                                                                     C00<?php echo $id_compra; ?>
@@ -293,7 +308,7 @@
                                                                     -
                                                                 <?php } ?>
                                                             </td>
-                                                            <td><?php echo $nom_proveedor; ?></td>
+                                                            <!-- <td><?php echo $nom_proveedor; ?></td> -->
                                                             <td><?php echo $ingreso['nom_almacen']; ?></td>
                                                             <td><?php echo $ingreso['nom_ubicacion']; ?></td>
                                                             <td><?php echo date('d/m/Y H:i', strtotime($fec_compra)); ?></td>
@@ -348,15 +363,17 @@
                                                 <thead>
                                                     <tr>
                                                         <th>#</th>
+                                                        <th>Código Ingreso</th>
                                                         <th>Código Orden</th>
                                                         <th>Código Pedido</th>
-                                                        <th>Origen</th>
+                                                        <!-- <th>Proveedor</th> -->
+                                                        <!-- <th>Origen</th> -->
                                                         <th>Almacén</th>
                                                         <th>Ubicación</th>
                                                         <th>Fecha Registro</th>
                                                         <th>Registrado Por</th>
                                                         <th>Estado</th>
-                                                        <th>Productos</th>
+                                                        <!-- <th>Productos</th> -->
                                                         <th>Acciones</th>
                                                     </tr>
                                                 </thead>
@@ -368,9 +385,10 @@
                                                     ?>
                                                         <tr>
                                                             <td><?php echo $contador; ?></td>
-                                                            <td>I00<?php echo $ingreso['id_ingreso']; ?></td>
+                                                            <td><?php echo $ingreso['id_ingreso']; ?></td>
                                                             <td>-</td>
-                                                            <td><?php echo $ingreso['origen']; ?></td>
+                                                            <td>-</td>
+                                                            <!-- <td><?php echo $ingreso['origen']; ?></td> -->
                                                             <td><?php echo $ingreso['nom_almacen']; ?></td>
                                                             <td><?php echo $ingreso['nom_ubicacion']; ?></td>
                                                             <td><?php echo date('d/m/Y H:i', strtotime($ingreso['fecha'])); ?></td>
@@ -382,9 +400,9 @@
                                                                     <span class="badge badge-success badge_size">Registrado</span>
                                                                 <?php } ?>
                                                             </td>
-                                                            <td>
+                                                            <!--<td>
                                                                 <span class="badge badge-primary badge_size"><?php echo $ingreso['total_productos']; ?></span>
-                                                            </td>
+                                                            </td> -->
                                                             <td>
                                                                 <div class="d-flex flex-wrap gap-2">
                                                                     <a href="ingresos_detalle_directo.php?id_ingreso=<?php echo $ingreso['id_ingreso']; ?>" 
