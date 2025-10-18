@@ -170,7 +170,7 @@
 
 <!-- Modal para buscar productos -->
 <div class="modal fade" id="buscar_producto" tabindex="-1" role="dialog" aria-labelledby="modalBuscarProducto">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title">Buscar Producto/Material</h4>

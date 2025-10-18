@@ -364,7 +364,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
 
 <!-- Modal para buscar productos  -->
 <div class="modal fade" id="buscar_producto" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-xl" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="myModalLabel">Buscar Producto/Material</h4>
