@@ -295,7 +295,13 @@ function ConsultarCompraPorId($id_compra)
                 ped.cel_pedido,
                 ped.acl_pedido,
                 COALESCE(alm.nom_almacen, 'N/A') AS nom_almacen,
-                COALESCE(ub.nom_ubicacion, 'N/A') AS nom_ubicacion
+                COALESCE(ub.nom_ubicacion, 'N/A') AS nom_ubicacion,
+                det.nombre_detraccion,
+                det.porcentaje as porcentaje_detraccion,
+                ret.nombre_detraccion as nombre_retencion,
+                ret.porcentaje as porcentaje_retencion,
+                perc.nombre_detraccion as nombre_percepcion,
+                perc.porcentaje as porcentaje_percepcion
             FROM compra c
             INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor
             INNER JOIN moneda m ON c.id_moneda = m.id_moneda
@@ -313,6 +319,9 @@ function ConsultarCompraPorId($id_compra)
                 ON alm.id_cliente = cli.id_cliente AND cli.act_cliente = 1
             LEFT JOIN ubicacion ub 
                 ON ped.id_ubicacion = ub.id_ubicacion AND ub.est_ubicacion = 1
+            LEFT JOIN detraccion det ON c.id_detraccion = det.id_detraccion
+            LEFT JOIN detraccion ret ON c.id_retencion = ret.id_detraccion
+            LEFT JOIN detraccion perc ON c.id_percepcion = perc.id_detraccion
             WHERE c.id_compra = $id_compra";
     
     $resultado = mysqli_query($con, $sql);

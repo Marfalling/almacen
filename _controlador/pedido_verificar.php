@@ -93,11 +93,11 @@ if (isset($_REQUEST['verificar_item'])) {
                         $id_ubicacion  = intval($pedido_row['id_ubicacion']);
                         $cantidad_pedida = floatval($new_cant_fin);
 
-                        // 1️⃣ Obtener stock actual (físico y disponible)
+                        //  Obtener stock actual (físico y disponible)
                         $stock = ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion);
                         $stock_disponible = floatval($stock['stock_disponible']);
 
-                        // 2️⃣ Evaluar cantidad a reservar
+                        // Evaluar cantidad a reservar
                         if ($stock_disponible >= $cantidad_pedida) {
                             $cantidad_reservar = $cantidad_pedida; // stock suficiente
                         } elseif ($stock_disponible > 0 && $stock_disponible < $cantidad_pedida) {
@@ -106,7 +106,7 @@ if (isset($_REQUEST['verificar_item'])) {
                             $cantidad_reservar = 0; // sin stock
                         }
 
-                        // 3️⃣ Registrar movimiento si hay algo que reservar
+                        //  Registrar movimiento si hay algo que reservar
                         if ($cantidad_reservar > 0) {
                             RegistrarMovimientoPedido(
                                 $id_pedido_real,
@@ -135,6 +135,46 @@ if (isset($_REQUEST['verificar_item'])) {
 // ACTUALIZAR ORDEN
 if (isset($_REQUEST['actualizar_orden'])) {
     $id_compra = $_REQUEST['id_compra'];
+    $id_pedido = $_REQUEST['id']; 
+
+    
+    // Verificar qué órdenes están activas
+    include("../_conexion/conexion.php");
+    
+    $sql_debug = "SELECT c.id_compra, c.est_compra, cd.id_producto, cd.cant_compra_detalle
+                  FROM compra c
+                  LEFT JOIN compra_detalle cd ON c.id_compra = cd.id_compra
+                  WHERE c.id_pedido = $id_pedido
+                  ORDER BY c.id_compra, cd.id_producto";
+    $res_debug = mysqli_query($con, $sql_debug);
+    
+    error_log(" Órdenes en el pedido $id_pedido:");
+    $totales_por_producto = [];
+    
+    while ($row_debug = mysqli_fetch_assoc($res_debug)) {
+        $id_prod = $row_debug['id_producto'];
+        $cant = floatval($row_debug['cant_compra_detalle']);
+        $estado = intval($row_debug['est_compra']);
+        
+        error_log("  - Orden {$row_debug['id_compra']}: Producto {$id_prod}, Cantidad: {$cant}, Estado: {$estado}");
+        
+        // Solo contar si NO está anulada
+        if ($estado != 0) {
+            if (!isset($totales_por_producto[$id_prod])) {
+                $totales_por_producto[$id_prod] = 0;
+            }
+            $totales_por_producto[$id_prod] += $cant;
+        }
+    }
+    
+    error_log(" Totales ordenados por producto (SIN ANULADAS):");
+    foreach ($totales_por_producto as $id_prod => $total) {
+        error_log("  Producto $id_prod: Total ordenado = $total");
+    }
+    
+    mysqli_close($con);
+    
+    // 🔹 CONTINUAR CON EL RESTO DEL CÓDIGO ORIGINAL
     $proveedor_sel = $_REQUEST['proveedor_orden'];
     $moneda_sel = $_REQUEST['moneda_orden'];
     $observacion = $_REQUEST['observaciones_orden'];
@@ -144,7 +184,28 @@ if (isset($_REQUEST['actualizar_orden'])) {
     $fecha_orden = $_REQUEST['fecha_orden'];
     $items = $_REQUEST['items_orden'] ?? [];
     
-    $id_detraccion = isset($_REQUEST['id_detraccion']) ? intval($_REQUEST['id_detraccion']) : null;
+    error_log(" Items a actualizar:");
+    foreach ($items as $key => $item) {
+        if (isset($item['id_producto']) && isset($item['cantidad'])) {
+            error_log("  - Item $key: Producto {$item['id_producto']}, Cantidad: {$item['cantidad']}");
+        }
+    }
+    
+    $id_detraccion = null;
+    $id_retencion = null;
+    $id_percepcion = null;
+    
+    if (isset($_REQUEST['id_detraccion']) && !empty($_REQUEST['id_detraccion'])) {
+        $id_detraccion = intval($_REQUEST['id_detraccion']);
+    }
+    
+    if (isset($_REQUEST['id_retencion']) && !empty($_REQUEST['id_retencion'])) {
+        $id_retencion = intval($_REQUEST['id_retencion']);
+    }
+    
+    if (isset($_REQUEST['id_percepcion']) && !empty($_REQUEST['id_percepcion'])) {
+        $id_percepcion = intval($_REQUEST['id_percepcion']);
+    }
 
     // Manejar archivos de homologación
     $archivos_homologacion = [];
@@ -165,7 +226,7 @@ if (isset($_REQUEST['actualizar_orden'])) {
             "text" => "Debe tener al menos un item en la orden"
         ];
     } else {
-        // 🔹 NUEVO: Separar items existentes de items nuevos
+        //  NUEVO: Separar items existentes de items nuevos
         include("../_conexion/conexion.php");
         
         $items_existentes = [];
@@ -187,9 +248,11 @@ if (isset($_REQUEST['actualizar_orden'])) {
             }
         }
         
-        // 1️⃣ Actualizar items existentes
+        error_log(" Resumen: " . count($items_existentes) . " items existentes, " . count($items_nuevos) . " items nuevos");
+        
+        //  Actualizar items existentes
         $rpta = ActualizarOrdenCompra(
-            $id_compra,
+            $id_compra,       
             $proveedor_sel,
             $moneda_sel,
             $observacion,
@@ -197,25 +260,32 @@ if (isset($_REQUEST['actualizar_orden'])) {
             $plazo_entrega,
             $porte,
             $fecha_orden,
-            $items_existentes,
+            $items_existentes,  
             $id_detraccion,
-            $archivos_homologacion  
+            $archivos_homologacion,
+            $id_retencion,  
+            $id_percepcion   
         );
         
         if ($rpta != "SI") {
+            error_log(" ERROR al actualizar orden: $rpta");
             $alerta = [
                 "icon" => "error",
                 "title" => "Error",
                 "text" => "Error al actualizar orden: $rpta"
             ];
         } else {
-            // 2️⃣ Agregar items nuevos
+            error_log(" Orden actualizada exitosamente");
+            
+            //  Agregar items nuevos
             foreach ($items_nuevos as $nuevo_item) {
                 $id_producto = $nuevo_item['id_producto'];
                 $cantidad = $nuevo_item['cantidad'];
                 $precio = $nuevo_item['precio_unitario'];
                 $igv = $nuevo_item['igv'];
                 $id_pedido_detalle = $nuevo_item['id_pedido_detalle'];
+                
+                error_log(" Insertando item nuevo: Producto $id_producto, Cantidad: $cantidad");
                 
                 // Manejar archivo de homologación para items nuevos
                 $nombre_archivo_hom = null;
@@ -225,7 +295,6 @@ if (isset($_REQUEST['actualizar_orden'])) {
                     $nombre_archivo_hom = "hom_compra_" . $id_compra . "_prod_" . $id_producto . "_" . uniqid() . "." . $extension;
                     $ruta_destino = "../_archivos/homologaciones/" . $nombre_archivo_hom;
                     
-                    // Crear directorio si no existe
                     if (!file_exists("../_archivos/homologaciones/")) {
                         mkdir("../_archivos/homologaciones/", 0777, true);
                     }
@@ -241,7 +310,13 @@ if (isset($_REQUEST['actualizar_orden'])) {
                                ) VALUES (?, ?, ?, ?, ?, $hom_sql, 1)";
                 $stmt = $con->prepare($sql_insert);
                 $stmt->bind_param("iiddd", $id_compra, $id_producto, $cantidad, $precio, $igv);
-                $stmt->execute();
+                
+                if ($stmt->execute()) {
+                    error_log("   Item nuevo insertado correctamente");
+                } else {
+                    error_log("   Error al insertar item nuevo: " . $stmt->error);
+                }
+                
                 $stmt->close();
                 
                 // Marcar pedido_detalle como cerrado (estado 2)
@@ -256,11 +331,13 @@ if (isset($_REQUEST['actualizar_orden'])) {
             
             mysqli_close($con);
             
+            error_log(" Actualización completada, redirigiendo...");
             header("Location: pedido_verificar.php?id=$id_pedido&success=actualizado");
             exit;
         }
     }
 }
+
 
 
 // CREAR ORDEN con homologación
@@ -275,7 +352,26 @@ if (isset($_REQUEST['crear_orden'])) {
     $porte = $_REQUEST['tipo_porte'];
     $fecha_orden = $_REQUEST['fecha_orden'];
     $items = $_REQUEST['items_orden'];
-    $id_detraccion = isset($_REQUEST['id_detraccion']) ? intval($_REQUEST['id_detraccion']) : null;
+    
+    // 🔹 CORRECCIÓN: Capturar correctamente los IDs
+    $id_detraccion = null;
+    $id_retencion = null;
+    $id_percepcion = null;
+    
+    // Verificar si hay detracción seleccionada
+    if (isset($_REQUEST['id_detraccion']) && !empty($_REQUEST['id_detraccion'])) {
+        $id_detraccion = intval($_REQUEST['id_detraccion']);
+    }
+    
+    // 🔹 IMPORTANTE: Verificar RETENCIÓN correctamente
+    if (isset($_REQUEST['id_retencion']) && !empty($_REQUEST['id_retencion'])) {
+        $id_retencion = intval($_REQUEST['id_retencion']);
+    }
+    
+    // Verificar si hay percepción seleccionada
+    if (isset($_REQUEST['id_percepcion']) && !empty($_REQUEST['id_percepcion'])) {
+        $id_percepcion = intval($_REQUEST['id_percepcion']);
+    }
     
     //Manejar ambos tipos de archivos (existentes y nuevos)
     $archivos_homologacion = [];
@@ -310,9 +406,11 @@ if (isset($_REQUEST['crear_orden'])) {
         }
     }
     
+
     $rpta = CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, 
                             $observacion, $direccion, $plazo_entrega, $porte, 
-                            $fecha_orden, $items, $id_detraccion, $archivos_homologacion);
+                            $fecha_orden, $items, $id_detraccion, $archivos_homologacion,
+                            $id_retencion, $id_percepcion);
     
     if ($rpta == "SI") {
         header("Location: pedido_verificar.php?id=$id_pedido&success=creado");
@@ -394,15 +492,19 @@ if ($id_pedido > 0) {
         $moneda = MostrarMoneda();
         $obras = MostrarObras();
 
-        //NUEVO: Verificar si ya tiene salida activa
+        // NUEVO: Verificar si ya tiene salida activa
         require_once("../_modelo/m_salidas.php");
         $tiene_salida_activa = TieneSalidaActivaPedido($id_pedido);
 
+        //  CARGAR DATOS DE LA ORDEN SI ESTÁ EN MODO EDICIÓN
         $orden_data = null;
         $orden_detalle = null;
         if ($modo_editar) {
             $orden_data = ObtenerOrdenPorId($id_compra_editar);
             $orden_detalle = ObtenerDetalleOrden($id_compra_editar);
+            
+            //  DEBUG: Verificar qué trae la consulta
+            error_log("ORDEN DATA: " . print_r($orden_data, true));
         }
 
         $pedido = $pedido_data[0];
@@ -415,9 +517,7 @@ if ($id_pedido > 0) {
     exit;
 }
 
-// ============================================================================
-// AHORA SÍ, INICIAR EL HTML
-// ============================================================================
+
 ?>
 <!DOCTYPE html>
 <html lang="es">

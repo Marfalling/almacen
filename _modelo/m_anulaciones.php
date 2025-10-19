@@ -1,5 +1,9 @@
 <?php
 // _modelo/m_anulaciones.php
+
+// 🔹 IMPORTANTE: Incluir m_pedidos.php al inicio del archivo
+require_once("m_pedidos.php");
+
 /**
  * Anula una orden de compra y revierte items del pedido si es necesario
  */
@@ -7,59 +11,59 @@ function AnularCompra($id_compra, $id_personal)
 {
     include("../_conexion/conexion.php");
 
-    $sql_check = "SELECT est_compra FROM compra WHERE id_compra = '$id_compra'";
+    // Verificar estado actual
+    $sql_check = "SELECT c.est_compra, c.id_pedido,
+                         c.id_personal_aprueba_tecnica,
+                         c.id_personal_aprueba_financiera
+                  FROM compra c
+                  WHERE c.id_compra = '$id_compra'";
     $res_check = mysqli_query($con, $sql_check);
-    $row_check = mysqli_fetch_array($res_check, MYSQLI_ASSOC);
+    $row_check = mysqli_fetch_assoc($res_check);
 
-    if ($row_check && $row_check['est_compra'] == 0){
+    if (!$row_check) {
         mysqli_close($con);
         return false;
     }
 
-    $sql_pedido = "SELECT id_pedido FROM compra WHERE id_compra = '$id_compra'";
-    $res_pedido = mysqli_query($con, $sql_pedido);
-    $row_pedido = mysqli_fetch_array($res_pedido, MYSQLI_ASSOC);
-    $id_pedido = $row_pedido['id_pedido'];
+    // NO PERMITIR ANULAR SI YA ESTÁ ANULADA
+    if ($row_check['est_compra'] == 0) {
+        mysqli_close($con);
+        return false;
+    }
 
-    $sql_productos = "SELECT id_producto FROM compra_detalle 
-                      WHERE id_compra = '$id_compra' AND est_compra_detalle = 1";
+    // NO PERMITIR ANULAR SI TIENE APROBACIONES
+    if (!empty($row_check['id_personal_aprueba_tecnica']) || 
+        !empty($row_check['id_personal_aprueba_financiera'])) {
+        mysqli_close($con);
+        return false;
+    }
+
+    $id_pedido = $row_check['id_pedido'];
+
+    // OBTENER PRODUCTOS DE ESTA ORDEN
+    $sql_productos = "SELECT cd.id_producto 
+                      FROM compra_detalle cd
+                      WHERE cd.id_compra = '$id_compra' 
+                      AND cd.est_compra_detalle = 1";
     $res_productos = mysqli_query($con, $sql_productos);
     
     $productos_en_compra = array();
-    while ($row_prod = mysqli_fetch_array($res_productos, MYSQLI_ASSOC)) {
-        $productos_en_compra[] = $row_prod['id_producto'];
+    while ($row_prod = mysqli_fetch_assoc($res_productos)) {
+        $productos_en_compra[] = intval($row_prod['id_producto']);
     }
 
-    if (!empty($productos_en_compra)) {
-        foreach ($productos_en_compra as $id_producto) {
-            $sql_check_otras = "SELECT COUNT(*) as total 
-                               FROM compra_detalle cd
-                               INNER JOIN compra c ON cd.id_compra = c.id_compra
-                               WHERE cd.id_producto = '$id_producto' 
-                               AND c.id_pedido = '$id_pedido'
-                               AND c.id_compra != '$id_compra'
-                               AND c.est_compra != 0
-                               AND cd.est_compra_detalle = 1";
-            
-            $res_check_otras = mysqli_query($con, $sql_check_otras);
-            $row_check_otras = mysqli_fetch_array($res_check_otras, MYSQLI_ASSOC);
-            
-            if ($row_check_otras['total'] == 0) {
-                $sql_revertir = "UPDATE pedido_detalle 
-                                SET est_pedido_detalle = 1 
-                                WHERE id_pedido = '$id_pedido' 
-                                AND id_producto = '$id_producto'
-                                AND est_pedido_detalle = 2";
-                mysqli_query($con, $sql_revertir);
-            }
-        }
-    }
-
+    // Anular la orden
     $sql_update = "UPDATE compra 
                    SET est_compra = 0
                    WHERE id_compra = '$id_compra'";
-
     $res_update = mysqli_query($con, $sql_update);
+
+    if ($res_update) {
+        // VERIFICAR CADA PRODUCTO PARA REABRIRLO SI ES NECESARIO
+        foreach ($productos_en_compra as $id_producto) {
+            VerificarReaperturaItem($id_pedido, $id_producto);
+        }
+    }
 
     mysqli_close($con);
     return $res_update;
@@ -106,8 +110,39 @@ function AnularPedido($id_pedido, $id_personal)
  */
 function AnularCompraPedido($id_compra, $id_pedido, $id_personal)
 {
-    $res1 = AnularCompra($id_compra, $id_personal);
-    $res2 = AnularPedido($id_pedido, $id_personal);
+    include("../_conexion/conexion.php");
     
-    return ($res1 && $res2);
+    // VALIDAR: No anular si la orden tiene aprobaciones
+    $sql_check = "SELECT id_personal_aprueba_tecnica, id_personal_aprueba_financiera
+                  FROM compra 
+                  WHERE id_compra = $id_compra";
+    $res = mysqli_query($con, $sql_check);
+    $row = mysqli_fetch_assoc($res);
+    
+    if ($row && (!empty($row['id_personal_aprueba_tecnica']) || 
+                 !empty($row['id_personal_aprueba_financiera']))) {
+        mysqli_close($con);
+        return false;
+    }
+    
+    // VALIDAR: Anular TODAS las órdenes del pedido
+    $sql_ordenes = "SELECT id_compra FROM compra WHERE id_pedido = $id_pedido AND est_compra != 0";
+    $res_ordenes = mysqli_query($con, $sql_ordenes);
+    
+    $todas_anuladas = true;
+    while ($row_orden = mysqli_fetch_assoc($res_ordenes)) {
+        if (!AnularCompra($row_orden['id_compra'], $id_personal)) {
+            $todas_anuladas = false;
+        }
+    }
+    
+    // Solo anular el pedido si todas las órdenes fueron anuladas
+    if ($todas_anuladas) {
+        $res_pedido = AnularPedido($id_pedido, $id_personal);
+        mysqli_close($con);
+        return $res_pedido;
+    }
+    
+    mysqli_close($con);
+    return false;
 }

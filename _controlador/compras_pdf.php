@@ -81,6 +81,7 @@ $cont_proveedor = $compra['cont_proveedor'] ?? '';
 
 // Moneda
 $moneda = $compra['nom_moneda'] ?? 'SOLES';
+$simbolo_moneda = $compra['sim_moneda'] ?? 'S/.';
 
 // Estado de la compra
 $estado_texto = '';
@@ -93,32 +94,71 @@ switch($compra['est_compra']) {
     default: $estado_texto = 'DESCONOCIDO';
 }
 
+$tiene_detraccion = false;
+$nombre_detraccion = '';
+$porcentaje_detraccion = 0;
+
+$tiene_retencion = false;
+$nombre_retencion = '';
+$porcentaje_retencion = 0;
+
+$tiene_percepcion = false;
+$nombre_percepcion = '';
+$porcentaje_percepcion = 0;
+
+if (!empty($compra['id_detraccion'])) {
+    $tiene_detraccion = true;
+    $nombre_detraccion = $compra['nombre_detraccion'] ?? '';
+    $porcentaje_detraccion = floatval($compra['porcentaje_detraccion'] ?? 0);
+}
+
+if (!empty($compra['id_retencion'])) {
+    $tiene_retencion = true;
+    $nombre_retencion = $compra['nombre_retencion'] ?? '';
+    $porcentaje_retencion = floatval($compra['porcentaje_retencion'] ?? 0);
+}
+
+if (!empty($compra['id_percepcion'])) {
+    $tiene_percepcion = true;
+    $nombre_percepcion = $compra['nombre_percepcion'] ?? '';
+    $porcentaje_percepcion = floatval($compra['porcentaje_percepcion'] ?? 0);
+}
+
 // Preparar detalles de la compra
 $detalles_html = '';
 $item = 1;
 $subtotal = 0;
+$igv_total_acumulado = 0; 
 
 foreach ($compra_detalle as $detalle) {
-    // Usar el nombre del producto si prod_pedido_detalle está vacío
     $descripcion = !empty($detalle['prod_pedido_detalle']) 
         ? htmlspecialchars($detalle['prod_pedido_detalle'], ENT_QUOTES, 'UTF-8')
         : htmlspecialchars($detalle['nom_producto'], ENT_QUOTES, 'UTF-8');
     
     $cantidad = number_format($detalle['cant_compra_detalle'], 2);
-    
-    // Unidad de medida
     $unidad = isset($detalle['nom_unidad_medida']) ? htmlspecialchars($detalle['nom_unidad_medida'], ENT_QUOTES, 'UTF-8') : 'UND';
     
-    // Verificar si existe precio unitario
     $precio_unitario = isset($detalle['prec_compra_detalle']) && $detalle['prec_compra_detalle'] > 0 
         ? number_format($detalle['prec_compra_detalle'], 2) 
         : '0.00';
     
     $precio_num = isset($detalle['prec_compra_detalle']) ? floatval($detalle['prec_compra_detalle']) : 0;
-    $total_item = $detalle['cant_compra_detalle'] * $precio_num;
+    
+    //  OBTENER IGV REAL DE LA BD
+    $igv_porcentaje = isset($detalle['igv_compra_detalle']) ? floatval($detalle['igv_compra_detalle']) : 18;
+    
+    // Calcular subtotal del item
+    $subtotal_item = $detalle['cant_compra_detalle'] * $precio_num;
+    
+    // Calcular IGV del item según su porcentaje específico
+    $igv_item = $subtotal_item * ($igv_porcentaje / 100);
+    
+    // Total del item
+    $total_item = $subtotal_item + $igv_item;
     $total_formateado = number_format($total_item, 2);
     
-    $subtotal += $total_item;
+    $subtotal += $subtotal_item;
+    $igv_total_acumulado += $igv_item; // ← Acumular IGV real
     
     $detalles_html .= '
     <tr>
@@ -132,7 +172,6 @@ foreach ($compra_detalle as $detalle) {
     $item++;
 }
 
-// Si no hay detalles, agregar una fila vacía para evitar tabla vacía
 if (empty($detalles_html)) {
     $detalles_html = '
     <tr>
@@ -144,21 +183,40 @@ if (empty($detalles_html)) {
     </tr>';
 }
 
-// Cálculos finales
-$igv = $subtotal * 0.18;
-$total = $subtotal + $igv;
+//  CÁLCULOS FINALES CORREGIDOS
+$igv = $igv_total_acumulado; // Usar el IGV acumulado real
+$total_con_igv = $subtotal + $igv;
+
+//  APLICAR DETRACCIÓN/RETENCIÓN/PERCEPCIÓN
+$monto_detraccion = 0;
+$monto_retencion = 0;
+$monto_percepcion = 0;
+$total_final = $total_con_igv;
+
+if ($tiene_detraccion) {
+    $monto_detraccion = $total_con_igv * ($porcentaje_detraccion / 100);
+    $total_final -= $monto_detraccion;
+}
+
+if ($tiene_retencion) {
+    $monto_retencion = $total_con_igv * ($porcentaje_retencion / 100);
+    $total_final -= $monto_retencion;
+}
+
+if ($tiene_percepcion) {
+    $monto_percepcion = $total_con_igv * ($porcentaje_percepcion / 100);
+    $total_final += $monto_percepcion;
+}
 
 $subtotal_formateado = number_format($subtotal, 2);
 $igv_formateado = number_format($igv, 2);
-$total_formateado = number_format($total, 2);
+$total_con_igv_formateado = number_format($total_con_igv, 2);
+$total_formateado = number_format($total_final, 2);
 
-// Nombre del archivo PDF
 $nombre_archivo = "ORDEN_COMPRA_" . $numero_orden . "_" . date('Ymd') . ".pdf";
 
-// Incluir la vista del PDF
 require '../_vista/v_compras_pdf.php';
 
-// Configurar memoria
 ini_set("memory_limit", "128M");
 
 use Dompdf\Dompdf;

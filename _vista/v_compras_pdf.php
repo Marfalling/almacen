@@ -466,6 +466,7 @@ $html = '
         </table>
 
         <!-- TOTALES - ESTILO DEL PRIMER CÓDIGO -->
+        <!-- TOTALES - ESTILO DEL PRIMER CÓDIGO -->
         <div class="totales-section">
             <table class="totales-table">
                 <tr>
@@ -473,20 +474,49 @@ $html = '
                     <td class="value">' . $subtotal_formateado . '</td>
                 </tr>
                 <tr>
-                    <td class="label">IGV 18.00%</td>
+                    <td class="label">IGV TOTAL</td>
                     <td class="value">' . $igv_formateado . '</td>
                 </tr>
                 <tr>
-                    <td class="label">PERCEPCIÓN</td>
-                    <td class="value">0.00</td>
-                </tr>
-                <tr style="background-color: #f0f0f0;">
-                    <td class="label"><strong>TOTAL</strong></td>
+                    <td class="label"><strong>TOTAL CON IGV</strong></td>
+                    <td class="value"><strong>' . $total_con_igv_formateado . '</strong></td>
+                </tr>';
+                
+        // Mostrar DETRACCIÓN si existe
+        if ($tiene_detraccion) {
+            $html .= '
+                <tr style="background-color: #fff3cd;">
+                    <td class="label">' . $nombre_detraccion . ' (' . $porcentaje_detraccion . '%)</td>
+                    <td class="value"> ' . number_format($monto_detraccion, 2) . '</td>
+                </tr>';
+        }
+
+        // Mostrar RETENCIÓN si existe
+        if ($tiene_retencion) {
+            $html .= '
+                <tr style="background-color: #d1ecf1;">
+                    <td class="label">' . $nombre_retencion . ' (' . $porcentaje_retencion . '%)</td>
+                    <td class="value"> ' . number_format($monto_retencion, 2) . '</td>
+                </tr>';
+        }
+
+        // Mostrar PERCEPCIÓN si existe
+        if ($tiene_percepcion) {
+            $html .= '
+                <tr style="background-color: #d4edda;">
+                    <td class="label">' . $nombre_percepcion . ' (' . $porcentaje_percepcion . '%)</td>
+                    <td class="value"> ' . number_format($monto_percepcion, 2) . '</td>
+                </tr>';
+        }
+
+        $html .= '
+                <tr>
+                    <td class="label"><strong>TOTAL A PAGAR</strong></td>
                     <td class="value"><strong>' . $total_formateado . '</strong></td>
                 </tr>
             </table>
         </div>
-        
+
         <div class="clearfix"></div>
 
         <!-- INFORMACIÓN ADICIONAL DE LA COMPRA -->

@@ -419,9 +419,17 @@ function EliminarDocumento(id_doc) {
                                                             // Verificar si tiene aprobaciones
                                                             $tiene_aprobacion = !empty($compra['id_personal_aprueba_tecnica']) || !empty($compra['id_personal_aprueba_financiera']);
                                                             
-                                                            // LÓGICA CORREGIDA: Solo cuando está PENDIENTE (1) se permiten acciones
-                                                            if ($compra['est_compra'] == 1) { 
-                                                            ?>
+                                                                ?>
+                                                                <button class="btn btn-info btn-sm btn-ver-detalle-compra" 
+                                                                        title="Ver Detalles de la Orden"
+                                                                        data-id-compra="<?php echo $compra['id_compra']; ?>">
+                                                                    <i class="fa fa-eye"></i>
+                                                                </button>
+                                                                
+                                                                <?php
+                                                                // LÓGICA CORREGIDA: Solo cuando está PENDIENTE (1) se permiten acciones
+                                                                if ($compra['est_compra'] == 1) { 
+                                                                ?>
                                                                 <!-- Compra PENDIENTE: botones habilitados según aprobaciones -->
                                                                 <a href="#"
                                                                 <?php if ($tiene_tecnica) { ?>
@@ -729,14 +737,19 @@ function EliminarDocumento(id_doc) {
                                     </div>
                                 </div>
                                 
-                                <!-- Detracción -->
+                                <!-- SECCIÓN DE DETRACCIÓN, RETENCIÓN Y PERCEPCIÓN -->
                                 <div class="row mb-2">
                                     <div class="col-md-12">
-                                        <label style="font-size: 11px; font-weight: bold;">Detracción (Opcional):</label>
-                                        <div id="edit_contenedor_detracciones" style="padding: 8px; background-color: #f8f9fa; border-radius: 4px;">
-                                            <!-- Se cargará dinámicamente -->
+                                        <div class="card" style="border: 1px solid #dee2e6;">
+                                            <div class="card-header" style="background-color: #f8f9fa; padding: 8px 12px;">
+                                                <h6 class="mb-0" style="font-size: 13px;">
+                                                    <i class="fa fa-percent text-info"></i> Detracción, Retención y Percepción (Opcional)
+                                                </h6>
+                                            </div>
+                                            <div class="card-body" style="padding: 12px;" id="edit_contenedor_detracciones">
+                                                <!-- Se cargará dinámicamente -->
+                                            </div>
                                         </div>
-                                        <small class="form-text text-muted">Seleccione una detracción si aplica. El monto se calculará automáticamente.</small>
                                     </div>
                                 </div>
                             </div>
@@ -780,7 +793,321 @@ function EliminarDocumento(id_doc) {
     </div>
 </div>
 
+<!-- Modal Ver Detalles de Orden de Compra -->
+<div class="modal fade" id="modalDetalleOrdenCompra" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #f8f9fa; padding: 15px;">
+                <h5 class="modal-title" id="modalDetalleOrdenCompraLabel">
+                    <i class="fa fa-file-text-o text-primary"></i> 
+                    Detalles de Orden de Compra
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
+                <div id="loading-detalle-compra" class="text-center" style="padding: 40px;">
+                    <i class="fa fa-spinner fa-spin fa-3x text-primary"></i>
+                    <p class="mt-2">Cargando detalles...</p>
+                </div>
+                
+                <div id="contenido-detalle-compra-mostrar" style="display: none;">
+                    <!-- Contenido del detalle -->
+                </div>
+                
+                <div id="error-detalle-compra-mostrar" style="display: none;" class="text-center">
+                    <i class="fa fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5 class="text-warning">Error al cargar detalles</h5>
+                    <p class="text-muted">No se pudieron cargar los detalles de la orden.</p>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 15px;">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fa fa-times"></i> Cerrar
+                </button>
+                <a id="btn-descargar-pdf-compra" href="#" target="_blank" class="btn btn-primary">
+                    <i class="fa fa-file-pdf-o"></i> Descargar PDF
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+// ============================================================================
+// FUNCIÓN PARA VER DETALLES DE ORDEN DE COMPRA
+// ============================================================================
+
+function mostrarDetalleOrdenCompra(id_compra) {
+    $('#modalDetalleOrdenCompra').modal('show');
+    
+    document.getElementById('loading-detalle-compra').style.display = 'block';
+    document.getElementById('contenido-detalle-compra-mostrar').style.display = 'none';
+    document.getElementById('error-detalle-compra-mostrar').style.display = 'none';
+    
+    // Actualizar enlace de PDF
+    document.getElementById('btn-descargar-pdf-compra').href = 'compras_pdf.php?id=' + id_compra;
+    
+    const formData = new FormData();
+    formData.append('accion', 'obtener_detalle');
+    formData.append('id_compra', id_compra);
+    
+    fetch('compra_detalles.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        document.getElementById('loading-detalle-compra').style.display = 'none';
+        if (data.success) {
+            mostrarContenidoDetalleCompra(data.compra, data.detalles);
+        } else {
+            mostrarErrorDetalleCompra(data.message || 'Error desconocido');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        document.getElementById('loading-detalle-compra').style.display = 'none';
+        mostrarErrorDetalleCompra('Error de conexión');
+    });
+}
+
+function mostrarContenidoDetalleCompra(compra, detalles) {
+    const titulo = document.getElementById('modalDetalleOrdenCompraLabel');
+    titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de Compra - ORD-${compra.id_compra}`;
+    
+    const contenido = document.getElementById('contenido-detalle-compra-mostrar');
+    const fechaFormateada = new Date(compra.fec_compra).toLocaleDateString('es-PE');
+    const estadoCompra = parseInt(compra.est_compra);
+    
+    let estadoTexto = 'Desconocido';
+    let estadoClase = 'secondary';
+    
+    switch(estadoCompra) {
+        case 0: estadoTexto = 'Anulada'; estadoClase = 'danger'; break;
+        case 1: estadoTexto = 'Pendiente'; estadoClase = 'warning'; break;
+        case 2: estadoTexto = 'Aprobada'; estadoClase = 'success'; break;
+        case 3: estadoTexto = 'Cerrada'; estadoClase = 'info'; break;
+        case 4: estadoTexto = 'Pagada'; estadoClase = 'primary'; break;
+    }
+    
+    let html = `
+        <div class="card mb-3">
+            <div class="card-header" style="background-color: #e3f2fd; padding: 10px 15px;">
+                <h6 class="mb-0"><i class="fa fa-info-circle text-primary"></i> Información General</h6>
+            </div>
+            <div class="card-body" style="padding: 15px;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>N° Orden:</strong> ORD-${compra.id_compra}</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Proveedor:</strong> ${compra.nom_proveedor || 'No especificado'}</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>RUC:</strong> ${compra.ruc_proveedor || 'No especificado'}</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Moneda:</strong> ${compra.nom_moneda || 'No especificada'}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Fecha:</strong> ${fechaFormateada}</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Estado:</strong> <span class="badge badge-${estadoClase}">${estadoTexto}</span></p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'}</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Plazo Entrega:</strong> ${compra.plaz_compra || 'No especificado'}</p>
+                    </div>
+                </div>`;
+    
+    // 🔹 MOSTRAR BADGE DE DETRACCIÓN/RETENCIÓN/PERCEPCIÓN
+    let tieneAfectacion = false;
+    
+    if (compra.nombre_detraccion && compra.porcentaje_detraccion) {
+        tieneAfectacion = true;
+        html += `
+            <div class="alert alert-warning" style="margin-top: 15px; padding: 10px;">
+                <i class="fa fa-exclamation-triangle"></i> 
+                <strong>Detracción Aplicada:</strong> ${compra.nombre_detraccion} 
+                <span class="badge badge-warning">${compra.porcentaje_detraccion}%</span>
+            </div>`;
+    }
+    
+    if (compra.nombre_retencion && compra.porcentaje_retencion) {
+        tieneAfectacion = true;
+        html += `
+            <div class="alert alert-info" style="margin-top: 15px; padding: 10px;">
+                <i class="fa fa-info-circle"></i> 
+                <strong>Retención Aplicada:</strong> ${compra.nombre_retencion} 
+                <span class="badge badge-info">${compra.porcentaje_retencion}%</span>
+            </div>`;
+    }
+    
+    if (compra.nombre_percepcion && compra.porcentaje_percepcion) {
+        tieneAfectacion = true;
+        html += `
+            <div class="alert alert-success" style="margin-top: 15px; padding: 10px;">
+                <i class="fa fa-plus-circle"></i> 
+                <strong>Percepción Aplicada:</strong> ${compra.nombre_percepcion} 
+                <span class="badge badge-success">${compra.porcentaje_percepcion}%</span>
+            </div>`;
+    }
+    
+    if (!tieneAfectacion) {
+        html += `
+            <div class="alert alert-secondary" style="margin-top: 15px; padding: 10px;">
+                <i class="fa fa-info-circle"></i> 
+                <strong>Sin afectaciones:</strong> Esta orden no tiene detracción, retención ni percepción aplicada.
+            </div>`;
+    }
+    
+    if (compra.denv_compra || compra.obs_compra || compra.port_compra) {
+        html += `<div class="row mt-3"><div class="col-md-12"><div class="border-top pt-2">`;
+        if (compra.denv_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Dirección de Envío:</strong> ${compra.denv_compra}</p>`;
+        if (compra.obs_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Observaciones:</strong> ${compra.obs_compra}</p>`;
+        if (compra.port_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Tipo de Porte:</strong> ${compra.port_compra}</p>`;
+        html += `</div></div></div>`;
+    }
+    
+    html += `</div></div>`;
+    
+    // 🔹 TABLA DE PRODUCTOS
+    html += `
+        <div class="card">
+            <div class="card-header" style="background-color: #e8f5e8; padding: 10px 15px;">
+                <h6 class="mb-0"><i class="fa fa-list-alt text-success"></i> Productos de la Orden</h6>
+            </div>
+            <div class="card-body" style="padding: 15px;">
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm" style="font-size: 12px;">
+                        <thead style="background-color: #f8f9fa;">
+                            <tr>
+                                <th style="width: 8%;">#</th>
+                                <th style="width: 15%;">Código</th>
+                                <th style="width: 35%;">Descripción</th>
+                                <th style="width: 10%;">Cantidad</th>
+                                <th style="width: 12%;">Precio Unit.</th>
+                                <th style="width: 10%;">IGV (%)</th>
+                                <th style="width: 10%;">Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+    
+    let subtotalGeneral = 0;
+    let totalIgv = 0;
+    const simboloMoneda = compra.sim_moneda || (compra.id_moneda == 1 ? 'S/.' : 'US$');
+    
+    detalles.forEach((detalle, index) => {
+        const cantidad = parseFloat(detalle.cant_compra_detalle);
+        const precioUnit = parseFloat(detalle.prec_compra_detalle);
+        const igvPorcentaje = parseFloat(detalle.igv_compra_detalle || 18);
+        
+        const subtotal = cantidad * precioUnit;
+        const montoIgv = subtotal * (igvPorcentaje / 100);
+        
+        subtotalGeneral += subtotal;
+        totalIgv += montoIgv;
+        
+        html += `<tr>
+                    <td style="font-weight: bold;">${index + 1}</td>
+                    <td>${detalle.cod_material || 'N/A'}</td>
+                    <td>${detalle.nom_producto}</td>
+                    <td class="text-center">${cantidad.toFixed(2)}</td>
+                    <td class="text-right">${simboloMoneda} ${precioUnit.toFixed(2)}</td>
+                    <td class="text-center">${igvPorcentaje}%</td>
+                    <td class="text-right" style="font-weight: bold;">${simboloMoneda} ${subtotal.toFixed(2)}</td>
+                </tr>`;
+    });
+    
+    html += `</tbody></table></div><div class="row mt-3"><div class="col-md-12">`;
+    
+    // Calcular TOTAL CON IGV
+    const totalConIgv = subtotalGeneral + totalIgv;
+    
+    // Determinar tipo de afectación
+    let tipoAfectacion = null;
+    let porcentaje = 0;
+    let nombreConcepto = '';
+    let montoAfectacion = 0;
+    
+    if (compra.porcentaje_detraccion && parseFloat(compra.porcentaje_detraccion) > 0) {
+        tipoAfectacion = 'DETRACCION';
+        porcentaje = parseFloat(compra.porcentaje_detraccion);
+        nombreConcepto = compra.nombre_detraccion;
+        montoAfectacion = (totalConIgv * porcentaje) / 100;
+    } else if (compra.porcentaje_retencion && parseFloat(compra.porcentaje_retencion) > 0) {
+        tipoAfectacion = 'RETENCION';
+        porcentaje = parseFloat(compra.porcentaje_retencion);
+        nombreConcepto = compra.nombre_retencion;
+        montoAfectacion = (totalConIgv * porcentaje) / 100;
+    } else if (compra.porcentaje_percepcion && parseFloat(compra.porcentaje_percepcion) > 0) {
+        tipoAfectacion = 'PERCEPCION';
+        porcentaje = parseFloat(compra.porcentaje_percepcion);
+        nombreConcepto = compra.nombre_percepcion;
+        montoAfectacion = (totalConIgv * porcentaje) / 100;
+    }
+    
+    // Calcular total final
+    let totalFinal = 0;
+    
+    if (tipoAfectacion === 'DETRACCION') {
+        totalFinal = totalConIgv - montoAfectacion;
+    } else if (tipoAfectacion === 'RETENCION') {
+        totalFinal = totalConIgv - montoAfectacion;
+    } else if (tipoAfectacion === 'PERCEPCION') {
+        totalFinal = totalConIgv + montoAfectacion;
+    } else {
+        totalFinal = totalConIgv;
+    }
+    
+    // MOSTRAR RESUMEN
+    html += `<div class="alert alert-light" style="margin-bottom: 10px; padding: 10px;">
+                <div style="font-size: 14px; text-align: center; margin-bottom: 5px;">
+                    <i class="fa fa-calculator text-secondary"></i> <strong>SUBTOTAL:</strong> ${simboloMoneda} ${subtotalGeneral.toFixed(2)}
+                </div>
+                <div style="font-size: 13px; text-align: center; margin-bottom: 5px;">
+                    <i class="fa fa-percent text-secondary"></i> <strong>IGV TOTAL:</strong> ${simboloMoneda} ${totalIgv.toFixed(2)}
+                </div>
+                <div style="font-size: 14px; text-align: center; font-weight: bold; padding: 5px; background-color: #e3f2fd; border-radius: 4px; margin-bottom: 5px;">
+                    <i class="fa fa-calculator text-primary"></i> <strong>TOTAL CON IGV:</strong> ${simboloMoneda} ${totalConIgv.toFixed(2)}
+                </div>`;
+    
+    if (tipoAfectacion === 'DETRACCION') {
+        html += `<div style="font-size: 13px; text-align: center; color: #ffc107; margin-bottom: 5px;">
+                    <i class="fa fa-minus-circle"></i> <strong>Detracción ${nombreConcepto} (${porcentaje}%):</strong> -${simboloMoneda} ${montoAfectacion.toFixed(2)}
+                 </div>`;
+    }
+    
+    if (tipoAfectacion === 'RETENCION') {
+        html += `<div style="font-size: 13px; text-align: center; color: #2196f3; margin-bottom: 5px;">
+                    <i class="fa fa-minus-circle"></i> <strong>Retención ${nombreConcepto} (${porcentaje}%):</strong> -${simboloMoneda} ${montoAfectacion.toFixed(2)}
+                 </div>`;
+    }
+    
+    if (tipoAfectacion === 'PERCEPCION') {
+        html += `<div style="font-size: 13px; text-align: center; color: #4caf50; margin-bottom: 5px;">
+                    <i class="fa fa-plus-circle"></i> <strong>Percepción ${nombreConcepto} (${porcentaje}%):</strong> +${simboloMoneda} ${montoAfectacion.toFixed(2)}
+                 </div>`;
+    }
+    
+    html += `</div>
+             <div class="alert alert-success text-center" style="font-size: 18px; font-weight: bold; margin: 0; padding: 15px;">
+                <i class="fa fa-money"></i> TOTAL A PAGAR: ${simboloMoneda} ${totalFinal.toFixed(2)}
+             </div></div></div></div></div>`;
+    
+    contenido.innerHTML = html;
+    contenido.style.display = 'block';
+}
+
+function mostrarErrorDetalleCompra(mensaje) {
+    const errorDiv = document.getElementById('error-detalle-compra-mostrar');
+    errorDiv.querySelector('p').textContent = mensaje;
+    errorDiv.style.display = 'block';
+}
+
+// Event listener para botones de ver detalle
+document.addEventListener('click', function(event) {
+    const btnVerDetalle = event.target.closest('.btn-ver-detalle-compra');
+    if (btnVerDetalle) {
+        event.preventDefault();
+        event.stopPropagation();
+        const idCompra = btnVerDetalle.getAttribute('data-id-compra');
+        mostrarDetalleOrdenCompra(idCompra);
+    }
+});
 // ============================================================================
 // FUNCIONES PARA EDITAR ORDEN EN MODAL
 // ============================================================================
@@ -830,6 +1157,7 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
     document.getElementById('edit_observaciones_orden').value = orden.obs_compra || '';
     document.getElementById('edit_tipo_porte').value = orden.port_compra || '';
 
+    // Crear input hidden para items eliminados si no existe
     let inputEliminados = document.getElementById('edit_items_eliminados');
     if (!inputEliminados) {
         inputEliminados = document.createElement('input');
@@ -853,42 +1181,152 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
         selectProveedor.appendChild(option);
     });
     
-    // Cargar detracciones
+    // Cargar DETRACCIÓN, RETENCIÓN Y PERCEPCIÓN
     const contenedorDetracciones = document.getElementById('edit_contenedor_detracciones');
     contenedorDetracciones.innerHTML = '';
     
     if (detracciones && detracciones.length > 0) {
+        // Agrupar por tipo
+        const detracciones_tipo = {};
         detracciones.forEach(det => {
-            const checked = (orden.id_detraccion == det.id_detraccion) ? 'checked' : '';
-            contenedorDetracciones.innerHTML += `
-                <div class="form-check" style="margin-bottom: 5px;">
-                    <input class="form-check-input edit-detraccion-checkbox" 
-                           type="checkbox" 
-                           name="id_detraccion" 
-                           value="${det.id_detraccion}" 
-                           data-porcentaje="${det.porcentaje}" 
-                           data-nombre="${det.nombre_detraccion}"
-                           id="edit_detraccion_${det.id_detraccion}" 
-                           ${checked}>
-                    <label class="form-check-label" 
-                           for="edit_detraccion_${det.id_detraccion}" 
-                           style="font-size: 12px; cursor: pointer;">
-                        ${det.nombre_detraccion} <strong>(${det.porcentaje}%)</strong>
-                    </label>
-                </div>
-            `;
+            const tipo = det.nom_detraccion_tipo.toUpperCase();
+            if (!detracciones_tipo[tipo]) {
+                detracciones_tipo[tipo] = [];
+            }
+            detracciones_tipo[tipo].push(det);
         });
+        
+        // Crear secciones para cada tipo
+        let html = '';
+        
+        // DETRACCIÓN
+        if (detracciones_tipo['DETRACCION']) {
+            html += '<div class="mb-3"><label style="font-size: 12px; font-weight: bold;">Detracción:</label>';
+            html += '<div style="padding: 8px; background-color: #fff3cd; border-radius: 4px; border: 1px solid #ffc107;">';
+            
+            detracciones_tipo['DETRACCION'].forEach(det => {
+                const checked = (orden.id_detraccion == det.id_detraccion) ? 'checked' : '';
+                html += `
+                    <div class="form-check" style="margin-bottom: 5px;">
+                        <input class="form-check-input edit-detraccion-checkbox" 
+                               type="checkbox" 
+                               name="id_detraccion" 
+                               value="${det.id_detraccion}" 
+                               data-porcentaje="${det.porcentaje}" 
+                               data-nombre="${det.nombre_detraccion}"
+                               id="edit_detraccion_${det.id_detraccion}" 
+                               ${checked}>
+                        <label class="form-check-label" 
+                               for="edit_detraccion_${det.id_detraccion}" 
+                               style="font-size: 12px; cursor: pointer;">
+                            ${det.nombre_detraccion} <strong>(${det.porcentaje}%)</strong>
+                        </label>
+                    </div>
+                `;
+            });
+            
+            html += '</div><small class="form-text text-muted">Se aplica sobre el subtotal antes de IGV</small></div>';
+        }
+        
+        // RETENCIÓN
+        if (detracciones_tipo['RETENCION']) {
+            html += '<div class="mb-3"><label style="font-size: 12px; font-weight: bold;">Retención:</label>';
+            html += '<div style="padding: 8px; background-color: #e7f3ff; border-radius: 4px; border: 1px solid #2196f3;">';
+            
+            detracciones_tipo['RETENCION'].forEach(det => {
+                const checked = (orden.id_retencion == det.id_detraccion) ? 'checked' : '';
+                html += `
+                    <div class="form-check" style="margin-bottom: 5px;">
+                        <input class="form-check-input edit-retencion-checkbox" 
+                               type="checkbox" 
+                               name="id_retencion" 
+                               value="${det.id_detraccion}" 
+                               data-porcentaje="${det.porcentaje}" 
+                               data-nombre="${det.nombre_detraccion}"
+                               id="edit_retencion_${det.id_detraccion}" 
+                               ${checked}>
+                        <label class="form-check-label" 
+                               for="edit_retencion_${det.id_detraccion}" 
+                               style="font-size: 12px; cursor: pointer;">
+                            ${det.nombre_detraccion} <strong>(${det.porcentaje}%)</strong>
+                        </label>
+                    </div>
+                `;
+            });
+            
+            html += '</div><small class="form-text text-muted">Se aplica sobre el total después de IGV</small></div>';
+        }
+        
+        // PERCEPCIÓN
+        if (detracciones_tipo['PERCEPCION']) {
+            html += '<div class="mb-2"><label style="font-size: 12px; font-weight: bold;">Percepción:</label>';
+            html += '<div style="padding: 8px; background-color: #e8f5e9; border-radius: 4px; border: 1px solid #4caf50;">';
+            
+            detracciones_tipo['PERCEPCION'].forEach(det => {
+                const checked = (orden.id_percepcion == det.id_detraccion) ? 'checked' : '';
+                html += `
+                    <div class="form-check" style="margin-bottom: 5px;">
+                        <input class="form-check-input edit-percepcion-checkbox" 
+                               type="checkbox" 
+                               name="id_percepcion" 
+                               value="${det.id_detraccion}" 
+                               data-porcentaje="${det.porcentaje}" 
+                               data-nombre="${det.nombre_detraccion}"
+                               id="edit_percepcion_${det.id_detraccion}" 
+                               ${checked}>
+                        <label class="form-check-label" 
+                               for="edit_percepcion_${det.id_detraccion}" 
+                               style="font-size: 12px; cursor: pointer;">
+                            ${det.nombre_detraccion} <strong>(${det.porcentaje}%)</strong>
+                        </label>
+                    </div>
+                `;
+            });
+            
+            html += '</div><small class="form-text text-muted">Se aplica sobre el total después de IGV</small></div>';
+        }
+        
+        contenedorDetracciones.innerHTML = html;
+        
     } else {
         contenedorDetracciones.innerHTML = '<p class="text-muted mb-0" style="font-size: 11px;"><i class="fa fa-info-circle"></i> No hay detracciones configuradas</p>';
     }
     
-    // Configurar checkboxes de detracción (solo uno a la vez)
+    // 🔹 Configurar exclusividad de checkboxes
     document.querySelectorAll('.edit-detraccion-checkbox').forEach(cb => {
         cb.addEventListener('change', function() {
             if (this.checked) {
                 document.querySelectorAll('.edit-detraccion-checkbox').forEach(otherCb => {
                     if (otherCb !== this) otherCb.checked = false;
                 });
+                document.querySelectorAll('.edit-retencion-checkbox').forEach(cb => cb.checked = false);
+                document.querySelectorAll('.edit-percepcion-checkbox').forEach(cb => cb.checked = false);
+            }
+            calcularTotalOrdenModal();
+        });
+    });
+    
+    document.querySelectorAll('.edit-retencion-checkbox').forEach(cb => {
+        cb.addEventListener('change', function() {
+            if (this.checked) {
+                document.querySelectorAll('.edit-retencion-checkbox').forEach(otherCb => {
+                    if (otherCb !== this) otherCb.checked = false;
+                });
+                document.querySelectorAll('.edit-detraccion-checkbox').forEach(cb => cb.checked = false);
+                document.querySelectorAll('.edit-percepcion-checkbox').forEach(cb => cb.checked = false);
+            }
+            calcularTotalOrdenModal();
+        });
+    });
+    
+    document.querySelectorAll('.edit-percepcion-checkbox').forEach(cb => {
+        cb.addEventListener('change', function() {
+            if (this.checked) {
+                document.querySelectorAll('.edit-percepcion-checkbox').forEach(otherCb => {
+                    if (otherCb !== this) otherCb.checked = false;
+                });
+                document.querySelectorAll('.edit-detraccion-checkbox').forEach(cb => cb.checked = false);
+                document.querySelectorAll('.edit-retencion-checkbox').forEach(cb => cb.checked = false);
             }
             calcularTotalOrdenModal();
         });
@@ -929,9 +1367,8 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
                     </div>
                 </div>
                 
-                <!-- Campos en una sola línea: Cantidad, Precio, IGV, Homologación -->
+                <!-- Campos -->
                 <div class="row">
-                    <!-- Cantidad -->
                     <div class="col-md-2">
                         <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Cantidad:</label>
                         <input type="number" 
@@ -945,7 +1382,6 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
                             required>
                     </div>
                     
-                    <!-- Precio Unitario -->
                     <div class="col-md-2">
                         <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Precio Unit.:</label>
                         <div class="input-group input-group-sm">
@@ -966,7 +1402,6 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
                         </div>
                     </div>
                     
-                    <!-- IGV (%) -->
                     <div class="col-md-2">
                         <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">IGV (%):</label>
                         <input type="number" 
@@ -981,7 +1416,6 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
                             required>
                     </div>
                     
-                    <!-- Homologación -->
                     <div class="col-md-3">
                         <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Homologación:</label>
                         ${item.hom_compra_detalle ? `
@@ -1000,7 +1434,6 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
                         <small class="text-muted" style="font-size: 10px;">PDF, JPG, PNG</small>
                     </div>
                     
-                    <!-- Cálculos (Subtotal, IGV, Total) -->
                     <div class="col-md-3 text-right">
                         <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block; visibility: hidden;">-</label>
                         <div class="edit-calculo-item" id="edit_calculo_${item.id_compra_detalle}" 
@@ -1014,8 +1447,8 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
             </div>
         `;
     });
-        
-        // Configurar eventos de cálculo (cantidad, precio, IGV)
+    
+    // Configurar eventos de cálculo
     document.querySelectorAll('.edit-cantidad-item, .edit-precio-item, .edit-igv-item').forEach(input => {
         input.addEventListener('input', function() {
             const idDetalle = this.getAttribute('data-id-detalle');
@@ -1055,21 +1488,16 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // AGREGAR A LA LISTA DE ELIMINADOS
                     const inputEliminados = document.getElementById('edit_items_eliminados');
                     let eliminados = inputEliminados.value ? inputEliminados.value.split(',') : [];
                     
-                    // Solo agregar si no es un item nuevo (los nuevos tienen prefijo 'nuevo-')
                     if (!idDetalle.toString().startsWith('nuevo-')) {
                         eliminados.push(idDetalle);
                         inputEliminados.value = eliminados.join(',');
                     }
                     
-                    // Remover del DOM
                     document.getElementById('edit_item_' + idDetalle).remove();
                     calcularTotalOrdenModal();
-                    
-                    console.log('Items eliminados:', inputEliminados.value);
                 }
             });
         });
@@ -1111,18 +1539,48 @@ function calcularTotalOrdenModal() {
         }
     });
     
+    const totalConIgv = subtotalGeneral + totalIgv;
+    
+    //  Determinar tipo de afectación (SOLO UNA puede estar activa)
+    let tipoAfectacion = null;
+    let porcentaje = 0;
+    let nombreConcepto = '';
+    let montoAfectacion = 0;
+    
     const checkboxDetraccion = document.querySelector('.edit-detraccion-checkbox:checked');
-    let montoDetraccion = 0;
-    let porcentajeDetraccion = 0;
-    let nombreDetraccion = '';
+    const checkboxRetencion = document.querySelector('.edit-retencion-checkbox:checked');
+    const checkboxPercepcion = document.querySelector('.edit-percepcion-checkbox:checked');
     
     if (checkboxDetraccion) {
-        porcentajeDetraccion = parseFloat(checkboxDetraccion.getAttribute('data-porcentaje')) || 0;
-        nombreDetraccion = checkboxDetraccion.getAttribute('data-nombre') || '';
-        montoDetraccion = (subtotalGeneral * porcentajeDetraccion) / 100;
+        tipoAfectacion = 'DETRACCION';
+        porcentaje = parseFloat(checkboxDetraccion.getAttribute('data-porcentaje')) || 0;
+        nombreConcepto = checkboxDetraccion.getAttribute('data-nombre') || '';
+        montoAfectacion = (totalConIgv * porcentaje) / 100;
+    } else if (checkboxRetencion) {
+        tipoAfectacion = 'RETENCION';
+        porcentaje = parseFloat(checkboxRetencion.getAttribute('data-porcentaje')) || 0;
+        nombreConcepto = checkboxRetencion.getAttribute('data-nombre') || '';
+        montoAfectacion = (totalConIgv * porcentaje) / 100;
+    } else if (checkboxPercepcion) {
+        tipoAfectacion = 'PERCEPCION';
+        porcentaje = parseFloat(checkboxPercepcion.getAttribute('data-porcentaje')) || 0;
+        nombreConcepto = checkboxPercepcion.getAttribute('data-nombre') || '';
+        montoAfectacion = (totalConIgv * porcentaje) / 100;
     }
     
-    const totalFinal = subtotalGeneral + totalIgv - montoDetraccion;
+    // CALCULAR TOTAL FINAL
+    let totalFinal = 0;
+    
+    if (tipoAfectacion === 'DETRACCION') {
+        totalFinal = totalConIgv - montoAfectacion;
+    } else if (tipoAfectacion === 'RETENCION') {
+        totalFinal = totalConIgv - montoAfectacion;
+    } else if (tipoAfectacion === 'PERCEPCION') {
+        totalFinal = totalConIgv + montoAfectacion;
+    } else {
+        totalFinal = totalConIgv;
+    }
+    
     const simboloMoneda = document.getElementById('edit_moneda_orden').value == 1 ? 'S/.' : 'US$';
     
     let html = `
@@ -1136,27 +1594,49 @@ function calcularTotalOrdenModal() {
                 <i class="fa fa-percent text-secondary"></i>
                 <strong class="text-secondary"> IGV Total:</strong>
                 <span class="text-dark">${simboloMoneda} ${totalIgv.toFixed(2)}</span>
+            </div>
+            <div class="mb-2" style="font-weight: bold; font-size: 16px; padding: 5px; background-color: #e3f2fd; border-radius: 4px;">
+                <i class="fa fa-calculator text-primary"></i>
+                <strong class="text-primary"> Total con IGV:</strong>
+                <span class="text-primary">${simboloMoneda} ${totalConIgv.toFixed(2)}</span>
             </div>`;
     
-    if (montoDetraccion > 0) {
+    if (tipoAfectacion === 'DETRACCION') {
         html += `
             <div class="mb-2">
-                <i class="fa fa-minus-circle text-danger"></i>
-                <strong class="text-danger"> Detracción ${nombreDetraccion} (${porcentajeDetraccion}%):</strong>
-                <span class="text-danger">-${simboloMoneda} ${montoDetraccion.toFixed(2)}</span>
+                <i class="fa fa-minus-circle text-warning"></i>
+                <strong class="text-warning"> Detracción ${nombreConcepto} (${porcentaje}%):</strong>
+                <span class="text-warning">-${simboloMoneda} ${montoAfectacion.toFixed(2)}</span>
+            </div>`;
+    }
+    
+    if (tipoAfectacion === 'RETENCION') {
+        html += `
+            <div class="mb-2">
+                <i class="fa fa-minus-circle text-info"></i>
+                <strong class="text-info"> Retención ${nombreConcepto} (${porcentaje}%):</strong>
+                <span class="text-info">-${simboloMoneda} ${montoAfectacion.toFixed(2)}</span>
+            </div>`;
+    }
+    
+    if (tipoAfectacion === 'PERCEPCION') {
+        html += `
+            <div class="mb-2">
+                <i class="fa fa-plus-circle text-success"></i>
+                <strong class="text-success"> Percepción ${nombreConcepto} (${porcentaje}%):</strong>
+                <span class="text-success">+${simboloMoneda} ${montoAfectacion.toFixed(2)}</span>
             </div>`;
     }
     
     html += `
             <div style="font-size: 18px; font-weight: bold; padding: 10px; background-color: #28a745; color: white; border-radius: 6px; text-align: center; margin-top: 10px;">
                 <i class="fa fa-money"></i> 
-                TOTAL ${montoDetraccion > 0 ? 'A PAGAR' : ''}: ${simboloMoneda} ${totalFinal.toFixed(2)}
+                TOTAL A PAGAR: ${simboloMoneda} ${totalFinal.toFixed(2)}
             </div>
         </div>`;
     
     document.getElementById('edit_total_orden').innerHTML = html;
 }
-
 // Guardar cambios
 document.getElementById('btn-guardar-edicion-orden').addEventListener('click', function() {
     const form = document.getElementById('form-editar-orden-modal');
@@ -1166,11 +1646,32 @@ document.getElementById('btn-guardar-edicion-orden').addEventListener('click', f
         return;
     }
     
+    // Validar que haya al menos un item
+    const itemsContainer = document.getElementById('edit_items_container');
+    const items = itemsContainer.querySelectorAll('[id^="edit_item_"]');
+    
+    if (items.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Sin items',
+            text: 'Debe mantener al menos un item en la orden'
+        });
+        return;
+    }
+    
     const btnGuardar = this;
     btnGuardar.disabled = true;
     btnGuardar.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Guardando...';
     
     const formData = new FormData(form);
+    
+    // 🔹 IMPORTANTE: Asegurar que los archivos se envíen correctamente
+    const inputsFile = form.querySelectorAll('input[type="file"]');
+    inputsFile.forEach(input => {
+        if (input.files.length > 0) {
+            formData.append(input.name, input.files[0]);
+        }
+    });
     
     fetch('compras_actualizar_orden.php', {
         method: 'POST',
@@ -1190,11 +1691,21 @@ document.getElementById('btn-guardar-edicion-orden').addEventListener('click', f
                 location.reload();
             });
         } else {
+            //  USAR EL TIPO DE ERROR ENVIADO DESDE EL SERVIDOR
+            const esValidacion = data.tipo === 'validacion';
+            
             Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: data.message
+                icon: esValidacion ? 'warning' : 'error',
+                title: esValidacion ? 'Validación de datos' : 'Error del sistema',
+                html: data.message,
+                confirmButtonColor: esValidacion ? '#ffc107' : '#d33',
+                confirmButtonText: 'Entendido',
+                allowOutsideClick: false,
+                customClass: {
+                    htmlContainer: 'text-left'
+                }
             });
+            
             btnGuardar.disabled = false;
             btnGuardar.innerHTML = '<i class="fa fa-save"></i> Guardar Cambios';
         }
@@ -1204,7 +1715,8 @@ document.getElementById('btn-guardar-edicion-orden').addEventListener('click', f
         Swal.fire({
             icon: 'error',
             title: 'Error de conexión',
-            text: 'No se pudo conectar con el servidor'
+            text: 'No se pudo conectar con el servidor. Por favor, verifica tu conexión a internet.',
+            confirmButtonColor: '#d33'
         });
         btnGuardar.disabled = false;
         btnGuardar.innerHTML = '<i class="fa fa-save"></i> Guardar Cambios';
@@ -1219,4 +1731,3 @@ document.getElementById('modalEditarOrden').addEventListener('hidden.bs.modal', 
 });
 
 </script>
-

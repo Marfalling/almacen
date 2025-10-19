@@ -17,20 +17,38 @@ function AnularPago(id_pago) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '../_controlador/pago_anular.php',  // <-- tu ruta real
+                url: '../_controlador/pago_anular.php',
                 type: 'POST',
                 data: { id_pago: id_pago },
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
-                        Swal.fire('¡Anulado!', response.message, 'success')
-                        .then(() => { location.reload(); });
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Anulado!',
+                            text: response.message,
+                            confirmButtonColor: '#28a745'
+                        }).then(() => {
+                            window.location.href = 'pago_registrar.php?id_compra=' + response.id_compra;
+                        });
                     } else {
-                        Swal.fire('Error', response.message, 'error');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message,
+                            confirmButtonColor: '#d33'
+                        });
                     }
                 },
-                error: function() {
-                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+                error: function(xhr, status, error) {
+                    console.error('Error AJAX:', error);
+                    console.error('Respuesta:', xhr.responseText);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error de conexión',
+                        text: 'No se pudo conectar con el servidor.',
+                        confirmButtonColor: '#d33'
+                    });
                 }
             });
         }
@@ -71,16 +89,81 @@ function AnularPago(id_pago) {
                                 <td><?php echo $oc['nom_proveedor']; ?></td>
                             </tr>
                             <tr>
-                                <td><strong>Monto Total:</strong></td>
-                                <td><?php echo number_format($oc['monto_total'],2); ?></td>
-                                <td><strong>Pagado:</strong></td>
-                                <td><?php echo number_format($oc['monto_pagado'],2); ?></td>
+                                <td><strong>Subtotal:</strong></td>
+                                <td><?php echo ($oc['sim_moneda'] ?? 'S/.') . ' ' . number_format($oc['subtotal'], 2); ?></td>
+                                <td><strong>IGV:</strong></td>
+                                <td><?php echo ($oc['sim_moneda'] ?? 'S/.') . ' ' . number_format($oc['total_igv'], 2); ?></td>
                             </tr>
+                            
+                            <!--  MONTO DE LA FACTURA (destacado) -->
+                            <tr style="background-color: #d4edda; border: 2px solid #28a745;">
+                                <td colspan="2">
+                                    <strong style="font-size: 16px;"> MONTO DE LA FACTURA (Total con IGV):</strong></td>
+                                <td colspan="2">
+                                    <span class="badge badge-success" style="font-size: 18px; padding: 10px 16px;">
+                                        <?php echo ($oc['sim_moneda'] ?? 'S/.') . ' ' . number_format($oc['total_con_igv'], 2); ?>
+                                    </span>
+                                </td>
+                            </tr>
+                            
+                            <!-- 🔹 Mostrar Detracción si existe -->
+                            <?php if (!empty($oc['monto_detraccion']) && $oc['monto_detraccion'] > 0): ?>
                             <tr>
-                                <td><strong>Saldo Pendiente:</strong></td>
-                                <td colspan="3">
-                                    <span class="badge badge-<?php echo ($oc['saldo']>0?'warning':'success'); ?>">
-                                        <?php echo number_format($oc['saldo'],2); ?>
+                                <td colspan="2">
+                                    <strong> Detracción (<?php echo $oc['nombre_detraccion']; ?> - <?php echo $oc['porcentaje_detraccion']; ?>%):</strong>
+                                    <br><small class="text-muted">A depositar en cuenta SUNAT del proveedor</small>
+                                </td>
+                                <td colspan="2" class="text-danger" style="font-weight: bold;">
+                                    -<?php echo ($oc['sim_moneda'] ?? 'S/.') . ' ' . number_format($oc['monto_detraccion'], 2); ?>
+                                </td>
+                            </tr>
+                            <?php endif; ?>
+                            
+                            <!--  Mostrar Retención si existe -->
+                            <?php if (!empty($oc['monto_retencion']) && $oc['monto_retencion'] > 0): ?>
+                            <tr>
+                                <td colspan="2">
+                                    <strong> Retención (<?php echo $oc['nombre_retencion']; ?> - <?php echo $oc['porcentaje_retencion']; ?>%):</strong>
+                                    <br><small class="text-muted">A retener y declarar a SUNAT</small>
+                                </td>
+                                <td colspan="2" class="text-info" style="font-weight: bold;">
+                                    -<?php echo ($oc['sim_moneda'] ?? 'S/.') . ' ' . number_format($oc['monto_retencion'], 2); ?>
+                                </td>
+                            </tr>
+                            <?php endif; ?>
+                            
+                            <!--  Mostrar Percepción si existe -->
+                            <?php if (!empty($oc['monto_percepcion']) && $oc['monto_percepcion'] > 0): ?>
+                            <tr>
+                                <td colspan="2">
+                                    <strong> Percepción (<?php echo $oc['nombre_percepcion']; ?> - <?php echo $oc['porcentaje_percepcion']; ?>%):</strong>
+                                    <br><small class="text-muted">Impuesto adicional a pagar</small>
+                                </td>
+                                <td colspan="2" class="text-success" style="font-weight: bold;">
+                                    +<?php echo ($oc['sim_moneda'] ?? 'S/.') . ' ' . number_format($oc['monto_percepcion'], 2); ?>
+                                </td>
+                            </tr>
+                            <?php endif; ?>
+                            
+                            <!--  TOTAL A PAGAR AL PROVEEDOR (más destacado) -->
+                            <tr style="background-color: #e3f2fd;">
+                                <td colspan="2"><strong> TOTAL:</strong>
+                                    <br><small class="text-muted">Monto real a pagar en cuenta bancaria</small>
+                                </td>
+                                <td colspan="2">
+                                    <span class="badge badge-info" style="font-size: 15px; padding: 8px 14px;">
+                                        <?php echo ($oc['sim_moneda'] ?? 'S/.') . ' ' . number_format($oc['monto_total'], 2); ?>
+                                    </span>
+                                </td>
+                            </tr>
+                            
+                            <tr>
+                                <td><strong> Pagado:</strong></td>
+                                <td><?php echo ($oc['sim_moneda'] ?? 'S/.') . ' ' . number_format($oc['monto_pagado'], 2); ?></td>
+                                <td><strong> Saldo Pendiente:</strong></td>
+                                <td>
+                                    <span class="badge badge-<?php echo ($oc['saldo'] > 0 ? 'warning' : 'success'); ?>" style="font-size: 14px; padding: 6px 12px;">
+                                        <?php echo ($oc['sim_moneda'] ?? 'S/.') . ' ' . number_format($oc['saldo'], 2); ?>
                                     </span>
                                 </td>
                             </tr>

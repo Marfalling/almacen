@@ -14,13 +14,17 @@ if (!verificarPermisoEspecifico('editar_detraccion')) {
 
 require_once("../_modelo/m_detraccion.php");
 
+// Obtener tipos de detracción para el formulario
+$tipos_detraccion = ObtenerTiposDetraccion();
+
 if (isset($_POST['registrar'])) {
     $id_detraccion = intval($_POST['id_detraccion']);
     $nom = strtoupper(trim($_POST['nom']));
     $porcentaje = floatval($_POST['porcentaje']);
     $estado = isset($_POST['estado']) ? 1 : 0;
+    $id_detraccion_tipo = intval($_POST['id_detraccion_tipo']);
 
-    $rpta = EditarDetraccion($id_detraccion, $nom, $porcentaje, $estado);
+    $rpta = EditarDetraccion($id_detraccion, $nom, $porcentaje, $estado, $id_detraccion_tipo);
 
     require_once("../_modelo/m_auditoria.php");
 
@@ -54,6 +58,7 @@ if (!$detraccion_data) {
 $nom = $detraccion_data['nombre_detraccion'];
 $porcentaje = $detraccion_data['porcentaje'];
 $estado = $detraccion_data['est_detraccion'];
+$id_detraccion_tipo_actual = $detraccion_data['id_detraccion_tipo'];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -70,48 +75,9 @@ $estado = $detraccion_data['est_detraccion'];
         <?php
         require_once("../_vista/v_menu.php");
         require_once("../_vista/v_menu_user.php");
+        require_once("../_vista/v_detraccion_editar.php");
+        require_once("../_vista/v_footer.php");
         ?>
-
-        <div class="right_col" role="main">
-            <div class="row">
-                <div class="col-md-6 col-sm-12">
-                    <div class="x_panel">
-                        <div class="x_title">
-                            <h2>Editar Detracción</h2>
-                            <div class="clearfix"></div>
-                        </div>
-                        <div class="x_content">
-                            <form action="" method="POST">
-                                <input type="hidden" name="id_detraccion" value="<?php echo $id_detraccion; ?>">
-
-                                <div class="form-group">
-                                    <label for="nom">Nombre</label>
-                                    <input type="text" class="form-control" id="nom" name="nom" value="<?php echo $nom; ?>" required>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="porcentaje">Porcentaje (%)</label>
-                                    <input type="number" step="0.01" class="form-control" id="porcentaje" name="porcentaje" value="<?php echo $porcentaje; ?>" required>
-                                </div>
-
-                                <div class="form-group">
-                                    <label for="estado">Estado</label>
-                                    <div class="custom-control custom-switch">
-                                        <input type="checkbox" class="custom-control-input" id="estado" name="estado" value="1" <?php echo ($estado == 1) ? 'checked' : ''; ?>>
-                                        <label class="custom-control-label" for="estado">Activo / Inactivo</label>
-                                    </div>
-                                </div>
-
-                                <button type="submit" name="registrar" class="btn btn-success">Guardar Cambios</button>
-                                <a href="detraccion_mostrar.php" class="btn btn-secondary">Cancelar</a>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <?php require_once("../_vista/v_footer.php"); ?>
     </div>
 </div>
 <?php require_once("../_vista/v_script.php"); ?>

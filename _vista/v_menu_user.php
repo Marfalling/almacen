@@ -3,8 +3,8 @@
 require_once("../_modelo/m_compras.php");
 require_once("../_modelo/m_producto.php");
 
-// Obtener compras próximas a vencer (3 días antes)
-$compras_por_vencer = ObtenerComprasProximasVencer(3);
+// Obtener compras próximas a vencer (15 días antes)
+$compras_por_vencer = ObtenerComprasProximasVencer(15);
 $total_alertas_compras = count($compras_por_vencer);
 
 // Obtener productos próximos a vencer calibrado/operatividad (15 días antes)

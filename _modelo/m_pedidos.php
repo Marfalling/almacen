@@ -1096,11 +1096,20 @@ function verificarPedidoListo($id_pedido, $con = null)
     ];
 }
 //-----------------------------------------------------------------------
-function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observacion, 
-                         $direccion, $plazo_entrega, $porte, $fecha_orden, $items, 
-                         $id_detraccion = null, $archivos_homologacion = []) 
+function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, 
+                         $observacion, $direccion, $plazo_entrega, $porte, 
+                         $fecha_orden, $items, 
+                         $id_detraccion = null, $archivos_homologacion = [],
+                         $id_retencion = null, $id_percepcion = null) 
 {
     include("../_conexion/conexion.php");
+
+    // 🔹 VALIDAR CANTIDADES ANTES DE CREAR (sin id_compra porque es nueva)
+    $errores = ValidarCantidadesOrden($id_pedido, $items, NULL); // ← NULL está correcto aquí
+    if (!empty($errores)) {
+        mysqli_close($con);
+        return "ERROR: " . implode(". ", $errores);
+    }
 
     $observacion = mysqli_real_escape_string($con, $observacion);
     $direccion = mysqli_real_escape_string($con, $direccion);
@@ -1108,30 +1117,31 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
     $porte = mysqli_real_escape_string($con, $porte);
     
     $id_detraccion_sql = ($id_detraccion && $id_detraccion > 0) ? $id_detraccion : 'NULL';
+    $id_retencion_sql = ($id_retencion && $id_retencion > 0) ? $id_retencion : 'NULL';
+    $id_percepcion_sql = ($id_percepcion && $id_percepcion > 0) ? $id_percepcion : 'NULL';
 
-    // Crear la orden de compra con estado PENDIENTE (1)
     $sql = "INSERT INTO compra (
                 id_pedido, id_proveedor, id_moneda, id_personal, id_personal_aprueba, 
-                obs_compra, denv_compra, plaz_compra, port_compra, id_detraccion, 
+                obs_compra, denv_compra, plaz_compra, port_compra, 
+                id_detraccion, id_retencion, id_percepcion,
                 fec_compra, est_compra
             ) VALUES (
                 $id_pedido, $proveedor, $moneda, $id_personal, NULL, 
-                '$observacion', '$direccion', '$plazo_entrega', '$porte', $id_detraccion_sql, 
+                '$observacion', '$direccion', '$plazo_entrega', '$porte', 
+                $id_detraccion_sql, $id_retencion_sql, $id_percepcion_sql,
                 '$fecha_orden', 1
             )";
 
     if (mysqli_query($con, $sql)) {
         $id_compra = mysqli_insert_id($con);
         
-        // Insertar detalles de la orden con IGV y homologación
         foreach ($items as $item) {
             $id_producto = intval($item['id_producto']);
             $cantidad = floatval($item['cantidad']);
             $precio_unitario = floatval($item['precio_unitario']);
-            $igv = floatval($item['igv']); 
+            $igv = floatval($item['igv']);
             $id_detalle = intval($item['id_detalle']);
             
-            // Manejar archivo de homologación si existe
             $nombre_archivo_hom = null;
             if (isset($archivos_homologacion[$id_detalle]) && !empty($archivos_homologacion[$id_detalle]['name'])) {
                 $archivo = $archivos_homologacion[$id_detalle];
@@ -1139,7 +1149,6 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
                 $nombre_archivo_hom = "hom_compra_" . $id_compra . "_prod_" . $id_producto . "_" . uniqid() . "." . $extension;
                 $ruta_destino = "../_archivos/homologaciones/" . $nombre_archivo_hom;
                 
-                // Crear directorio si no existe
                 if (!file_exists("../_archivos/homologaciones/")) {
                     mkdir("../_archivos/homologaciones/", 0777, true);
                 }
@@ -1149,7 +1158,6 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
             
             $hom_sql = $nombre_archivo_hom ? "'" . mysqli_real_escape_string($con, $nombre_archivo_hom) . "'" : "NULL";
             
-            // Insertar detalle con IGV y homologación
             $sql_detalle = "INSERT INTO compra_detalle (
                                 id_compra, id_producto, cant_compra_detalle, 
                                 prec_compra_detalle, igv_compra_detalle, hom_compra_detalle,
@@ -1164,7 +1172,7 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
                 error_log("ERROR al insertar detalle: " . mysqli_error($con));
             }
 
-            // NO marcar como cerrado automáticamente si la cantidad es parcial
+            // VERIFICAR SI DEBE CERRARSE EL ITEM
             $cant_ordenada_total = ObtenerCantidadYaOrdenada($id_pedido, $id_producto);
             
             $sql_get_verificada = "SELECT cant_fin_pedido_detalle 
@@ -1174,7 +1182,7 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
             $row_ver = mysqli_fetch_assoc($res_ver);
             $cant_verificada = $row_ver ? floatval($row_ver['cant_fin_pedido_detalle']) : 0;
             
-            // Solo cerrar el item si ya se ordenó todo lo verificado
+            // Solo cerrar si se alcanzó EXACTAMENTE la cantidad verificada
             if ($cant_ordenada_total >= $cant_verificada) {
                 $sql_update = "UPDATE pedido_detalle 
                            SET est_pedido_detalle = 2 
@@ -1196,12 +1204,13 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, $observ
 function ObtenerCantidadYaOrdenada($id_pedido, $id_producto) {
     include("../_conexion/conexion.php");
     
+    // 🔹 CORRECCIÓN: Excluir órdenes anuladas (est_compra = 0)
     $sql = "SELECT COALESCE(SUM(cd.cant_compra_detalle), 0) as total_ordenado
             FROM compra_detalle cd
             INNER JOIN compra c ON cd.id_compra = c.id_compra
             WHERE c.id_pedido = $id_pedido 
             AND cd.id_producto = $id_producto
-            AND c.est_compra != 0
+            AND c.est_compra != 0  -- 🔹 IMPORTANTE: Excluir anuladas
             AND cd.est_compra_detalle = 1";
     
     $resultado = mysqli_query($con, $sql);
@@ -1227,7 +1236,7 @@ function ObtenerCantidadPendienteOrdenar($id_pedido, $id_producto) {
     $row_verificada = mysqli_fetch_assoc($res_verificada);
     $cant_verificada = $row_verificada ? floatval($row_verificada['cant_fin_pedido_detalle']) : 0;
     
-    // Obtener cantidad ya ordenada
+    // 🔹 IMPORTANTE: Excluir anuladas
     $cant_ordenada = ObtenerCantidadYaOrdenada($id_pedido, $id_producto);
     
     mysqli_close($con);
@@ -1241,10 +1250,14 @@ function ObtenerOrdenPorId($id_compra) {
     include("../_conexion/conexion.php");
     
     $sql = "SELECT c.*, p.id_pedido, 
-            d.nombre_detraccion, d.porcentaje as porcentaje_detraccion
+            d.nombre_detraccion, d.porcentaje as porcentaje_detraccion,
+            r.nombre_detraccion as nombre_retencion, r.porcentaje as porcentaje_retencion,
+            per.nombre_detraccion as nombre_percepcion, per.porcentaje as porcentaje_percepcion
             FROM compra c 
             INNER JOIN pedido p ON c.id_pedido = p.id_pedido 
             LEFT JOIN detraccion d ON c.id_detraccion = d.id_detraccion
+            LEFT JOIN detraccion r ON c.id_retencion = r.id_detraccion
+            LEFT JOIN detraccion per ON c.id_percepcion = per.id_detraccion
             WHERE c.id_compra = ?";
     $stmt = mysqli_prepare($con, $sql);
     mysqli_stmt_bind_param($stmt, "i", $id_compra);
@@ -1281,14 +1294,41 @@ function ObtenerDetalleOrden($id_compra) {
     return $detalles;
 }
 //-----------------------------------------------------------------------
-function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $direccion, $plazo_entrega, $porte, $fecha_orden, $items, $id_detraccion = null, $archivos_homologacion = []) {
+function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $direccion, 
+                              $plazo_entrega, $porte, $fecha_orden, $items, 
+                              $id_detraccion = null, $archivos_homologacion = [],
+                              $id_retencion = null, $id_percepcion = null) {
     include("../_conexion/conexion.php");
+    
+    error_log(" ActualizarOrdenCompra - ID Compra: $id_compra");
+    
+    // Obtener id_pedido antes de actualizar
+    $sql_pedido = "SELECT id_pedido FROM compra WHERE id_compra = $id_compra";
+    $res_pedido = mysqli_query($con, $sql_pedido);
+    $row_pedido = mysqli_fetch_assoc($res_pedido);
+    $id_pedido = $row_pedido['id_pedido'];
+    
+    error_log(" ID Pedido obtenido: $id_pedido");
+    error_log(" Llamando a ValidarCantidadesOrden con id_compra: $id_compra");
+    
+    // 🔹 VALIDAR CANTIDADES ANTES DE ACTUALIZAR - PASAR ID_COMPRA
+    $errores = ValidarCantidadesOrden($id_pedido, $items, $id_compra);
+    
+    if (!empty($errores)) {
+        error_log(" Errores de validación: " . implode(", ", $errores));
+        mysqli_close($con);
+        return "ERROR: " . implode(". ", $errores);
+    }
+    
+    error_log(" Validación pasada, continuando con actualización...");
     
     $observacion = mysqli_real_escape_string($con, $observacion);
     $direccion = mysqli_real_escape_string($con, $direccion);
     $plazo_entrega = mysqli_real_escape_string($con, $plazo_entrega);
     $porte = mysqli_real_escape_string($con, $porte);
     $id_detraccion_sql = ($id_detraccion && $id_detraccion > 0) ? $id_detraccion : 'NULL';
+    $id_retencion_sql = ($id_retencion && $id_retencion > 0) ? $id_retencion : 'NULL';
+    $id_percepcion_sql = ($id_percepcion && $id_percepcion > 0) ? $id_percepcion : 'NULL';
     
     $sql = "UPDATE compra SET 
             id_proveedor = $proveedor, 
@@ -1298,15 +1338,28 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
             plaz_compra = '$plazo_entrega', 
             port_compra = '$porte', 
             id_detraccion = $id_detraccion_sql,
+            id_retencion = $id_retencion_sql,
+            id_percepcion = $id_percepcion_sql,
             fec_compra = '$fecha_orden' 
             WHERE id_compra = $id_compra";
     
     if (mysqli_query($con, $sql)) {
+        // RASTREAR PRODUCTOS AFECTADOS
+        $productos_afectados = array();
+        
         foreach ($items as $id_detalle => $item) {
             $id_detalle = intval($id_detalle);
-            $cantidad = floatval($item['cantidad']); // Cantidad editable
+            $cantidad = floatval($item['cantidad']);
             $precio_unitario = floatval($item['precio_unitario']);
-            $igv = floatval($item['igv']); // IGV editable
+            $igv = floatval($item['igv']);
+            
+            // OBTENER ID_PRODUCTO del detalle
+            $sql_prod = "SELECT id_producto FROM compra_detalle WHERE id_compra_detalle = $id_detalle";
+            $res_prod = mysqli_query($con, $sql_prod);
+            $row_prod = mysqli_fetch_assoc($res_prod);
+            if ($row_prod) {
+                $productos_afectados[] = intval($row_prod['id_producto']);
+            }
             
             // Manejar archivo de homologación si existe
             $nombre_archivo_hom = null;
@@ -1316,7 +1369,6 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
                 $nombre_archivo_hom = "hom_compra_" . $id_compra . "_det_" . $id_detalle . "_" . uniqid() . "." . $extension;
                 $ruta_destino = "../_archivos/homologaciones/" . $nombre_archivo_hom;
                 
-                // Crear directorio si no existe
                 if (!file_exists("../_archivos/homologaciones/")) {
                     mkdir("../_archivos/homologaciones/", 0777, true);
                 }
@@ -1324,13 +1376,11 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
                 move_uploaded_file($archivo['tmp_name'], $ruta_destino);
             }
             
-            // Construir la consulta UPDATE
             $sql_detalle = "UPDATE compra_detalle 
                            SET cant_compra_detalle = $cantidad,
                                prec_compra_detalle = $precio_unitario,
                                igv_compra_detalle = $igv";
             
-            // Si hay un nuevo archivo, actualizar el campo hom_compra_detalle
             if ($nombre_archivo_hom) {
                 $sql_detalle .= ", hom_compra_detalle = '" . mysqli_real_escape_string($con, $nombre_archivo_hom) . "'";
             }
@@ -1344,6 +1394,12 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
             }
         }
         
+        // VERIFICAR SI LOS PRODUCTOS DEBEN REABRIRSE
+        $productos_afectados = array_unique($productos_afectados);
+        foreach ($productos_afectados as $id_producto) {
+            VerificarReaperturaItem($id_pedido, $id_producto); 
+        }
+        
         mysqli_close($con);
         return "SI";
     } else {
@@ -1352,6 +1408,115 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
         return "ERROR: " . $error;
     }
 }
+/**
+ * Verificar si un item de pedido debe reabrirse después de editar/anular una orden
+ */
+function VerificarReaperturaItem($id_pedido, $id_producto)
+{
+    include("../_conexion/conexion.php");
+    
+    // Obtener cantidad verificada del item
+    $sql_verificada = "SELECT cant_fin_pedido_detalle, id_pedido_detalle
+                       FROM pedido_detalle 
+                       WHERE id_pedido = $id_pedido 
+                       AND id_producto = $id_producto 
+                       AND cant_fin_pedido_detalle IS NOT NULL
+                       LIMIT 1";
+    $res = mysqli_query($con, $sql_verificada);
+    $row = mysqli_fetch_assoc($res);
+    
+    if (!$row) {
+        mysqli_close($con);
+        return;
+    }
+    
+    $cant_verificada = floatval($row['cant_fin_pedido_detalle']);
+    $id_pedido_detalle = $row['id_pedido_detalle'];
+    
+    //  CORRECCIÓN: Calcular cantidad total en órdenes activas (excluir anuladas)
+    $sql_ordenada = "SELECT COALESCE(SUM(cd.cant_compra_detalle), 0) as total_ordenado
+                     FROM compra_detalle cd
+                     INNER JOIN compra c ON cd.id_compra = c.id_compra
+                     WHERE c.id_pedido = $id_pedido 
+                     AND cd.id_producto = $id_producto
+                     AND c.est_compra != 0  -- 🔹 EXCLUIR ANULADAS
+                     AND cd.est_compra_detalle = 1";
+    $res_ord = mysqli_query($con, $sql_ordenada);
+    $row_ord = mysqli_fetch_assoc($res_ord);
+    $total_ordenado = floatval($row_ord['total_ordenado']);
+    
+    // Si la cantidad ordenada es menor a la verificada, reabrir el item
+    if ($total_ordenado < $cant_verificada) {
+        $sql_reabrir = "UPDATE pedido_detalle 
+                        SET est_pedido_detalle = 1 
+                        WHERE id_pedido_detalle = $id_pedido_detalle";
+        mysqli_query($con, $sql_reabrir);
+    }
+    
+    mysqli_close($con);
+}
+
+/**
+ * Validar que las cantidades no excedan lo verificado
+ */
+function ValidarCantidadesOrden($id_pedido, $items_orden, $id_compra_actual = null)
+{
+    include("../_conexion/conexion.php");
+    
+    $errores = array();
+    
+    foreach ($items_orden as $key => $item) {
+        $id_producto = intval($item['id_producto']);
+        $cantidad_nueva = floatval($item['cantidad']);
+                
+        // Obtener cantidad verificada
+        $sql_verificada = "SELECT cant_fin_pedido_detalle
+                           FROM pedido_detalle 
+                           WHERE id_pedido = $id_pedido 
+                           AND id_producto = $id_producto
+                           LIMIT 1";
+        $res = mysqli_query($con, $sql_verificada);
+        $row = mysqli_fetch_assoc($res);
+        
+        if (!$row || $row['cant_fin_pedido_detalle'] === null) {
+            $errores[] = "El producto ID $id_producto no está verificado";
+            continue;
+        }
+        
+        $cant_verificada = floatval($row['cant_fin_pedido_detalle']);
+        
+        // Calcular cantidad ya ordenada (excluyendo la orden actual si estamos editando)
+        $where_compra = "";
+        if ($id_compra_actual) {
+            $where_compra = "AND c.id_compra != $id_compra_actual";
+        }
+        
+        $sql_ordenada = "SELECT COALESCE(SUM(cd.cant_compra_detalle), 0) as total_ordenado
+                         FROM compra_detalle cd
+                         INNER JOIN compra c ON cd.id_compra = c.id_compra
+                         WHERE c.id_pedido = $id_pedido 
+                         AND cd.id_producto = $id_producto
+                         AND c.est_compra != 0
+                         AND cd.est_compra_detalle = 1
+                         $where_compra";
+        
+        $res_ord = mysqli_query($con, $sql_ordenada);
+        $row_ord = mysqli_fetch_assoc($res_ord);
+        $ya_ordenado = floatval($row_ord['total_ordenado']);
+        
+        // Validación: Verificar que la cantidad nueva no exceda lo disponible
+        $disponible = $cant_verificada - $ya_ordenado;
+        
+        if ($cantidad_nueva > $disponible) {
+            $errores[] = "Producto ID $id_producto: Cantidad excede lo verificado. Verificado: $cant_verificada, Ya ordenado (sin esta orden): $ya_ordenado, Disponible: $disponible, Intentaste ordenar: $cantidad_nueva";
+        }
+    }
+    
+    mysqli_close($con);
+    return $errores;
+}
+
+
 //-----------------------------------------------------------------------
 function ConsultarPedidoAnulado($id_pedido)
 {

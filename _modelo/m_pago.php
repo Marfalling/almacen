@@ -138,47 +138,129 @@ function ConsultarCompraPago($id_compra) {
 
     $id_compra = intval($id_compra);
 
-    // Traer info principal de la OC con proveedor
-    $sql = "SELECT c.*, p.nom_proveedor, p.ruc_proveedor
+    // VERIFICAR SI LA COMPRA EXISTE PRIMERO
+    $sql_check = "SELECT id_compra FROM compra WHERE id_compra = $id_compra";
+    $res_check = mysqli_query($con, $sql_check);
+    
+    if (!$res_check || mysqli_num_rows($res_check) == 0) {
+        mysqli_close($con);
+        return false;
+    }
+
+    //  CONSULTA PRINCIPAL CON JOINS
+    $sql = "SELECT c.*, 
+                   p.nom_proveedor, 
+                   p.ruc_proveedor,
+                   CASE 
+                       WHEN m.id_moneda = 1 THEN 'S/.'
+                       WHEN m.id_moneda = 2 THEN 'US$'
+                       ELSE 'S/.'
+                   END as sim_moneda,
+                   d.nombre_detraccion, 
+                   d.porcentaje as porcentaje_detraccion,
+                   r.nombre_detraccion as nombre_retencion, 
+                   r.porcentaje as porcentaje_retencion,
+                   per.nombre_detraccion as nombre_percepcion, 
+                   per.porcentaje as porcentaje_percepcion
             FROM compra c
             INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor
+            LEFT JOIN moneda m ON c.id_moneda = m.id_moneda
+            LEFT JOIN detraccion d ON c.id_detraccion = d.id_detraccion
+            LEFT JOIN detraccion r ON c.id_retencion = r.id_detraccion
+            LEFT JOIN detraccion per ON c.id_percepcion = per.id_detraccion
             WHERE c.id_compra = $id_compra";
+    
     $res = mysqli_query($con, $sql);
 
-    if (!$res || mysqli_num_rows($res) == 0) {
+    if (!$res) {
         mysqli_close($con);
-        
+        return false;
+    }
+
+    if (mysqli_num_rows($res) == 0) {
+        mysqli_close($con);
         return false;
     }
 
     $compra = mysqli_fetch_assoc($res);
 
-    // Calcular monto total de la OC
-    $sql_total = "SELECT SUM(cd.cant_compra_detalle * cd.prec_compra_detalle) as total
-                  FROM compra_detalle cd
-                  WHERE cd.id_compra = $id_compra";
-    $res_total = mysqli_query($con, $sql_total);
-    $fila_total = mysqli_fetch_assoc($res_total);
-    $monto_total = $fila_total['total'] ?? 0;
+    //  CALCULAR SUBTOTAL E IGV
+    $sql_detalle = "SELECT 
+                        COALESCE(SUM(cd.cant_compra_detalle * cd.prec_compra_detalle), 0) as subtotal,
+                        COALESCE(SUM((cd.cant_compra_detalle * cd.prec_compra_detalle) * (cd.igv_compra_detalle / 100)), 0) as total_igv
+                    FROM compra_detalle cd
+                    WHERE cd.id_compra = $id_compra
+                    AND cd.est_compra_detalle = 1";
+    
+    $res_detalle = mysqli_query($con, $sql_detalle);
+    
+    if (!$res_detalle) {
+        error_log("❌ ERROR SQL detalle: " . mysqli_error($con));
+        mysqli_close($con);
+        return false;
+    }
+    
+    $fila_detalle = mysqli_fetch_assoc($res_detalle);
+    
+    $subtotal = floatval($fila_detalle['subtotal']);
+    $total_igv = floatval($fila_detalle['total_igv']);
+    $total_con_igv = $subtotal + $total_igv;
 
-    // Calcular monto pagado
-    $sql_pagado = "SELECT SUM(monto) as pagado
+    // 🔹 CALCULAR AFECTACIONES
+    $monto_detraccion = 0;
+    $monto_retencion = 0;
+    $monto_percepcion = 0;
+    
+    if (!empty($compra['porcentaje_detraccion'])) {
+        $monto_detraccion = ($total_con_igv * floatval($compra['porcentaje_detraccion'])) / 100;
+    }
+    
+    if (!empty($compra['porcentaje_retencion'])) {
+        $monto_retencion = ($total_con_igv * floatval($compra['porcentaje_retencion'])) / 100;
+    }
+    
+    if (!empty($compra['porcentaje_percepcion'])) {
+        $monto_percepcion = ($total_con_igv * floatval($compra['porcentaje_percepcion'])) / 100;
+    }
+
+    // 🔹 TOTAL A PAGAR
+    $monto_total = $total_con_igv;
+    
+    if ($monto_detraccion > 0) {
+        $monto_total -= $monto_detraccion;
+    }
+    if ($monto_retencion > 0) {
+        $monto_total -= $monto_retencion;
+    }
+    if ($monto_percepcion > 0) {
+        $monto_total += $monto_percepcion;
+    }
+
+    //  CALCULAR MONTO PAGADO
+    $sql_pagado = "SELECT COALESCE(SUM(monto), 0) as pagado
                    FROM pago
                    WHERE id_compra = $id_compra
                      AND est_pago = 1";
     $res_pagado = mysqli_query($con, $sql_pagado);
     $fila_pagado = mysqli_fetch_assoc($res_pagado);
-    $monto_pagado = $fila_pagado['pagado'] ?? 0;
+    $monto_pagado = floatval($fila_pagado['pagado']);
 
-    // Saldo pendiente
-    $saldo = $monto_total - $monto_pagado;
+    // CALCULAR SALDO
+    $saldo = $total_con_igv - $monto_pagado;
 
-    // Armar array con todo
-    $compra['monto_total'] = $monto_total;
-    $compra['monto_pagado'] = $monto_pagado;
-    $compra['saldo'] = $saldo;
+    //  ARMAR ARRAY COMPLETO
+    $compra['subtotal'] = round($subtotal, 2);
+    $compra['total_igv'] = round($total_igv, 2);
+    $compra['total_con_igv'] = round($total_con_igv, 2);
+    $compra['monto_detraccion'] = round($monto_detraccion, 2);
+    $compra['monto_retencion'] = round($monto_retencion, 2);
+    $compra['monto_percepcion'] = round($monto_percepcion, 2);
+    $compra['monto_total'] = round($monto_total, 2);
+    $compra['monto_pagado'] = round($monto_pagado, 2);
+    $compra['saldo'] = round($saldo, 2);
 
     mysqli_close($con);
+        
     return $compra;
 }
 
@@ -226,9 +308,7 @@ function AnularPago($id_pago)
         }
 
         // 2) Anular el pago (marcar est_pago = 0)
-        $sql_upd = "UPDATE pago
-                    SET est_pago = 0
-                    WHERE id_pago = $id_pago";
+        $sql_upd = "UPDATE pago SET est_pago = 0 WHERE id_pago = $id_pago";
         if (!mysqli_query($con, $sql_upd)) {
             $err = mysqli_error($con);
             mysqli_rollback($con);
@@ -236,8 +316,68 @@ function AnularPago($id_pago)
             return ['success' => false, 'message' => "Error al anular pago: $err"];
         }
 
-        // 3) Recalcular monto pagado válido para la compra (solo est_pago = 1)
-        $sql_pagado = "SELECT COALESCE(SUM(monto),0) AS pagado
+        // 3) RECALCULAR MONTO TOTAL CORRECTAMENTE (con detracciones/retenciones/percepciones)
+        // 3.1) Obtener subtotal e IGV
+        $sql_detalle = "SELECT 
+                            COALESCE(SUM(cd.cant_compra_detalle * cd.prec_compra_detalle), 0) as subtotal,
+                            COALESCE(SUM((cd.cant_compra_detalle * cd.prec_compra_detalle) * (cd.igv_compra_detalle / 100)), 0) as total_igv
+                        FROM compra_detalle cd
+                        WHERE cd.id_compra = $id_compra
+                        AND cd.est_compra_detalle = 1";
+        
+        $res_detalle = mysqli_query($con, $sql_detalle);
+        $fila_detalle = mysqli_fetch_assoc($res_detalle);
+        
+        $subtotal = floatval($fila_detalle['subtotal']);
+        $total_igv = floatval($fila_detalle['total_igv']);
+        $total_con_igv = $subtotal + $total_igv;
+        
+        // 3.2) Obtener detracciones/retenciones/percepciones
+        $sql_afectaciones = "SELECT 
+                                d.porcentaje as porcentaje_detraccion,
+                                r.porcentaje as porcentaje_retencion,
+                                per.porcentaje as porcentaje_percepcion
+                             FROM compra c
+                             LEFT JOIN detraccion d ON c.id_detraccion = d.id_detraccion
+                             LEFT JOIN detraccion r ON c.id_retencion = r.id_detraccion
+                             LEFT JOIN detraccion per ON c.id_percepcion = per.id_detraccion
+                             WHERE c.id_compra = $id_compra";
+        
+        $res_afect = mysqli_query($con, $sql_afectaciones);
+        $afect = mysqli_fetch_assoc($res_afect);
+        
+        // 3.3) Calcular montos de afectaciones
+        $monto_detraccion = 0;
+        $monto_retencion = 0;
+        $monto_percepcion = 0;
+        
+        if (!empty($afect['porcentaje_detraccion'])) {
+            $monto_detraccion = ($total_con_igv * floatval($afect['porcentaje_detraccion'])) / 100;
+        }
+        
+        if (!empty($afect['porcentaje_retencion'])) {
+            $monto_retencion = ($total_con_igv * floatval($afect['porcentaje_retencion'])) / 100;
+        }
+        
+        if (!empty($afect['porcentaje_percepcion'])) {
+            $monto_percepcion = ($total_con_igv * floatval($afect['porcentaje_percepcion'])) / 100;
+        }
+        
+        // 3.4) Calcular TOTAL A PAGAR (igual que en ConsultarCompraPago)
+        $monto_total = $total_con_igv;
+        
+        if ($monto_detraccion > 0) {
+            $monto_total -= $monto_detraccion;
+        }
+        if ($monto_retencion > 0) {
+            $monto_total -= $monto_retencion;
+        }
+        if ($monto_percepcion > 0) {
+            $monto_total += $monto_percepcion;
+        }
+        
+        // 4) Recalcular monto pagado válido (solo est_pago = 1)
+        $sql_pagado = "SELECT COALESCE(SUM(monto), 0) AS pagado
                        FROM pago
                        WHERE id_compra = $id_compra
                          AND est_pago = 1";
@@ -245,18 +385,10 @@ function AnularPago($id_pago)
         $fila_pagado = mysqli_fetch_assoc($res_pagado);
         $monto_pagado = floatval($fila_pagado['pagado']);
 
-        // 4) Calcular monto total de la OC (igual que ConsultarCompraPago)
-        $sql_total = "SELECT COALESCE(SUM(cd.cant_compra_detalle * cd.prec_compra_detalle),0) as total
-                      FROM compra_detalle cd
-                      WHERE cd.id_compra = $id_compra";
-        $res_total = mysqli_query($con, $sql_total);
-        $fila_total = mysqli_fetch_assoc($res_total);
-        $monto_total = floatval($fila_total['total']);
+        // 5) Calcular nuevo saldo - AHORA SOBRE total_con_igv
+        $nuevoSaldo = round($total_con_igv - $monto_pagado, 2);
 
-        $nuevoSaldo = round($monto_total - $monto_pagado, 2);
-
-        // 5) Si la compra estaba marcada como PAGADA (4) y ahora queda saldo, revertir a APROBADA (2)
-        $sql_compra = "";
+        // 6) Si la compra estaba marcada como PAGADA (4) y ahora queda saldo, revertir a APROBADA (2)
         if (intval($pago['est_compra']) === 4 && $nuevoSaldo > 0) {
             $sql_compra = "UPDATE compra SET est_compra = 2 WHERE id_compra = $id_compra";
             if (!mysqli_query($con, $sql_compra)) {
@@ -269,6 +401,7 @@ function AnularPago($id_pago)
 
         mysqli_commit($con);
         mysqli_close($con);
+        
         return [
             'success' => true,
             'message' => 'Pago anulado correctamente.',
