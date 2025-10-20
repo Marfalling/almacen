@@ -3,6 +3,50 @@
 // VISTA: v_salidas_editar.php
 //=======================================================================
 ?>
+
+<!-- 🔹 SCRIPT PARA ELIMINAR DOCUMENTOS -->
+<script>
+function eliminarDocumento(idDoc) {
+    Swal.fire({
+        title: '¿Eliminar documento?',
+        text: 'Esta acción eliminará el archivo adjunto de forma permanente.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '../_controlador/compras_eliminar_documento.php',
+                type: 'POST',
+                data: { id_doc: idDoc },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.tipo_mensaje === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Documento eliminado',
+                            text: response.mensaje,
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire('Error', response.mensaje, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+                }
+            });
+        }
+    });
+}
+</script>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -230,6 +274,72 @@
                                 <button type="button" id="agregar-material" class="btn btn-info btn-sm">
                                     <i class="fa fa-plus"></i> Agregar Material
                                 </button>
+                            </div>
+
+                            <div class="ln_solid"></div>
+
+                            <!-- 🔹 SECCIÓN DOCUMENTOS ADJUNTOS -->
+                            <div class="x_title">
+                                <h4><i class="fa fa-paperclip text-info"></i> Documentos Adjuntos</h4>
+                                <div class="clearfix"></div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="col-md-12">
+                                    <?php 
+
+                                    if (!empty($documentos)) { ?>
+                                        <table class="table table-bordered table-striped">
+                                            <thead class="thead-dark">
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Nombre del Archivo</th>
+                                                    <th>Fecha de Subida</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php 
+                                                $i = 1;
+                                                foreach ($documentos as $doc) { 
+                                                    $url_archivo = "../uploads/" . $doc['entidad'] . "/" . $doc['documento'];
+                                                ?>
+                                                    <tr id="doc-row-<?php echo $doc['id_doc']; ?>">
+                                                        <td><?php echo $i++; ?></td>
+                                                        <td><?php echo htmlspecialchars($doc['documento']); ?></td>
+                                                        <td><?php echo date('d/m/Y H:i', strtotime($doc['fec_subida'])); ?></td>
+                                                        <td>
+                                                            <a href="<?php echo $url_archivo; ?>" class="btn btn-sm btn-info" target="_blank" title="Ver o Descargar">
+                                                                <i class="fa fa-eye"></i> Ver
+                                                            </a>
+                                                            <button type="button" 
+                                                                    class="btn btn-sm btn-danger" 
+                                                                    title="Eliminar Documento"
+                                                                    onclick="eliminarDocumento(<?php echo $doc['id_doc']; ?>)">
+                                                                <i class="fa fa-trash"></i> Eliminar
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                <?php } ?>
+                                            </tbody>
+                                        </table>
+                                    <?php } else { ?>
+                                        <div class="alert alert-info">
+                                            <i class="fa fa-info-circle"></i> No hay documentos adjuntos para esta salida.
+                                        </div>
+                                    <?php } ?>
+                                </div>
+                            </div>
+
+                            <!-- 🔹 SUBIR NUEVOS DOCUMENTOS -->
+                            <div class="form-group mt-3">
+                                <label class="control-label d-block">Agregar Nuevos Documentos:</label>
+                                <div>
+                                    <input type="file" name="documento[]" class="form-control mb-2" multiple>
+                                    <small class="text-muted d-block">
+                                        Puede seleccionar uno o varios archivos para adjuntar.
+                                    </small>
+                                </div>
                             </div>
 
                             <div class="ln_solid"></div>

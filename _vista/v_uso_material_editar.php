@@ -217,7 +217,9 @@
                                 <th>Material</th>
                                 <th>Tipo</th>
                                 <th>Unidad</th>
-                                <th>Stock</th>
+                                <th>Stock Físico</th>
+                                <th>Stock Reservado</th>
+                                <th>Stock Disponible</th>
                                 <th>Acción</th>
                             </tr>
                         </thead>
@@ -428,7 +430,9 @@ function cargarProductos(idAlmacen, idUbicacion) {
             { "title": "Material" },
             { "title": "Tipo" },
             { "title": "Unidad" },
-            { "title": "Stock" },
+            { "title": "Stock Físico" },       // 👈 NUEVO
+            { "title": "Stock Reservado" },    // 👈 NUEVO
+            { "title": "Stock Disponible" },   // 👈 NUEVO
             { "title": "Acción" }
         ],
         "order": [[1, 'asc']],

@@ -171,7 +171,17 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
 
                                 foreach ($_FILES['documento']['name'] as $i => $nombre_original) {
                                     if (!empty($nombre_original)) {
-                                        $nombre_archivo = $entidad . "_" . $id_salida . "_" . time() . "_" . basename($nombre_original);
+                                        // --- Normalización del nombre ---
+                                        $nombre_limpio = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $nombre_original);
+                                        if ($nombre_limpio === false || trim($nombre_limpio) === '') {
+                                            $nombre_limpio = $nombre_original; // si iconv falla, usa el original
+                                        }
+
+                                        // reemplazar caracteres raros y espacios
+                                        $nombre_limpio = preg_replace('/[^A-Za-z0-9._-]/', '_', $nombre_limpio);
+                                        $nombre_limpio = trim($nombre_limpio, '_');
+            
+                                        $nombre_archivo = $entidad . "_" . $id_salida . "_" . time() . "_" . basename($nombre_limpio);
                                         $target_file = $target_dir . $nombre_archivo;
 
                                         if (move_uploaded_file($_FILES["documento"]["tmp_name"][$i], $target_file)) {

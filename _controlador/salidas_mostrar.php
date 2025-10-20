@@ -12,6 +12,7 @@ if (!verificarPermisoEspecifico('ver_salidas')) {
 }
 
 require_once("../_modelo/m_salidas.php");
+require_once("../_modelo/m_documentos.php");
 
 // ========================================================================
 // Filtro de fechas con valores por defecto automáticos

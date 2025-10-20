@@ -37,6 +37,7 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
             require_once("../_modelo/m_ubicacion.php");
             require_once("../_modelo/m_personal.php");
             require_once("../_modelo/m_tipo_material.php");
+            require_once("../_modelo/m_documentos.php");
 
             // Variables para mostrar alertas
             $mostrar_alerta = false;
@@ -84,6 +85,46 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
             $ubicaciones = MostrarUbicacionesActivas();
             $personal = MostrarPersonal();
             $material_tipos = MostrarMaterialTipoActivos();
+
+            //Cargar documentos asociados a la salida
+            $documentos = MostrarDocumentos('salidas', $id_salida);
+
+            // ============================================================
+            // SUBIR NUEVOS DOCUMENTOS (si se mandan)
+            // ============================================================
+            if (isset($_FILES['documento']) && count($_FILES['documento']['name']) > 0) {
+                $entidad = "salidas";
+                $target_dir = __DIR__ . "/../uploads/" . $entidad . "/";
+                if (!is_dir($target_dir)) {
+                    mkdir($target_dir, 0777, true);
+                }
+
+                foreach ($_FILES['documento']['name'] as $i => $nombre_original) {
+                    if (!empty($nombre_original)) {
+                        // Normalizar nombre del archivo
+                        $nombre_limpio = preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $nombre_original);
+                        $nombre_archivo = $entidad . "_" . $id_salida . "_" . time() . "_" . $nombre_limpio;
+                        $target_file = $target_dir . $nombre_archivo;
+
+                        if (move_uploaded_file($_FILES["documento"]["tmp_name"][$i], $target_file)) {
+                            GuardarDocumento($entidad, $id_salida, $nombre_archivo, $_SESSION['id_personal']);
+                        }
+                    }
+                }
+                // Refrescar documentos
+                $documentos = MostrarDocumentos('salidas', $id_salida);
+            }
+
+            // ============================================================
+            // ELIMINAR DOCUMENTO (AJAX)
+            // ============================================================
+            if (isset($_POST['eliminar_doc']) && isset($_POST['id_doc'])) {
+                $id_doc = intval($_POST['id_doc']);
+                $res = EliminarDocumento($id_doc);
+                echo json_encode(['success' => $res ? true : false]);
+                exit;
+            }
+
 
             //=======================================================================
             // CONTROLADOR 

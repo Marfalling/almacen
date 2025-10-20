@@ -185,6 +185,7 @@ foreach($salidas as $salida) {
     // Obtener detalles de la salida para el modal
     $salida_data = ConsultarSalida($salida['id_salida']);
     $salida_detalle = ConsultarSalidaDetalle($salida['id_salida']);
+    $salida_docs = MostrarDocumentos('salidas', $salida['id_salida']);
     
     if (!empty($salida_data)) {
         $salida_info = $salida_data[0];
@@ -285,6 +286,44 @@ foreach($salidas as $salida) {
                         <?php } else { ?>
                             <div class="alert alert-info">
                                 <i class="fa fa-info-circle"></i> No hay detalles disponibles para esta salida.
+                            </div>
+                        <?php } ?>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <h5><strong>Documentos Adjuntos</strong></h5>
+                        <?php if (!empty($salida_docs)) { ?>
+                            <table class="table table-striped table-bordered">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Nombre del Documento</th>
+                                        <th>Fecha de Subida</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php $i = 1; foreach ($salida_docs as $doc) { ?>
+                                    <tr>
+                                        <td><?= $i++; ?></td>
+                                        <td><?= htmlspecialchars($doc['documento']); ?></td>
+                                        <td><?= date('d/m/Y H:i', strtotime($doc['fec_subida'])); ?></td>
+                                        <td>
+                                            <a href="../uploads/salidas/<?= urlencode($doc['documento']); ?>" 
+                                            target="_blank" 
+                                            class="btn btn-sm btn-outline-info">
+                                                <i class="fa fa-download"></i> Ver / Descargar
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    <?php } ?>
+                                </tbody>
+                            </table>
+                        <?php } else { ?>
+                            <div class="alert alert-secondary mb-0">
+                                <i class="fa fa-info-circle"></i> No hay documentos adjuntos para esta salida.
                             </div>
                         <?php } ?>
                     </div>

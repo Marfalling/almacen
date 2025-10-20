@@ -523,6 +523,7 @@ function MostrarProductosConStockParaSalida($limit, $offset, $searchValue, $orde
                 COALESCE(SUM(CASE
                     WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden = 1 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
                     WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 2 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
+                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 4 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
                     ELSE 0
                 END), 0) AS stock_fisico,
 
@@ -540,6 +541,7 @@ function MostrarProductosConStockParaSalida($limit, $offset, $searchValue, $orde
                 COALESCE(SUM(CASE
                     WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden = 1 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
                     WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 2 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
+                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 4 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
                     ELSE 0
                 END), 0)
                 -
