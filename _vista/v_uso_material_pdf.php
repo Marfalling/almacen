@@ -11,13 +11,7 @@ $html = '
             margin: 15mm 10mm 15mm 10mm;
             size: A4;
         }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+
         body {
             font-family: Arial, sans-serif;
             font-size: 8pt;
@@ -25,13 +19,13 @@ $html = '
             color: #000;
             padding: 5px;
         }
-        
+
         .container {
             max-width: 100%;
             margin: 0 auto;
         }
-        
-        /* HEADER SECTION */
+
+        /* HEADER */
         .header {
             border: 2px solid #000;
             padding: 10px;
@@ -39,7 +33,7 @@ $html = '
             position: relative;
             height: 90px;
         }
-        
+
         .header-left {
             position: absolute;
             left: 15px;
@@ -47,7 +41,7 @@ $html = '
             font-size: 8pt;
             line-height: 1.1;
         }
-        
+
         .logo {
             width: 80px;
             margin-right: 15px;
@@ -59,18 +53,6 @@ $html = '
             max-height: 60px;
             object-fit: contain;
         }
-        
-        .logo-placeholder {
-            width: 100%;
-            height: 60px;
-            border: 1px solid #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 8pt;
-            font-weight: bold;
-            background-color: #f9f9f9;
-        }
 
         .header-right {
             position: absolute;
@@ -81,39 +63,19 @@ $html = '
             line-height: 1.3;
         }
 
-        /* CONTENEDOR PARA ALINEAR CUADROS */
+        /* ESTADO Y TÍTULO */
         .cuadros-container {
             position: relative;
             margin-bottom: 20px;
             min-height: 70px;
         }
 
-        /* TÍTULO Y NÚMERO DE USO */
-        .titulo-section {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: auto;
-        }
-
-        .uso-box {
-            border: 2px solid #000;
-            padding: 8px 15px;
-            text-align: center;
-            font-size: 12pt;
-            font-weight: bold;
-            background-color: #f0f0f0;
-            min-width: 150px;
-        }
-
-        /* ESTADO DEL USO DE MATERIAL */
         .estado-section {
             position: absolute;
             top: 0;
             left: 0;
-            width: auto;
         }
-        
+
         .estado-box {
             border: 2px solid #000;
             padding: 8px 15px;
@@ -124,145 +86,83 @@ $html = '
             min-width: 150px;
         }
 
+        .titulo-section {
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+
+        .titulo-salida {
+            border: 2px solid #000;
+            padding: 8px 15px;
+            text-align: center;
+            font-size: 12pt;
+            font-weight: bold;
+            background-color: #f0f0f0;
+            min-width: 180px;
+        }
+
         /* INFORMACIÓN GENERAL */
         .info-general {
-            margin-bottom: 15px;
             border: 1px solid #000;
             padding: 10px;
+            margin-bottom: 15px;
         }
 
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
+        .info-general div {
+            margin-bottom: 3px;
         }
 
-        .info-left, .info-right {
-            width: 48%;
-        }
-
-        .estado-badge {
-            display: inline-block;
-            padding: 8px 15px;
-            border-radius: 5px;
-            font-weight: bold;
-            font-size: 10pt;
-            color: white;
-        }
-
-        /* TABLA DE MATERIALES */
+        /* TABLA DE DETALLES */
         .detalles-table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 15px;
-            font-size: 7pt;
+            font-size: 8pt;
         }
-        
+
         .detalles-table th {
             background-color: #d0d0d0;
             border: 1px solid #000;
             padding: 6px 4px;
             text-align: center;
             font-weight: bold;
-            font-size: 8pt;
         }
-        
+
         .detalles-table td {
             border: 1px solid #000;
             padding: 4px 6px;
-            vertical-align: top;
         }
-        
-        .text-center { text-align: center; }
-        .text-left { text-align: left; }
-        .text-right { text-align: right; }
-        
-        .col-item { width: 8%; }
-        .col-cantidad { width: 12%; }
-        .col-unidad { width: 10%; }
-        .col-descripcion { width: 35%; }
-        .col-observaciones { width: 25%; }
-        .col-archivos { width: 10%; }
 
-        /* OBSERVACIONES GENERALES */
         .observaciones-section {
             border: 1px solid #000;
             padding: 10px;
-            margin-bottom: 25px;
-            min-height: 50px;
+            margin-bottom: 15px;
+            min-height: 60px;
         }
 
-        /* SECCIÓN DE FIRMAS - 3 COLUMNAS */
-        .firmas-section {
-            margin-top: 30px;
-            margin-bottom: 20px;
-            overflow: hidden;
-        }
-
-        .columnA {
-            float: left;
-            width: 33.3%;
-            padding: 10px;
-            text-align: center;
-            height: 80px;
-            border-top: 1px solid #000;
-        }
-
-        .columnB {
-            float: left;
-            width: 33.3%;
-            padding: 10px;
-            text-align: center;
-            height: 80px;
-            border-top: 1px solid #000;
-        }
-
-        .columnC {
-            float: left;
-            width: 33.3%;
-            padding: 10px;
-            text-align: center;
-            height: 80px;
-            border-top: 1px solid #000;
-        }
-
-        .firma-label {
-            font-size: 8pt;
+        .observaciones-header {
             font-weight: bold;
-            margin-top: 50px;
-            display: block;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 3px;
         }
 
-        /* FOOTER */
         .footer {
             text-align: center;
             font-size: 7pt;
             color: #666;
-            margin-top: 20px;
+            margin-top: 15px;
+            border-top: 1px solid #ddd;
+            padding-top: 8px;
         }
 
-        /* UTILIDADES */
-        .field-label {
-            font-weight: bold;
-            display: inline-block;
-            min-width: 100px;
-        }
-
-        .mb-5 { margin-bottom: 5px; }
-        .mb-10 { margin-bottom: 10px; }
-        .mb-15 { margin-bottom: 15px; }
-        .mb-20 { margin-bottom: 20px; }
-
-        .clearfix::after {
-            content: "";
-            display: table;
-            clear: both;
-        }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- HEADER -->
+
+        <!-- ENCABEZADO -->
         <div class="header">
             <div class="header-left">
                 <div class="logo">
@@ -277,19 +177,17 @@ $html = '
             </div>
         </div>
 
-        <!-- CONTENEDOR PARA CUADROS ALINEADOS -->
+        <!-- ESTADO Y TÍTULO -->
         <div class="cuadros-container">
-            <!-- ESTADO DEL USO DE MATERIAL -->
             <div class="estado-section">
                 <div class="estado-box">
                     ESTADO:<br>
-                    ' . $estado_texto . '
+                    <span>' . strtoupper($estado_texto) . '</span>
                 </div>
             </div>
 
-            <!-- TÍTULO DE USO DE MATERIAL -->
             <div class="titulo-section">
-                <div class="uso-box">
+                <div class="titulo-salida">
                     USO DE MATERIAL<br>
                     U00' . $numero_uso . '
                 </div>
@@ -298,36 +196,24 @@ $html = '
 
         <!-- INFORMACIÓN GENERAL -->
         <div class="info-general">
-            <div class="info-row">
-                <div class="info-left">
-                    <div class="mb-5"><span class="field-label">ALMACÉN:</span> ' . $nombre_almacen . '</div>
-                    <div class="mb-5"><span class="field-label">UBICACIÓN:</span> ' . $nombre_ubicacion . '</div>
-                    <div class="mb-5"><span class="field-label">OBRA:</span> ' . $nombre_obra . '</div>
-                </div>
-                <div class="info-right">
-                    <div class="mb-5"><span class="field-label">CLIENTE:</span> ' . $nombre_cliente . '</div>
-                    <div class="mb-5"><span class="field-label">FECHA USO:</span> ' . $fecha_uso . '</div>
-                </div>
-            </div>
-            <div class="info-row">
-                <div class="info-left">
-                    <div class="mb-5"><span class="field-label">SOLICITANTE:</span> ' . $nom_solicitante . '</div>
-                </div>
-                <div class="info-right">
-                    <div class="mb-5"><span class="field-label">REGISTRADO POR:</span> ' . $nom_registrado . '</div>
-                </div>
-            </div>
+            <div><strong>ALMACÉN:</strong> ' . $nombre_almacen . '</div>
+            <div><strong>UBICACIÓN:</strong> ' . $nombre_ubicacion . '</div>
+            <div><strong>OBRA:</strong> ' . $nombre_obra . '</div>
+            <div><strong>CLIENTE:</strong> ' . $nombre_cliente . '</div>
+            <div><strong>FECHA USO:</strong> ' . $fecha_uso . '</div>
+            <div><strong>SOLICITANTE:</strong> ' . $nom_solicitante . '</div>
+            <div><strong>REGISTRADO POR:</strong> ' . $nom_registrado . '</div>
         </div>
 
-        <!-- TABLA DE MATERIALES UTILIZADOS -->
+        <!-- TABLA DE MATERIALES -->
         <table class="detalles-table">
             <thead>
                 <tr>
-                    <th class="col-item">ÍTEM</th>
-                    <th class="col-cantidad">CANTIDAD</th>
-                    <th class="col-unidad">UNIDAD</th>
-                    <th class="col-descripcion">DESCRIPCIÓN DEL MATERIAL</th>
-                    <th class="col-observaciones">OBSERVACIONES</th>
+                    <th>ÍTEM</th>
+                    <th>CANTIDAD</th>
+                    <th>UNIDAD</th>
+                    <th>DESCRIPCIÓN DEL MATERIAL</th>
+                    <th>OBSERVACIONES</th>
                 </tr>
             </thead>
             <tbody>
@@ -335,19 +221,19 @@ $html = '
             </tbody>
         </table>
 
-        <!-- OBSERVACIONES GENERALES -->
+        <!-- OBSERVACIONES -->
         <div class="observaciones-section">
-            <div class="mb-10"><span class="field-label">OBSERVACIONES GENERALES:</span></div>
-            <div style="min-height: 30px;">
+            <div class="observaciones-header">OBSERVACIONES GENERALES:</div>
+            <div>
                 Este documento certifica el uso de los materiales detallados anteriormente, los cuales han sido 
                 extraídos del almacén ' . $nombre_almacen . ' para ser utilizados en la obra ' . $nombre_obra . '.
             </div>
         </div>
 
-        <!-- FOOTER -->
         <div class="footer">
             Generado el ' . $fecha_formateada . '
         </div>
+
     </div>
 </body>
 </html>';

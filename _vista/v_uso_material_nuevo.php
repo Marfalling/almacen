@@ -312,9 +312,9 @@ function cargarProductos(idAlmacen, idUbicacion) {
             { "title": "Material" },
             { "title": "Tipo" },
             { "title": "Unidad" },
-            { "title": "Stock Físico" },       // 👈 NUEVO
-            { "title": "Stock Reservado" },    // 👈 NUEVO
-            { "title": "Stock Disponible" },   // 👈 NUEVO
+            { "title": "Stock Físico" },       //  NUEVO
+            { "title": "Stock Reservado" },    //  NUEVO
+            { "title": "Stock Disponible" },   //  NUEVO
             { "title": "Acción" }
         ],
         "order": [[1, 'asc']],
