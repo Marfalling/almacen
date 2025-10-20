@@ -84,7 +84,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Nombre del Pedido <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="nom_pedido" class="form-control" value="<?php echo $pedido['nom_pedido']; ?>" placeholder="Nombre del Pedido" required>
+                                    <input type="text" name="nom_pedido" class="form-control" value="<?php echo $pedido['nom_pedido']; ?>" placeholder="Nombre del Pedido">
                                 </div>
                             </div>
 
@@ -226,18 +226,30 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                     
                                     <div class="row mt-2">
                                         <div class="col-md-6">
+                                            <label>N° OT/LCL/LCA del Material <span class="text-danger">*</span>:</label>
+                                            <input type="text" 
+                                                name="ot_detalle[]" 
+                                                class="form-control" 
+                                                value="<?php echo isset($detalle['ot_pedido_detalle']) ? htmlspecialchars($detalle['ot_pedido_detalle']) : ''; ?>" 
+                                                placeholder="Ingrese OT específico de este material" 
+                                                required>
+                                        </div>
+
+                                        <div class="col-md-6">
                                             <label>Observaciones:</label>
                                             <input type="text" name="observaciones[]" class="form-control"  
                                                 value="<?php echo $observaciones; ?>" placeholder="Observaciones o comentarios">
                                         </div>
-                                
+                            
+                                    </div>
+                                    
+                                    <div class="row mt-2">
+
                                         <div class="col-md-6">
                                             <label>Descripción SST/MA/CA <span class="text-danger">*</span>:</label>
                                             <input type="text" name="sst[]" class="form-control" value="<?php echo htmlspecialchars($sst_descripcion); ?>" placeholder="Requisitos de SST, MA y CA" required>
                                         </div>
-                                    </div>
-                                    
-                                    <div class="row mt-2">
+
                                         <div class="col-md-6">
                                             <label>Adjuntar Archivos:</label>
                                             <input type="hidden" name="id_detalle[]" value="<?php echo $detalle['id_pedido_detalle']; ?>">

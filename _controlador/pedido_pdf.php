@@ -103,6 +103,11 @@ $todos_requisitos = array();
 
 foreach ($pedido_detalle as $detalle) {
     $descripcion = htmlspecialchars($detalle['prod_pedido_detalle'], ENT_QUOTES, 'UTF-8');
+
+    $ot_material = '';
+    if (!empty($detalle['ot_pedido_detalle'])) {
+        $ot_material = htmlspecialchars($detalle['ot_pedido_detalle'], ENT_QUOTES, 'UTF-8');
+    }
     
     // Construir comentarios completos
     $comentarios_array = array();
@@ -181,6 +186,7 @@ if (!empty($detalle['archivos'])) {
         <td class="item-col text-center">' . $item . '</td>
         <td class="cantidad-col text-center">' . $cantidad_text . '</td>
         <td class="descripcion-col">' . $descripcion . '</td>
+        <td class="ot-col">' . (!empty($ot_material) ? $ot_material : '-') . '</td> 
         <td class="comentarios-col">
             <div class="comentarios-texto">' . $comentarios . '</div>
             ' . ($imagenes_html ? '<div class="imagenes-container">' . $imagenes_html . '</div>' : '') . '

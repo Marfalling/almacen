@@ -85,7 +85,7 @@
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Nombre del Pedido <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="nom_pedido" class="form-control" placeholder="Nombre del Pedido" required>
+                                    <input type="text" name="nom_pedido" class="form-control" placeholder="Nombre del Pedido">
                                 </div>
                             </div>
 
@@ -146,7 +146,7 @@
                                             <input type="hidden" name="id_material[]" value="">
                                         </div>
 
-                                         <div class="col-md-3">
+                                        <div class="col-md-3">
                                             <label>Unidad de Medida <span class="text-danger">*</span>:</label>
                                             <select name="unidad[]" class="form-control" required>
                                                 <option value="">Seleccionar</option>
@@ -157,30 +157,42 @@
                                                 <?php } ?>
                                             </select>
                                         </div>
+                                        
                                         <div class="col-md-3">
                                             <label>Cantidad <span class="text-danger">*</span>:</label>
                                             <input type="number" name="cantidad[]" class="form-control" step="0.01" min="0" required>
                                         </div>
                                     </div>
+                                    
+                                    <!-- NUEVA FILA PARA OT -->
                                     <div class="row mt-2">
+                                        <div class="col-md-6">
+                                            <label>Nº OT/LCL/LCA <span class="text-danger">*</span>:</label>
+                                            <input type="text" name="ot_detalle[]" class="form-control" placeholder="Número de OT/LCL/LCA" required>
+                                            <small class="form-text text-muted">Cada material debe tener su número de orden asignado</small>
+                                        </div>
+                                        
                                         <div class="col-md-6">
                                             <label>Observaciones:</label>
-                                            <input name="observaciones[]" class="form-control" placeholder="Observaciones o comentarios"></input>
-                                        </div>
-                                   
-                                    
-                                        <div class="col-md-6">
-                                            <label>Descripción SST/MA/CA <span class="text-danger">*</span>:</label>
-                                            <input name="sst[]" class="form-control" placeholder="Requisitos de SST, MA y CA" required></input>
+                                            <input name="observaciones[]" class="form-control" placeholder="Observaciones o comentarios">
                                         </div>
                                     </div>
+                                    
                                     <div class="row mt-2">
+                                        <div class="col-md-6">
+                                            <label>Descripción SST/MA/CA <span class="text-danger">*</span>:</label>
+                                            <input name="sst[]" class="form-control" placeholder="Requisitos de SST, MA y CA" required>
+                                        </div>
+                                        
                                         <div class="col-md-6">
                                             <label>Adjuntar Archivos:</label>
                                             <input type="file" name="archivos_0[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
                                             <small class="form-text text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, XLS. Máximo 5MB por archivo.</small>
                                         </div>
-                                        <div class="col-md-6 d-flex align-items-end">
+                                    </div>
+                                    
+                                    <div class="row mt-2">
+                                        <div class="col-md-12 d-flex justify-content-end">
                                             <button type="button" class="btn btn-danger btn-sm eliminar-material" style="display: none;">
                                                 <i class="fa fa-trash"></i> Eliminar
                                             </button>
@@ -821,6 +833,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         input.value = '';
                     } else if (input.tagName.toLowerCase() === 'select') {
                         input.selectedIndex = 0; // Seleccionar la primera opción (vacía)
+                    } else if (input.name === 'ot_detalle[]') {
+                        // Limpiar campo OT también
+                        input.value = '';
                     } else {
                         input.value = '';
                     }

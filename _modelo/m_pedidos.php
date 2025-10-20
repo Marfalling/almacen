@@ -45,6 +45,7 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
             $id_unidad = intval($material['unidad']);
             $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
             $sst_descripcion = mysqli_real_escape_string($con, $material['sst_descripcion']); 
+            $ot_detalle = mysqli_real_escape_string($con, $material['ot_detalle']);
             
             // Obtener el nombre de la unidad por su ID
             $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
@@ -57,11 +58,11 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
             
             $sql_detalle = "INSERT INTO pedido_detalle (
                                 id_pedido, id_producto, prod_pedido_detalle, 
-                                cant_pedido_detalle, cant_fin_pedido_detalle, 
+                                ot_pedido_detalle, cant_pedido_detalle, cant_fin_pedido_detalle, 
                                 com_pedido_detalle, req_pedido, est_pedido_detalle
                             ) VALUES (
                                 $id_pedido, $id_producto, '$descripcion',
-                                $cantidad, NULL, 
+                                 '$ot_detalle', $cantidad, NULL, 
                                 '$comentario_detalle', '$requisitos', 1
                             )";
             
@@ -364,6 +365,7 @@ function ConsultarPedidoDetalle($id_pedido)
     include("../_conexion/conexion.php");
 
     $sqlc = "SELECT pd.*, 
+             pd.ot_pedido_detalle,
              GROUP_CONCAT(
                 CASE 
                     WHEN pdd.est_pedido_detalle_documento = 1 
@@ -397,11 +399,9 @@ function ConsultarPedidoDetalle($id_pedido)
              ORDER BY pd.id_pedido_detalle";
              
     $resc = mysqli_query($con, $sqlc);
-
     $resultado = array();
 
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
-        // Limpiar archivos nulos o vacíos del GROUP_CONCAT
         if (!empty($rowc['archivos'])) {
             $archivos_array = explode(',', $rowc['archivos']);
             $archivos_limpio = array();
@@ -468,7 +468,8 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
             $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
             $sst_descripcion = mysqli_real_escape_string($con, $material['sst_descripcion']); // CAMBIO: campo único
             $id_detalle = isset($material['id_detalle']) ? intval($material['id_detalle']) : 0;
-            
+            $ot_detalle = mysqli_real_escape_string($con, $material['ot_detalle']);
+
             // OBTENER EL NOMBRE DE LA UNIDAD
             $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
             $resultado_unidad = mysqli_query($con, $sql_unidad);
@@ -484,6 +485,7 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
                 $sql_detalle = "UPDATE pedido_detalle SET 
                                 id_producto = $id_producto,
                                 prod_pedido_detalle = '$descripcion',
+                                ot_pedido_detalle = '$ot_detalle',
                                 cant_pedido_detalle = $cantidad,
                                 com_pedido_detalle = '$comentario_detalle',
                                 req_pedido = '$requisitos',
@@ -501,10 +503,11 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
                 // INSERTAR NUEVO DETALLE (solo para materiales completamente nuevos)
                 $sql_detalle = "INSERT INTO pedido_detalle (
                                     id_pedido, id_producto, prod_pedido_detalle, 
-                                    cant_pedido_detalle, cant_fin_pedido_detalle, 
+                                    ot_pedido_detalle,cant_pedido_detalle, cant_fin_pedido_detalle, 
                                     com_pedido_detalle, req_pedido, est_pedido_detalle
                                 ) VALUES (
                                     $id_pedido, $id_producto, '$descripcion', 
+                                    '$ot_detalle',
                                     $cantidad, NULL, 
                                     '$comentario_detalle', '$requisitos', 1
                                 )";

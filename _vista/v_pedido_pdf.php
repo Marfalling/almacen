@@ -155,6 +155,12 @@ $html = '
             width: 12%;
             text-align: center;
         }
+        .ot-col {
+            width: 12%;
+            text-align: center;
+            position: relative;
+
+        }
         
         .descripcion-col {
             width: 45%;
@@ -313,6 +319,7 @@ $html = '
                     <th class="item-col">ITEM</th>
                     <th class="cantidad-col">CANTIDAD</th>
                     <th class="descripcion-col">DESCRIPCIÓN DETALLADA</th>
+                    <th class="ot-col">OT</th>
                     <th class="comentarios-col">COMENTARIOS</th>
                 </tr>
             </thead>

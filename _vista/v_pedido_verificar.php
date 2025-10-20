@@ -96,13 +96,13 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                 $contador_detalle = 1;
                                 foreach ($pedido_detalle as $detalle) { 
                                         $detalle['cantidad_ya_ordenada'] = ObtenerCantidadYaOrdenada($id_pedido, $detalle['id_producto']);
-    $detalle['cantidad_pendiente'] = ObtenerCantidadPendienteOrdenar($id_pedido, $detalle['id_producto']);
-    
-    // 🔹 INICIALIZAR VARIABLES PARA EVITAR WARNINGS
-    $cantidad_pendiente = $detalle['cantidad_pendiente'];
-    $todo_ordenado = ($cantidad_pendiente <= 0);
-    $cantidad_pendiente_editar = $cantidad_pendiente;
-    $todo_ordenado_editar = $todo_ordenado;
+                                        $detalle['cantidad_pendiente'] = ObtenerCantidadPendienteOrdenar($id_pedido, $detalle['id_producto']);
+                                        
+                                    // INICIALIZAR VARIABLES PARA EVITAR WARNINGS
+                                    $cantidad_pendiente = $detalle['cantidad_pendiente'];
+                                    $todo_ordenado = ($cantidad_pendiente <= 0);
+                                    $cantidad_pendiente_editar = $cantidad_pendiente;
+                                    $todo_ordenado_editar = $todo_ordenado;
                                     $comentario = $detalle['com_pedido_detalle'];
                                     $unidad = '';
                                     $observaciones = '';
@@ -117,7 +117,7 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                     // Obtener directamente la descripción SST/MA/CA
                                     $descripcion_sst_completa = !empty($detalle['req_pedido']) ? $detalle['req_pedido'] : '';
                                     
-                                    // 🔹 CAMBIO DE TU COMPAÑERA: Usar cantidad_disponible_real
+                                    // Usar cantidad_disponible_real
                                     $esVerificado = !is_null($detalle['cant_fin_pedido_detalle']);
                                     $stockInsuficiente = $detalle['cantidad_disponible_real'] < $detalle['cant_pedido_detalle'];
                                     $pedidoAnulado = ($pedido['est_pedido'] == 0);
@@ -274,6 +274,10 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                 <div style="font-size: 11px; color: #333; line-height: 1.4;">
                                     <strong>Descripción:</strong> 
                                     <span style="color: #666;"><?php echo strlen($detalle['prod_pedido_detalle']) > 80 ? substr($detalle['prod_pedido_detalle'], 0, 80) . '...' : $detalle['prod_pedido_detalle']; ?></span>
+                                    <?php if (!empty($detalle['ot_pedido_detalle'])): ?>
+                                    <span style="margin: 0 8px;">|</span>
+                                    <strong>OT Material:</strong> <span><?php echo htmlspecialchars($detalle['ot_pedido_detalle']); ?></span>
+                                    <?php endif; ?>
                                     <span style="margin: 0 8px;">|</span>
                                     <strong>Cant:</strong> <?php echo $detalle['cant_pedido_detalle']; ?>
                                     <span style="margin: 0 8px;">|</span>

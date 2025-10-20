@@ -75,6 +75,7 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                     for ($i = 0; $i < count($_REQUEST['descripcion']); $i++) {
                         
                         $sst_descripcion = trim($_REQUEST['sst'][$i]);
+                        $ot_detalle = isset($_REQUEST['ot_detalle'][$i]) ? trim($_REQUEST['ot_detalle'][$i]) : '';
 
                         $materiales[] = array(
                             'id_producto' => $_REQUEST['id_material'][$i],
@@ -83,6 +84,7 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                             'unidad' => $_REQUEST['unidad'][$i],
                             'observaciones' => $_REQUEST['observaciones'][$i],
                             'sst_descripcion' => $sst_descripcion,  
+                            'ot_detalle' => $ot_detalle,
                             'id_detalle' => $_REQUEST['id_detalle'][$i]
                         );
                     }
