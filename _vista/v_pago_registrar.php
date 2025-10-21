@@ -274,10 +274,10 @@ function AnularPago(id_pago) {
                 </div>
                 <div class="form-group">
                     <label>Comprobante (archivo)</label>
-                    <input type="file" name="comprobante" class="form-control">
+                    <input type="file" name="comprobante" class="form-control" required>
                 </div>
                 <div class="form-group form-check">
-                    <input type="checkbox" class="form-check-input" name="enviar_correo" id="enviar_correo" value="1">
+                    <input type="checkbox" class="form-check-input" name="enviar_correo" id="enviar_correo" value="1" checked>
                     <label class="form-check-label" for="enviar_correo">Notificar por correo al proveedor</label>
                 </div>
             </div>

@@ -124,24 +124,57 @@
             <i class="fa fa-eye"></i>
         </button>
 
-        <?php
-        $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
-        
-        // Botón Editar Pedido - Solo si no tiene verificaciones
-        if ($pedido['tiene_verificados'] == 1 || $pedido['est_pedido_calc'] == 0 || $pedido['est_pedido_calc'] == 2 || $es_rechazado) { 
-            $titulo_editar = $es_rechazado ? "No se puede editar - Pedido rechazado" : "No se puede editar - Pedido verificado";
-        ?>
-            <a href="#" class="btn btn-outline-secondary btn-sm disabled" 
-               title="<?php echo $titulo_editar; ?>" tabindex="-1" aria-disabled="true">
-                <i class="fa fa-edit"></i>
-            </a>
-        <?php } else { ?>
-            <a href="pedidos_editar.php?id=<?php echo $pedido['id_pedido']; ?>" 
-               class="btn btn-warning btn-sm" 
-               title="Editar Pedido">
-                <i class="fa fa-edit"></i>
-            </a>
-        <?php } ?>
+<?php
+$es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
+
+//  BOTÓN EDITAR PEDIDO - LÓGICA CORREGIDA
+// Solo se puede editar si:
+// - Estado = 1 (Pendiente)
+// - NO tiene verificaciones (para MATERIALES)
+// - NO está rechazado
+// - NO es SERVICIO con órdenes creadas
+
+$puede_editar = false;
+$titulo_editar = '';
+
+if ($pedido['est_pedido'] == 0) {
+    // Anulado
+    $titulo_editar = "No se puede editar - Pedido anulado";
+} elseif ($pedido['est_pedido'] >= 3) {
+    // Aprobado (3), Ingresado (4) o Finalizado (5)
+    $estados = [
+        3 => "aprobado",
+        4 => "ingresado",
+        5 => "finalizado"
+    ];
+    $estado_nombre = $estados[$pedido['est_pedido']] ?? "procesado";
+    $titulo_editar = "No se puede editar - Pedido {$estado_nombre}";
+} elseif ($es_rechazado) {
+    // Todas las órdenes anuladas
+    $titulo_editar = "No se puede editar - Pedido rechazado";
+} elseif ($pedido['tiene_verificados'] == 1) {
+    // Tiene items verificados (solo aplica a MATERIALES)
+    $titulo_editar = "No se puede editar - Pedido con items verificados";
+} elseif ($pedido['est_pedido'] == 2) {
+    // Completado (tiene órdenes en proceso)
+    $titulo_editar = "No se puede editar - Pedido completado (órdenes en proceso)";
+} else {
+    // Estado 1 (Pendiente) y sin verificaciones → SE PUEDE EDITAR
+    $puede_editar = true;
+}
+
+if ($puede_editar) { ?>
+    <a href="pedidos_editar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+       class="btn btn-warning btn-sm" 
+       title="Editar Pedido">
+        <i class="fa fa-edit"></i>
+    </a>
+<?php } else { ?>
+    <a href="#" class="btn btn-outline-secondary btn-sm disabled" 
+       title="<?php echo $titulo_editar; ?>" tabindex="-1" aria-disabled="true">
+        <i class="fa fa-edit"></i>
+    </a>
+<?php } ?>
 
         <!-- NUEVO: Botón Ver/Editar Órdenes de Compra -->
         <?php 
@@ -199,26 +232,45 @@
         <?php } ?>
 
         <!-- Botón Verificar -->
-        <?php
-// LÓGICA CORREGIDA PARA EL BOTÓN VERIFICAR
-// Solo se puede verificar si está Pendiente (1) o Completado (2)
-$puede_verificar = ($pedido['est_pedido'] == 1 || $pedido['est_pedido'] == 2) && !$es_rechazado;
+<!-- Botón Verificar/Gestionar -->
+<?php
+//  LÓGICA SIMPLIFICADA Y CORREGIDA
+// Permitir acceso si:
+// - Estado = 1 (Pendiente) o 2 (Completado)
+// - NO está anulado (0)
+// - NO está finalizado (5)
 
-if ($puede_verificar) { ?>
+$puede_gestionar = (
+    ($pedido['est_pedido'] == 1 || $pedido['est_pedido'] == 2) 
+    && $pedido['est_pedido'] != 0
+    && $pedido['est_pedido'] != 5
+);
+
+
+if ($puede_gestionar) { ?>
     <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
        class="btn btn-success btn-sm" 
-       title="Verificar pedido">
+       title="Gestionar pedido">
         <i class="fa fa-check"></i>
     </a>
 <?php } else {
-    // Mensaje explicativo para el tooltip
     $titulo_verificar = '';
+    
     switch ($pedido['est_pedido']) {
-        case 0: $titulo_verificar = "No se puede verificar - Pedido anulado"; break;
-        case 3: $titulo_verificar = "No se puede verificar - Pedido aprobado"; break;
-        case 4: $titulo_verificar = "No se puede verificar - Pedido ingresado"; break;
-        case 5: $titulo_verificar = "No se puede verificar - Pedido finalizado"; break;
-        default: $titulo_verificar = $es_rechazado ? "No se puede verificar - Pedido rechazado" : "No disponible para verificación";
+        case 0: 
+            $titulo_verificar = "No se puede gestionar - Pedido anulado"; 
+            break;
+        case 3: 
+            $titulo_verificar = "No se puede gestionar - Pedido aprobado"; 
+            break;
+        case 4: 
+            $titulo_verificar = "No se puede gestionar - Pedido ingresado"; 
+            break;
+        case 5: 
+            $titulo_verificar = "No se puede gestionar - Pedido finalizado"; 
+            break;
+        default: 
+            $titulo_verificar = "No disponible";
     }
     ?>
     <a href="#" class="btn btn-outline-secondary btn-sm disabled"

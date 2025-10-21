@@ -2,7 +2,8 @@
 //-----------------------------------------------------------------------
 // Insertar nuevo pago de una compra
 //-----------------------------------------------------------------------
-function GrabarPago($id_compra, $id_proveedor_cuenta, $monto, $comprobante, $id_personal, $enviarCorreo = 0) {
+function GrabarPago($id_compra, $id_proveedor_cuenta, $monto, $comprobante, $id_personal, $enviarCorreo = 0) 
+{
     include("../_conexion/conexion.php");
 
     $id_compra = intval($id_compra);
@@ -25,7 +26,8 @@ function GrabarPago($id_compra, $id_proveedor_cuenta, $monto, $comprobante, $id_
     }
 
     // Escapar comprobante
-    $comprobante = mysqli_real_escape_string($con, $comprobante);
+    //$comprobante = mysqli_real_escape_string($con, $comprobante);
+    //$comprobante = trim($comprobante);
 
     // Insertar pago
     $sql = "INSERT INTO pago (id_compra, id_proveedor_cuenta, monto, comprobante, fec_pago, id_personal, enviar_correo)
@@ -46,8 +48,8 @@ function GrabarPago($id_compra, $id_proveedor_cuenta, $monto, $comprobante, $id_
     }
 
     // ================================================================
-// Enviar correo de confirmación al proveedor (si aplica)
-// ================================================================
+    // Enviar correo de confirmación al proveedor (si aplica)
+    // ================================================================
     if ($enviarCorreo) {
         require_once("m_proveedor.php");
         $prov = ObtenerProveedor($compra['id_proveedor']);
@@ -58,26 +60,134 @@ function GrabarPago($id_compra, $id_proveedor_cuenta, $monto, $comprobante, $id_
             // 📧 Datos del correo
             // ---------------------------------------
             $para = trim($prov['mail_proveedor']); // destinatario real
-            $asunto = "Confirmación de Pago - Orden de Compra #$id_compra";
-
+            $asunto = "Confirmación de Pago - Orden de Compra C00$id_compra";
+            $url_comprobante = "https://montajeseingenieriaarceperusac.pe/almacen/" . $comprobante;
             // Cuerpo HTML del correo
             $mensaje = "
-            <html>
-            <body style='font-family: Arial, sans-serif; color: #333;'>
-                <h2>Confirmación de Pago</h2>
-                <p>Estimado(a) <strong>{$prov['nom_proveedor']}</strong>,</p>
-                <p>Se ha registrado un pago de <strong>S/ " . number_format($monto, 2) . "</strong> 
-                correspondiente a su Orden de Compra <strong>#{$id_compra}</strong>.</p>
-                <p><strong>Saldo pendiente:</strong> S/ " . number_format($nuevoSaldo, 2) . "</p>
-                <p>Saludos cordiales,<br>Equipo de Compras ARCEPERU</p>
-            </body>
-            </html>";
+                    <html>
+                        <head>
+                            <meta charset='UTF-8'>
+                            <style>
+                                body {
+                                font-family: 'Segoe UI', Arial, sans-serif;
+                                background-color: #f4f6f8;
+                                color: #333;
+                                margin: 0;
+                                padding: 0;
+                                }
+                                .container {
+                                max-width: 600px;
+                                margin: 40px auto;
+                                background-color: #ffffff;
+                                border-radius: 10px;
+                                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                                overflow: hidden;
+                                }
+                                .header {
+                                background-color: #f57c00;
+                                color: #fff;
+                                text-align: center;
+                                padding: 20px 10px;
+                                }
+                                .header h2 {
+                                margin: 0;
+                                font-size: 22px;
+                                letter-spacing: 0.5px;
+                                }
+                                .content {
+                                padding: 30px 40px;
+                                line-height: 1.6;
+                                }
+                                .content p {
+                                margin-bottom: 15px;
+                                }
+                                .details {
+                                background-color: #f1f5ff;
+                                border-left: 4px solid #f57c00;
+                                padding: 15px 20px;
+                                border-radius: 6px;
+                                margin: 20px 0;
+                                }
+                                .details strong {
+                                display: inline-block;
+                                min-width: 160px;
+                                }
+                                .highlight {
+                                color: #f57c00;
+                                font-weight: bold;
+                                }
+
+                                .button {
+                                display: inline-block;
+                                background-color: #f57c00;
+                                color: #fff !important;
+                                text-decoration: none;
+                                padding: 12px 25px;
+                                border-radius: 6px;
+                                font-weight: bold;
+                                margin-top: 10px;
+                                transition: background-color 0.2s ease-in-out;
+                                }
+
+                                .button:hover {
+                                background-color: #e46a00;
+                                }
+                                .footer {
+                                background-color: #fafafa;
+                                text-align: center;
+                                font-size: 13px;
+                                color: #777;
+                                padding: 15px 10px;
+                                border-top: 1px solid #eee;
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class='container'>
+                                <div class='header'>
+                                <h2>Confirmación de Pago</h2>
+                                </div>
+                                <div class='content'>
+                                <p>Estimado(a) <strong>{$prov['nom_proveedor']}</strong>,</p>
+                                <p>
+                                    Le informamos que se ha registrado correctamente un pago correspondiente a su 
+                                    <strong>Orden de Compra C00{$id_compra}</strong>.
+                                </p>
+
+                                <div class='details'>
+                                    <p><strong>Monto pagado:</strong> S/ " . number_format($monto, 2) . "</p>
+                                    <p><strong>Saldo pendiente:</strong> S/ " . number_format($nuevoSaldo, 2) . "</p>
+                                </div>
+
+                                <p>
+                                    Puede revisar o descargar el comprobante de pago en el siguiente enlace:
+                                </p>
+
+                                <p style='text-align: center;'>
+                                    <a href='{$url_comprobante}' class='button' target='_blank'>Ver Comprobante de Pago</a>
+                                </p>
+
+                                <p>
+                                    Agradecemos su colaboración y atención. Si requiere mayor información o tiene consultas
+                                    sobre este pago, no dude en comunicarse con nuestro equipo de compras.
+                                </p>
+
+                                <p>Atentamente,<br>
+                                <strong>Equipo de Compras ARCE PERÚ</strong><br>
+                                <small>notificaciones@montajeseingenieriaarceperusac.pe</small></p>
+                                </div>
+                                <div class='footer'>
+                                © " . date('Y') . " ARCE PERÚ — Todos los derechos reservados
+                                </div>
+                            </div>
+                        </body>
+                    </html>";
 
             // Cabeceras del correo
             $cabeceras  = "MIME-Version: 1.0\r\n";
             $cabeceras .= "Content-type: text/html; charset=UTF-8\r\n";
-            $cabeceras .= "From: ARCEPERU <karengarcia9699@gmail.com>\r\n";
-            $cabeceras .= "Bcc: karengarcia9699@gmail.com\r\n";
+            $cabeceras .= "From: ARCE PERÚ <notificaciones@montajeseingenieriaarceperusac.pe>\r\n";
+            $cabeceras .= "Bcc: notificaciones@montajeseingenieriaarceperusac.pe\r\n";
             $cabeceras .= "X-Mailer: PHP/" . phpversion() . "\r\n";
 
             // ---------------------------------------
@@ -89,18 +199,17 @@ function GrabarPago($id_compra, $id_proveedor_cuenta, $monto, $comprobante, $id_
             // 🧾 Log de resultado
             // ---------------------------------------
             $log_msg = $ok 
-                ? "✅ MAIL OK → enviado a $para (OC $id_compra)" 
-                : "❌ MAIL FAIL → error al enviar a $para (OC $id_compra)";
+                ? "✅ MAIL OK → enviado a $para (OC C00$id_compra)" 
+                : "❌ MAIL FAIL → error al enviar a $para (OC C00$id_compra)";
             error_log($log_msg);
 
         } else {
-            error_log("⚠️ MAIL SKIP → proveedor sin correo electrónico (OC $id_compra)");
+            error_log("⚠️ MAIL SKIP → proveedor sin correo electrónico (OC C00$id_compra)");
         }
     }
     mysqli_close($con);
     return "SI";
 }
-
 //-----------------------------------------------------------------------
 // Listar pagos de una compra
 //-----------------------------------------------------------------------

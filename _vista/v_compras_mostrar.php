@@ -838,7 +838,6 @@ function EliminarDocumento(id_doc) {
 // ============================================================================
 // FUNCIÓN PARA VER DETALLES DE ORDEN DE COMPRA
 // ============================================================================
-
 function mostrarDetalleOrdenCompra(id_compra) {
     $('#modalDetalleOrdenCompra').modal('show');
     
@@ -846,7 +845,6 @@ function mostrarDetalleOrdenCompra(id_compra) {
     document.getElementById('contenido-detalle-compra-mostrar').style.display = 'none';
     document.getElementById('error-detalle-compra-mostrar').style.display = 'none';
     
-    // Actualizar enlace de PDF
     document.getElementById('btn-descargar-pdf-compra').href = 'compras_pdf.php?id=' + id_compra;
     
     const formData = new FormData();
@@ -875,7 +873,11 @@ function mostrarDetalleOrdenCompra(id_compra) {
 
 function mostrarContenidoDetalleCompra(compra, detalles) {
     const titulo = document.getElementById('modalDetalleOrdenCompraLabel');
-    titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de Compra - ORD-${compra.id_compra}`;
+    
+    const esServicio = compra.id_producto_tipo == 2;
+    const tipoOrden = esServicio ? 'Servicio' : 'Compra';
+    
+    titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de ${tipoOrden} - ORD-${compra.id_compra}`;
     
     const contenido = document.getElementById('contenido-detalle-compra-mostrar');
     const fechaFormateada = new Date(compra.fec_compra).toLocaleDateString('es-PE');
@@ -892,10 +894,17 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
         case 4: estadoTexto = 'Pagada'; estadoClase = 'primary'; break;
     }
     
+    const badgeTipo = esServicio 
+        ? '<span class="badge badge-primary ml-2">ORDEN DE SERVICIO</span>'
+        : '<span class="badge badge-info ml-2">ORDEN DE MATERIAL</span>';
+    
     let html = `
         <div class="card mb-3">
             <div class="card-header" style="background-color: #e3f2fd; padding: 10px 15px;">
-                <h6 class="mb-0"><i class="fa fa-info-circle text-primary"></i> Información General</h6>
+                <h6 class="mb-0">
+                    <i class="fa fa-info-circle text-primary"></i> Información General
+                    ${badgeTipo}
+                </h6>
             </div>
             <div class="card-body" style="padding: 15px;">
                 <div class="row">
@@ -913,7 +922,6 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
                     </div>
                 </div>`;
     
-    // 🔹 MOSTRAR BADGE DE DETRACCIÓN/RETENCIÓN/PERCEPCIÓN
     let tieneAfectacion = false;
     
     if (compra.nombre_detraccion && compra.porcentaje_detraccion) {
@@ -964,11 +972,10 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
     
     html += `</div></div>`;
     
-    // 🔹 TABLA DE PRODUCTOS
     html += `
         <div class="card">
             <div class="card-header" style="background-color: #e8f5e8; padding: 10px 15px;">
-                <h6 class="mb-0"><i class="fa fa-list-alt text-success"></i> Productos de la Orden</h6>
+                <h6 class="mb-0"><i class="fa fa-list-alt text-success"></i> ${esServicio ? 'Servicios' : 'Productos'} de la Orden</h6>
             </div>
             <div class="card-body" style="padding: 15px;">
                 <div class="table-responsive">
@@ -1014,10 +1021,8 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
     
     html += `</tbody></table></div><div class="row mt-3"><div class="col-md-12">`;
     
-    // Calcular TOTAL CON IGV
     const totalConIgv = subtotalGeneral + totalIgv;
     
-    // Determinar tipo de afectación
     let tipoAfectacion = null;
     let porcentaje = 0;
     let nombreConcepto = '';
@@ -1040,7 +1045,6 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
         montoAfectacion = (totalConIgv * porcentaje) / 100;
     }
     
-    // Calcular total final
     let totalFinal = 0;
     
     if (tipoAfectacion === 'DETRACCION') {
@@ -1053,7 +1057,6 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
         totalFinal = totalConIgv;
     }
     
-    // MOSTRAR RESUMEN
     html += `<div class="alert alert-light" style="margin-bottom: 10px; padding: 10px;">
                 <div style="font-size: 14px; text-align: center; margin-bottom: 5px;">
                     <i class="fa fa-calculator text-secondary"></i> <strong>SUBTOTAL:</strong> ${simboloMoneda} ${subtotalGeneral.toFixed(2)}
@@ -1098,7 +1101,6 @@ function mostrarErrorDetalleCompra(mensaje) {
     errorDiv.style.display = 'block';
 }
 
-// Event listener para botones de ver detalle
 document.addEventListener('click', function(event) {
     const btnVerDetalle = event.target.closest('.btn-ver-detalle-compra');
     if (btnVerDetalle) {
@@ -1108,19 +1110,20 @@ document.addEventListener('click', function(event) {
         mostrarDetalleOrdenCompra(idCompra);
     }
 });
+
 // ============================================================================
-// FUNCIONES PARA EDITAR ORDEN EN MODAL
+// FUNCIONES PARA EDITAR ORDEN EN MODAL (CON SOPORTE SERVICIOS)
 // ============================================================================
+
+let esOrdenServicioGlobal = false;
 
 function abrirModalEditarOrden(id_compra) {
     $('#modalEditarOrden').modal('show');
     
-    // Mostrar loading
     document.getElementById('loading-editar').style.display = 'block';
     document.getElementById('contenido-editar-orden').style.display = 'none';
     document.getElementById('error-editar-orden').style.display = 'none';
     
-    // Cargar datos de la orden
     fetch('compras_obtener_datos_edicion.php', {
         method: 'POST',
         headers: {
@@ -1133,6 +1136,8 @@ function abrirModalEditarOrden(id_compra) {
         document.getElementById('loading-editar').style.display = 'none';
         
         if (data.success) {
+            esOrdenServicioGlobal = (data.orden.id_producto_tipo == 2);
+            
             cargarDatosOrdenModal(data.orden, data.detalles, data.proveedores, data.detracciones);
             document.getElementById('contenido-editar-orden').style.display = 'block';
         } else {
@@ -1147,8 +1152,12 @@ function abrirModalEditarOrden(id_compra) {
 }
 
 function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
-    // Cargar datos básicos
-    document.getElementById('orden-numero').textContent = 'ORD-' + orden.id_compra;
+    const tipoOrden = esOrdenServicioGlobal ? 'Servicio' : 'Compra';
+    const badgeTipo = esOrdenServicioGlobal 
+        ? '<span class="badge badge-primary ml-2">SERVICIO</span>'
+        : '<span class="badge badge-info ml-2">MATERIAL</span>';
+    
+    document.getElementById('orden-numero').innerHTML = `ORD-${orden.id_compra} ${badgeTipo}`;
     document.getElementById('edit_id_compra').value = orden.id_compra;
     document.getElementById('edit_fecha_orden').value = orden.fec_compra.split(' ')[0];
     document.getElementById('edit_moneda_orden').value = orden.id_moneda;
@@ -1157,7 +1166,6 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
     document.getElementById('edit_observaciones_orden').value = orden.obs_compra || '';
     document.getElementById('edit_tipo_porte').value = orden.port_compra || '';
 
-    // Crear input hidden para items eliminados si no existe
     let inputEliminados = document.getElementById('edit_items_eliminados');
     if (!inputEliminados) {
         inputEliminados = document.createElement('input');
@@ -1170,7 +1178,6 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
         inputEliminados.value = '';
     }
     
-    // Cargar proveedores
     const selectProveedor = document.getElementById('edit_proveedor_orden');
     selectProveedor.innerHTML = '<option value="">Seleccionar...</option>';
     proveedores.forEach(prov => {
@@ -1181,12 +1188,10 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
         selectProveedor.appendChild(option);
     });
     
-    // Cargar DETRACCIÓN, RETENCIÓN Y PERCEPCIÓN
     const contenedorDetracciones = document.getElementById('edit_contenedor_detracciones');
     contenedorDetracciones.innerHTML = '';
     
     if (detracciones && detracciones.length > 0) {
-        // Agrupar por tipo
         const detracciones_tipo = {};
         detracciones.forEach(det => {
             const tipo = det.nom_detraccion_tipo.toUpperCase();
@@ -1196,10 +1201,8 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
             detracciones_tipo[tipo].push(det);
         });
         
-        // Crear secciones para cada tipo
         let html = '';
         
-        // DETRACCIÓN
         if (detracciones_tipo['DETRACCION']) {
             html += '<div class="mb-3"><label style="font-size: 12px; font-weight: bold;">Detracción:</label>';
             html += '<div style="padding: 8px; background-color: #fff3cd; border-radius: 4px; border: 1px solid #ffc107;">';
@@ -1228,7 +1231,6 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
             html += '</div><small class="form-text text-muted">Se aplica sobre el subtotal antes de IGV</small></div>';
         }
         
-        // RETENCIÓN
         if (detracciones_tipo['RETENCION']) {
             html += '<div class="mb-3"><label style="font-size: 12px; font-weight: bold;">Retención:</label>';
             html += '<div style="padding: 8px; background-color: #e7f3ff; border-radius: 4px; border: 1px solid #2196f3;">';
@@ -1257,7 +1259,6 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
             html += '</div><small class="form-text text-muted">Se aplica sobre el total después de IGV</small></div>';
         }
         
-        // PERCEPCIÓN
         if (detracciones_tipo['PERCEPCION']) {
             html += '<div class="mb-2"><label style="font-size: 12px; font-weight: bold;">Percepción:</label>';
             html += '<div style="padding: 8px; background-color: #e8f5e9; border-radius: 4px; border: 1px solid #4caf50;">';
@@ -1292,7 +1293,6 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
         contenedorDetracciones.innerHTML = '<p class="text-muted mb-0" style="font-size: 11px;"><i class="fa fa-info-circle"></i> No hay detracciones configuradas</p>';
     }
     
-    // 🔹 Configurar exclusividad de checkboxes
     document.querySelectorAll('.edit-detraccion-checkbox').forEach(cb => {
         cb.addEventListener('change', function() {
             if (this.checked) {
@@ -1332,7 +1332,6 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
         });
     });
     
-    // Cargar items
     const itemsContainer = document.getElementById('edit_items_container');
     itemsContainer.innerHTML = '';
 
@@ -1344,18 +1343,21 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
         const montoIgv = subtotal * (igvPorcentaje / 100);
         const total = subtotal + montoIgv;
         
+        const badgeItem = esOrdenServicioGlobal 
+            ? '<span class="badge badge-primary badge-sm ml-1">SERVICIO</span>'
+            : '<span class="badge badge-info badge-sm ml-1">MATERIAL</span>';
+        
         itemsContainer.innerHTML += `
             <div class="alert alert-light p-2 mb-2" id="edit_item_${item.id_compra_detalle}">
                 <input type="hidden" name="items_orden[${item.id_compra_detalle}][id_compra_detalle]" value="${item.id_compra_detalle}">
                 <input type="hidden" name="items_orden[${item.id_compra_detalle}][id_producto]" value="${item.id_producto}">
                 <input type="hidden" name="items_orden[${item.id_compra_detalle}][es_nuevo]" value="0">
                 
-                <!-- Descripción del producto -->
                 <div class="row align-items-center mb-2">
                     <div class="col-md-11">
                         <div style="font-size: 12px;">
                             <strong>Descripción:</strong> ${item.nom_producto}
-                            <span class="badge badge-info badge-sm ml-1">EDITANDO</span>
+                            ${badgeItem}
                         </div>
                     </div>
                     <div class="col-md-1 text-right">
@@ -1367,7 +1369,6 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
                     </div>
                 </div>
                 
-                <!-- Campos -->
                 <div class="row">
                     <div class="col-md-2">
                         <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Cantidad:</label>
@@ -1448,7 +1449,6 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
         `;
     });
     
-    // Configurar eventos de cálculo
     document.querySelectorAll('.edit-cantidad-item, .edit-precio-item, .edit-igv-item').forEach(input => {
         input.addEventListener('input', function() {
             const idDetalle = this.getAttribute('data-id-detalle');
@@ -1473,7 +1473,6 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
         });
     });
     
-    // Configurar eventos de remover items
     document.querySelectorAll('.btn-remover-item').forEach(btn => {
         btn.addEventListener('click', function() {
             const idDetalle = this.getAttribute('data-id-detalle');
@@ -1503,7 +1502,6 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
         });
     });
     
-    // Evento para cambio de moneda
     document.getElementById('edit_moneda_orden').addEventListener('change', function() {
         const simbolo = this.value == 1 ? 'S/.' : 'US$';
         document.querySelectorAll('.edit-simbolo-moneda').forEach(el => {
@@ -1512,7 +1510,6 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
         calcularTotalOrdenModal();
     });
     
-    // Calcular total inicial
     calcularTotalOrdenModal();
 }
 
@@ -1541,7 +1538,6 @@ function calcularTotalOrdenModal() {
     
     const totalConIgv = subtotalGeneral + totalIgv;
     
-    //  Determinar tipo de afectación (SOLO UNA puede estar activa)
     let tipoAfectacion = null;
     let porcentaje = 0;
     let nombreConcepto = '';
@@ -1568,7 +1564,6 @@ function calcularTotalOrdenModal() {
         montoAfectacion = (totalConIgv * porcentaje) / 100;
     }
     
-    // CALCULAR TOTAL FINAL
     let totalFinal = 0;
     
     if (tipoAfectacion === 'DETRACCION') {
@@ -1637,7 +1632,7 @@ function calcularTotalOrdenModal() {
     
     document.getElementById('edit_total_orden').innerHTML = html;
 }
-// Guardar cambios
+
 document.getElementById('btn-guardar-edicion-orden').addEventListener('click', function() {
     const form = document.getElementById('form-editar-orden-modal');
     
@@ -1646,7 +1641,6 @@ document.getElementById('btn-guardar-edicion-orden').addEventListener('click', f
         return;
     }
     
-    // Validar que haya al menos un item
     const itemsContainer = document.getElementById('edit_items_container');
     const items = itemsContainer.querySelectorAll('[id^="edit_item_"]');
     
@@ -1659,13 +1653,39 @@ document.getElementById('btn-guardar-edicion-orden').addEventListener('click', f
         return;
     }
     
+    const erroresValidacion = validarCantidadesModal(items);
+    
+    if (erroresValidacion.length > 0) {
+        const tipoOrden = esOrdenServicioGlobal ? 'servicio' : 'material';
+        
+        let mensajeHTML = '<div style="text-align: left; padding: 10px;">' +
+                        `<p style="margin-bottom: 10px;"><strong>No se puede guardar la orden de ${tipoOrden}:</strong></p>` +
+                        '<ul style="color: #dc3545; font-size: 13px; margin-left: 20px;">';
+        
+        erroresValidacion.forEach(error => {
+            mensajeHTML += `<li style="margin-bottom: 8px;">${error}</li>`;
+        });
+        
+        mensajeHTML += '</ul></div>';
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Cantidad No Permitida',
+            html: mensajeHTML,
+            confirmButtonColor: '#d33',
+            confirmButtonText: '<i class="fa fa-times"></i> Entendido',
+            allowOutsideClick: false
+        });
+        
+        return;
+    }
+    
     const btnGuardar = this;
     btnGuardar.disabled = true;
     btnGuardar.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Guardando...';
     
     const formData = new FormData(form);
     
-    // 🔹 IMPORTANTE: Asegurar que los archivos se envíen correctamente
     const inputsFile = form.querySelectorAll('input[type="file"]');
     inputsFile.forEach(input => {
         if (input.files.length > 0) {
@@ -1691,7 +1711,6 @@ document.getElementById('btn-guardar-edicion-orden').addEventListener('click', f
                 location.reload();
             });
         } else {
-            //  USAR EL TIPO DE ERROR ENVIADO DESDE EL SERVIDOR
             const esValidacion = data.tipo === 'validacion';
             
             Swal.fire({
@@ -1723,11 +1742,29 @@ document.getElementById('btn-guardar-edicion-orden').addEventListener('click', f
     });
 });
 
-// Limpiar modal al cerrar
+function validarCantidadesModal(itemsOrden) {
+    const errores = [];
+    
+    itemsOrden.forEach(itemElement => {
+        const cantidadInput = itemElement.querySelector('.edit-cantidad-item');
+        
+        if (!cantidadInput) return;
+        
+        const cantidadNueva = parseFloat(cantidadInput.value) || 0;
+        
+        if (cantidadNueva <= 0) {
+            const descripcion = itemElement.querySelector('strong').nextSibling.textContent.trim();
+            errores.push(`<strong>${descripcion}:</strong> La cantidad debe ser mayor a 0`);
+        }
+    });
+    
+    return errores;
+}
+
 document.getElementById('modalEditarOrden').addEventListener('hidden.bs.modal', function () {
     document.getElementById('form-editar-orden-modal').reset();
     document.getElementById('edit_items_container').innerHTML = '';
     document.getElementById('edit_total_orden').innerHTML = '';
+    esOrdenServicioGlobal = false;
 });
-
 </script>
