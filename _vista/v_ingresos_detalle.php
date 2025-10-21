@@ -116,8 +116,16 @@
                                                 <td><?php echo $detalle_ingreso['compra']['registrado_por'] ?? 'No especificado'; ?></td>
                                             </tr>
                                             <tr>
-                                                <td><strong>Aprobado Por:</strong></td>
-                                                <td><?php echo $detalle_ingreso['compra']['aprobado_por'] ?? 'Pendiente'; ?></td>
+                                                <td><strong>Aprobación Técnica Por:</strong></td>
+                                                <td>
+                                                    <?php echo $detalle_ingreso['compra']['aprobado_tecnica_por'] ?? 'Pendiente'; ?>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Aprobación Financiera Por:</strong></td>
+                                                <td>
+                                                    <?php echo $detalle_ingreso['compra']['aprobado_financiera_por'] ?? 'Pendiente'; ?>
+                                                </td>
                                             </tr>
                                         </table>
                                     </div>

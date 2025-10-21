@@ -20,13 +20,15 @@ function ObtenerDetalleIngresoPorCompra($id_compra)
                     pr.nom_proveedor,
                     al.nom_almacen,
                     pe1.nom_personal as registrado_por,
-                    pe2.nom_personal as aprobado_por
+                    pe2.nom_personal as aprobado_tecnica_por,
+                    pe3.nom_personal as aprobado_financiera_por
                 FROM compra c
                 INNER JOIN pedido p ON c.id_pedido = p.id_pedido
                 INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
                 INNER JOIN almacen al ON p.id_almacen = al.id_almacen
                 LEFT JOIN {$bd_complemento}.personal pe1 ON c.id_personal = pe1.id_personal
-                LEFT JOIN {$bd_complemento}.personal pe2 ON c.id_personal_aprueba = pe2.id_personal
+                LEFT JOIN {$bd_complemento}.personal pe2 ON c.id_personal_aprueba_tecnica  = pe2.id_personal
+                LEFT JOIN {$bd_complemento}.personal pe3 ON c.id_personal_aprueba_financiera  = pe3.id_personal
                 WHERE c.id_compra = '$id_compra'";
                 
     $resultado_compra = mysqli_query($con, $sql_compra);
@@ -155,7 +157,8 @@ function MostrarComprasAprobadas()
                 p.cod_pedido,
                 pr.nom_proveedor,
                 pe1.nom_personal as registrado_por,
-                pe2.nom_personal as aprobado_por,
+                pe2.nom_personal as aprobado_tecnica_por,
+                pe3.nom_personal as aprobado_financiera_por,
                 al.nom_almacen,
                 ub.nom_ubicacion,
                 mon.nom_moneda,
@@ -174,7 +177,8 @@ function MostrarComprasAprobadas()
             INNER JOIN ubicacion ub ON p.id_ubicacion = ub.id_ubicacion
             INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
             LEFT JOIN {$bd_complemento}.personal pe1 ON c.id_personal = pe1.id_personal
-            LEFT JOIN {$bd_complemento}.personal pe2 ON c.id_personal_aprueba = pe2.id_personal
+            LEFT JOIN {$bd_complemento}.personal pe2 ON c.id_personal_aprueba_tecnica = pe2.id_personal
+            LEFT JOIN {$bd_complemento}.personal pe3 ON c.id_personal_aprueba_financiera = pe3.id_personal
             WHERE c.est_compra IN (2, 3)  -- Compras aprobadas (2) y cerradas (3)
             ORDER BY c.fec_compra DESC";
             
@@ -972,7 +976,8 @@ function MostrarTodosLosIngresos()
                 p.cod_pedido,
                 pr.nom_proveedor as origen,
                 pe1.nom_personal as registrado_por,
-                pe2.nom_personal as aprobado_por,
+                pe2.nom_personal as aprobado_tecnica_por,
+                pe3.nom_personal as aprobado_financiera_por,
                 al.nom_almacen,
                 ub.nom_ubicacion,
                 mon.nom_moneda,
@@ -1000,7 +1005,8 @@ function MostrarTodosLosIngresos()
             INNER JOIN ubicacion ub ON p.id_ubicacion = ub.id_ubicacion
             INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
             LEFT JOIN {$bd_complemento}.personal pe1 ON c.id_personal = pe1.id_personal
-            LEFT JOIN {$bd_complemento}.personal pe2 ON c.id_personal_aprueba = pe2.id_personal
+            LEFT JOIN {$bd_complemento}.personal pe2 ON c.id_personal_aprueba_tecnica = pe2.id_personal
+            LEFT JOIN {$bd_complemento}.personal pe3 ON c.id_personal_aprueba_financiera = pe3.id_personal
             WHERE c.est_compra IN (1, 2, 3, 4)  -- ✅ INCLUYE ESTADO 1 (Pendiente)
             AND c.id_personal_aprueba_tecnica IS NOT NULL
             AND c.id_personal_aprueba_financiera IS NOT NULL
@@ -1017,7 +1023,8 @@ function MostrarTodosLosIngresos()
                 CAST(NULL AS CHAR) as cod_pedido, 
                 CONCAT(cl.nom_cliente, ' - ', ob.nom_subestacion) as origen,
                 pe.nom_personal as registrado_por,
-                NULL as aprobado_por,
+                NULL as aprobado_tecnica_por,
+                NULL as aprobado_financiera_por,
                 al.nom_almacen,
                 ub.nom_ubicacion,
                 'N/A' as nom_moneda,
@@ -1079,7 +1086,8 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
                 p.cod_pedido,
                 pr.nom_proveedor AS origen,
                 pe1.nom_personal AS registrado_por,
-                pe2.nom_personal AS aprobado_por,
+                pe2.nom_personal AS aprobado_tecnica_por,
+                pe3.nom_personal AS aprobado_financiera_por,
                 al.nom_almacen,
                 ub.nom_ubicacion,
                 mon.nom_moneda,
@@ -1117,7 +1125,8 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
             INNER JOIN ubicacion ub ON p.id_ubicacion = ub.id_ubicacion
             INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
             LEFT JOIN {$bd_complemento}.personal pe1 ON c.id_personal = pe1.id_personal
-            LEFT JOIN {$bd_complemento}.personal pe2 ON c.id_personal_aprueba = pe2.id_personal
+            LEFT JOIN {$bd_complemento}.personal pe2 ON c.id_personal_aprueba_tecnica = pe2.id_personal
+            LEFT JOIN {$bd_complemento}.personal pe3 ON c.id_personal_aprueba_financiera = pe3.id_personal
             WHERE c.est_compra IN (1, 2, 3, 4) $whereCompras  -- ✅ mantenido igual
             AND c.id_personal_aprueba_tecnica IS NOT NULL     -- ✅ mantenido igual
             AND c.id_personal_aprueba_financiera IS NOT NULL -- ✅ mantenido igual
@@ -1137,7 +1146,8 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
                 CAST(NULL AS CHAR) as cod_pedido, 
                 CONCAT(cl.nom_cliente, ' - ', ob.nom_subestacion) as origen,
                 pe.nom_personal as registrado_por,
-                NULL as aprobado_por,
+                NULL as aprobado_tecnica_por,
+                NULL as aprobado_financiera_por,
                 al.nom_almacen,
                 ub.nom_ubicacion,
                 'N/A' as nom_moneda,
