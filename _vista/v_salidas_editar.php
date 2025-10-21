@@ -535,6 +535,30 @@ function cargarProductos(idAlmacen, idUbicacion, tipoMaterial = '') {
 }
 
 function seleccionarProducto(idProducto, nombreProducto, stockDisponible) {
+    // 🔹 Verificar si el producto ya está seleccionado en algún material-item
+    const materialItems = document.querySelectorAll('.material-item');
+    let productoExistente = null;
+
+    materialItems.forEach(item => {
+        const inputId = item.querySelector('input[name="id_producto[]"]');
+        if (inputId && parseInt(inputId.value) === parseInt(idProducto)) {
+            productoExistente = item;
+        }
+    });
+
+    if (productoExistente) {
+        // 🔸 Producto ya existe → resaltarlo y mostrar aviso
+        productoExistente.classList.add('duplicado-resaltado');
+        productoExistente.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        setTimeout(() => productoExistente.classList.remove('duplicado-resaltado'), 2000);
+
+        $('#buscar_producto').modal('hide');
+        mostrarAlerta('warning', 'Producto ya seleccionado',
+            `El producto "${nombreProducto}" ya está agregado en la lista.`);
+
+        return; // detener aquí
+    }
     if (currentSearchButton) {
         let materialItem = currentSearchButton.closest('.material-item');
         
@@ -1033,3 +1057,12 @@ $('#buscar_producto').on('hidden.bs.modal', function () {
     currentSearchButton = null;
 });
 </script>
+
+<style>
+.duplicado-resaltado {
+    background-color: #ffe6e6 !important; /* rojo pálido */
+    border: 2px solid #ff4d4d !important;
+    box-shadow: 0 0 10px rgba(255, 77, 77, 0.6);
+    transition: all 0.3s ease;
+}
+</style>

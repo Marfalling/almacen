@@ -87,7 +87,7 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
             $material_tipos = MostrarMaterialTipoActivos();
             $id_almacen_actual = $devolucion_datos[0]['id_almacen'];
             $id_cliente_actual = $devolucion_datos[0]['id_cliente_destino'] ?? null;
-
+            $nom_cliente_actual = $devolucion_datos[0]['nom_cliente_destino'] ?? null;
 
             //=======================================================================
             // CONTROLADOR 

@@ -534,6 +534,31 @@ function cargarProductos(idAlmacen, idUbicacion, tipoMaterial = '') {
 }
 
 function seleccionarProducto(idProducto, nombreProducto, stockDisponible) {
+    // 🔹 Verificar si el producto ya está seleccionado en algún material-item
+    const materialItems = document.querySelectorAll('.material-item');
+    let productoExistente = null;
+
+    materialItems.forEach(item => {
+        const inputId = item.querySelector('input[name="id_producto[]"]');
+        if (inputId && parseInt(inputId.value) === parseInt(idProducto)) {
+            productoExistente = item;
+        }
+    });
+
+    if (productoExistente) {
+        // 🔸 Producto ya existe → resaltarlo y mostrar aviso
+        productoExistente.classList.add('duplicado-resaltado');
+        productoExistente.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        setTimeout(() => productoExistente.classList.remove('duplicado-resaltado'), 2000);
+
+        $('#buscar_producto').modal('hide');
+        mostrarAlerta('warning', 'Producto ya seleccionado',
+            `El producto "${nombreProducto}" ya está agregado en la lista.`);
+
+        return; // detener aquí
+    }
+    
     if (currentSearchButton) {
         let materialItem = currentSearchButton.closest('.material-item');
         
@@ -891,8 +916,111 @@ document.addEventListener('DOMContentLoaded', function() {
     const ubicacionOrigen = document.getElementById('id_ubicacion_origen');
     
     if (almacenOrigen && ubicacionOrigen) {
-        almacenOrigen.addEventListener('change', actualizarStocks);
-        ubicacionOrigen.addEventListener('change', actualizarStocks);
+        // Cambiar almacén origen con confirmación
+        almacenOrigen.addEventListener('change', function() {
+            const valorAnterior = this.dataset.valorAnterior || '';
+            const valorActual = this.value;
+            const hayMateriales = document.querySelectorAll('.material-item input[name="id_producto[]"]').length > 0;
+
+            if (valorAnterior && valorAnterior !== valorActual && hayMateriales) {
+                Swal.fire({
+                    title: '¿Cambiar almacén de origen?',
+                    text: 'Se eliminarán todos los materiales agregados.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, cambiar',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        limpiarTodosMateriales();
+                        actualizarStocks();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Almacén cambiado',
+                            text: 'Los materiales fueron eliminados.',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                        this.dataset.valorAnterior = valorActual;
+                    } else {
+                        this.value = valorAnterior;
+                    }
+                });
+            } else {
+                limpiarTodosMateriales();
+                actualizarStocks();
+                this.dataset.valorAnterior = valorActual;
+            }
+        });
+
+        // Cambiar ubicación origen con confirmación
+        ubicacionOrigen.addEventListener('change', function() {
+            const valorAnterior = this.dataset.valorAnterior || '';
+            const valorActual = this.value;
+            const hayMateriales = document.querySelectorAll('.material-item input[name="id_producto[]"]').length > 0;
+
+            if (valorAnterior && valorAnterior !== valorActual && hayMateriales) {
+                Swal.fire({
+                    title: '¿Cambiar ubicación?',
+                    text: 'Se eliminarán todos los materiales agregados.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, cambiar',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        limpiarTodosMateriales();
+                        actualizarStocks();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Ubicación cambiada',
+                            text: 'Los materiales fueron eliminados.',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                        this.dataset.valorAnterior = valorActual;
+                    } else {
+                        this.value = valorAnterior;
+                    }
+                });
+            } else {
+                limpiarTodosMateriales();
+                actualizarStocks();
+                this.dataset.valorAnterior = valorActual;
+            }
+        });
+
+        // Guardar valor previo al enfocar
+        [almacenOrigen, ubicacionOrigen].forEach(sel => {
+            sel.addEventListener('focus', function() {
+                this.dataset.valorAnterior = this.value;
+            });
+        });
+    }
+
+    // --- Limpia todos los materiales del formulario ---
+    function limpiarTodosMateriales() {
+        const contenedor = document.getElementById('contenedor-materiales');
+        if (!contenedor) return;
+
+        const items = contenedor.querySelectorAll('.material-item');
+        items.forEach((item, i) => {
+            if (i > 0) item.remove(); // elimina todos menos el primero
+        });
+
+        const primero = contenedor.querySelector('.material-item');
+        if (primero) {
+            primero.querySelectorAll('input, textarea, select').forEach(input => {
+                if (input.type !== 'button') input.value = '';
+            });
+
+            const stockElement = primero.querySelector('[id^="stock-disponible-"]');
+            if (stockElement) stockElement.textContent = '0.00';
+        }
     }
     
     function actualizarStocks() {
@@ -965,3 +1093,12 @@ $('#buscar_producto').on('hidden.bs.modal', function () {
     currentSearchButton = null;
 });
 </script>
+
+<style>
+.duplicado-resaltado {
+    background-color: #ffe6e6 !important; /* rojo pálido */
+    border: 2px solid #ff4d4d !important;
+    box-shadow: 0 0 10px rgba(255, 77, 77, 0.6);
+    transition: all 0.3s ease;
+}
+</style>

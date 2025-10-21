@@ -520,12 +520,13 @@ function MostrarProductosConStockParaSalida($limit, $offset, $searchValue, $orde
                 -- ==============================================
                 -- CÁLCULO DE STOCK FÍSICO (movimientos reales)
                 -- ==============================================
-                COALESCE(SUM(CASE
-                    WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden = 1 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
-                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 2 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
-                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 4 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
-                    ELSE 0
-                END), 0) AS stock_fisico,
+                COALESCE(SUM(
+                    CASE
+                        WHEN mov.tipo_orden <> 5 AND mov.tipo_movimiento = 1 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                        WHEN mov.tipo_orden <> 5 AND mov.tipo_movimiento = 2 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
+                        ELSE 0
+                    END
+                ), 0) AS stock_fisico,
 
                 -- ==============================================
                 -- CÁLCULO DE STOCK COMPROMETIDO (pedidos)
@@ -538,12 +539,13 @@ function MostrarProductosConStockParaSalida($limit, $offset, $searchValue, $orde
                 -- ==============================================
                 -- STOCK DISPONIBLE = físico - comprometido
                 -- ==============================================
-                COALESCE(SUM(CASE
-                    WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden = 1 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
-                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 2 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
-                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 4 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
-                    ELSE 0
-                END), 0)
+                COALESCE(SUM(
+                    CASE
+                        WHEN mov.tipo_orden <> 5 AND mov.tipo_movimiento = 1 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                        WHEN mov.tipo_orden <> 5 AND mov.tipo_movimiento = 2 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
+                        ELSE 0
+                    END
+                ), 0)
                 -
                 COALESCE(SUM(CASE
                     WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 5 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
@@ -564,10 +566,10 @@ function MostrarProductosConStockParaSalida($limit, $offset, $searchValue, $orde
             AND um.est_unidad_medida = 1";
 
     // VALIDACIÓN: Excluir material tipo "NA" (id = 1)
-    $sql .= " AND mt.id_material_tipo != 1";
+    //$sql .= " AND mt.id_material_tipo != 1";
 
     // Filtrar por tipo de material si se especifica y no es "NA"
-    if ($tipoMaterial > 0 && $tipoMaterial != 1) {
+    if ($tipoMaterial > 0) { //if ($tipoMaterial > 0 && $tipoMaterial != 1)
         $sql .= " AND mt.id_material_tipo = $tipoMaterial";
     }
 

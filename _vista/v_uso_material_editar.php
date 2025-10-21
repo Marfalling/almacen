@@ -458,6 +458,30 @@ function cargarProductos(idAlmacen, idUbicacion) {
 
 // Función para seleccionar producto
 function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisponible) {
+    // Buscar si el producto ya está en la lista
+    const materialItems = document.querySelectorAll('.material-item');
+    let productoExistente = null;
+
+    materialItems.forEach(item => {
+        const inputId = item.querySelector('input[name="id_producto[]"]');
+        if (inputId && parseInt(inputId.value) === parseInt(idProducto)) {
+            productoExistente = item;
+        }
+    });
+
+    if (productoExistente) {
+        // Producto ya existe → resaltarlo visualmente
+        productoExistente.classList.add('duplicado-resaltado');
+        productoExistente.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Quitar resaltado después de unos segundos
+        setTimeout(() => productoExistente.classList.remove('duplicado-resaltado'), 2000);
+
+        // Cerrar modal y mostrar aviso visual (sin alert)
+        $('#buscar_producto').modal('hide');
+        return; // Detiene aquí, no lo agrega de nuevo
+    }
+    
     if (currentSearchButton) {
         let materialItem = currentSearchButton.closest('.material-item');
         

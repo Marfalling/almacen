@@ -273,7 +273,7 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cl
             
             if (mysqli_query($con, $sql_detalle)) {
                 
-                if ($id_cliente_destino == 1) {
+                if ($id_cliente_destino == 9) {
                     // DEVOLUCIÓN A ARCE
                     
                     // Resta origen
@@ -294,7 +294,7 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cl
                                         id_ubicacion, tipo_orden, tipo_movimiento, 
                                         cant_movimiento, fec_movimiento, est_movimiento
                                       ) VALUES (
-                                        $id_personal, $id_devolucion, $id_producto, 1, 
+                                        $id_personal, $id_devolucion, $id_producto, 3, 
                                         1, 3, 1, 
                                         $cantidad, NOW(), 1
                                       )";
@@ -330,13 +330,33 @@ function ObtenerStockDisponible($id_producto, $id_almacen, $id_ubicacion)
 {
     include("../_conexion/conexion.php");
 
-    $sql = "SELECT COALESCE(
-                SUM(CASE
-                    WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
-                    WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+    $sql = "SELECT 
+                -- STOCK FÍSICO (entradas - salidas), sin contar tipo_orden = 5
+                COALESCE(SUM(CASE
+                    WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden <> 5 THEN mov.cant_movimiento
+                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento
                     ELSE 0
-                END), 0
-            ) AS stock_disponible
+                END), 0) AS stock_fisico,
+
+                -- STOCK COMPROMETIDO (pedidos activos tipo_orden = 5)
+                COALESCE(SUM(CASE
+                    WHEN mov.tipo_orden = 5 THEN mov.cant_movimiento
+                    ELSE 0
+                END), 0) AS stock_comprometido,
+
+                -- STOCK DISPONIBLE (físico - comprometido)
+                (
+                    COALESCE(SUM(CASE
+                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden <> 5 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento
+                        ELSE 0
+                    END), 0)
+                    -
+                    COALESCE(SUM(CASE
+                        WHEN mov.tipo_orden = 5 THEN mov.cant_movimiento
+                        ELSE 0
+                    END), 0)
+                ) AS stock_disponible
             FROM movimiento mov
             WHERE mov.id_producto = $id_producto 
             AND mov.id_almacen = $id_almacen 

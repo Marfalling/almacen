@@ -34,32 +34,22 @@
                             
                             <!-- Información básica -->
                             <div class="form-group row">
-                                <label class="control-label col-md-3">Almacén <span class="text-danger">*</span>:</label>
-                                <div class="col-md-9">
-                                    <select id="id_almacen" name="id_almacen" class="form-control" required>
-                                        <option value="">Seleccionar Almacén</option>
-                                        <?php foreach ($almacenes as $almacen) { ?>
-                                            <option value="<?php echo $almacen['id_almacen']; ?>"
-                                                <?php echo ($almacen['id_almacen'] == $devolucion_datos[0]['id_almacen']) ? 'selected' : ''; ?>>
-                                                <?php echo $almacen['nom_almacen']; ?>
-                                            </option>
-                                        <?php } ?>
-                                    </select>
+                                <label class="control-label col-md-3 col-sm-3">Almacén:</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" class="form-control" 
+                                        value="<?php echo $devolucion_datos[0]['nom_almacen']; ?>" readonly>
+                                    <input type="hidden" name="id_almacen" 
+                                        value="<?php echo $devolucion_datos[0]['id_almacen']; ?>">
                                 </div>
                             </div>
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3">Ubicación <span class="text-danger">*</span>:</label>
-                                <div class="col-md-9">
-                                    <select id="id_ubicacion" name="id_ubicacion" class="form-control" required>
-                                        <option value="">Seleccionar Ubicación</option>
-                                        <?php foreach ($ubicaciones as $ubicacion) { ?>
-                                            <option value="<?php echo $ubicacion['id_ubicacion']; ?>"
-                                                <?php echo ($ubicacion['id_ubicacion'] == $devolucion_datos[0]['id_ubicacion']) ? 'selected' : ''; ?>>
-                                                <?php echo $ubicacion['nom_ubicacion']; ?>
-                                            </option>
-                                        <?php } ?>
-                                    </select>
+                                <label class="control-label col-md-3 col-sm-3">Ubicación:</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" class="form-control" 
+                                        value="<?php echo $devolucion_datos[0]['nom_ubicacion']; ?>" readonly>
+                                    <input type="hidden" name="id_ubicacion" 
+                                        value="<?php echo $devolucion_datos[0]['id_ubicacion']; ?>">
                                 </div>
                             </div>
 
@@ -86,17 +76,19 @@
                             </div>
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3">Cliente destino <span class="text-danger">*</span>:</label>
-                                <div class="col-md-9">
-                                    <select 
-                                        id="id_cliente_destino" 
-                                        name="id_cliente_destino" 
+                                <label class="control-label col-md-3 col-sm-3">Cliente destino:</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input 
+                                        type="text" 
                                         class="form-control" 
-                                        required
-                                        data-cliente-actual="<?php echo $id_cliente_actual; ?>"
+                                        value="<?php echo htmlspecialchars($devolucion_datos[0]['nom_cliente_destino']); ?>" 
+                                        readonly
                                     >
-                                        <option value="">Seleccionar Cliente</option>
-                                    </select>
+                                    <input 
+                                        type="hidden" 
+                                        name="id_cliente_destino" 
+                                        value="<?php echo htmlspecialchars($devolucion_datos[0]['id_cliente_destino']); ?>"
+                                    >
                                 </div>
                             </div>
 
@@ -118,7 +110,7 @@
                                         <div class="col-md-6">
                                             <label>Material <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
-                                                <input type="text" name="descripcion[]" class="form-control" 
+                                                <input type="text" readonly name="descripcion[]" class="form-control" 
                                                        placeholder="Material" 
                                                        value="<?php echo htmlspecialchars($detalle['det_devolucion_detalle']); ?>" required>
                                                 <input type="hidden" name="id_producto[]" value="<?php echo $detalle['id_producto']; ?>">
@@ -139,7 +131,7 @@
                                                 // Calcular stock disponible actual + cantidad ya asignada
                                                 $stock_actual = ObtenerStockDisponible($detalle['id_producto'], $devolucion_datos[0]['id_almacen'], $devolucion_datos[0]['id_ubicacion']);
                                                 // si el cliente destino es ARCE (id = 1) no se suma la devolución
-                                                if ($devolucion_datos[0]['id_cliente_destino'] == 9) {
+                                                if ($devolucion_datos[0]['id_almacen']==3 && $devolucion_datos[0]['id_ubicacion']==1 && $devolucion_datos[0]['id_cliente_destino'] == 9) {
                                                     $stock_con_devolucion = $stock_actual;
                                                 } else {
                                                     // stock actual + cantidad previamente registrada
@@ -307,6 +299,30 @@ function cargarProductos(idAlmacen, idUbicacion) {
 }
 
 function seleccionarProducto(idProducto, nombreProducto, stockDisponible) {
+    // Buscar si el producto ya está en la lista
+    const materialItems = document.querySelectorAll('.material-item');
+    let productoExistente = null;
+
+    materialItems.forEach(item => {
+        const inputId = item.querySelector('input[name="id_producto[]"]');
+        if (inputId && parseInt(inputId.value) === parseInt(idProducto)) {
+            productoExistente = item;
+        }
+    });
+
+    if (productoExistente) {
+        // Producto ya existe → resaltarlo visualmente
+        productoExistente.classList.add('duplicado-resaltado');
+        productoExistente.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Quitar resaltado después de unos segundos
+        setTimeout(() => productoExistente.classList.remove('duplicado-resaltado'), 2000);
+
+        // Cerrar modal y mostrar aviso visual (sin alert)
+        $('#buscar_producto').modal('hide');
+        return; // Detiene aquí, no lo agrega de nuevo
+    }
+
     if (currentSearchButton) {
         let materialItem = currentSearchButton.closest('.material-item');
 
@@ -456,8 +472,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const ubicacionSelect = document.getElementById('id_ubicacion');
 
     if (almacenSelect && ubicacionSelect) {
-        almacenSelect.addEventListener('change', actualizarStocks);
-        ubicacionSelect.addEventListener('change', actualizarStocks);
+        almacenSelect.addEventListener('change', function() {
+            limpiarTodosMateriales();  // limpia productos al cambiar almacén
+            actualizarStocks();        // refresca stock
+        });
+
+        ubicacionSelect.addEventListener('change', function() {
+            limpiarTodosMateriales();  // limpia productos al cambiar ubicación
+            actualizarStocks();        // refresca stock
+        });
+    }
+
+        // --- Limpia todos los materiales del formulario ---
+    function limpiarTodosMateriales() {
+        const contenedor = document.getElementById('contenedor-materiales');
+        if (!contenedor) return;
+
+        const items = contenedor.querySelectorAll('.material-item');
+        items.forEach((item, i) => {
+            if (i > 0) item.remove(); // elimina todos menos el primero
+        });
+
+        const primero = contenedor.querySelector('.material-item');
+        if (primero) {
+            primero.querySelectorAll('input, textarea, select').forEach(input => {
+                if (input.type !== 'button') input.value = '';
+            });
+
+            const stockElement = primero.querySelector('[id^="stock-disponible-"]');
+            if (stockElement) stockElement.textContent = '0.00';
+        }
     }
 
     function actualizarStocks() {
@@ -586,32 +630,41 @@ document.addEventListener("DOMContentLoaded", function () {
 document.addEventListener('DOMContentLoaded', function() {
     const selectAlmacen = document.getElementById('id_almacen');
     const selectCliente = document.getElementById('id_cliente_destino');
-    const clienteActual = selectCliente.dataset.clienteActual;
+    if (!selectAlmacen || !selectCliente) return; // <-- ✅ evita el error si no existen
 
     // 🔹 Cargar clientes por almacén
     function cargarClientes(idAlmacen, clienteSeleccionado = null) {
-        selectCliente.innerHTML = '<option value="">Seleccionar Cliente</option>';
+        console.log('📦 Cargando clientes para almacén:', idAlmacen);
+
+        selectCliente.innerHTML = '<option value="">Cargando clientes...</option>';
         if (!idAlmacen) return;
 
         fetch('../_controlador/clientes_por_almacen.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'id_almacen=' + idAlmacen
+            body: 'id_almacen=' + encodeURIComponent(idAlmacen)
         })
         .then(res => res.json())
         .then(data => {
+            console.log('✅ Respuesta del servidor:', data);
+
+            selectCliente.innerHTML = '<option value="">Seleccionar Cliente</option>';
             let tieneArce = false;
 
-            data.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c.id_cliente;
-                opt.textContent = c.nom_cliente;
-                if (String(c.id_cliente) === String(clienteSeleccionado)) {
-                    opt.selected = true;
-                }
-                selectCliente.appendChild(opt);
-                if (parseInt(c.id_cliente) === 9) tieneArce = true;
-            });
+            if (Array.isArray(data) && data.length > 0) {
+                data.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id_cliente;
+                    opt.textContent = c.nom_cliente;
+                    if (String(c.id_cliente) === String(clienteSeleccionado)) {
+                        opt.selected = true;
+                    }
+                    selectCliente.appendChild(opt);
+                    if (parseInt(c.id_cliente) === 9) tieneArce = true;
+                });
+            } else {
+                console.warn('⚠️ No se encontraron clientes para este almacén.');
+            }
 
             // Agregar cliente ARCE si no está
             if (!tieneArce) {
@@ -621,8 +674,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (String(clienteSeleccionado) === '9') optArce.selected = true;
                 selectCliente.appendChild(optArce);
             }
+
+            // 🔹 Dejar el select bloqueado (solo lectura)
+            selectCliente.disabled = true;
+            selectCliente.style.backgroundColor = "#f9f9f9";
+            selectCliente.style.cursor = "not-allowed";
         })
-        .catch(err => console.error('Error al cargar clientes:', err));
+        .catch(err => {
+            console.error('❌ Error al cargar clientes:', err);
+            selectCliente.innerHTML = '<option value="">Error al cargar clientes</option>';
+        });
     }
 
     // 🔹 Cuando cambia el almacén
@@ -637,3 +698,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<style>
+.duplicado-resaltado {
+    background-color: #ffe6e6 !important; /* rojo pálido */
+    border: 2px solid #ff4d4d !important;
+    box-shadow: 0 0 10px rgba(255, 77, 77, 0.6);
+    transition: all 0.3s ease;
+}
+</style>
