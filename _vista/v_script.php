@@ -86,3 +86,52 @@
         }
         //-----------------------------------------------------------------------------  
     </script>
+
+<!-- Select2 -->
+<link href="../_complemento/vendors/select2/dist/css/select2.min.css" rel="stylesheet">
+<script src="../_complemento/vendors/select2/dist/js/select2.full.min.js"></script>
+
+<!-- Solicitante -->
+<script>
+$(document).ready(function() {
+
+  // Inicializar Select2 para el campo Solicitante
+  const $solicitante = $('#id_solicitante');
+
+  if ($solicitante.length) {
+    $solicitante.select2({
+      placeholder: 'Seleccionar solicitante...',
+      allowClear: true,
+      width: '100%',
+      minimumInputLength: 0,
+      language: {
+        noResults: function() { return "No se encontraron resultados"; },
+        searching: function() { return "Buscando..."; },
+      },
+    });
+  }
+
+});
+</script>
+
+<!-- Proveedor -->
+<script>
+$(document).ready(function() {
+
+  // Inicializar Select2 para el campo Proveedor
+  const $proveedor = $('#proveedor_orden');
+
+  if ($proveedor.length) {
+    $proveedor.select2({
+      placeholder: 'Seleecionar proveedor...',
+      allowClear: true,
+      width: '100%',
+      minimumInputLength: 0, // Muestra todos los proveedores al hacer clic
+      language: {
+        noResults: function() { return "No se encontraron resultados"; },
+        searching: function() { return "Buscando..."; }
+      }
+    });
+  }
+});
+</script>

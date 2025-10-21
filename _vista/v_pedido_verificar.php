@@ -566,21 +566,30 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                                     value="<?php echo $modo_editar && $orden_data ? date('Y-m-d', strtotime($orden_data['fec_compra'])) : date('Y-m-d'); ?>" 
                                                     style="font-size: 12px;" required>
                                             </div>
-                                            <div class="col-md-6">
-                                                <label style="font-size: 11px; font-weight: bold;">Proveedor: <span class="text-danger">*</span></label>
-                                                <div class="input-group">
-                                                    <select class="form-control form-control-sm" id="proveedor_orden" name="proveedor_orden" 
-                                                            style="font-size: 12px;" required>
-                                                        <option value="">Seleccionar proveedor...</option>
-                                                        <?php
-                                                        foreach ($proveedor as $prov) {
-                                                            $selected = ($modo_editar && $orden_data && $orden_data['id_proveedor'] == $prov['id_proveedor']) ? 'selected' : '';
-                                                            echo '<option value="' . htmlspecialchars($prov['id_proveedor']) . '" ' . $selected . '>' . htmlspecialchars($prov['nom_proveedor']) . '</option>';
-                                                        }
-                                                        ?>
-                                                    </select>
-                                                    <div class="input-group-append" style="margin-left: 8px;">
-                                                        <button type="button" class="btn btn-info btn-sm" id="btn-agregar-proveedor" title="Agregar nuevo proveedor">
+
+                                            <!-- Proveedor -->
+                                            <div class="col-md-5">
+                                                <div class="form-group mb-3">
+                                                    <label class="mb-1" style="font-size:11px;font-weight:bold;">
+                                                        Proveedor: <span class="text-danger">*</span>
+                                                    </label>
+
+                                                    <div class="proveedor-row d-flex align-items-center">
+                                                        <select id="proveedor_orden" name="proveedor_orden"
+                                                                class="form-control form-control-sm flex-grow-1"
+                                                                style="font-size:12px;" required>
+                                                            <option value="">Seleccionar proveedor...</option>
+                                                            <?php foreach ($proveedor as $prov) {
+                                                                $sel = ($modo_editar && $orden_data && $orden_data['id_proveedor']==$prov['id_proveedor']) ? 'selected' : '';
+                                                                echo '<option value="'.htmlspecialchars($prov['id_proveedor']).'" '.$sel.'>'.
+                                                                        htmlspecialchars($prov['nom_proveedor']).'</option>';
+                                                            } ?>
+                                                        </select>
+
+                                                        <button type="button"
+                                                                class="btn btn-info btn-sm btn-plus"
+                                                                id="btn-agregar-proveedor"
+                                                                title="Agregar Proveedor">
                                                             <i class="fa fa-plus"></i>
                                                         </button>
                                                     </div>

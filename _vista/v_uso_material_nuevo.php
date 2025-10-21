@@ -54,10 +54,11 @@
                                 </div>
                             </div>
 
+                            <!-- Solicitante -->
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Solicitante <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <select name="id_solicitante" class="form-control" required>
+                                    <select name="id_solicitante" id="id_solicitante" class="form-control" required>
                                         <option value="">Seleccionar</option>
                                         <?php foreach ($personal as $persona) { ?>
                                             <option value="<?php echo $persona['id_personal']; ?>" 
@@ -650,26 +651,3 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- ===================== -->
-<!-- Librerías Select2 -->
-<!-- ===================== -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-<!-- ===================== -->
-<!-- Inicialización Select2 -->
-<!-- ===================== -->
-<script>
-$(document).ready(function() {
-    $('select[name="id_solicitante"]').select2({
-        placeholder: "Seleccionar solicitante",
-        allowClear: true,
-        width: '100%',
-        language: {
-            noResults: function() {
-                return "No se encontraron resultados";
-            }
-        }
-    });
-});
-</script>
