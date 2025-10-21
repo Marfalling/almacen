@@ -20,7 +20,6 @@ $fecha_orden = isset($_POST['fecha_orden']) ? $_POST['fecha_orden'] : date('Y-m-
 $items = isset($_POST['items_orden']) ? $_POST['items_orden'] : [];
 $items_eliminados = isset($_POST['items_eliminados']) ? $_POST['items_eliminados'] : '';
 
-//  Capturar detracción, retención y percepción
 $id_detraccion = null;
 $id_retencion = null;
 $id_percepcion = null;
@@ -49,8 +48,10 @@ try {
     // PASO 1: Verificar que la orden esté en estado válido para edición
     $sql_check = "SELECT c.est_compra, c.id_pedido,
                          c.id_personal_aprueba_tecnica,
-                         c.id_personal_aprueba_financiera
+                         c.id_personal_aprueba_financiera,
+                         p.id_producto_tipo
                   FROM compra c 
+                  INNER JOIN pedido p ON c.id_pedido = p.id_pedido
                   WHERE c.id_compra = ?";
     $stmt_check = $con->prepare($sql_check);
     $stmt_check->bind_param("i", $id_compra);
@@ -75,6 +76,9 @@ try {
     }
 
     $id_pedido = $compra_check['id_pedido'];
+    
+    // 🔹 DETECTAR TIPO DE ORDEN
+    $es_orden_servicio = ($compra_check['id_producto_tipo'] == 2);
 
     // PASO 2: Procesar items eliminados
     $productos_afectados = [];
@@ -140,22 +144,42 @@ try {
         }
     }
 
-    // PASO 5: Actualizar la orden usando la función del modelo
-    $resultado = ActualizarOrdenCompra(
-        $id_compra,
-        $proveedor,
-        $moneda,
-        $observacion,
-        $direccion,
-        $plazo_entrega,
-        $porte,
-        $fecha_orden,
-        $items_actualizar,
-        $id_detraccion,
-        $archivos_homologacion,
-        $id_retencion,
-        $id_percepcion
-    );
+    // 🔹 PASO 5: ACTUALIZAR LA ORDEN SEGÚN TIPO
+    if ($es_orden_servicio) {
+        // ORDEN DE SERVICIO
+        $resultado = ActualizarOrdenServicio(
+            $id_compra,
+            $proveedor,
+            $moneda,
+            $observacion,
+            $direccion,
+            $plazo_entrega,
+            $porte,
+            $fecha_orden,
+            $items_actualizar,
+            $id_detraccion,
+            $archivos_homologacion,
+            $id_retencion,
+            $id_percepcion
+        );
+    } else {
+        // ORDEN DE MATERIAL
+        $resultado = ActualizarOrdenCompra(
+            $id_compra,
+            $proveedor,
+            $moneda,
+            $observacion,
+            $direccion,
+            $plazo_entrega,
+            $porte,
+            $fecha_orden,
+            $items_actualizar,
+            $id_detraccion,
+            $archivos_homologacion,
+            $id_retencion,
+            $id_percepcion
+        );
+    }
 
     if ($resultado != "SI") {
         // Detectar si es un error de validación de cantidades
@@ -166,7 +190,7 @@ try {
             echo json_encode([
                 'success' => false,
                 'message' => $mensaje_limpio,
-                'tipo' => 'validacion' //  Indicador de tipo de error
+                'tipo' => 'validacion' // Indicador de tipo de error
             ]);
         } else {
             // Es otro tipo de error
@@ -185,9 +209,12 @@ try {
         VerificarReaperturaItem($id_pedido, $id_producto);
     }
 
+    //  MENSAJE SEGÚN TIPO
+    $tipo_mensaje = $es_orden_servicio ? 'servicio' : 'compra';
+
     echo json_encode([
         'success' => true,
-        'message' => 'Orden actualizada exitosamente'
+        'message' => "Orden de {$tipo_mensaje} actualizada exitosamente"
     ]);
 
 } catch (Exception $e) {

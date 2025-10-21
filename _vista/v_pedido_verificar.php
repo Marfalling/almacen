@@ -14,6 +14,10 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                 <h3>Verificar Pedido <?php 
                     echo $modo_editar ? '- Editando Orden' : ''; 
                     echo $pedido_anulado ? ' - PEDIDO ANULADO' : '';
+
+                    if ($pedido['id_producto_tipo'] == 2) {
+                        echo ' <span class="badge badge-primary">ORDEN DE SERVICIO</span>';
+                    }
                 ?></h3>
             </div>
         </div>
@@ -92,12 +96,24 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                         
                     <div class="x_content" style="max-height: 650px; overflow-y: auto; padding: 5px;">
                         <div id="contenedor-pendientes">
-                            <?php 
-                                $contador_detalle = 1;
-                                foreach ($pedido_detalle as $detalle) { 
-                                        $detalle['cantidad_ya_ordenada'] = ObtenerCantidadYaOrdenada($id_pedido, $detalle['id_producto']);
-                                        $detalle['cantidad_pendiente'] = ObtenerCantidadPendienteOrdenar($id_pedido, $detalle['id_producto']);
-                                        
+<?php 
+$contador_detalle = 1;
+foreach ($pedido_detalle as $detalle) { 
+    // 🔹 CORRECCIÓN: Usar cantidad original (cant_pedido_detalle) para servicios
+    if ($pedido['id_producto_tipo'] == 2) {
+        // ORDEN DE SERVICIO - usar cantidad ORIGINAL del pedido
+        $cantidad_original = floatval($detalle['cant_pedido_detalle']);
+        $detalle['cantidad_ya_ordenada'] = ObtenerCantidadYaOrdenadaServicio($id_pedido, $detalle['id_producto']);
+        $detalle['cantidad_pendiente'] = $cantidad_original - $detalle['cantidad_ya_ordenada'];
+    } else {
+        // ORDEN DE MATERIALES - usar cantidad VERIFICADA
+        $detalle['cantidad_ya_ordenada'] = ObtenerCantidadYaOrdenada($id_pedido, $detalle['id_producto']);
+        $detalle['cantidad_pendiente'] = ObtenerCantidadPendienteOrdenar($id_pedido, $detalle['id_producto']);
+    }
+    
+    $todo_ordenado = ($detalle['cantidad_pendiente'] <= 0);
+
+
                                     // INICIALIZAR VARIABLES PARA EVITAR WARNINGS
                                     $cantidad_pendiente = $detalle['cantidad_pendiente'];
                                     $todo_ordenado = ($cantidad_pendiente <= 0);
@@ -181,126 +197,224 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                 >
                                 
                                 
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="<?php echo $claseTexto; ?>" style="font-weight: 600; font-size: 14px;">
-                                        <i class="fa <?php echo $icono; ?>"></i> Item <?php echo $contador_detalle; ?> - <?php echo $estadoTexto; ?>
-                                    </span>
-                                    <span>
-                                        Stock Disponible/Almacén:
-                                        <?php echo $detalle['cantidad_disponible_real']; ?> /
-                                        <?php echo $detalle['cantidad_disponible_almacen']; ?>
-                                    </span>
-                                    <?php if ($esAutoOrden) { ?>
-                                        <span class="badge badge-primary" style="font-size: 10px; padding: 2px 6px;">
-                                            <i class="fa fa-cog"></i> En Orden Automática
-                                        </span>
-                                        
-                                        <div class="datos-auto-orden" style="display: none;"
-                                            data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                            data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                            data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
-                                            data-cantidad="<?php echo $detalle['cant_pedido_detalle']; ?>">
-                                        </div>
-                                                                            
-                                    <?php 
-                                    } elseif (!$esVerificado && $stockInsuficiente && !$pedidoAnulado) { ?>
-                                        <button type="button" class="btn btn-success btn-xs verificar-btn"
-                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                data-cantidad-actual="<?php echo $detalle['cant_pedido_detalle']; ?>"
-                                                data-cantidad-almacen="<?php echo $detalle['cantidad_disponible_almacen']; ?>"
-                                                title="Verificar Item" style="padding: 2px 8px; font-size: 11px;">
-                                            Verificar
-                                        </button>
-
-                                    <?php 
-                                        // CALCULAR SI HAY CANTIDAD PENDIENTE DE ORDENAR
-                                        $cantidad_pendiente = ObtenerCantidadPendienteOrdenar($id_pedido, $detalle['id_producto']);
-                                        $todo_ordenado = ($cantidad_pendiente <= 0);
-
-                                    } elseif ($esVerificado && $stockInsuficiente && $detalle['est_pedido_detalle'] != 2 && !$modo_editar && !$pedidoAnulado && !$todo_ordenado) { ?>
-
-                                        <button type="button" 
-                                                class="btn btn-primary btn-xs btn-agregarOrden" 
-                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
-                                                data-cantidad-verificada="<?php echo htmlspecialchars($detalle['cant_fin_pedido_detalle']); ?>"
-                                                data-cantidad-ordenada="<?php echo $detalle['cantidad_ya_ordenada']; ?>"
-                                                title="Agregar a Orden" 
-                                                style="padding: 2px 8px; font-size: 11px;">
-                                            <i class="fa fa-check"></i> Agregar a Orden
-                                        </button>
-
-                                    <?php 
-                                        // CALCULAR SI HAY CANTIDAD PENDIENTE (modo editar)
-                                        $cantidad_pendiente_editar = ObtenerCantidadPendienteOrdenar($id_pedido, $detalle['id_producto']);
-                                        $todo_ordenado_editar = ($cantidad_pendiente_editar <= 0);
-
-                                    } elseif ($esVerificado && $stockInsuficiente && $detalle['est_pedido_detalle'] != 2 && $modo_editar && !$enOrdenActual && !$pedidoAnulado && !$todo_ordenado_editar) { ?>
-                                        <button type="button" 
-                                                class="btn btn-primary btn-xs btn-agregarOrden" 
-                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
-                                                data-cantidad-verificada="<?php echo htmlspecialchars($detalle['cant_fin_pedido_detalle']); ?>"
-                                                data-cantidad-ordenada="<?php echo $detalle['cantidad_ya_ordenada']; ?>" 
-                                                style="padding: 2px 8px; font-size: 11px;">
-                                            <i class="fa fa-plus"></i> Agregar
-                                        </button>
-
-                                    <?php } elseif ($enOrdenActual) { ?>
-                                        <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px;">
-                                            <i class="fa fa-check"></i> En Orden
-                                        </span>
-                                        
-                                    <?php } elseif (isset($todo_ordenado) && $todo_ordenado) { ?>
-                                        <!-- Mostrar cuando ya se ordenó todo -->
-                                        <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">
-                                            <i class="fa fa-check-circle"></i> Todo Ordenado
-                                        </span>
-                                        
-                                    <?php } elseif ($esVerificado && !$stockInsuficiente) { ?>
-                                        <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">
-                                            ✓ Completo
-                                        </span>
-                                        
-                                    <?php } else { ?>
-                                        <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px;">
-                                            ✓ Cerrado
-                                        </span>
-                                    <?php } ?>
-                                </div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+    <span class="<?php echo $claseTexto; ?>" style="font-weight: 600; font-size: 14px;">
+        <i class="fa <?php echo $icono; ?>"></i> Item <?php echo $contador_detalle; ?> - <?php echo $estadoTexto; ?>
+    </span>
+    
+    <?php 
+    //  SOLO MOSTRAR STOCK SI ES ORDEN DE MATERIALES (NO SERVICIOS)
+    if ($pedido['id_producto_tipo'] != 2): 
+    ?>
+    <span>
+        Stock Disponible/Almacén:
+        <?php echo $detalle['cantidad_disponible_real']; ?> /
+        <?php echo $detalle['cantidad_disponible_almacen']; ?>
+    </span>
+    <?php endif; ?>
+    
+    <?php 
+    // ========================================
+    // ORDEN DE SERVICIO
+    // ========================================
+    if ($esAutoOrden) { 
+    // Asegurar que las variables existan
+    $cantidad_para_ordenar = isset($detalle['cant_pedido_detalle']) ? floatval($detalle['cant_pedido_detalle']) : 0;
+    $cantidad_ya_ordenada_real = isset($detalle['cantidad_ya_ordenada']) ? floatval($detalle['cantidad_ya_ordenada']) : 0;
+    $cantidad_pendiente_real = $cantidad_para_ordenar - $cantidad_ya_ordenada_real;
+    
+    // No está cerrado ni en orden actual y tiene pendientes
+    if ($detalle['est_pedido_detalle'] != 2 && !$modo_editar && !$pedidoAnulado && $cantidad_pendiente_real > 0) { 
+?>
+        <button type="button" 
+                class="btn btn-primary btn-xs btn-agregarOrden" 
+                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                data-cantidad-verificada="<?php echo $cantidad_para_ordenar; ?>"
+                data-cantidad-ordenada="<?php echo $cantidad_ya_ordenada_real; ?>"
+                title="Agregar a Orden (Pendiente: <?php echo $cantidad_pendiente_real; ?>)" 
+                style="padding: 2px 8px; font-size: 11px;">
+            <i class="fa fa-check"></i> Agregar a Orden
+        </button>
+<?php 
+    } elseif ($modo_editar && !$enOrdenActual && !$pedidoAnulado && $cantidad_pendiente_real > 0) { 
+?>
+        <button type="button" 
+                class="btn btn-primary btn-xs btn-agregarOrden" 
+                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                data-cantidad-verificada="<?php echo $cantidad_para_ordenar; ?>"
+                data-cantidad-ordenada="<?php echo $cantidad_ya_ordenada_real; ?>" 
+                style="padding: 2px 8px; font-size: 11px;">
+            <i class="fa fa-plus"></i> Agregar
+        </button>
+<?php 
+    } elseif ($enOrdenActual) { 
+?>
+        <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px;">
+            <i class="fa fa-check"></i> En Orden
+        </span>
+<?php 
+    } elseif ($cantidad_pendiente_real <= 0) { 
+?>
+        <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">
+            <i class="fa fa-check-circle"></i> Todo Ordenado
+        </span>
+<?php 
+    } else { 
+?>
+        <span class="badge badge-secondary" style="font-size: 10px; padding: 2px 6px;">
+            <i class="fa fa-check"></i> Cerrado
+        </span>
+<?php 
+    }
+    
+    // ========================================
+    // ORDEN DE MATERIALES - Pendiente Verificar
+    // ========================================
+    } elseif (!$esVerificado && $stockInsuficiente && !$pedidoAnulado) { 
+    ?>
+        <button type="button" class="btn btn-success btn-xs verificar-btn"
+                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                data-cantidad-actual="<?php echo $detalle['cant_pedido_detalle']; ?>"
+                data-cantidad-almacen="<?php echo $detalle['cantidad_disponible_almacen']; ?>"
+                title="Verificar Item" style="padding: 2px 8px; font-size: 11px;">
+            Verificar
+        </button>
+    <?php 
+        // CALCULAR SI HAY CANTIDAD PENDIENTE DE ORDENAR
+        $cantidad_pendiente = ObtenerCantidadPendienteOrdenar($id_pedido, $detalle['id_producto']);
+        $todo_ordenado = ($cantidad_pendiente <= 0);
+    
+    // ========================================
+    // ORDEN DE MATERIALES - Verificado (Modo Normal)
+    // ========================================
+    } elseif ($esVerificado && $stockInsuficiente && $detalle['est_pedido_detalle'] != 2 && !$modo_editar && !$pedidoAnulado && !$todo_ordenado) { 
+    ?>
+        <button type="button" 
+                class="btn btn-primary btn-xs btn-agregarOrden" 
+                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                data-cantidad-verificada="<?php echo htmlspecialchars($detalle['cant_fin_pedido_detalle']); ?>"
+                data-cantidad-ordenada="<?php echo $detalle['cantidad_ya_ordenada']; ?>"
+                title="Agregar a Orden" 
+                style="padding: 2px 8px; font-size: 11px;">
+            <i class="fa fa-check"></i> Agregar a Orden
+        </button>
+    <?php 
+        // CALCULAR SI HAY CANTIDAD PENDIENTE (modo editar)
+        $cantidad_pendiente_editar = ObtenerCantidadPendienteOrdenar($id_pedido, $detalle['id_producto']);
+        $todo_ordenado_editar = ($cantidad_pendiente_editar <= 0);
+    
+    // ========================================
+    // ORDEN DE MATERIALES - Verificado (Modo Editar)
+    // ========================================
+    } elseif ($esVerificado && $stockInsuficiente && $detalle['est_pedido_detalle'] != 2 && $modo_editar && !$enOrdenActual && !$pedidoAnulado && !$todo_ordenado_editar) { 
+    ?>
+        <button type="button" 
+                class="btn btn-primary btn-xs btn-agregarOrden" 
+                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                data-cantidad-verificada="<?php echo htmlspecialchars($detalle['cant_fin_pedido_detalle']); ?>"
+                data-cantidad-ordenada="<?php echo $detalle['cantidad_ya_ordenada']; ?>" 
+                style="padding: 2px 8px; font-size: 11px;">
+            <i class="fa fa-plus"></i> Agregar
+        </button>
+    <?php 
+    // ========================================
+    // BADGES DE ESTADO
+    // ========================================
+    } elseif ($enOrdenActual) { 
+    ?>
+        <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px;">
+            <i class="fa fa-check"></i> En Orden
+        </span>
+    <?php 
+    } elseif (isset($todo_ordenado) && $todo_ordenado) { 
+    ?>
+        <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">
+            <i class="fa fa-check-circle"></i> Todo Ordenado
+        </span>
+    <?php 
+    } elseif ($esVerificado && !$stockInsuficiente) { 
+    ?>
+        <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">
+            ✓ Completo
+        </span>
+    <?php 
+    } else { 
+    ?>
+        <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px;">
+            ✓ Cerrado
+        </span>
+    <?php 
+    } 
+    ?>
+</div>
                                 
                                 <div style="font-size: 11px; color: #333; line-height: 1.4;">
-                                    <strong>Descripción:</strong> 
-                                    <span style="color: #666;"><?php echo strlen($detalle['prod_pedido_detalle']) > 80 ? substr($detalle['prod_pedido_detalle'], 0, 80) . '...' : $detalle['prod_pedido_detalle']; ?></span>
-                                    <?php if (!empty($detalle['ot_pedido_detalle'])): ?>
-                                    <span style="margin: 0 8px;">|</span>
-                                    <strong>OT Material:</strong> <span><?php echo htmlspecialchars($detalle['ot_pedido_detalle']); ?></span>
-                                    <?php endif; ?>
-                                    <span style="margin: 0 8px;">|</span>
-                                    <strong>Cant:</strong> <?php echo $detalle['cant_pedido_detalle']; ?>
-                                    <span style="margin: 0 8px;">|</span>
-                                    <strong>Unid:</strong> <?php echo $unidad; ?>
-                                    <span style="margin: 0 8px;">|</span>
-                                    <strong>SST/MA/CA:</strong> <?php echo $descripcion_sst_completa; ?>
-                                    
-                                    <?php if ($esVerificado) { ?>
-                                        <span style="margin: 0 8px;">|</span>
-                                        <strong>Cant. Verificada:</strong> <?php echo $detalle['cant_fin_pedido_detalle']; ?>
-                                        <?php 
-                                        // Mostrar cantidad ya ordenada si existe
-                                        if (isset($detalle['cantidad_ya_ordenada']) && $detalle['cantidad_ya_ordenada'] > 0) { ?>
-                                            <span style="margin: 0 8px;">|</span>
-                                            <strong style="color: #28a745;">Ya Ordenado:</strong> <?php echo $detalle['cantidad_ya_ordenada']; ?>
-                                        <?php } 
-                                        // Mostrar cantidad pendiente
-                                        if (isset($detalle['cantidad_pendiente']) && $detalle['cantidad_pendiente'] > 0) { ?>
-                                            <span style="margin: 0 8px;">|</span>
-                                            <strong style="color: #ffc107;">Pendiente:</strong> <?php echo $detalle['cantidad_pendiente']; ?>
-                                        <?php } ?>
-                                    <?php } ?>
-                                </div>
+    <strong>Descripción:</strong> 
+    <span style="color: #666;"><?php echo strlen($detalle['prod_pedido_detalle']) > 80 ? substr($detalle['prod_pedido_detalle'], 0, 80) . '...' : $detalle['prod_pedido_detalle']; ?></span>
+    
+    <?php if (!empty($detalle['ot_pedido_detalle'])): ?>
+    <span style="margin: 0 8px;">|</span>
+    <strong>OT Material:</strong> <span><?php echo htmlspecialchars($detalle['ot_pedido_detalle']); ?></span>
+    <?php endif; ?>
+    
+    <span style="margin: 0 8px;">|</span>
+    <strong>Cantidad:</strong> <?php echo number_format($detalle['cant_pedido_detalle'], 2); ?>
+    
+    <span style="margin: 0 8px;">|</span>
+    <strong>Unid:</strong> <?php echo $unidad; ?>
+    
+    <?php if (!$esAutoOrden): ?>
+        <span style="margin: 0 8px;">|</span>
+        <strong>SST/MA/CA:</strong> <?php echo $descripcion_sst_completa; ?>
+    <?php endif; ?>
+    
+    <?php 
+    // MOSTRAR INFORMACIÓN DE ORDENAMIENTO
+    if ($esAutoOrden) {
+        // Para SERVICIOS
+        $cant_original_item = floatval($detalle['cant_pedido_detalle']);
+        $cant_ordenada_item = isset($detalle['cantidad_ya_ordenada']) ? floatval($detalle['cantidad_ya_ordenada']) : 0;
+        $cant_pendiente_item = $cant_original_item - $cant_ordenada_item;
+        
+        if ($cant_ordenada_item > 0) { ?>
+            <span style="margin: 0 8px;">|</span>
+            <strong style="color: #28a745;">Ordenado:</strong> <?php echo number_format($cant_ordenada_item, 2); ?>
+        <?php }
+        
+        if ($cant_pendiente_item > 0) { ?>
+            <span style="margin: 0 8px;">|</span>
+            <strong style="color: #ffc107;">Pendiente:</strong> <?php echo number_format($cant_pendiente_item, 2); ?>
+        <?php } else if ($cant_ordenada_item >= $cant_original_item) { ?>
+            <span style="margin: 0 8px;">|</span>
+            <strong style="color: #28a745;">✓ Completado</strong>
+        <?php }
+        
+    } else if ($esVerificado) {
+        // Para MATERIALES verificados
+        ?>
+        <span style="margin: 0 8px;">|</span>
+        <strong>Verificado:</strong> <?php echo number_format($detalle['cant_fin_pedido_detalle'], 2); ?>
+        
+        <?php if (isset($detalle['cantidad_ya_ordenada']) && $detalle['cantidad_ya_ordenada'] > 0) { ?>
+            <span style="margin: 0 8px;">|</span>
+            <strong style="color: #28a745;">Ordenado:</strong> <?php echo number_format($detalle['cantidad_ya_ordenada'], 2); ?>
+        <?php }
+        
+        if (isset($detalle['cantidad_pendiente']) && $detalle['cantidad_pendiente'] > 0) { ?>
+            <span style="margin: 0 8px;">|</span>
+            <strong style="color: #ffc107;">Pendiente:</strong> <?php echo number_format($detalle['cantidad_pendiente'], 2); ?>
+        <?php }
+    }
+    ?>
+</div>
                             </div>
                             <?php 
                                 $contador_detalle++;
@@ -555,7 +669,14 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                                     <div class="card-header" style="padding: 8px 12px; background-color: <?php echo $modo_editar ? '#fff3cd' : '#e3f2fd'; ?>;">
                                         <h6 class="mb-0">
                                             <i class="fa <?php echo $modo_editar ? 'fa-edit text-warning' : 'fa-plus-circle text-primary'; ?>"></i>
-                                            <?php echo $modo_editar ? 'Editar Orden de Compra ORD-' . $id_compra_editar : 'Nueva Orden de Compra'; ?>
+                                            <?php 
+                                            if ($modo_editar) {
+                                                echo 'Editar Orden';
+                                            } else {
+                                                echo ($pedido['id_producto_tipo'] == 2) ? 'Nueva Orden de Servicio' : 'Nueva Orden de Compra';
+                                            }
+                                            echo $modo_editar ? ' ORD-' . $id_compra_editar : ''; 
+                                            ?>
                                         </h6>
                                     </div>
                                     <div class="card-body" style="padding: 12px;">
@@ -1163,56 +1284,47 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
-    const esAutoOrden = <?php echo ($pedido['id_producto_tipo'] == 2) ? 'true' : 'false'; ?>;
+    const esOrdenServicio = <?php echo ($pedido['id_producto_tipo'] == 2) ? 'true' : 'false'; ?>;
     const pedidoAnulado = <?php echo ($pedido['est_pedido'] == 0) ? 'true' : 'false'; ?>;
     const modoEditar = <?php echo $modo_editar ? 'true' : 'false'; ?>;
     let itemsAgregadosOrden = new Set();
+    
     // ============================================
     // INICIALIZACIÓN
     // ============================================
-    if (!esAutoOrden && !pedidoAnulado && !modoEditar) {
+    if (!esOrdenServicio && !pedidoAnulado && !modoEditar) {
         setTimeout(verificarSiGenerarSalida, 1000);
     }
     
-    if (esAutoOrden && !modoEditar) {
-        setTimeout(function() {
-            mostrarFormularioNuevaOrdenAuto();
-            autoAgregarItemsAOrden();
-        }, 800);
-    }
     if (modoEditar) {
         configurarEventosEdicion();
     }
+    
     configurarEventListeners();
     configurarModalProveedor();
     configurarValidacionTiempoReal();
     configurarExclusividadCheckboxes();
     
     // ============================================
-    // FUNCIÓN PARA RECALCULAR ESTADO DE ITEMS DESPUÉS DE EDICIÓN
+    // FUNCIÓN PARA RECALCULAR ESTADO DE ITEMS
     // ============================================
     function recalcularEstadoItems() {
         const itemsPendientes = document.querySelectorAll('.item-pendiente');
         let tieneItemsDisponibles = false;
         
         itemsPendientes.forEach(function(item) {
-            const idProducto = item.getAttribute('data-id-producto');
-            const esAutoOrden = item.querySelector('.datos-auto-orden') !== null;
             const estaCerrado = item.querySelector('.badge-danger') !== null && 
                             item.querySelector('.badge-danger').textContent.includes('Cerrado');
             
-            // Verificar si tiene badge "Todo Ordenado"
             const badgeTodoOrdenado = item.querySelector('.badge-success');
             const tieneTodoOrdenado = badgeTodoOrdenado && 
                                     badgeTodoOrdenado.textContent.includes('Todo Ordenado');
             
-            // Si NO está todo ordenado y NO está cerrado -> hay items disponibles
             if (!tieneTodoOrdenado && !estaCerrado) {
                 tieneItemsDisponibles = true;
             }
         });
         
-        // Actualizar botón "Nueva Orden"
         const btnNuevaOrden = document.getElementById('btn-nueva-orden');
         if (btnNuevaOrden && !modoEditar) {
             if (tieneItemsDisponibles) {
@@ -1231,15 +1343,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // ============================================
-    // EJECUTAR AL CARGAR Y DESPUÉS DE ACCIONES
-    // ============================================
-    // Ejecutar al cargar la página
     if (!modoEditar) {
         setTimeout(recalcularEstadoItems, 500);
     }
+    
     // ============================================
-    // FUNCIONES DE VERIFICACIÓN DE SALIDA
+    // FUNCIONES DE VERIFICACIÓN DE SALIDA (solo para materiales)
     // ============================================
     function verificarSiGenerarSalida() {
         const itemsPendientes = document.querySelectorAll('.item-pendiente');
@@ -1248,19 +1357,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         itemsPendientes.forEach(function(item) {
             tieneItems = true;
-
-            // CAMBIO DE TU COMPAÑERA: Nuevo cálculo real basado en cantidades del backend
             const cantPedido = parseFloat(item.getAttribute('data-cant-pedido')) || 0;
             const cantDisponible = parseFloat(item.getAttribute('data-cant-disponible')) || 0;
 
             if (cantDisponible < cantPedido) {
                 todosConStockCompleto = false;
             }
-
-            /*const estadoSpan = item.querySelector('span[class*="badge"], .text-success, .text-warning, .text-primary, .text-danger');
-            if (estadoSpan && !estadoSpan.textContent.trim().includes('Completo')) {
-                todosConStockCompleto = false;
-            }*/
         });
         
         const estadoPedido = <?php echo $pedido['est_pedido']; ?>;
@@ -1305,6 +1407,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
     function mostrarAlertaPedidoAprobado(estadoPedido) {
         const estadoTexto = estadoPedido === 3 ? 'aprobado' : 'ingresado a almacén';
         Swal.fire({
@@ -1327,6 +1430,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
     function mostrarAlertaPedidoCompletado() {
         Swal.fire({
             title: '¡Pedido Completado!',
@@ -1348,6 +1452,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
     function completarPedidoAutomaticamente() {
         Swal.fire({
             title: 'Verificando disponibilidad...',
@@ -1402,81 +1507,226 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+    
     // ============================================
-    // VALIDACIÓN Y OTRAS FUNCIONES
+    // VALIDACIÓN DE FORMULARIO
     // ============================================
     function validarFormularioOrden(e) {
-        const fecha = document.getElementById('fecha_orden').value;
-        const proveedor = document.getElementById('proveedor_orden').value;
-        const moneda = document.getElementById('moneda_orden').value;
-        
-        if (!fecha || !proveedor || !moneda) {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'warning',
-                title: 'Campos Obligatorios',
-                text: 'Por favor complete los campos obligatorios (Fecha, Proveedor y Moneda).',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'Entendido'
-            });
-            return false;
-        }
-        
-        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-        const itemsOrden = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
-        
-        if (itemsOrden.length === 0) {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'warning',
-                title: 'Sin Items',
-                text: 'Debe agregar al menos un ítem a la orden antes de guardar.',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'Entendido'
-            });
-            return false;
-        }
+    e.preventDefault();
+
+    const fecha = document.getElementById('fecha_orden').value;
+    const proveedor = document.getElementById('proveedor_orden').value;
+    const moneda = document.getElementById('moneda_orden').value;
     
-    // NUEVA VALIDACIÓN: Verificar cantidades antes de enviar
-    const erroresValidacion = validarCantidadesCliente(itemsOrden);
+    if (!fecha || !proveedor || !moneda) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Campos Obligatorios',
+            text: 'Por favor complete los campos obligatorios (Fecha, Proveedor y Moneda).',
+            confirmButtonColor: '#3085d6',
+            confirmButtonText: 'Entendido'
+        });
+        return false;
+    }
     
-        if (erroresValidacion.length > 0) {
-            e.preventDefault();
-            
-            // Construir mensaje HTML con todos los errores
-            let mensajeHTML = '<div style="text-align: left; padding: 10px;">' +
-                            '<p style="margin-bottom: 10px;"><strong>No se puede guardar la orden:</strong></p>' +
-                            '<ul style="color: #dc3545; font-size: 13px; margin-left: 20px;">';
-            
-            erroresValidacion.forEach(error => {
-                mensajeHTML += `<li style="margin-bottom: 8px;">${error}</li>`;
-            });
-            
-            mensajeHTML += '</ul></div>';
-            
+    const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
+    const itemsOrden = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
+    
+    if (itemsOrden.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Sin Items',
+            text: 'Debe agregar al menos un ítem a la orden antes de guardar.',
+            confirmButtonColor: '#3085d6',
+            confirmButtonText: 'Entendido'
+        });
+        return false;
+    }
+
+    //  VALIDAR CANTIDADES SEGÚN TIPO
+    let erroresValidacion = [];
+    
+    if (esOrdenServicio) {
+        // Validar servicios
+        erroresValidacion = validarCantidadesServicio(itemsOrden);
+    } else {
+        // Validar materiales
+        erroresValidacion = validarCantidadesCliente(itemsOrden);
+    }
+    
+    if (erroresValidacion.length > 0) {
+        const tipoOrden = esOrdenServicio ? 'servicio' : 'material';
+        
+        let mensajeHTML = '<div style="text-align: left; padding: 10px;">' +
+                        `<p style="margin-bottom: 10px;"><strong>No se puede guardar la orden de ${tipoOrden}:</strong></p>` +
+                        '<ul style="color: #dc3545; font-size: 13px; margin-left: 20px;">';
+        
+        erroresValidacion.forEach(error => {
+            mensajeHTML += `<li style="margin-bottom: 8px;">${error}</li>`;
+        });
+        
+        mensajeHTML += '</ul></div>';
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Cantidad No Permitida',
+            html: mensajeHTML,
+            confirmButtonColor: '#d33',
+            confirmButtonText: '<i class="fa fa-times"></i> Entendido',
+            allowOutsideClick: false
+        });
+        
+        return false;
+    }
+
+    // Si pasa la validación frontend, enviar el formulario via AJAX
+    const form = document.getElementById('form-nueva-orden');
+    const formData = new FormData(form);
+
+    // Mostrar loading
+    Swal.fire({
+        title: 'Guardando...',
+        text: 'Por favor espere',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    fetch(form.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.text())
+    .then(data => {
+        // Cerrar loading
+        Swal.close();
+
+        // Verificar si la respuesta es un error
+        if (data.startsWith('ERROR:')) {
             Swal.fire({
                 icon: 'error',
-                title: ' Cantidad No Permitida',
-                html: mensajeHTML,
+                title: 'Error al Guardar',
+                html: `<div style="text-align: left;">${data.replace('ERROR:', '')}</div>`,
                 confirmButtonColor: '#d33',
-                confirmButtonText: '<i class="fa fa-times"></i> Entendido',
-                allowOutsideClick: false
+                confirmButtonText: 'Entendido'
             });
-            
-            return false;
+        } else {
+            // Éxito: redirigir según el tipo de orden
+            const tipo = esOrdenServicio ? 'servicio' : 'compra';
+            const successParam = `success=${modoEditar ? 'actualizado' : 'creado'}&tipo=${tipo}`;
+            window.location.href = `pedido_verificar.php?id=<?php echo $id_pedido; ?>&${successParam}`;
         }
-        
-        return true;
-    }
-    //  NUEVA FUNCIÓN: Validar cantidades en el cliente
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de Conexión',
+            text: 'No se pudo conectar con el servidor. Intente nuevamente.',
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Entendido'
+        });
+    });
+}
+
+    // 🔹 VALIDACIÓN DE CANTIDADES (solo para materiales)
     function validarCantidadesCliente(itemsOrden) {
+        const errores = [];
+        const inputIdCompra = document.querySelector('input[name="id_compra"]');
+        const idCompraActual = inputIdCompra ? parseInt(inputIdCompra.value) : null;
+        
+        itemsOrden.forEach(itemElement => {
+            const idProductoInput = itemElement.querySelector('input[name*="[id_producto]"]');
+            const cantidadInput = itemElement.querySelector('.cantidad-item');
+            const esNuevoInput = itemElement.querySelector('input[name*="[es_nuevo]"]');
+            
+            if (!idProductoInput || !cantidadInput) return;
+            
+            const idProducto = parseInt(idProductoInput.value);
+            const cantidadNueva = parseFloat(cantidadInput.value) || 0;
+            const esNuevo = esNuevoInput && esNuevoInput.value === '1';
+            
+            let cantidadVerificada = 0;
+            let cantidadOrdenada = 0;
+            let descripcionProducto = '';
+            
+            if (cantidadInput.hasAttribute('data-cantidad-verificada') && cantidadInput.hasAttribute('data-cantidad-ordenada')) {
+                cantidadVerificada = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
+                cantidadOrdenada = parseFloat(cantidadInput.getAttribute('data-cantidad-ordenada')) || 0;
+                
+                const rowElement = cantidadInput.closest('[id^="item-orden-"]');
+                if (rowElement) {
+                    const descripcionElement = rowElement.querySelector('strong');
+                    if (descripcionElement && descripcionElement.nextSibling) {
+                        descripcionProducto = descripcionElement.nextSibling.textContent.trim();
+                    }
+                }
+            } else {
+                const botonesAgregar = document.querySelectorAll('.btn-agregarOrden');
+                botonesAgregar.forEach(btn => {
+                    if (parseInt(btn.dataset.idProducto) === idProducto) {
+                        cantidadVerificada = parseFloat(btn.dataset.cantidadVerificada) || 0;
+                        cantidadOrdenada = parseFloat(btn.dataset.cantidadOrdenada) || 0;
+                        descripcionProducto = btn.dataset.descripcion || `Producto ID ${idProducto}`;
+                    }
+                });
+            }
+            
+            let cantidadDisponible = 0;
+            
+            if (esNuevo) {
+                cantidadDisponible = cantidadVerificada - cantidadOrdenada;
+            } else if (modoEditar && idCompraActual) {
+                cantidadDisponible = cantidadVerificada;
+            } else {
+                cantidadDisponible = cantidadVerificada;
+            }
+            
+            if (cantidadNueva > cantidadDisponible) {
+                const descripcionCorta = descripcionProducto.length > 50 
+                    ? descripcionProducto.substring(0, 50) + '...' 
+                    : descripcionProducto;
+                
+                const tipoItem = esNuevo ? '[NUEVO]' : '[EDITANDO]';
+                
+                const error = `<strong>${tipoItem} ${descripcionCorta}:</strong><br>` +
+                    `Cantidad ingresada: <strong>${cantidadNueva}</strong><br>` +
+                    `Verificado: ${cantidadVerificada} | ` +
+                    `<strong style="color: #28a745;">Disponible: ${cantidadDisponible.toFixed(2)}</strong>`;
+                
+                errores.push(error);
+            }
+        });
+        
+        return errores;
+    }
+
+function obtenerCantidadActualEnOrden(idProducto, idCompraActual) {
+    let cantidadActual = 0;
+    
+    // Buscar en los items actuales de la orden
+    const itemsOrden = document.querySelectorAll('[id^="item-orden-"]');
+    itemsOrden.forEach(item => {
+        const idProductoItem = item.querySelector('input[name*="[id_producto]"]');
+        if (idProductoItem && parseInt(idProductoItem.value) === idProducto) {
+            const cantidadInput = item.querySelector('.cantidad-item');
+            if (cantidadInput) {
+                cantidadActual = parseFloat(cantidadInput.value) || 0;
+            }
+        }
+    });
+    
+    console.log(` Cantidad actual en orden ${idCompraActual} para producto ${idProducto}: ${cantidadActual}`);
+    return cantidadActual;
+}
+
+
+    // 🔹 VALIDACIÓN DE SERVICIOS CON SWEETALERT (CORREGIDA)
+function validarCantidadesServicio(itemsOrden) {
     const errores = [];
     const inputIdCompra = document.querySelector('input[name="id_compra"]');
     const idCompraActual = inputIdCompra ? parseInt(inputIdCompra.value) : null;
     
-    console.log(' === VALIDACIÓN CLIENTE ===');
-    console.log('ID Compra actual:', idCompraActual);
-    console.log('Modo editar:', modoEditar);
+    console.log(' Validando servicios - ID Compra Actual:', idCompraActual);
     
     itemsOrden.forEach(itemElement => {
         const idProductoInput = itemElement.querySelector('input[name*="[id_producto]"]');
@@ -1489,21 +1739,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const cantidadNueva = parseFloat(cantidadInput.value) || 0;
         const esNuevo = esNuevoInput && esNuevoInput.value === '1';
         
-        let cantidadVerificada = 0;
+        let cantidadOriginal = 0;
         let cantidadOrdenada = 0;
         let descripcionProducto = '';
         
-        console.log(` Validando Producto ID ${idProducto}, Cantidad: ${cantidadNueva}, Es nuevo: ${esNuevo}`);
-        
-        // Leer correctamente los atributos data
+        // Obtener datos del input
         if (cantidadInput.hasAttribute('data-cantidad-verificada') && cantidadInput.hasAttribute('data-cantidad-ordenada')) {
-            cantidadVerificada = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
+            cantidadOriginal = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
             cantidadOrdenada = parseFloat(cantidadInput.getAttribute('data-cantidad-ordenada')) || 0;
             
-            console.log(`   Datos obtenidos del input (modo edición):`);
-            console.log(`     Verificada: ${cantidadVerificada}, Ordenada: ${cantidadOrdenada}`);
-            
-            // Obtener descripción del item
             const rowElement = cantidadInput.closest('[id^="item-orden-"]');
             if (rowElement) {
                 const descripcionElement = rowElement.querySelector('strong');
@@ -1512,52 +1756,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         } else {
-            //Buscar en botones "Agregar a Orden" (modo creación o items nuevos)
             const botonesAgregar = document.querySelectorAll('.btn-agregarOrden');
             botonesAgregar.forEach(btn => {
                 if (parseInt(btn.dataset.idProducto) === idProducto) {
-                    cantidadVerificada = parseFloat(btn.dataset.cantidadVerificada) || 0;
+                    cantidadOriginal = parseFloat(btn.dataset.cantidadVerificada) || 0;
                     cantidadOrdenada = parseFloat(btn.dataset.cantidadOrdenada) || 0;
                     descripcionProducto = btn.dataset.descripcion || `Producto ID ${idProducto}`;
-                    
-                    console.log(`   Datos obtenidos de botón Agregar:`);
-                    console.log(`     Verificada: ${cantidadVerificada}, Ordenada: ${cantidadOrdenada}`);
                 }
             });
-            
-            // Si no encontramos, buscar en items pendientes (auto-orden)
-            if (cantidadVerificada === 0) {
-                const itemsPendientes = document.querySelectorAll('.item-pendiente');
-                itemsPendientes.forEach(itemPendiente => {
-                    const datosAutoOrden = itemPendiente.querySelector('.datos-auto-orden');
-                    if (datosAutoOrden && parseInt(datosAutoOrden.dataset.idProducto) === idProducto) {
-                        cantidadVerificada = parseFloat(datosAutoOrden.dataset.cantidad) || 0;
-                        descripcionProducto = datosAutoOrden.dataset.descripcion || `Producto ID ${idProducto}`;
-                        
-                        console.log(`   Datos obtenidos de auto-orden:`);
-                        console.log(`     Verificada: ${cantidadVerificada}`);
-                    }
-                });
-            }
         }
         
-        //CALCULAR DISPONIBLE
+        // 🔹 CÁLCULO CORRECTO DE DISPONIBILIDAD
         let cantidadDisponible = 0;
-        
+
         if (esNuevo) {
-            // Item nuevo en modo edición o creación
-            cantidadDisponible = cantidadVerificada - cantidadOrdenada;
-            console.log(`   [NUEVO] Disponible = ${cantidadVerificada} - ${cantidadOrdenada} = ${cantidadDisponible}`);
+            cantidadDisponible = cantidadOriginal - cantidadOrdenada;
         } else if (modoEditar && idCompraActual) {
-            // Item existente en modo edición: usar TODO lo verificado
-            cantidadDisponible = cantidadVerificada;
-            console.log(`   [EDITANDO] Disponible = ${cantidadVerificada} (sin restar ordenado)`);
+            // 🔹 CORRECCIÓN: Al editar, el disponible es (original - ordenado en otras) + actual en esta orden
+            const cantidadActualEnOrden = obtenerCantidadActualEnOrden(idProducto, idCompraActual);
+            cantidadDisponible = (cantidadOriginal - cantidadOrdenada) + cantidadActualEnOrden;
         } else {
-            cantidadDisponible = cantidadVerificada;
-            console.log(`   [OTRO] Disponible = ${cantidadVerificada}`);
+            cantidadDisponible = cantidadOriginal;
         }
         
-        // Validar que no exceda lo disponible
+        console.log(` Producto ${idProducto}:`, {
+            esNuevo,
+            cantidadNueva,
+            cantidadOriginal,
+            cantidadOrdenada,
+            cantidadDisponible,
+            modoEditar
+        });
+        
         if (cantidadNueva > cantidadDisponible) {
             const descripcionCorta = descripcionProducto.length > 50 
                 ? descripcionProducto.substring(0, 50) + '...' 
@@ -1567,73 +1797,68 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const error = `<strong>${tipoItem} ${descripcionCorta}:</strong><br>` +
                 `Cantidad ingresada: <strong>${cantidadNueva}</strong><br>` +
-                `Verificado: ${cantidadVerificada} | ` +
+                `Original: ${cantidadOriginal.toFixed(2)} | ` +
+                `Ya ordenado (otras órdenes): ${cantidadOrdenada.toFixed(2)} | ` +
                 `<strong style="color: #28a745;">Disponible: ${cantidadDisponible.toFixed(2)}</strong>`;
             
-            console.log(`   ERROR: ${error}`);
             errores.push(error);
-        } else {
-            console.log(`   Validación OK`);
         }
     });
     
-    console.log(` Total errores encontrados: ${errores.length}`);
     return errores;
 }
-    //  VALIDACIÓN EN TIEMPO REAL: Alertar cuando se excede la cantidad
-    //  VALIDACIÓN EN TIEMPO REAL: Alertar cuando se excede la cantidad
+
     function configurarValidacionTiempoReal() {
-        document.addEventListener('input', function(event) {
-            if (event.target.classList.contains('cantidad-item')) {
-                const cantidadInput = event.target;
-                const itemElement = cantidadInput.closest('[id^="item-orden-"]');
-                
-                if (!itemElement) return;
-                
-                const idProductoInput = itemElement.querySelector('input[name*="[id_producto]"]');
-                const esNuevoInput = itemElement.querySelector('input[name*="[es_nuevo]"]');
-                
-                if (!idProductoInput) return;
-                
-                const idProducto = parseInt(idProductoInput.value);
-                const cantidadIngresada = parseFloat(cantidadInput.value) || 0;
-                const esNuevo = esNuevoInput && esNuevoInput.value === '1';
-                
-                const inputIdCompra = document.querySelector('input[name="id_compra"]');
-                const idCompraActual = inputIdCompra ? parseInt(inputIdCompra.value) : null;
-                
-                let cantidadVerificada = 0;
-                let cantidadOrdenada = 0;
-                
-                // Leer correctamente los atributos data
-                if (cantidadInput.hasAttribute('data-cantidad-verificada') && cantidadInput.hasAttribute('data-cantidad-ordenada')) {
-                    cantidadVerificada = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
+    // 🔹 AHORA validar en tiempo real para servicios también
+    document.addEventListener('input', function(event) {
+        if (event.target.classList.contains('cantidad-item')) {
+            const cantidadInput = event.target;
+            const itemElement = cantidadInput.closest('[id^="item-orden-"]');
+            
+            if (!itemElement) return;
+            
+            const idProductoInput = itemElement.querySelector('input[name*="[id_producto]"]');
+            const esNuevoInput = itemElement.querySelector('input[name*="[es_nuevo]"]');
+            
+            if (!idProductoInput) return;
+            
+            const idProducto = parseInt(idProductoInput.value);
+            const cantidadIngresada = parseFloat(cantidadInput.value) || 0;
+            const esNuevo = esNuevoInput && esNuevoInput.value === '1';
+            
+            const inputIdCompra = document.querySelector('input[name="id_compra"]');
+            const idCompraActual = inputIdCompra ? parseInt(inputIdCompra.value) : null;
+            
+            let cantidadVerificada = 0;
+            let cantidadOrdenada = 0;
+            let cantidadOriginal = 0;
+            
+            if (cantidadInput.hasAttribute('data-cantidad-verificada') && cantidadInput.hasAttribute('data-cantidad-ordenada')) {
+                if (esOrdenServicio) {
+                    // Para SERVICIOS: usar cantidad original
+                    cantidadOriginal = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
                     cantidadOrdenada = parseFloat(cantidadInput.getAttribute('data-cantidad-ordenada')) || 0;
                 } else {
-                    // 🔹 SI NO: Buscar en botones "Agregar a Orden" (modo creación)
-                    const botonesAgregar = document.querySelectorAll('.btn-agregarOrden');
-                    botonesAgregar.forEach(btn => {
-                        if (parseInt(btn.dataset.idProducto) === idProducto) {
-                            cantidadVerificada = parseFloat(btn.dataset.cantidadVerificada) || 0;
-                            cantidadOrdenada = parseFloat(btn.dataset.cantidadOrdenada) || 0;
-                        }
-                    });
-                    
-                    // Si no encontramos, buscar en items pendientes (auto-orden)
-                    if (cantidadVerificada === 0) {
-                        const itemsPendientes = document.querySelectorAll('.item-pendiente');
-                        itemsPendientes.forEach(itemPendiente => {
-                            const datosAutoOrden = itemPendiente.querySelector('.datos-auto-orden');
-                            if (datosAutoOrden && parseInt(datosAutoOrden.dataset.idProducto) === idProducto) {
-                                cantidadVerificada = parseFloat(datosAutoOrden.dataset.cantidad) || 0;
-                            }
-                        });
-                    }
+                    // Para MATERIALES: usar cantidad verificada
+                    cantidadVerificada = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
+                    cantidadOrdenada = parseFloat(cantidadInput.getAttribute('data-cantidad-ordenada')) || 0;
                 }
-                
-                // 🔹 CALCULAR MÁXIMO PERMITIDO SEGÚN MODO
-                let cantidadMaxima = 0;
-                
+            }
+            
+            let cantidadMaxima = 0;
+            
+            if (esOrdenServicio) {
+                // 🔹 LÓGICA PARA SERVICIOS
+                if (esNuevo) {
+                    cantidadMaxima = cantidadOriginal - cantidadOrdenada;
+                } else if (modoEditar && idCompraActual) {
+                    const cantidadActualEnOrden = obtenerCantidadActualEnOrden(idProducto, idCompraActual);
+                    cantidadMaxima = (cantidadOriginal - cantidadOrdenada) + cantidadActualEnOrden;
+                } else {
+                    cantidadMaxima = cantidadOriginal;
+                }
+            } else {
+                // 🔹 LÓGICA PARA MATERIALES
                 if (esNuevo) {
                     cantidadMaxima = cantidadVerificada - cantidadOrdenada;
                 } else if (modoEditar && idCompraActual) {
@@ -1641,37 +1866,38 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     cantidadMaxima = cantidadVerificada;
                 }
-                
-                // Cambiar color del input según validación
-                if (cantidadIngresada > cantidadMaxima) {
-                    cantidadInput.style.borderColor = '#dc3545';
-                    cantidadInput.style.backgroundColor = '#f8d7da';
-                    
-                    let tooltip = itemElement.querySelector('.tooltip-error-cantidad');
-                    if (!tooltip) {
-                        tooltip = document.createElement('small');
-                        tooltip.className = 'tooltip-error-cantidad text-danger';
-                        tooltip.style.display = 'block';
-                        tooltip.style.fontSize = '11px';
-                        tooltip.style.marginTop = '2px';
-                        
-                        if (cantidadInput.parentElement.classList.contains('input-group')) {
-                            cantidadInput.parentElement.parentElement.appendChild(tooltip);
-                        } else {
-                            cantidadInput.parentElement.appendChild(tooltip);
-                        }
-                    }
-                    tooltip.textContent = ` Excede máximo: ${cantidadMaxima.toFixed(2)}`;
-                } else {
-                    cantidadInput.style.borderColor = '#28a745';
-                    cantidadInput.style.backgroundColor = '#d4edda';
-                    
-                    const tooltip = itemElement.querySelector('.tooltip-error-cantidad');
-                    if (tooltip) tooltip.remove();
-                }
             }
-        });
-    }
+            
+            if (cantidadIngresada > cantidadMaxima) {
+                cantidadInput.style.borderColor = '#dc3545';
+                cantidadInput.style.backgroundColor = '#f8d7da';
+                
+                let tooltip = itemElement.querySelector('.tooltip-error-cantidad');
+                if (!tooltip) {
+                    tooltip = document.createElement('small');
+                    tooltip.className = 'tooltip-error-cantidad text-danger';
+                    tooltip.style.display = 'block';
+                    tooltip.style.fontSize = '11px';
+                    tooltip.style.marginTop = '2px';
+                    
+                    if (cantidadInput.parentElement.classList.contains('input-group')) {
+                        cantidadInput.parentElement.parentElement.appendChild(tooltip);
+                    } else {
+                        cantidadInput.parentElement.appendChild(tooltip);
+                    }
+                }
+                tooltip.textContent = ` Excede máximo: ${cantidadMaxima.toFixed(2)}`;
+            } else {
+                cantidadInput.style.borderColor = '#28a745';
+                cantidadInput.style.backgroundColor = '#d4edda';
+                
+                const tooltip = itemElement.querySelector('.tooltip-error-cantidad');
+                if (tooltip) tooltip.remove();
+            }
+        }
+    });
+}
+    
     // ============================================
     // CONFIGURACIÓN DE EVENTOS
     // ============================================
@@ -1682,42 +1908,41 @@ document.addEventListener('DOMContentLoaded', function() {
             const igvInput = item.querySelector('.igv-item');
             const idDetalle = item.id.replace('item-orden-', '');
             
-            //  GUARDAR CANTIDAD ORIGINAL para validación
             if (cantidadInput && !cantidadInput.dataset.cantidadOriginal) {
                 cantidadInput.dataset.cantidadOriginal = cantidadInput.value;
             }
         
-        function calcularTotales() {
-            const cantidad = parseFloat(cantidadInput.value) || 0;
-            const precio = parseFloat(precioInput.value) || 0;
-            const igvPorcentaje = parseFloat(igvInput.value) || 0;
-            
-            const subtotal = cantidad * precio;
-            const montoIgv = subtotal * (igvPorcentaje / 100);
-            const total = subtotal + montoIgv;
-            
-            const simboloMoneda = obtenerSimboloMoneda();
-            const calculoDiv = document.getElementById(`calculo-${idDetalle}`);
-            if (calculoDiv) {
-                calculoDiv.querySelector('.subtotal-text').textContent = `Subtotal: ${simboloMoneda} ${subtotal.toFixed(2)}`;
-                calculoDiv.querySelector('.igv-text').textContent = `IGV: ${simboloMoneda} ${montoIgv.toFixed(2)}`;
-                calculoDiv.querySelector('.total-text').textContent = `Total: ${simboloMoneda} ${total.toFixed(2)}`;
+            function calcularTotales() {
+                const cantidad = parseFloat(cantidadInput.value) || 0;
+                const precio = parseFloat(precioInput.value) || 0;
+                const igvPorcentaje = parseFloat(igvInput.value) || 0;
+                
+                const subtotal = cantidad * precio;
+                const montoIgv = subtotal * (igvPorcentaje / 100);
+                const total = subtotal + montoIgv;
+                
+                const simboloMoneda = obtenerSimboloMoneda();
+                const calculoDiv = document.getElementById(`calculo-${idDetalle}`);
+                if (calculoDiv) {
+                    calculoDiv.querySelector('.subtotal-text').textContent = `Subtotal: ${simboloMoneda} ${subtotal.toFixed(2)}`;
+                    calculoDiv.querySelector('.igv-text').textContent = `IGV: ${simboloMoneda} ${montoIgv.toFixed(2)}`;
+                    calculoDiv.querySelector('.total-text').textContent = `Total: ${simboloMoneda} ${total.toFixed(2)}`;
+                }
+                actualizarTotalGeneral();
             }
+            
+            if (cantidadInput) cantidadInput.addEventListener('input', calcularTotales);
+            if (precioInput) precioInput.addEventListener('input', calcularTotales);
+            if (igvInput) igvInput.addEventListener('input', calcularTotales);
+            
+            calcularTotales();
+        });
+        
+        setTimeout(function() {
             actualizarTotalGeneral();
-        }
-        
-        if (cantidadInput) cantidadInput.addEventListener('input', calcularTotales);
-        if (precioInput) precioInput.addEventListener('input', calcularTotales);
-        if (igvInput) igvInput.addEventListener('input', calcularTotales);
-        
-        calcularTotales(); //  Calcular al cargar
-    });
+        }, 100);
+    }
     
-    //Calcular total general inicial con detracción/retención/percepción
-    setTimeout(function() {
-        actualizarTotalGeneral();
-    }, 100);
-}
     function configurarEventListeners() {
         // Anular orden
         document.addEventListener('click', function(event) {
@@ -1736,6 +1961,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (btnNuevaOrden) {
             btnNuevaOrden.addEventListener('click', toggleFormularioOrden);
         }
+        
         // Editar orden
         document.addEventListener('click', function(event) {
             const btnEditar = event.target.closest('.btn-editar-orden');
@@ -1745,6 +1971,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.location.href = `pedido_verificar.php?id=<?php echo $id_pedido; ?>&id_compra=${idCompra}`;
             }
         });
+        
         // Cambio de moneda
         const selectMoneda = document.getElementById('moneda_orden');
         if (selectMoneda) {
@@ -1752,35 +1979,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 actualizarEtiquetasMoneda(this.value);
             });
         }
+        
         // Agregar a orden
-        document.addEventListener('click', function(event) {
-            const btnAgregar = event.target.closest('.btn-agregarOrden');
-            if (btnAgregar) {
-                event.preventDefault();
-                event.stopPropagation();
-                
-                if (modoEditar) {
-                    const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
-                    if (contenedorNuevaOrden.style.display === 'none') {
-                        contenedorNuevaOrden.style.display = 'block';
-                    }
-                } else {
-                    const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
-                    if (contenedorTabla.style.display !== 'none') {
-                        mostrarFormularioNuevaOrden();
-                    }
-                }
-                
-                agregarItemAOrden({
-                    idDetalle: btnAgregar.dataset.idDetalle,
-                    idProducto: btnAgregar.dataset.idProducto,
-                    descripcion: btnAgregar.dataset.descripcion,
-                    cantidadVerificada: btnAgregar.dataset.cantidadVerificada,
-                    cantidadOrdenada: btnAgregar.dataset.cantidadOrdenada || '0',
-                    botonOriginal: btnAgregar
-                });
+document.addEventListener('click', function(event) {
+    const btnAgregar = event.target.closest('.btn-agregarOrden');
+    if (btnAgregar) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        if (modoEditar) {
+            const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
+            if (contenedorNuevaOrden.style.display === 'none') {
+                contenedorNuevaOrden.style.display = 'block';
             }
+        } else {
+            const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
+            if (contenedorTabla.style.display !== 'none') {
+                mostrarFormularioNuevaOrden();
+            }
+        }
+        
+        // Obtener valores del botón
+        const cantidadVerificada = parseFloat(btnAgregar.dataset.cantidadVerificada) || 0;
+        const cantidadOrdenada = parseFloat(btnAgregar.dataset.cantidadOrdenada) || 0;
+        
+        console.log('🔵 Agregar a orden:', {
+            producto: btnAgregar.dataset.idProducto,
+            esServicio: esOrdenServicio,
+            verificada: cantidadVerificada,
+            ordenada: cantidadOrdenada,
+            pendiente: (cantidadVerificada - cantidadOrdenada).toFixed(2)
         });
+        
+        agregarItemAOrden({
+            idDetalle: btnAgregar.dataset.idDetalle,
+            idProducto: btnAgregar.dataset.idProducto,
+            descripcion: btnAgregar.dataset.descripcion,
+            cantidadVerificada: cantidadVerificada,
+            cantidadOrdenada: cantidadOrdenada,
+            botonOriginal: btnAgregar
+        });
+    }
+});
+        
         // Verificar modal
         document.querySelectorAll('.verificar-btn').forEach(btn => {
             btn.addEventListener('click', function() {
@@ -1793,6 +2034,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 $('#verificarModal').modal('show');
             }); 
         });
+        
         // Ver detalle
         document.addEventListener('click', function(event) {
             const btnVerDetalle = event.target.closest('.btn-ver-detalle');
@@ -1803,61 +2045,58 @@ document.addEventListener('DOMContentLoaded', function() {
                 mostrarDetalleCompra(idCompra);
             }
         });
+        
         // Validar formulario
         const formNuevaOrden = document.getElementById('form-nueva-orden');
         if (formNuevaOrden) {
             formNuevaOrden.addEventListener('submit', validarFormularioOrden);
-          }
-}
-        function configurarExclusividadCheckboxes() {
+        }
+    }
+    
+    function configurarExclusividadCheckboxes() {
         document.addEventListener('change', function(event) {
-            //  DETRACCIÓN: Desmarcar RETENCIÓN y PERCEPCIÓN
             if (event.target.classList.contains('detraccion-checkbox')) {
                 if (event.target.checked) {
                     document.querySelectorAll('.retencion-checkbox').forEach(cb => cb.checked = false);
                     document.querySelectorAll('.percepcion-checkbox').forEach(cb => cb.checked = false);
                 }
-                // Desmarcar otros checkboxes de DETRACCIÓN
                 document.querySelectorAll('.detraccion-checkbox').forEach(cb => {
                     if (cb !== event.target) cb.checked = false;
                 });
                 actualizarTotalGeneral();
             }
             
-            //  RETENCIÓN: Desmarcar DETRACCIÓN y PERCEPCIÓN
             if (event.target.classList.contains('retencion-checkbox')) {
                 if (event.target.checked) {
                     document.querySelectorAll('.detraccion-checkbox').forEach(cb => cb.checked = false);
                     document.querySelectorAll('.percepcion-checkbox').forEach(cb => cb.checked = false);
                 }
-                // Desmarcar otros checkboxes de RETENCIÓN
                 document.querySelectorAll('.retencion-checkbox').forEach(cb => {
                     if (cb !== event.target) cb.checked = false;
                 });
                 actualizarTotalGeneral();
             }
             
-            //  PERCEPCIÓN: Desmarcar DETRACCIÓN y RETENCIÓN
             if (event.target.classList.contains('percepcion-checkbox')) {
                 if (event.target.checked) {
                     document.querySelectorAll('.detraccion-checkbox').forEach(cb => cb.checked = false);
                     document.querySelectorAll('.retencion-checkbox').forEach(cb => cb.checked = false);
                 }
-                // Desmarcar otros checkboxes de PERCEPCIÓN
                 document.querySelectorAll('.percepcion-checkbox').forEach(cb => {
                     if (cb !== event.target) cb.checked = false;
                 });
                 actualizarTotalGeneral();
             }
         });
-    } 
-        
+    }
+    
     // ============================================
     // CONFIGURACIÓN MODAL PROVEEDOR
     // ============================================
     function configurarModalProveedor() {
         const tablaCuentasModal = document.getElementById("tabla-cuentas-modal");
         const btnAgregarModal = document.getElementById("agregarCuentaModal");
+        
         if (btnAgregarModal) {
             btnAgregarModal.addEventListener("click", function() {
                 const nuevaFila = document.createElement("tr");
@@ -1878,6 +2117,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 tablaCuentasModal.appendChild(nuevaFila);
             });
         }
+        
         if (tablaCuentasModal) {
             tablaCuentasModal.addEventListener("click", function(e) {
                 if (e.target.classList.contains("eliminar-fila-modal")) {
@@ -1894,16 +2134,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
+        
         const btnAgregarProveedor = document.getElementById('btn-agregar-proveedor');
         if (btnAgregarProveedor) {
             btnAgregarProveedor.addEventListener('click', () => $('#modalNuevoProveedor').modal('show'));
         }
+        
         const btnGuardarProveedorModal = document.getElementById('btn-guardar-proveedor-modal');
         if (btnGuardarProveedorModal) {
             btnGuardarProveedorModal.addEventListener('click', guardarProveedorModal);
         }
+        
         $('#modalNuevoProveedor').on('hidden.bs.modal', limpiarFormularioProveedor);
     }
+    
     function guardarProveedorModal() {
         const form = document.getElementById('form-nuevo-proveedor-modal');
         
@@ -1974,6 +2218,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btnGuardar.innerHTML = '<i class="fa fa-save"></i> Registrar';
         });
     }
+    
     function limpiarFormularioProveedor() {
         const form = document.getElementById('form-nuevo-proveedor-modal');
         if (form) {
@@ -1987,6 +2232,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
+    
     // ============================================
     // FUNCIONES DE ORDEN
     // ============================================
@@ -1998,6 +2244,7 @@ document.addEventListener('DOMContentLoaded', function() {
             mostrarFormularioNuevaOrden();
         }
     }
+    
     function mostrarFormularioNuevaOrden() {
         document.getElementById('contenedor-tabla-ordenes').style.display = 'none';
         document.getElementById('contenedor-nueva-orden').style.display = 'block';
@@ -2011,6 +2258,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.getElementById('fecha_orden').value = new Date().toISOString().split('T')[0];
     }
+    
     function mostrarTablaOrdenes() {
         document.getElementById('contenedor-tabla-ordenes').style.display = 'block';
         document.getElementById('contenedor-nueva-orden').style.display = 'none';
@@ -2022,6 +2270,7 @@ document.addEventListener('DOMContentLoaded', function() {
             btnNuevaOrden.classList.add('btn-primary');
         }
     }
+    
     function agregarItemAOrden(item) {
     const idMonedaSeleccionada = document.getElementById('moneda_orden').value;
     const simboloMoneda = idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
@@ -2031,9 +2280,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const cantidadOrdenada = parseFloat(item.cantidadOrdenada) || 0;
     const cantidadPendiente = cantidadVerificada - cantidadOrdenada;
     
+    console.log('📦 Agregando item:', {
+        idProducto: item.idProducto,
+        esServicio: esOrdenServicio,
+        cantidadVerificada: cantidadVerificada,
+        cantidadOrdenada: cantidadOrdenada,
+        cantidadPendiente: cantidadPendiente
+    });
+    
     const itemElement = document.createElement('div');
     itemElement.id = `item-orden-${itemId}`;
     itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
+    
+    const badgeTipo = esOrdenServicio 
+        ? '<span class="badge badge-primary badge-sm ml-1">SERVICIO</span>'
+        : (modoEditar ? '<span class="badge badge-info badge-sm ml-1">NUEVO</span>' : '');
+    
+    const etiquetaCantidad = esOrdenServicio ? 'Cantidad Original' : 'Cantidad Verificada';
     
     itemElement.innerHTML = `
     <input type="hidden" name="items_orden[${itemId}][id_detalle]" value="${item.idDetalle}">
@@ -2045,11 +2308,12 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="col-md-11">
             <div style="font-size: 12px;">
                 <strong>Descripción:</strong> ${item.descripcion}
-                ${modoEditar ? '<span class="badge badge-info badge-sm ml-1">NUEVO</span>' : ''}
+                ${badgeTipo}
             </div>
             <small class="text-muted" style="font-size: 11px;">
-                Verificado: ${cantidadVerificada} | Ya ordenado: ${cantidadOrdenada} | 
-                <strong class="text-warning">Pendiente: ${cantidadPendiente}</strong>
+                ${etiquetaCantidad}: ${cantidadVerificada.toFixed(2)} | 
+                Ya ordenado: ${cantidadOrdenada.toFixed(2)} | 
+                <strong class="text-warning">Pendiente: ${cantidadPendiente.toFixed(2)}</strong>
             </small>
         </div>
         <div class="col-md-1 text-right">
@@ -2060,17 +2324,21 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     
     <div class="row">
-        <!-- Cantidad -->
         <div class="col-md-2">
             <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Cantidad:</label>
             <input type="number" class="form-control form-control-sm cantidad-item" 
                 name="items_orden[${itemId}][cantidad]" data-id-detalle="${itemId}"
-                value="${cantidadPendiente}" min="0.01" max="${cantidadPendiente}" step="0.01"
+                data-id-producto="${item.idProducto}"
+                data-cantidad-verificada="${cantidadVerificada}"
+                data-cantidad-ordenada="${cantidadOrdenada}"
+                value="${cantidadPendiente.toFixed(2)}" 
+                min="0.01" 
+                max="${cantidadPendiente.toFixed(2)}" 
+                step="0.01"
                 style="font-size: 12px;" required>
-            <small class="text-info" style="font-size: 10px;">Máx: ${cantidadPendiente}</small>
+            <small class="text-info" style="font-size: 10px;">Máx: ${cantidadPendiente.toFixed(2)}</small>
         </div>
         
-        <!-- Precio Unitario -->
         <div class="col-md-2">
             <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Precio Unit.:</label>
             <div class="input-group input-group-sm">
@@ -2083,7 +2351,6 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         </div>
         
-        <!-- IGV (%) -->
         <div class="col-md-2">
             <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">IGV (%):</label>
             <input type="number" class="form-control form-control-sm igv-item" 
@@ -2091,7 +2358,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 value="18" min="0" max="100" step="0.01" style="font-size: 12px;" required>
         </div>
         
-        <!-- Homologación -->
         <div class="col-md-3">
             <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Homologación:</label>
             <input type="file" class="form-control-file" name="homologacion[${item.idDetalle}]"
@@ -2099,7 +2365,6 @@ document.addEventListener('DOMContentLoaded', function() {
             <small class="text-muted" style="font-size: 10px;">PDF, JPG, PNG</small>
         </div>
         
-        <!-- Cálculos -->
         <div class="col-md-3 text-right">
             <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block; visibility: hidden;">-</label>
             <div class="calculo-item" id="calculo-${itemId}" style="font-size: 11px; line-height: 1.4;">
@@ -2111,55 +2376,56 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 `;
     
-        
-        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-        const totalElement = document.getElementById('total-orden');
-        if (totalElement) {
-            contenedorItemsOrden.insertBefore(itemElement, totalElement);
-        } else {
-            contenedorItemsOrden.appendChild(itemElement);
-        }
-        
-        itemsAgregadosOrden.add(itemId);
-        
-        if (item.botonOriginal) {
-            item.botonOriginal.disabled = true;
-            item.botonOriginal.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
-            item.botonOriginal.classList.remove('btn-primary');
-            item.botonOriginal.classList.add('btn-success');
-        }
-        
-        const cantidadInput = itemElement.querySelector('.cantidad-item');
-        const precioInput = itemElement.querySelector('.precio-item');
-        const igvInput = itemElement.querySelector('.igv-item');
-function calcularTotalesItem() {
-            const cantidad = parseFloat(cantidadInput.value) || 0;
-            const precio = parseFloat(precioInput.value) || 0;
-            const igvPorcentaje = parseFloat(igvInput.value) || 0;
-            
-            const subtotal = cantidad * precio;
-            const montoIgv = subtotal * (igvPorcentaje / 100);
-            const total = subtotal + montoIgv;
-            
-            const simboloMoneda = obtenerSimboloMoneda();
-            const calculoDiv = document.getElementById(`calculo-${itemId}`);
-            if (calculoDiv) {
-                calculoDiv.querySelector('.subtotal-text').textContent = `Subtotal: ${simboloMoneda} ${subtotal.toFixed(2)}`;
-                calculoDiv.querySelector('.igv-text').textContent = `IGV: ${simboloMoneda} ${montoIgv.toFixed(2)}`;
-                calculoDiv.querySelector('.total-text').textContent = `Total: ${simboloMoneda} ${total.toFixed(2)}`;
-            }
-            actualizarTotalGeneral();
-        }
-        
-        cantidadInput.addEventListener('input', calcularTotalesItem);
-        precioInput.addEventListener('input', calcularTotalesItem);
-        igvInput.addEventListener('input', calcularTotalesItem);
-        
-        const btnRemover = itemElement.querySelector('.btn-remover-item');
-        btnRemover.addEventListener('click', function() {
-            removerItemDeOrden(itemId, item.botonOriginal);
-        });
+    const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
+    const totalElement = document.getElementById('total-orden');
+    if (totalElement) {
+        contenedorItemsOrden.insertBefore(itemElement, totalElement);
+    } else {
+        contenedorItemsOrden.appendChild(itemElement);
     }
+    
+    itemsAgregadosOrden.add(itemId);
+    
+    if (item.botonOriginal) {
+        item.botonOriginal.disabled = true;
+        item.botonOriginal.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
+        item.botonOriginal.classList.remove('btn-primary');
+        item.botonOriginal.classList.add('btn-success');
+    }
+    
+    const cantidadInput = itemElement.querySelector('.cantidad-item');
+    const precioInput = itemElement.querySelector('.precio-item');
+    const igvInput = itemElement.querySelector('.igv-item');
+    
+    function calcularTotalesItem() {
+        const cantidad = parseFloat(cantidadInput.value) || 0;
+        const precio = parseFloat(precioInput.value) || 0;
+        const igvPorcentaje = parseFloat(igvInput.value) || 0;
+        
+        const subtotal = cantidad * precio;
+        const montoIgv = subtotal * (igvPorcentaje / 100);
+        const total = subtotal + montoIgv;
+        
+        const simboloMoneda = obtenerSimboloMoneda();
+        const calculoDiv = document.getElementById(`calculo-${itemId}`);
+        if (calculoDiv) {
+            calculoDiv.querySelector('.subtotal-text').textContent = `Subtotal: ${simboloMoneda} ${subtotal.toFixed(2)}`;
+            calculoDiv.querySelector('.igv-text').textContent = `IGV: ${simboloMoneda} ${montoIgv.toFixed(2)}`;
+            calculoDiv.querySelector('.total-text').textContent = `Total: ${simboloMoneda} ${total.toFixed(2)}`;
+        }
+        actualizarTotalGeneral();
+    }
+    
+    cantidadInput.addEventListener('input', calcularTotalesItem);
+    precioInput.addEventListener('input', calcularTotalesItem);
+    igvInput.addEventListener('input', calcularTotalesItem);
+    
+    const btnRemover = itemElement.querySelector('.btn-remover-item');
+    btnRemover.addEventListener('click', function() {
+        removerItemDeOrden(itemId, item.botonOriginal);
+    });
+}
+    
     function removerItemDeOrden(idDetalle, botonOriginal) {
         const itemElement = document.getElementById(`item-orden-${idDetalle}`);
         if (itemElement) {
@@ -2176,204 +2442,150 @@ function calcularTotalesItem() {
         
         actualizarTotalGeneral();
     }
-    function removerItemDeOrdenEdicion(idCompraDetalle) {
-        Swal.fire({
-            title: '¿Está seguro?',
-            text: 'Este item se eliminará de la orden',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const itemElement = document.getElementById(`item-orden-${idCompraDetalle}`);
-                if (itemElement) {
-                    itemElement.remove();
-                    actualizarTotalGeneral();
-                    
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Item eliminado',
-                        text: 'El item ha sido removido de la orden',
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
-                }
-            }
-        });
-    }
+    
     // ============================================
     // FUNCIONES DE CÁLCULO
     // ============================================
     function actualizarTotalGeneral() {
-    const items = document.querySelectorAll('[id^="item-orden-"]');
-    let subtotalGeneral = 0;
-    let totalIgv = 0;
-    
-    // Calcular subtotal e IGV de todos los items
-    items.forEach(item => {
-        const cantidadInput = item.querySelector('.cantidad-item');
-        const precioInput = item.querySelector('.precio-item');
-        const igvInput = item.querySelector('.igv-item');
+        const items = document.querySelectorAll('[id^="item-orden-"]');
+        let subtotalGeneral = 0;
+        let totalIgv = 0;
         
-        if (cantidadInput && precioInput && igvInput) {
-            const cantidad = parseFloat(cantidadInput.value) || 0;
-            const precio = parseFloat(precioInput.value) || 0;
-            const igvPorcentaje = parseFloat(igvInput.value) || 0;
+        items.forEach(item => {
+            const cantidadInput = item.querySelector('.cantidad-item');
+            const precioInput = item.querySelector('.precio-item');
+            const igvInput = item.querySelector('.igv-item');
             
-            const subtotal = cantidad * precio;
-            const montoIgv = subtotal * (igvPorcentaje / 100);
-            
-            subtotalGeneral += subtotal;
-            totalIgv += montoIgv;
+            if (cantidadInput && precioInput && igvInput) {
+                const cantidad = parseFloat(cantidadInput.value) || 0;
+                const precio = parseFloat(precioInput.value) || 0;
+                const igvPorcentaje = parseFloat(igvInput.value) || 0;
+                
+                const subtotal = cantidad * precio;
+                const montoIgv = subtotal * (igvPorcentaje / 100);
+                
+                subtotalGeneral += subtotal;
+                totalIgv += montoIgv;
+            }
+        });
+        
+        const totalConIgv = subtotalGeneral + totalIgv;
+        
+        let tipoDescuentoCargo = null;
+        let porcentaje = 0;
+        let nombreConcepto = '';
+        let montoAfectacion = 0;
+        
+        const checkboxDetraccion = document.querySelector('.detraccion-checkbox:checked');
+        const checkboxRetencion = document.querySelector('.retencion-checkbox:checked');
+        const checkboxPercepcion = document.querySelector('.percepcion-checkbox:checked');
+        
+        if (checkboxDetraccion) {
+            tipoDescuentoCargo = 'DETRACCION';
+            porcentaje = parseFloat(checkboxDetraccion.getAttribute('data-porcentaje')) || 0;
+            nombreConcepto = checkboxDetraccion.getAttribute('data-nombre') || '';
+            montoAfectacion = (totalConIgv * porcentaje) / 100;
+        } else if (checkboxRetencion) {
+            tipoDescuentoCargo = 'RETENCION';
+            porcentaje = parseFloat(checkboxRetencion.getAttribute('data-porcentaje')) || 0;
+            nombreConcepto = checkboxRetencion.getAttribute('data-nombre') || '';
+            montoAfectacion = (totalConIgv * porcentaje) / 100;
+        } else if (checkboxPercepcion) {
+            tipoDescuentoCargo = 'PERCEPCION';
+            porcentaje = parseFloat(checkboxPercepcion.getAttribute('data-porcentaje')) || 0;
+            nombreConcepto = checkboxPercepcion.getAttribute('data-nombre') || '';
+            montoAfectacion = (totalConIgv * porcentaje) / 100;
         }
-    });
-    
-    // Calcular TOTAL CON IGV primero
-    const totalConIgv = subtotalGeneral + totalIgv;
-    
-    // ========================================
-    // NUEVA LÓGICA: Solo UNA opción activa
-    // ========================================
-    
-    let tipoDescuentoCargo = null;
-    let porcentaje = 0;
-    let nombreConcepto = '';
-    let montoAfectacion = 0;
-    
-    // Verificar cuál checkbox está marcado
-    const checkboxDetraccion = document.querySelector('.detraccion-checkbox:checked');
-    const checkboxRetencion = document.querySelector('.retencion-checkbox:checked');
-    const checkboxPercepcion = document.querySelector('.percepcion-checkbox:checked');
-    
-    if (checkboxDetraccion) {
-        tipoDescuentoCargo = 'DETRACCION';
-        porcentaje = parseFloat(checkboxDetraccion.getAttribute('data-porcentaje')) || 0;
-        nombreConcepto = checkboxDetraccion.getAttribute('data-nombre') || '';
-        // 🔹 DETRACCIÓN: Se aplica sobre el TOTAL CON IGV
-        montoAfectacion = (totalConIgv * porcentaje) / 100;
-    } else if (checkboxRetencion) {
-        tipoDescuentoCargo = 'RETENCION';
-        porcentaje = parseFloat(checkboxRetencion.getAttribute('data-porcentaje')) || 0;
-        nombreConcepto = checkboxRetencion.getAttribute('data-nombre') || '';
-        // 🔹 RETENCIÓN: Se aplica sobre el TOTAL CON IGV
-        montoAfectacion = (totalConIgv * porcentaje) / 100;
-    } else if (checkboxPercepcion) {
-        tipoDescuentoCargo = 'PERCEPCION';
-        porcentaje = parseFloat(checkboxPercepcion.getAttribute('data-porcentaje')) || 0;
-        nombreConcepto = checkboxPercepcion.getAttribute('data-nombre') || '';
-        // 🔹 PERCEPCIÓN: Se aplica sobre el TOTAL CON IGV
-        montoAfectacion = (totalConIgv * porcentaje) / 100;
-    }
-    
-    // ========================================
-    // CALCULAR TOTAL FINAL
-    // ========================================
-    
-    let totalFinal = 0;
-    
-    if (tipoDescuentoCargo === 'DETRACCION') {
-        // Detracción se RESTA del total con IGV
-        totalFinal = totalConIgv - montoAfectacion;
-    } else if (tipoDescuentoCargo === 'RETENCION') {
-        // Retención se RESTA del total con IGV
-        totalFinal = totalConIgv - montoAfectacion;
-    } else if (tipoDescuentoCargo === 'PERCEPCION') {
-        // Percepción se SUMA al total con IGV
-        totalFinal = totalConIgv + montoAfectacion;
-    } else {
-        // Sin afectación
-        totalFinal = totalConIgv;
-    }
-    
-    // ========================================
-    // MOSTRAR RESUMEN
-    // ========================================
-    
-    let resumenDiv = document.getElementById('resumen-total-orden');
-    if (!resumenDiv && items.length > 0) {
-        resumenDiv = document.createElement('div');
-        resumenDiv.id = 'resumen-total-orden';
-        resumenDiv.className = '';
-        document.getElementById('contenedor-items-orden').appendChild(resumenDiv);
-    }
-    
-    if (resumenDiv && items.length > 0) {
-        const simboloMoneda = obtenerSimboloMoneda();
-        let html = `
-            <div style="font-size: 15px; padding: 10px 15px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;">
-                <!-- SUBTOTAL -->
-                <div class="mb-2">
-                    <i class="fa fa-calculator text-secondary"></i>
-                    <strong class="text-secondary"> Subtotal:</strong>
-                    <span class="text-dark">${simboloMoneda} ${subtotalGeneral.toFixed(2)}</span>
-                </div>
-                
-                <!-- IGV TOTAL -->
-                <div class="mb-2">
-                    <i class="fa fa-percent text-secondary"></i>
-                    <strong class="text-secondary"> IGV Total:</strong>
-                    <span class="text-dark">${simboloMoneda} ${totalIgv.toFixed(2)}</span>
-                </div>
-                
-                <!-- TOTAL CON IGV -->
-                <div class="mb-2" style="font-weight: bold; font-size: 16px; padding: 5px; background-color: #e3f2fd; border-radius: 4px;">
-                    <i class="fa fa-calculator text-primary"></i>
-                    <strong class="text-primary"> Total con IGV:</strong>
-                    <span class="text-primary">${simboloMoneda} ${totalConIgv.toFixed(2)}</span>
-                </div>`;
         
-        // Mostrar DETRACCIÓN si existe
+        let totalFinal = 0;
+        
         if (tipoDescuentoCargo === 'DETRACCION') {
-            html += `
-                <div class="mb-2">
-                    <i class="fa fa-minus-circle text-warning"></i>
-                    <strong class="text-warning"> Detracción ${nombreConcepto} (${porcentaje}%):</strong>
-                    <span class="text-warning">-${simboloMoneda} ${montoAfectacion.toFixed(2)}</span>
-                </div>`;
+            totalFinal = totalConIgv - montoAfectacion;
+        } else if (tipoDescuentoCargo === 'RETENCION') {
+            totalFinal = totalConIgv - montoAfectacion;
+        } else if (tipoDescuentoCargo === 'PERCEPCION') {
+            totalFinal = totalConIgv + montoAfectacion;
+        } else {
+            totalFinal = totalConIgv;
         }
         
-        // Mostrar RETENCIÓN si existe
-        if (tipoDescuentoCargo === 'RETENCION') {
-            html += `
-                <div class="mb-2">
-                    <i class="fa fa-minus-circle text-info"></i>
-                    <strong class="text-info"> Retención ${nombreConcepto} (${porcentaje}%):</strong>
-                    <span class="text-info">-${simboloMoneda} ${montoAfectacion.toFixed(2)}</span>
-                </div>`;
+        let resumenDiv = document.getElementById('resumen-total-orden');
+        if (!resumenDiv && items.length > 0) {
+            resumenDiv = document.createElement('div');
+            resumenDiv.id = 'resumen-total-orden';
+            resumenDiv.className = '';
+            document.getElementById('contenedor-items-orden').appendChild(resumenDiv);
         }
         
-        // Mostrar PERCEPCIÓN si existe
-        if (tipoDescuentoCargo === 'PERCEPCION') {
+        if (resumenDiv && items.length > 0) {
+            const simboloMoneda = obtenerSimboloMoneda();
+            let html = `
+                <div style="font-size: 15px; padding: 10px 15px; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px;">
+                    <div class="mb-2">
+                        <i class="fa fa-calculator text-secondary"></i>
+                        <strong class="text-secondary"> Subtotal:</strong>
+                        <span class="text-dark">${simboloMoneda} ${subtotalGeneral.toFixed(2)}</span>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <i class="fa fa-percent text-secondary"></i>
+                        <strong class="text-secondary"> IGV Total:</strong>
+                        <span class="text-dark">${simboloMoneda} ${totalIgv.toFixed(2)}</span>
+                    </div>
+                    
+                    <div class="mb-2" style="font-weight: bold; font-size: 16px; padding: 5px; background-color: #e3f2fd; border-radius: 4px;">
+                        <i class="fa fa-calculator text-primary"></i>
+                        <strong class="text-primary"> Total con IGV:</strong>
+                        <span class="text-primary">${simboloMoneda} ${totalConIgv.toFixed(2)}</span>
+                    </div>`;
+            
+            if (tipoDescuentoCargo === 'DETRACCION') {
+                html += `
+                    <div class="mb-2">
+                        <i class="fa fa-minus-circle text-warning"></i>
+                        <strong class="text-warning"> Detracción ${nombreConcepto} (${porcentaje}%):</strong>
+                        <span class="text-warning">-${simboloMoneda} ${montoAfectacion.toFixed(2)}</span>
+                    </div>`;
+            }
+            
+            if (tipoDescuentoCargo === 'RETENCION') {
+                html += `
+                    <div class="mb-2">
+                        <i class="fa fa-minus-circle text-info"></i>
+                        <strong class="text-info"> Retención ${nombreConcepto} (${porcentaje}%):</strong>
+                        <span class="text-info">-${simboloMoneda} ${montoAfectacion.toFixed(2)}</span>
+                    </div>`;
+            }
+            
+            if (tipoDescuentoCargo === 'PERCEPCION') {
+                html += `
+                    <div class="mb-2">
+                        <i class="fa fa-plus-circle text-success"></i>
+                        <strong class="text-success"> Percepción ${nombreConcepto} (${porcentaje}%):</strong>
+                        <span class="text-success">+${simboloMoneda} ${montoAfectacion.toFixed(2)}</span>
+                    </div>`;
+            }
+            
             html += `
-                <div class="mb-2">
-                    <i class="fa fa-plus-circle text-success"></i>
-                    <strong class="text-success"> Percepción ${nombreConcepto} (${porcentaje}%):</strong>
-                    <span class="text-success">+${simboloMoneda} ${montoAfectacion.toFixed(2)}</span>
+                    <div style="font-size: 18px; font-weight: bold; padding: 10px; background-color: #28a745; color: white; border-radius: 6px; text-align: center; margin-top: 10px;">
+                        <i class="fa fa-money"></i> 
+                        TOTAL A PAGAR: ${simboloMoneda} ${totalFinal.toFixed(2)}
+                    </div>
                 </div>`;
+            
+            resumenDiv.innerHTML = html;
+        } else if (resumenDiv && items.length === 0) {
+            resumenDiv.remove();
         }
-        
-        // TOTAL FINAL A PAGAR
-        html += `
-                <div style="font-size: 18px; font-weight: bold; padding: 10px; background-color: #28a745; color: white; border-radius: 6px; text-align: center; margin-top: 10px;">
-                    <i class="fa fa-money"></i> 
-                    TOTAL A PAGAR: ${simboloMoneda} ${totalFinal.toFixed(2)}
-                </div>
-            </div>`;
-        
-        resumenDiv.innerHTML = html;
-    } else if (resumenDiv && items.length === 0) {
-        resumenDiv.remove();
     }
-}
+    
     function obtenerSimboloMoneda() {
         const selectMoneda = document.getElementById('moneda_orden');
         if (!selectMoneda || !selectMoneda.value) return 'S/.';
         const idMonedaSeleccionada = selectMoneda.value;
         return idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
     }
+    
     function actualizarEtiquetasMoneda(idMoneda) {
         const simboloMoneda = idMoneda == '1' ? 'S/.' : (idMoneda == '2' ? 'US$' : 'S/.');
         
@@ -2385,74 +2597,10 @@ function calcularTotalesItem() {
         
         actualizarTotalGeneral();
     }
+    
     // ============================================
-    // VALIDACIÓN Y OTRAS FUNCIONES
+    // FUNCIÓN ANULAR COMPRA
     // ============================================
-    function validarFormularioOrden(e) {
-        const fecha = document.getElementById('fecha_orden').value;
-        const proveedor = document.getElementById('proveedor_orden').value;
-        const moneda = document.getElementById('moneda_orden').value;
-        
-        if (!fecha || !proveedor || !moneda) {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'warning',
-                title: 'Campos Obligatorios',
-                text: 'Por favor complete los campos obligatorios (Fecha, Proveedor y Moneda).',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'Entendido'
-            });
-            return false;
-        }
-        
-        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-        const itemsOrden = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
-        
-        if (itemsOrden.length === 0) {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'warning',
-                title: 'Sin Items',
-                text: 'Debe agregar al menos un ítem a la orden antes de guardar.',
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'Entendido'
-            });
-            return false;
-        }
-        
-        // VALIDACIÓN DE CANTIDADES 
-        const erroresValidacion = validarCantidadesCliente(itemsOrden);
-        
-        if (erroresValidacion.length > 0) {
-            e.preventDefault();
-            
-            // Construir HTML simple
-            let mensajeHTML = '<div style="text-align: left; font-size: 14px;">';
-            mensajeHTML += '<p><strong>Las siguientes cantidades exceden lo verificado:</strong></p>';
-            mensajeHTML += '<ul style="margin: 10px 0; padding-left: 20px;">';
-            
-            erroresValidacion.forEach(error => {
-                mensajeHTML += `<li style="margin-bottom: 8px;">${error}</li>`;
-            });
-            
-            mensajeHTML += '</ul>';
-            mensajeHTML += '<p style="margin-top: 10px; color: #6c757d;">Ajusta las cantidades e intenta nuevamente.</p>';
-            mensajeHTML += '</div>';
-            
-            Swal.fire({
-                title: 'Cantidad No Permitida',
-                html: mensajeHTML,
-                icon: 'error',
-                confirmButtonColor: '#d33',
-                confirmButtonText: 'Entendido'
-            });
-            
-            return false;
-        }
-        
-        // Si llegó hasta aquí, todas las validaciones pasaron
-        return true;
-    }
     function AnularCompra(id_compra, id_pedido) {
         Swal.fire({
             title: '¿Qué deseas anular?',
@@ -2476,8 +2624,7 @@ function calcularTotalesItem() {
                     success: function(response) {
                         if (response.tipo_mensaje === 'success') {
                             Swal.fire('¡Anulado!', response.mensaje, 'success').then(() => {
-                                location.reload(); // ← Esto ya recarga, pero si no quieres recargar, usa:
-                                // recalcularEstadoItems();
+                                location.reload();
                             });
                         } else {
                             Swal.fire('Error', response.mensaje, 'error');
@@ -2496,7 +2643,7 @@ function calcularTotalesItem() {
                     success: function(response) {
                         if (response.tipo_mensaje === 'success') {
                             Swal.fire('¡Anulado!', response.mensaje, 'success').then(() => {
-                                location.reload(); // ← Esto ya recarga
+                                location.reload();
                             });
                         } else {
                             Swal.fire('Error', response.mensaje, 'error');
@@ -2509,433 +2656,277 @@ function calcularTotalesItem() {
             }
         });
     }
-    // ============================================
-    // FUNCIONES AUTO-ORDEN
-    // ============================================
-    function mostrarFormularioNuevaOrdenAuto() {
-        const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
-        const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
-        const btnNuevaOrden = document.getElementById('btn-nueva-orden');
-        
-        if (contenedorTabla && contenedorNuevaOrden && btnNuevaOrden) {
-            contenedorTabla.style.display = 'none';
-            contenedorNuevaOrden.style.display = 'block';
-            
-            btnNuevaOrden.innerHTML = '<i class="fa fa-table"></i> Ver Órdenes';
-            btnNuevaOrden.classList.remove('btn-primary');
-            btnNuevaOrden.classList.add('btn-secondary');
-            
-            const fechaOrden = document.getElementById('fecha_orden');
-            if (fechaOrden) {
-                fechaOrden.value = new Date().toISOString().split('T')[0];
-            }
-        }
-    }
-    function autoAgregarItemsAOrden() {
-        const itemsAutoOrden = document.querySelectorAll('.datos-auto-orden');
-        let itemsAgregados = 0;
-        
-        itemsAutoOrden.forEach(function(item) {
-            const idDetalle = item.getAttribute('data-id-detalle');
-            const idProducto = item.getAttribute('data-id-producto');
-            const descripcion = item.getAttribute('data-descripcion');
-            const cantidad = item.getAttribute('data-cantidad');
-            
-            agregarItemAOrdenAutomatico({
-                idDetalle: idDetalle,
-                idProducto: idProducto,
-                descripcion: descripcion,
-                cantidadVerificada: cantidad
-            });
-            
-            itemsAgregados++;
-        });
-        
-        if (itemsAgregados > 0) {
-            const contadorVerificados = document.getElementById('contador-verificados');
-            if (contadorVerificados) {
-                contadorVerificados.textContent = `(${itemsAgregados} items auto-agregados)`;
-            }
-        }
-    }
     
-    function agregarItemAOrdenAutomatico(item) {
-        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-        const itemElement = document.createElement('div');
-        itemElement.id = `item-orden-${item.idDetalle}`;
-        itemElement.classList.add('alert', 'alert-primary', 'p-2', 'mb-2');
-        
-        itemElement.innerHTML = `
-            <input type="hidden" name="items_orden[${item.idDetalle}][id_detalle]" value="${item.idDetalle}">
-            <input type="hidden" name="items_orden[${item.idDetalle}][id_producto]" value="${item.idProducto}">
-            <input type="hidden" name="items_orden[${item.idDetalle}][cantidad]" value="${item.cantidadVerificada}">
-            
-            <div class="row align-items-center mb-2">
-                <div class="col-md-11">
-                    <div style="font-size: 12px;">
-                        <i class="fa fa-cog text-primary"></i>
-                        <strong>Descripción:</strong> ${item.descripcion}
-                        <span class="badge badge-primary badge-sm ml-1">AUTO</span>
-                    </div>
-                    <small class="text-muted" style="font-size: 11px;">
-                        <strong>Cantidad:</strong> ${item.cantidadVerificada}
-                    </small>
-                </div>
-                <div class="col-md-1">
-                    <span class="badge badge-primary" title="Item agregado automáticamente" style="padding: 4px 6px;">
-                        <i class="fa fa-cog"></i>
-                    </span>
-                </div>
-            </div>
-            
-            <div class="row align-items-end">
-                <div class="col-md-2">
-                    <label style="font-size: 11px; font-weight: bold;">Precio Unit.:</label>
-                    <div class="input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text" style="font-size: 11px;">S/.</span>
-                        </div>
-                        <input type="number" class="form-control form-control-sm precio-item" 
-                            name="items_orden[${item.idDetalle}][precio_unitario]"
-                            data-id-detalle="${item.idDetalle}"
-                            step="0.01" min="0" placeholder="0.00"
-                            style="font-size: 11px;" required>
-                    </div>
-                </div>
-                
-                <div class="col-md-2">
-                    <label style="font-size: 11px; font-weight: bold;">IGV (%):</label>
-                    <input type="number" class="form-control form-control-sm igv-item" 
-                        name="items_orden[${item.idDetalle}][igv]"
-                        data-id-detalle="${item.idDetalle}"
-                        value="" min="0" max="100" step="0.01"
-                        style="font-size: 12px;" required>
-                </div>
-                
-                <div class="col-md-3">
-                    <label style="font-size: 11px; font-weight: bold;">Homologación:</label>
-                    <input type="file" class="form-control-file" 
-                        name="homologacion[${item.idDetalle}]"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        style="font-size: 11px;">
-                    <small class="text-muted" style="font-size: 10px;">PDF, JPG, PNG</small>
-                </div>
-                
-                <div class="col-md-5 text-right">
-                    <div class="calculo-item" id="calculo-${item.idDetalle}" style="font-size: 11px; line-height: 1.4;">
-                        <div class="subtotal-text">Subtotal: S/. 0.00</div>
-                        <div class="igv-text">IGV: S/. 0.00</div>
-                        <div class="total-text" style="font-weight: bold; color: #2196f3;">Total: S/. 0.00</div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        contenedorItemsOrden.appendChild(itemElement);
-        
-        const precioInput = itemElement.querySelector('.precio-item');
-        const igvInput = itemElement.querySelector('.igv-item');
-        
-        function calcularTotales() {
-            const cantidad = parseFloat(item.cantidadVerificada) || 0;
-            const precio = parseFloat(precioInput.value) || 0;
-            const igvPorcentaje = parseFloat(igvInput.value) || 0;
-            
-            const subtotal = cantidad * precio;
-            const montoIgv = subtotal * (igvPorcentaje / 100);
-            const total = subtotal + montoIgv;
-            
-            const simboloMoneda = obtenerSimboloMoneda();
-            const calculoDiv = document.getElementById(`calculo-${item.idDetalle}`);
-            if (calculoDiv) {
-                calculoDiv.querySelector('.subtotal-text').textContent = `Subtotal: ${simboloMoneda} ${subtotal.toFixed(2)}`;
-                calculoDiv.querySelector('.igv-text').textContent = `IGV: ${simboloMoneda} ${montoIgv.toFixed(2)}`;
-                calculoDiv.querySelector('.total-text').textContent = `Total: ${simboloMoneda} ${total.toFixed(2)}`;
-            }
-            actualizarTotalGeneral();
-        }
-        
-        precioInput.addEventListener('input', calcularTotales);
-        igvInput.addEventListener('input', calcularTotales);
-    }
     // ============================================
     // MODAL DETALLE COMPRA
     // ============================================
-function mostrarDetalleCompra(idCompra) {
-    $('#modalDetalleCompra').modal('show');
+    function mostrarDetalleCompra(idCompra) {
+        $('#modalDetalleCompra').modal('show');
+        
+        document.getElementById('loading-spinner').style.display = 'block';
+        document.getElementById('contenido-detalle-compra').style.display = 'none';
+        document.getElementById('error-detalle-compra').style.display = 'none';
+        
+        const formData = new FormData();
+        formData.append('accion', 'obtener_detalle');
+        formData.append('id_compra', idCompra);
+        
+        fetch('compra_detalles.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('loading-spinner').style.display = 'none';
+            if (data.success) {
+                mostrarContenidoDetalle(data.compra, data.detalles);
+            } else {
+                mostrarErrorDetalle(data.message || 'Error desconocido');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('loading-spinner').style.display = 'none';
+            mostrarErrorDetalle('Error de conexión');
+        });
+    }
     
-    document.getElementById('loading-spinner').style.display = 'block';
-    document.getElementById('contenido-detalle-compra').style.display = 'none';
-    document.getElementById('error-detalle-compra').style.display = 'none';
-    
-    const formData = new FormData();
-    formData.append('accion', 'obtener_detalle');
-    formData.append('id_compra', idCompra);
-    
-    fetch('compra_detalles.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        document.getElementById('loading-spinner').style.display = 'none';
-        if (data.success) {
-            mostrarContenidoDetalle(data.compra, data.detalles);
-        } else {
-            mostrarErrorDetalle(data.message || 'Error desconocido');
+    function mostrarContenidoDetalle(compra, detalles) {
+        const titulo = document.getElementById('modalDetalleCompraLabel');
+        titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de Compra - ORD-${compra.id_compra}`;
+        
+        const contenido = document.getElementById('contenido-detalle-compra');
+        const fechaFormateada = new Date(compra.fec_compra).toLocaleDateString('es-PE');
+        const estadoCompra = parseInt(compra.est_compra);
+        
+        let estadoTexto = 'Desconocido';
+        let estadoClase = 'secondary';
+        
+        switch(estadoCompra) {
+            case 0: estadoTexto = 'Anulada'; estadoClase = 'danger'; break;
+            case 1: estadoTexto = 'Pendiente'; estadoClase = 'warning'; break;
+            case 2: estadoTexto = 'Aprobada'; estadoClase = 'success'; break;
+            case 3: estadoTexto = 'Cerrada'; estadoClase = 'info'; break;
+            case 4: estadoTexto = 'Pagada'; estadoClase = 'primary'; break;
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        document.getElementById('loading-spinner').style.display = 'none';
-        mostrarErrorDetalle('Error de conexión');
-    });
-}
-function mostrarContenidoDetalle(compra, detalles) {
-    const titulo = document.getElementById('modalDetalleCompraLabel');
-    titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de Compra - ORD-${compra.id_compra}`;
-    
-    const contenido = document.getElementById('contenido-detalle-compra');
-    const fechaFormateada = new Date(compra.fec_compra).toLocaleDateString('es-PE');
-    const estadoCompra = parseInt(compra.est_compra);
-    
-    let estadoTexto = 'Desconocido';
-    let estadoClase = 'secondary';
-    
-    switch(estadoCompra) {
-        case 0: estadoTexto = 'Anulada'; estadoClase = 'danger'; break;
-        case 1: estadoTexto = 'Pendiente'; estadoClase = 'warning'; break;
-        case 2: estadoTexto = 'Aprobada'; estadoClase = 'success'; break;
-        case 3: estadoTexto = 'Cerrada'; estadoClase = 'info'; break;
-        case 4: estadoTexto = 'Pagada'; estadoClase = 'primary'; break;
-    }
-    
-    let html = `
-        <div class="card mb-3">
-            <div class="card-header" style="background-color: #e3f2fd; padding: 10px 15px;">
-                <h6 class="mb-0"><i class="fa fa-info-circle text-primary"></i> Información General</h6>
-            </div>
-            <div class="card-body" style="padding: 15px;">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>N° Orden:</strong> ORD-${compra.id_compra}</p>
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Proveedor:</strong> ${compra.nom_proveedor || 'No especificado'}</p>
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>RUC:</strong> ${compra.ruc_proveedor || 'No especificado'}</p>
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Moneda:</strong> ${compra.nom_moneda || 'No especificada'}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Fecha:</strong> ${fechaFormateada}</p>
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Estado:</strong> <span class="badge badge-${estadoClase}">${estadoTexto}</span></p>
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'}</p>
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Plazo Entrega:</strong> ${compra.plaz_compra || 'No especificado'}</p>
-                    </div>
-                </div>`;
-    
-    // 🔹 MOSTRAR BADGE DE DETRACCIÓN/RETENCIÓN/PERCEPCIÓN
-    let tieneAfectacion = false;
-    
-    if (compra.nombre_detraccion && compra.porcentaje_detraccion) {
-        tieneAfectacion = true;
-        html += `
-            <div class="alert alert-warning" style="margin-top: 15px; padding: 10px;">
-                <i class="fa fa-exclamation-triangle"></i> 
-                <strong>Detracción Aplicada:</strong> ${compra.nombre_detraccion} 
-                <span class="badge badge-warning">${compra.porcentaje_detraccion}%</span>
-            </div>`;
-    }
-    
-    if (compra.nombre_retencion && compra.porcentaje_retencion) {
-        tieneAfectacion = true;
-        html += `
-            <div class="alert alert-info" style="margin-top: 15px; padding: 10px;">
-                <i class="fa fa-info-circle"></i> 
-                <strong>Retención Aplicada:</strong> ${compra.nombre_retencion} 
-                <span class="badge badge-info">${compra.porcentaje_retencion}%</span>
-            </div>`;
-    }
-    
-    if (compra.nombre_percepcion && compra.porcentaje_percepcion) {
-        tieneAfectacion = true;
-        html += `
-            <div class="alert alert-success" style="margin-top: 15px; padding: 10px;">
-                <i class="fa fa-plus-circle"></i> 
-                <strong>Percepción Aplicada:</strong> ${compra.nombre_percepcion} 
-                <span class="badge badge-success">${compra.porcentaje_percepcion}%</span>
-            </div>`;
-    }
-    
-    // Si no hay ninguna afectación, mostrar mensaje
-    if (!tieneAfectacion) {
-        html += `
-            <div class="alert alert-secondary" style="margin-top: 15px; padding: 10px;">
-                <i class="fa fa-info-circle"></i> 
-                <strong>Sin afectaciones:</strong> Esta orden no tiene detracción, retención ni percepción aplicada.
-            </div>`;
-    }
-    
-    if (compra.denv_compra || compra.obs_compra || compra.port_compra) {
-        html += `<div class="row mt-3"><div class="col-md-12"><div class="border-top pt-2">`;
-        if (compra.denv_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Dirección de Envío:</strong> ${compra.denv_compra}</p>`;
-        if (compra.obs_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Observaciones:</strong> ${compra.obs_compra}</p>`;
-        if (compra.port_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Tipo de Porte:</strong> ${compra.port_compra}</p>`;
-        html += `</div></div></div>`;
-    }
-    
-    html += `</div></div>`; 
-    
-    
-    html += `
-        <div class="card">
-            <div class="card-header" style="background-color: #e8f5e8; padding: 10px 15px;">
-                <h6 class="mb-0"><i class="fa fa-list-alt text-success"></i> Productos de la Orden</h6>
-            </div>
-            <div class="card-body" style="padding: 15px;">
-                <div class="table-responsive">
-                    <table class="table table-striped table-sm" style="font-size: 12px;">
-                        <thead style="background-color: #f8f9fa;">
-                            <tr>
-                                <th style="width: 8%;">#</th>
-                                <th style="width: 15%;">Código</th>
-                                <th style="width: 35%;">Descripción</th>
-                                <th style="width: 10%;">Cantidad</th>
-                                <th style="width: 12%;">Precio Unit.</th>
-                                <th style="width: 10%;">IGV (%)</th>
-                                <th style="width: 10%;">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
-    
-    let subtotalGeneral = 0;
-    let totalIgv = 0;
-    const simboloMoneda = compra.sim_moneda || (compra.id_moneda == 1 ? 'S/.' : 'US$');
-    
-    detalles.forEach((detalle, index) => {
-        const cantidad = parseFloat(detalle.cant_compra_detalle);
-        const precioUnit = parseFloat(detalle.prec_compra_detalle);
-        const igvPorcentaje = parseFloat(detalle.igv_compra_detalle || 18);
         
-        const subtotal = cantidad * precioUnit;
-        const montoIgv = subtotal * (igvPorcentaje / 100);
-        
-        subtotalGeneral += subtotal;
-        totalIgv += montoIgv;
-        
-        html += `<tr>
-                    <td style="font-weight: bold;">${index + 1}</td>
-                    <td>${detalle.cod_material || 'N/A'}</td>
-                    <td>${detalle.nom_producto}</td>
-                    <td class="text-center">${cantidad.toFixed(2)}</td>
-                    <td class="text-right">${simboloMoneda} ${precioUnit.toFixed(2)}</td>
-                    <td class="text-center">${igvPorcentaje}%</td>
-                    <td class="text-right" style="font-weight: bold;">${simboloMoneda} ${subtotal.toFixed(2)}</td>
-                </tr>`;
-    });
-    
-    html += `</tbody></table></div><div class="row mt-3"><div class="col-md-12">`;
-    
-    // Calcular TOTAL CON IGV primero
-    const totalConIgv = subtotalGeneral + totalIgv;
-    
-    // Determinar tipo de afectación
-    let tipoAfectacion = null;
-    let porcentaje = 0;
-    let nombreConcepto = '';
-    let montoAfectacion = 0;
-    
-    if (compra.porcentaje_detraccion && parseFloat(compra.porcentaje_detraccion) > 0) {
-        tipoAfectacion = 'DETRACCION';
-        porcentaje = parseFloat(compra.porcentaje_detraccion);
-        nombreConcepto = compra.nombre_detraccion;
-        montoAfectacion = (totalConIgv * porcentaje) / 100;
-    } else if (compra.porcentaje_retencion && parseFloat(compra.porcentaje_retencion) > 0) {
-        tipoAfectacion = 'RETENCION';
-        porcentaje = parseFloat(compra.porcentaje_retencion);
-        nombreConcepto = compra.nombre_retencion;
-        montoAfectacion = (totalConIgv * porcentaje) / 100;
-    } else if (compra.porcentaje_percepcion && parseFloat(compra.porcentaje_percepcion) > 0) {
-        tipoAfectacion = 'PERCEPCION';
-        porcentaje = parseFloat(compra.porcentaje_percepcion);
-        nombreConcepto = compra.nombre_percepcion;
-        montoAfectacion = (totalConIgv * porcentaje) / 100;
-    }
-    
-    // Calcular total final
-    let totalFinal = 0;
-    
-    if (tipoAfectacion === 'DETRACCION') {
-        totalFinal = totalConIgv - montoAfectacion;
-    } else if (tipoAfectacion === 'RETENCION') {
-        totalFinal = totalConIgv - montoAfectacion;
-    } else if (tipoAfectacion === 'PERCEPCION') {
-        totalFinal = totalConIgv + montoAfectacion;
-    } else {
-        totalFinal = totalConIgv;
-    }
-    
-    // MOSTRAR RESUMEN
-    html += `<div class="alert alert-light" style="margin-bottom: 10px; padding: 10px;">
-                <div style="font-size: 14px; text-align: center; margin-bottom: 5px;">
-                    <i class="fa fa-calculator text-secondary"></i> <strong>SUBTOTAL:</strong> ${simboloMoneda} ${subtotalGeneral.toFixed(2)}
+        let html = `
+            <div class="card mb-3">
+                <div class="card-header" style="background-color: #e3f2fd; padding: 10px 15px;">
+                    <h6 class="mb-0"><i class="fa fa-info-circle text-primary"></i> Información General</h6>
                 </div>
-                <div style="font-size: 13px; text-align: center; margin-bottom: 5px;">
-                    <i class="fa fa-percent text-secondary"></i> <strong>IGV TOTAL:</strong> ${simboloMoneda} ${totalIgv.toFixed(2)}
-                </div>
-                <div style="font-size: 14px; text-align: center; font-weight: bold; padding: 5px; background-color: #e3f2fd; border-radius: 4px; margin-bottom: 5px;">
-                    <i class="fa fa-calculator text-primary"></i> <strong>TOTAL CON IGV:</strong> ${simboloMoneda} ${totalConIgv.toFixed(2)}
+                <div class="card-body" style="padding: 15px;">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>N° Orden:</strong> ORD-${compra.id_compra}</p>
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>Proveedor:</strong> ${compra.nom_proveedor || 'No especificado'}</p>
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>RUC:</strong> ${compra.ruc_proveedor || 'No especificado'}</p>
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>Moneda:</strong> ${compra.nom_moneda || 'No especificada'}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>Fecha:</strong> ${fechaFormateada}</p>
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>Estado:</strong> <span class="badge badge-${estadoClase}">${estadoTexto}</span></p>
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'}</p>
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>Plazo Entrega:</strong> ${compra.plaz_compra || 'No especificado'}</p>
+                        </div>
+                    </div>`;
+        
+        let tieneAfectacion = false;
+        
+        if (compra.nombre_detraccion && compra.porcentaje_detraccion) {
+            tieneAfectacion = true;
+            html += `
+                <div class="alert alert-warning" style="margin-top: 15px; padding: 10px;">
+                    <i class="fa fa-exclamation-triangle"></i> 
+                    <strong>Detracción Aplicada:</strong> ${compra.nombre_detraccion} 
+                    <span class="badge badge-warning">${compra.porcentaje_detraccion}%</span>
                 </div>`;
-    
-    if (tipoAfectacion === 'DETRACCION') {
-        html += `<div style="font-size: 13px; text-align: center; color: #ffc107; margin-bottom: 5px;">
-                    <i class="fa fa-minus-circle"></i> <strong>Detracción ${nombreConcepto} (${porcentaje}%):</strong> -${simboloMoneda} ${montoAfectacion.toFixed(2)}
-                 </div>`;
+        }
+        
+        if (compra.nombre_retencion && compra.porcentaje_retencion) {
+            tieneAfectacion = true;
+            html += `
+                <div class="alert alert-info" style="margin-top: 15px; padding: 10px;">
+                    <i class="fa fa-info-circle"></i> 
+                    <strong>Retención Aplicada:</strong> ${compra.nombre_retencion} 
+                    <span class="badge badge-info">${compra.porcentaje_retencion}%</span>
+                </div>`;
+        }
+        
+        if (compra.nombre_percepcion && compra.porcentaje_percepcion) {
+            tieneAfectacion = true;
+            html += `
+                <div class="alert alert-success" style="margin-top: 15px; padding: 10px;">
+                    <i class="fa fa-plus-circle"></i> 
+                    <strong>Percepción Aplicada:</strong> ${compra.nombre_percepcion} 
+                    <span class="badge badge-success">${compra.porcentaje_percepcion}%</span>
+                </div>`;
+        }
+        
+        if (!tieneAfectacion) {
+            html += `
+                <div class="alert alert-secondary" style="margin-top: 15px; padding: 10px;">
+                    <i class="fa fa-info-circle"></i> 
+                    <strong>Sin afectaciones:</strong> Esta orden no tiene detracción, retención ni percepción aplicada.
+                </div>`;
+        }
+        
+        if (compra.denv_compra || compra.obs_compra || compra.port_compra) {
+            html += `<div class="row mt-3"><div class="col-md-12"><div class="border-top pt-2">`;
+            if (compra.denv_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Dirección de Envío:</strong> ${compra.denv_compra}</p>`;
+            if (compra.obs_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Observaciones:</strong> ${compra.obs_compra}</p>`;
+            if (compra.port_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Tipo de Porte:</strong> ${compra.port_compra}</p>`;
+            html += `</div></div></div>`;
+        }
+        
+        html += `</div></div>`;
+        
+        html += `
+            <div class="card">
+                <div class="card-header" style="background-color: #e8f5e8; padding: 10px 15px;">
+                    <h6 class="mb-0"><i class="fa fa-list-alt text-success"></i> Productos de la Orden</h6>
+                </div>
+                <div class="card-body" style="padding: 15px;">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm" style="font-size: 12px;">
+                            <thead style="background-color: #f8f9fa;">
+                                <tr>
+                                    <th style="width: 8%;">#</th>
+                                    <th style="width: 15%;">Código</th>
+                                    <th style="width: 35%;">Descripción</th>
+                                    <th style="width: 10%;">Cantidad</th>
+                                    <th style="width: 12%;">Precio Unit.</th>
+                                    <th style="width: 10%;">IGV (%)</th>
+                                    <th style="width: 10%;">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+        
+        let subtotalGeneral = 0;
+        let totalIgv = 0;
+        const simboloMoneda = compra.sim_moneda || (compra.id_moneda == 1 ? 'S/.' : 'US$');
+        
+        detalles.forEach((detalle, index) => {
+            const cantidad = parseFloat(detalle.cant_compra_detalle);
+            const precioUnit = parseFloat(detalle.prec_compra_detalle);
+            const igvPorcentaje = parseFloat(detalle.igv_compra_detalle || 18);
+            
+            const subtotal = cantidad * precioUnit;
+            const montoIgv = subtotal * (igvPorcentaje / 100);
+            
+            subtotalGeneral += subtotal;
+            totalIgv += montoIgv;
+            
+            html += `<tr>
+                        <td style="font-weight: bold;">${index + 1}</td>
+                        <td>${detalle.cod_material || 'N/A'}</td>
+                        <td>${detalle.nom_producto}</td>
+                        <td class="text-center">${cantidad.toFixed(2)}</td>
+                        <td class="text-right">${simboloMoneda} ${precioUnit.toFixed(2)}</td>
+                        <td class="text-center">${igvPorcentaje}%</td>
+                        <td class="text-right" style="font-weight: bold;">${simboloMoneda} ${subtotal.toFixed(2)}</td>
+                    </tr>`;
+        });
+        
+        html += `</tbody></table></div><div class="row mt-3"><div class="col-md-12">`;
+        
+        const totalConIgv = subtotalGeneral + totalIgv;
+        
+        let tipoAfectacion = null;
+        let porcentaje = 0;
+        let nombreConcepto = '';
+        let montoAfectacion = 0;
+        
+        if (compra.porcentaje_detraccion && parseFloat(compra.porcentaje_detraccion) > 0) {
+            tipoAfectacion = 'DETRACCION';
+            porcentaje = parseFloat(compra.porcentaje_detraccion);
+            nombreConcepto = compra.nombre_detraccion;
+            montoAfectacion = (totalConIgv * porcentaje) / 100;
+        } else if (compra.porcentaje_retencion && parseFloat(compra.porcentaje_retencion) > 0) {
+            tipoAfectacion = 'RETENCION';
+            porcentaje = parseFloat(compra.porcentaje_retencion);
+            nombreConcepto = compra.nombre_retencion;
+            montoAfectacion = (totalConIgv * porcentaje) / 100;
+        } else if (compra.porcentaje_percepcion && parseFloat(compra.porcentaje_percepcion) > 0) {
+            tipoAfectacion = 'PERCEPCION';
+            porcentaje = parseFloat(compra.porcentaje_percepcion);
+            nombreConcepto = compra.nombre_percepcion;
+            montoAfectacion = (totalConIgv * porcentaje) / 100;
+        }
+        
+        let totalFinal = 0;
+        
+        if (tipoAfectacion === 'DETRACCION') {
+            totalFinal = totalConIgv - montoAfectacion;
+        } else if (tipoAfectacion === 'RETENCION') {
+            totalFinal = totalConIgv - montoAfectacion;
+        } else if (tipoAfectacion === 'PERCEPCION') {
+            totalFinal = totalConIgv + montoAfectacion;
+        } else {
+            totalFinal = totalConIgv;
+        }
+        
+        html += `<div class="alert alert-light" style="margin-bottom: 10px; padding: 10px;">
+                    <div style="font-size: 14px; text-align: center; margin-bottom: 5px;">
+                        <i class="fa fa-calculator text-secondary"></i> <strong>SUBTOTAL:</strong> ${simboloMoneda} ${subtotalGeneral.toFixed(2)}
+                    </div>
+                    <div style="font-size: 13px; text-align: center; margin-bottom: 5px;">
+                        <i class="fa fa-percent text-secondary"></i> <strong>IGV TOTAL:</strong> ${simboloMoneda} ${totalIgv.toFixed(2)}
+                    </div>
+                    <div style="font-size: 14px; text-align: center; font-weight: bold; padding: 5px; background-color: #e3f2fd; border-radius: 4px; margin-bottom: 5px;">
+                        <i class="fa fa-calculator text-primary"></i> <strong>TOTAL CON IGV:</strong> ${simboloMoneda} ${totalConIgv.toFixed(2)}
+                    </div>`;
+        
+        if (tipoAfectacion === 'DETRACCION') {
+            html += `<div style="font-size: 13px; text-align: center; color: #ffc107; margin-bottom: 5px;">
+                        <i class="fa fa-minus-circle"></i> <strong>Detracción ${nombreConcepto} (${porcentaje}%):</strong> -${simboloMoneda} ${montoAfectacion.toFixed(2)}
+                     </div>`;
+        }
+        
+        if (tipoAfectacion === 'RETENCION') {
+            html += `<div style="font-size: 13px; text-align: center; color: #2196f3; margin-bottom: 5px;">
+                        <i class="fa fa-minus-circle"></i> <strong>Retención ${nombreConcepto} (${porcentaje}%):</strong> -${simboloMoneda} ${montoAfectacion.toFixed(2)}
+                     </div>`;
+        }
+        
+        if (tipoAfectacion === 'PERCEPCION') {
+            html += `<div style="font-size: 13px; text-align: center; color: #4caf50; margin-bottom: 5px;">
+                        <i class="fa fa-plus-circle"></i> <strong>Percepción ${nombreConcepto} (${porcentaje}%):</strong> +${simboloMoneda} ${montoAfectacion.toFixed(2)}
+                     </div>`;
+        }
+        
+        html += `</div>
+                 <div class="alert alert-success text-center" style="font-size: 18px; font-weight: bold; margin: 0; padding: 15px;">
+                    <i class="fa fa-money"></i> TOTAL A PAGAR: ${simboloMoneda} ${totalFinal.toFixed(2)}
+                 </div></div></div></div></div>`;
+        
+        contenido.innerHTML = html;
+        contenido.style.display = 'block';
     }
     
-    if (tipoAfectacion === 'RETENCION') {
-        html += `<div style="font-size: 13px; text-align: center; color: #2196f3; margin-bottom: 5px;">
-                    <i class="fa fa-minus-circle"></i> <strong>Retención ${nombreConcepto} (${porcentaje}%):</strong> -${simboloMoneda} ${montoAfectacion.toFixed(2)}
-                 </div>`;
+    function mostrarErrorDetalle(mensaje) {
+        const errorDiv = document.getElementById('error-detalle-compra');
+        errorDiv.querySelector('p').textContent = mensaje;
+        errorDiv.style.display = 'block';
     }
     
-    if (tipoAfectacion === 'PERCEPCION') {
-        html += `<div style="font-size: 13px; text-align: center; color: #4caf50; margin-bottom: 5px;">
-                    <i class="fa fa-plus-circle"></i> <strong>Percepción ${nombreConcepto} (${porcentaje}%):</strong> +${simboloMoneda} ${montoAfectacion.toFixed(2)}
-                 </div>`;
-    }
-    
-    html += `</div>
-             <div class="alert alert-success text-center" style="font-size: 18px; font-weight: bold; margin: 0; padding: 15px;">
-                <i class="fa fa-money"></i> TOTAL A PAGAR: ${simboloMoneda} ${totalFinal.toFixed(2)}
-             </div></div></div></div></div>`;
-    
-    contenido.innerHTML = html;
-    contenido.style.display = 'block';
-}
-function mostrarErrorDetalle(mensaje) {
-    const errorDiv = document.getElementById('error-detalle-compra');
-    errorDiv.querySelector('p').textContent = mensaje;
-    errorDiv.style.display = 'block';
-}
     // ============================================
     // CALCULAR TOTALES AL CARGAR EN MODO EDICIÓN
     // ============================================
     if (modoEditar) {
-        // Esperar a que el DOM esté completamente cargado
         setTimeout(function() {
             console.log(' Recalculando totales en modo edición...');
             
-            // Recalcular todos los items existentes
             document.querySelectorAll('[id^="item-orden-"]').forEach(function(item) {
                 const cantidadInput = item.querySelector('.cantidad-item');
                 const precioInput = item.querySelector('.precio-item');
                 const igvInput = item.querySelector('.igv-item');
                 
                 if (cantidadInput && precioInput && igvInput) {
-                    // Forzar recálculo disparando evento input
                     cantidadInput.dispatchEvent(new Event('input'));
                 }
             });
             
-            // Calcular total general con detracción/retención/percepción
             actualizarTotalGeneral();
             
             console.log(' Totales recalculados correctamente');

@@ -82,7 +82,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                             </div>
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Nombre del Pedido <span class="text-danger">*</span>:</label>
+                                <label class="control-label col-md-3 col-sm-3">Nombre del Pedido:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <input type="text" name="nom_pedido" class="form-control" value="<?php echo $pedido['nom_pedido']; ?>" placeholder="Nombre del Pedido">
                                 </div>

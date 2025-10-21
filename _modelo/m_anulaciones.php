@@ -11,11 +11,13 @@ function AnularCompra($id_compra, $id_personal)
 {
     include("../_conexion/conexion.php");
 
-    // Verificar estado actual
+    // Verificar estado actual Y obtener tipo de pedido
     $sql_check = "SELECT c.est_compra, c.id_pedido,
                          c.id_personal_aprueba_tecnica,
-                         c.id_personal_aprueba_financiera
+                         c.id_personal_aprueba_financiera,
+                         p.id_producto_tipo
                   FROM compra c
+                  INNER JOIN pedido p ON c.id_pedido = p.id_pedido
                   WHERE c.id_compra = '$id_compra'";
     $res_check = mysqli_query($con, $sql_check);
     $row_check = mysqli_fetch_assoc($res_check);
@@ -39,6 +41,7 @@ function AnularCompra($id_compra, $id_personal)
     }
 
     $id_pedido = $row_check['id_pedido'];
+    $es_servicio = ($row_check['id_producto_tipo'] == 2);
 
     // OBTENER PRODUCTOS DE ESTA ORDEN
     $sql_productos = "SELECT cd.id_producto 
@@ -59,9 +62,15 @@ function AnularCompra($id_compra, $id_personal)
     $res_update = mysqli_query($con, $sql_update);
 
     if ($res_update) {
-        // VERIFICAR CADA PRODUCTO PARA REABRIRLO SI ES NECESARIO
+        // 🔹 VERIFICAR CADA PRODUCTO PARA REABRIRLO SEGÚN TIPO
         foreach ($productos_en_compra as $id_producto) {
-            VerificarReaperturaItem($id_pedido, $id_producto);
+            if ($es_servicio) {
+                // Para SERVICIOS: usar función específica
+                VerificarReaperturaItemServicio($id_pedido, $id_producto);
+            } else {
+                // Para MATERIALES: usar función estándar
+                VerificarReaperturaItem($id_pedido, $id_producto);
+            }
         }
     }
 

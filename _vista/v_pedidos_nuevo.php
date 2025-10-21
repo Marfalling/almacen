@@ -83,7 +83,7 @@
                             </div>
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Nombre del Pedido <span class="text-danger">*</span>:</label>
+                                <label class="control-label col-md-3 col-sm-3">Nombre del Pedido:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <input type="text" name="nom_pedido" class="form-control" placeholder="Nombre del Pedido">
                                 </div>

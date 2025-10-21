@@ -14,13 +14,19 @@ if (!$id_compra) {
 
 // Verificar si tiene aprobaciones
 include("../_conexion/conexion.php");
+
 $sql_check = "SELECT 
                 id_personal_aprueba_tecnica,
                 id_personal_aprueba_financiera
               FROM compra 
-              WHERE id_compra = $id_compra";
-$resultado = mysqli_query($con, $sql_check);
-$compra_check = mysqli_fetch_assoc($resultado);
+              WHERE id_compra = ?";
+              
+$stmt_check = $con->prepare($sql_check);
+$stmt_check->bind_param("i", $id_compra);
+$stmt_check->execute();
+$result_check = $stmt_check->get_result();
+$compra_check = $result_check->fetch_assoc();
+$stmt_check->close();
 
 if (!empty($compra_check['id_personal_aprueba_tecnica']) || 
     !empty($compra_check['id_personal_aprueba_financiera'])) {
@@ -31,18 +37,42 @@ if (!empty($compra_check['id_personal_aprueba_tecnica']) ||
     ]);
     exit;
 }
-mysqli_close($con);
 
-// Obtener datos
+// Obtener datos de la orden
 $orden_data = ConsultarCompraPorId($id_compra);
-$orden_detalle = ConsultarCompraDetalle($id_compra);
-$proveedores = MostrarProveedores();
-$detracciones = ObtenerDetracciones();
 
 if (empty($orden_data)) {
+    mysqli_close($con);
     echo json_encode(['success' => false, 'message' => 'Orden no encontrada']);
     exit;
 }
+
+//  OBTENER EL TIPO DE PRODUCTO DEL PEDIDO
+$sql_tipo = "SELECT p.id_producto_tipo 
+             FROM pedido p
+             INNER JOIN compra c ON c.id_pedido = p.id_pedido
+             WHERE c.id_compra = ?";
+             
+$stmt_tipo = $con->prepare($sql_tipo);
+$stmt_tipo->bind_param("i", $id_compra);
+$stmt_tipo->execute();
+$result_tipo = $stmt_tipo->get_result();
+$row_tipo = $result_tipo->fetch_assoc();
+$stmt_tipo->close();
+
+//  AGREGAR EL TIPO DE PRODUCTO AL ARRAY DE ORDEN
+if ($row_tipo) {
+    $orden_data[0]['id_producto_tipo'] = $row_tipo['id_producto_tipo'];
+} else {
+    $orden_data[0]['id_producto_tipo'] = 1; // Por defecto: material
+}
+
+mysqli_close($con);
+
+// Obtener detalles y otros datos
+$orden_detalle = ConsultarCompraDetalle($id_compra);
+$proveedores = MostrarProveedores();
+$detracciones = ObtenerDetracciones();
 
 echo json_encode([
     'success' => true,
