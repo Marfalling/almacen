@@ -3,13 +3,16 @@
 // MODELO: m_detraccion.php
 //=======================================================================
 
-function GrabarDetraccion($nombre, $porcentaje, $id_detraccion_tipo) {
+function GrabarDetraccion($nombre, $cod_detraccion, $porcentaje, $id_detraccion_tipo) {
     include("../_conexion/conexion.php");
     
-    // Validar que no exista duplicado
+    // Escapar los datos
     $nombre_escaped = mysqli_real_escape_string($con, $nombre);
+    $cod_detraccion_escaped = mysqli_real_escape_string($con, $cod_detraccion);
+
+    // Validar que no exista un duplicado por nombre o código
     $sql_check = "SELECT id_detraccion FROM detraccion 
-                  WHERE nombre_detraccion = '$nombre_escaped' 
+                  WHERE (nombre_detraccion = '$nombre_escaped' OR cod_detraccion = '$cod_detraccion_escaped')
                   AND est_detraccion = 1";
     $result = mysqli_query($con, $sql_check);
     
@@ -22,8 +25,8 @@ function GrabarDetraccion($nombre, $porcentaje, $id_detraccion_tipo) {
     $id_detraccion_tipo = intval($id_detraccion_tipo);
     $porcentaje = floatval($porcentaje);
     
-    $sql = "INSERT INTO detraccion (nombre_detraccion, porcentaje, id_detraccion_tipo, est_detraccion) 
-            VALUES ('$nombre_escaped', $porcentaje, $id_detraccion_tipo, 1)";
+    $sql = "INSERT INTO detraccion ( nombre_detraccion, cod_detraccion, porcentaje, id_detraccion_tipo, est_detraccion) 
+            VALUES ( '$nombre_escaped','$cod_detraccion_escaped', $porcentaje, $id_detraccion_tipo, 1)";
     
     if (mysqli_query($con, $sql)) {
         mysqli_close($con);
@@ -57,7 +60,6 @@ function ObtenerDetracciones() {
 function ObtenerDetraccionesPorTipo($tipo_nombre) {
     include("../_conexion/conexion.php");
     
-    // Convertir nombre a mayúsculas para evitar problemas
     $tipo_nombre = strtoupper(mysqli_real_escape_string($con, $tipo_nombre));
     
     $sql = "SELECT d.* 
@@ -112,35 +114,40 @@ function ObtenerDetraccionPorId($id_detraccion) {
     return $detraccion;
 }
 
-function EditarDetraccion($id_detraccion, $nombre, $porcentaje, $estado, $id_detraccion_tipo) {
+function EditarDetraccion($id_detraccion, $nombre, $cod_detraccion, $porcentaje, $estado, $id_detraccion_tipo) {
     include("../_conexion/conexion.php");
     
     $id_detraccion = intval($id_detraccion);
-    $nombre_escaped = mysqli_real_escape_string($con, $nombre);
+    $nombre_esc = mysqli_real_escape_string($con, trim($nombre));
+    $cod_detraccion_esc = mysqli_real_escape_string($con, trim($cod_detraccion));
     $porcentaje = floatval($porcentaje);
     $estado = intval($estado);
     $id_detraccion_tipo = intval($id_detraccion_tipo);
-    
-    // Validar que no exista duplicado (excluyendo el registro actual)
-    $sql_check = "SELECT id_detraccion FROM detraccion 
-                  WHERE nombre_detraccion = '$nombre_escaped' 
-                  AND id_detraccion != $id_detraccion
-                  AND est_detraccion = 1";
+
+    // Validar duplicados por nombre o código, excluyendo el registro actual
+    $sql_check = "SELECT id_detraccion 
+                  FROM detraccion
+                  WHERE (UPPER(nombre_detraccion) = UPPER('$nombre_esc') 
+                         OR UPPER(cod_detraccion) = UPPER('$cod_detraccion_esc'))
+                    AND id_detraccion != $id_detraccion
+                    AND est_detraccion = 1
+                  LIMIT 1";
+
     $result = mysqli_query($con, $sql_check);
-    
-    if (mysqli_num_rows($result) > 0) {
+    if ($result && mysqli_num_rows($result) > 0) {
         mysqli_close($con);
-        return "NO"; // Ya existe
+        return "NO"; // duplicado
     }
-    
+
     // Actualizar
     $sql = "UPDATE detraccion 
-            SET nombre_detraccion = '$nombre_escaped',
+            SET nombre_detraccion = '$nombre_esc',
+                cod_detraccion = '$cod_detraccion_esc',
                 porcentaje = $porcentaje,
                 est_detraccion = $estado,
                 id_detraccion_tipo = $id_detraccion_tipo
             WHERE id_detraccion = $id_detraccion";
-    
+
     if (mysqli_query($con, $sql)) {
         mysqli_close($con);
         return "SI";

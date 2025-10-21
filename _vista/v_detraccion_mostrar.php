@@ -8,7 +8,7 @@
     <div class="">
         <div class="page-title">
             <div class="title_left">
-                <h3>Detracción/Retención/Percepción <small></small></h3>
+                <h3>Detracción / Retención / Percepción <small></small></h3>
             </div>
         </div>
 
@@ -22,7 +22,7 @@
                 Swal.fire({
                     icon: 'success',
                     title: 'Registro exitoso',
-                    text: 'Se registró correctamente',
+                    text: 'Se registró correctamente.',
                     showConfirmButton: false,
                     timer: 2000
                 });
@@ -32,7 +32,7 @@
                 Swal.fire({
                     icon: 'success',
                     title: 'Actualización exitosa',
-                    text: 'Se actualizó correctamente',
+                    text: 'Se actualizó correctamente.',
                     showConfirmButton: false,
                     timer: 2000
                 });
@@ -42,7 +42,7 @@
                 Swal.fire({
                     icon: 'warning',
                     title: 'Registro duplicado',
-                    text: 'Ya existe un registro con ese nombre',
+                    text: 'Ya existe un registro con ese código o nombre.',
                     showConfirmButton: true
                 });
             </script>
@@ -51,7 +51,7 @@
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: 'No se pudo completar la acción',
+                    text: 'No se pudo completar la acción.',
                     showConfirmButton: true
                 });
             </script>
@@ -63,7 +63,7 @@
                     <div class="x_title">
                         <div class="row">
                             <div class="col-sm-10">
-                                <h2>Listado de Detracciones/Retenciones/Percepciones</h2>
+                                <h2>Listado de Detracciones / Retenciones / Percepciones</h2>
                             </div>
                             <div class="col-sm-2">
                                 <?php if (verificarPermisoEspecifico('crear_detraccion')): ?>
@@ -98,16 +98,14 @@
                                             if (!empty($detraccion)) {
                                                 foreach ($detraccion as $value) {
                                                     $c++;
-                                                    $id = $value['id_detraccion'];
-                                                    $nom = $value['nombre_detraccion'];
+                                                    $id         = $value['id_detraccion'];
+                                                    $nom        = $value['nombre_detraccion'];
+                                                    $cod        = !empty($value['cod_detraccion']) ? $value['cod_detraccion'] : '-';
                                                     $porcentaje = $value['porcentaje'];
-                                                    $estado = isset($value['est_detraccion']) ? $value['est_detraccion'] : 1;
-                                                    $tipo = $value['nom_detraccion_tipo'];
+                                                    $estado     = isset($value['est_detraccion']) ? $value['est_detraccion'] : 1;
+                                                    $tipo       = $value['nom_detraccion_tipo'];
 
-                                                    // Generar el código concatenado (D001, D002, etc)
-                                                    $codigo = 'D' . str_pad($id, 3, '0', STR_PAD_LEFT);
-                                                    
-                                                    // Badge de tipo según categoría
+                                                    // Badge color por tipo
                                                     $tipo_upper = strtoupper($tipo);
                                                     $badge_tipo = 'badge-warning';
                                                     if ($tipo_upper == 'RETENCION') $badge_tipo = 'badge-info';
@@ -115,13 +113,13 @@
                                             ?>
                                                 <tr>
                                                     <td><?php echo $c; ?></td>
-                                                    <td><?php echo $codigo; ?></td>
+                                                    <td><?php echo htmlspecialchars($cod); ?></td> 
                                                     <td class="text-center">
                                                         <span class="badge <?php echo $badge_tipo; ?> badge_size">
                                                             <?php echo $tipo_upper; ?>
                                                         </span>
                                                     </td>
-                                                    <td><?php echo $nom; ?></td>
+                                                    <td><?php echo htmlspecialchars($nom); ?></td>
                                                     <td class="text-right"><?php echo number_format($porcentaje, 2); ?> %</td>
                                                     <td class="text-center">
                                                         <span class="badge badge_size <?php echo ($estado == 1) ? 'badge-success' : 'badge-secondary'; ?>">

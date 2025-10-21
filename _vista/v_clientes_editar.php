@@ -41,7 +41,9 @@
                             
                             <div class="form-group">
                                 <div class="col-md-2 col-sm-2 offset-md-10">
-                                    <button type="submit" name="registrar" class="btn btn-warning btn-block">Actualizar</button>
+                                    <button type="submit" name="registrar" class="btn btn-success btn-block actualizar-btn">
+                                     Actualizar
+                                    </button>
                                 </div>
                             </div>
                             
@@ -60,3 +62,19 @@
     </div>
 </div>
 <!-- /page content -->
+
+<!-- ====== ESTILOS DEL BOTÓN ====== -->
+<style>
+/* Botón Actualizar - consistencia con Editar Personal */
+.actualizar-btn {
+    background-color: #26B99A;
+    border-color: #26B99A;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.actualizar-btn:hover {
+    background-color: #1e9e83;
+    border-color: #1e9e83;
+}
+</style>

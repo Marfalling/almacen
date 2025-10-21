@@ -20,11 +20,12 @@ $tipos_detraccion = ObtenerTiposDetraccion();
 if (isset($_POST['registrar'])) {
     $id_detraccion = intval($_POST['id_detraccion']);
     $nom = strtoupper(trim($_POST['nom']));
+    $cod_detraccion = trim($_POST['cod_detraccion']);
     $porcentaje = floatval($_POST['porcentaje']);
     $estado = isset($_POST['estado']) ? 1 : 0;
     $id_detraccion_tipo = intval($_POST['id_detraccion_tipo']);
 
-    $rpta = EditarDetraccion($id_detraccion, $nom, $porcentaje, $estado, $id_detraccion_tipo);
+    $rpta = EditarDetraccion($id_detraccion, $nom,$cod_detraccion, $porcentaje, $estado, $id_detraccion_tipo);
 
     require_once("../_modelo/m_auditoria.php");
 
@@ -43,6 +44,7 @@ if (isset($_POST['registrar'])) {
     }
 }
 
+// --- Carga de datos existentes ---
 $id_detraccion = isset($_GET['id_detraccion']) ? intval($_GET['id_detraccion']) : 0;
 if ($id_detraccion <= 0) {
     header("Location: detraccion_mostrar.php?error=true");
@@ -55,7 +57,9 @@ if (!$detraccion_data) {
     exit;
 }
 
+
 $nom = $detraccion_data['nombre_detraccion'];
+$cod_detraccion = $detraccion_data['cod_detraccion'];
 $porcentaje = $detraccion_data['porcentaje'];
 $estado = $detraccion_data['est_detraccion'];
 $id_detraccion_tipo_actual = $detraccion_data['id_detraccion_tipo'];
