@@ -877,7 +877,7 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
     const esServicio = compra.id_producto_tipo == 2;
     const tipoOrden = esServicio ? 'Servicio' : 'Compra';
     
-    titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de ${tipoOrden} - ORD-${compra.id_compra}`;
+    titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de ${tipoOrden} - C00${compra.id_compra}`;
     
     const contenido = document.getElementById('contenido-detalle-compra-mostrar');
     const fechaFormateada = new Date(compra.fec_compra).toLocaleDateString('es-PE');
@@ -909,7 +909,7 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
             <div class="card-body" style="padding: 15px;">
                 <div class="row">
                     <div class="col-md-6">
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>N° Orden:</strong> ORD-${compra.id_compra}</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>N° Orden:</strong> C00${compra.id_compra}</p>
                         <p style="margin: 5px 0; font-size: 13px;"><strong>Proveedor:</strong> ${compra.nom_proveedor || 'No especificado'}</p>
                         <p style="margin: 5px 0; font-size: 13px;"><strong>RUC:</strong> ${compra.ruc_proveedor || 'No especificado'}</p>
                         <p style="margin: 5px 0; font-size: 13px;"><strong>Moneda:</strong> ${compra.nom_moneda || 'No especificada'}</p>
@@ -1157,7 +1157,7 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
         ? '<span class="badge badge-primary ml-2">SERVICIO</span>'
         : '<span class="badge badge-info ml-2">MATERIAL</span>';
     
-    document.getElementById('orden-numero').innerHTML = `ORD-${orden.id_compra} ${badgeTipo}`;
+    document.getElementById('orden-numero').innerHTML = `C00${orden.id_compra} ${badgeTipo}`;
     document.getElementById('edit_id_compra').value = orden.id_compra;
     document.getElementById('edit_fecha_orden').value = orden.fec_compra.split(' ')[0];
     document.getElementById('edit_moneda_orden').value = orden.id_moneda;

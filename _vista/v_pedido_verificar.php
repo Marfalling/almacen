@@ -524,7 +524,7 @@ foreach ($pedido_detalle as $detalle) {
                                                 $fecha_formateada = date('d/m/Y', strtotime($compra['fec_compra']));
                                             ?>
                                                 <tr>
-                                                    <td><strong>ORD-<?php echo $compra['id_compra']; ?></strong></td>
+                                                    <td><strong>C00<?php echo $compra['id_compra']; ?></strong></td>
                                                     <td><?php echo htmlspecialchars($compra['nom_proveedor']); ?></td>
                                                     <td><?php echo $fecha_formateada; ?></td>
                                                     <td>
@@ -675,7 +675,7 @@ foreach ($pedido_detalle as $detalle) {
                                             } else {
                                                 echo ($pedido['id_producto_tipo'] == 2) ? 'Nueva Orden de Servicio' : 'Nueva Orden de Compra';
                                             }
-                                            echo $modo_editar ? ' ORD-' . $id_compra_editar : ''; 
+                                            echo $modo_editar ? ' C00' . $id_compra_editar : ''; 
                                             ?>
                                         </h6>
                                     </div>
@@ -2702,7 +2702,7 @@ document.addEventListener('click', function(event) {
     
     function mostrarContenidoDetalle(compra, detalles) {
         const titulo = document.getElementById('modalDetalleCompraLabel');
-        titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de Compra - ORD-${compra.id_compra}`;
+        titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de Compra - C00${compra.id_compra}`;
         
         const contenido = document.getElementById('contenido-detalle-compra');
         const fechaFormateada = new Date(compra.fec_compra).toLocaleDateString('es-PE');
@@ -2727,7 +2727,7 @@ document.addEventListener('click', function(event) {
                 <div class="card-body" style="padding: 15px;">
                     <div class="row">
                         <div class="col-md-6">
-                            <p style="margin: 5px 0; font-size: 13px;"><strong>N° Orden:</strong> ORD-${compra.id_compra}</p>
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>N° Orden:</strong> C00${compra.id_compra}</p>
                             <p style="margin: 5px 0; font-size: 13px;"><strong>Proveedor:</strong> ${compra.nom_proveedor || 'No especificado'}</p>
                             <p style="margin: 5px 0; font-size: 13px;"><strong>RUC:</strong> ${compra.ruc_proveedor || 'No especificado'}</p>
                             <p style="margin: 5px 0; font-size: 13px;"><strong>Moneda:</strong> ${compra.nom_moneda || 'No especificada'}</p>
