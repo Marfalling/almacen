@@ -38,7 +38,7 @@
                                 <div class="col-md-9 col-sm-9">
                                     <input type="text" class="form-control" 
                                         value="<?php echo $devolucion_datos[0]['nom_almacen']; ?>" readonly>
-                                    <input type="hidden" name="id_almacen" 
+                                    <input type="hidden" id="id_almacen" name="id_almacen" 
                                         value="<?php echo $devolucion_datos[0]['id_almacen']; ?>">
                                 </div>
                             </div>
@@ -48,7 +48,7 @@
                                 <div class="col-md-9 col-sm-9">
                                     <input type="text" class="form-control" 
                                         value="<?php echo $devolucion_datos[0]['nom_ubicacion']; ?>" readonly>
-                                    <input type="hidden" name="id_ubicacion" 
+                                    <input type="hidden" id="id_ubicacion" name="id_ubicacion" 
                                         value="<?php echo $devolucion_datos[0]['id_ubicacion']; ?>">
                                 </div>
                             </div>
@@ -110,13 +110,13 @@
                                         <div class="col-md-6">
                                             <label>Material <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
-                                                <input type="text" readonly name="descripcion[]" class="form-control" 
+                                                <input type="text" name="descripcion[]" class="form-control" 
                                                        placeholder="Material" 
                                                        value="<?php echo htmlspecialchars($detalle['det_devolucion_detalle']); ?>" required>
                                                 <input type="hidden" name="id_producto[]" value="<?php echo $detalle['id_producto']; ?>">
-                                                <!--<button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
+                                                <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
                                                     <i class="fa fa-search"></i>
-                                                </button>-->
+                                                </button>
                                             </div>
                                         </div>
                                         <div class="col-md-3">
