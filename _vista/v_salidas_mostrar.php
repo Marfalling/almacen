@@ -135,11 +135,21 @@ function AnularSalida(id_salida) {
                                                                 <i class="fa fa-eye"></i>
                                                             </button>
 
-                                                            <a href="salidas_editar.php?id=<?php echo $salida['id_salida']; ?>" 
-                                                               class="btn btn-warning btn-sm" 
-                                                               title="Editar">
-                                                                <i class="fa fa-edit"></i>
-                                                            </a>
+                                                            <?php if ($salida['est_salida'] == 0) { ?>
+                                                                <a href="#"
+                                                                class="btn btn-outline-secondary btn-sm disabled"
+                                                                title="No editable"
+                                                                style="pointer-events: none; opacity: 0.6;">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a href="salidas_editar.php?id=<?php echo $salida['id_salida']; ?>" 
+                                                                class="btn btn-warning btn-sm" 
+                                                                title="Editar">
+                                                                    <i class="fa fa-edit"></i>
+                                                                
+                                                                </a>
+                                                            <?php } ?>
 
                                                             <a href="salidas_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
                                                                class="btn btn-secondary btn-sm" 

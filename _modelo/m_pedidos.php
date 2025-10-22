@@ -878,7 +878,7 @@ function ObtenerItemsParaSalida($id_pedido)
             FROM pedido_detalle pd
             INNER JOIN producto p ON pd.id_producto = p.id_producto
             WHERE pd.id_pedido = $id_pedido
-              AND pd.est_pedido_detalle = 1
+              AND pd.est_pedido_detalle IN (1, 2)
             ORDER BY pd.id_pedido_detalle";
 
     $resultado = mysqli_query($con, $sql);

@@ -294,6 +294,14 @@ if ($puede_gestionar) { ?>
                 <i class="fa fa-times"></i>
             </button>
         <?php } ?>
+        
+        <?php if ($pedido['est_pedido'] == 4): ?>
+            <a href="salidas_nuevo.php?desde_pedido=<?php echo $pedido['id_pedido']; ?>" 
+            class="btn btn-success btn-sm" title="Generar salida">
+                <i class="fa fa-truck"></i>
+            </a>
+        <?php endif; ?>
+
     </div>
 </td>
                                                 </tr>
