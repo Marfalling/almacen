@@ -7,7 +7,7 @@
     <div class="">
         <div class="page-title">
             <div class="title_left">
-                <h3><i class="fa fa-cube"></i> Nuevo Módulo</h3>
+                <h3> Nuevo Módulo</h3>
             </div>
         </div>
         
@@ -106,9 +106,9 @@
                             
                             <div class="form-group">
                                 <div class="col-md-2 col-sm-2 offset-md-8">
-                                    <button type="reset" class="btn btn-outline-danger btn-block">
-                                        <i></i> Limpiar
-                                    </button>
+                                    <a href="modulo_mostrar.php" class="btn btn-outline-danger btn-block">
+                                        Cancelar
+                                    </a>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
                                     <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">

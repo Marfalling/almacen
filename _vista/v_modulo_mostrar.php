@@ -61,7 +61,9 @@
                                                         <span ><?php echo $total_acciones; ?> acciones</span>
                                                     </td>
                                                     <td>
-                                                        <span <?php echo $clase_estado; ?>"><?php echo $estado; ?></span>
+                                                        <span class="badge badge_size badge-<?php echo $clase_estado; ?>">
+                                                            <?php echo $estado; ?>
+                                                        </span>
                                                     </td>
                                                     <td>
                                                         <center>

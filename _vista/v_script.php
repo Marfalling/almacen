@@ -117,8 +117,6 @@ $(document).ready(function() {
 <!-- Proveedor -->
 <script>
 $(document).ready(function() {
-
-  // Inicializar Select2 para el campo Proveedor
   const $proveedor = $('#proveedor_orden');
 
   if ($proveedor.length) {
@@ -126,7 +124,7 @@ $(document).ready(function() {
       placeholder: 'Seleecionar proveedor...',
       allowClear: true,
       width: '100%',
-      minimumInputLength: 0, // Muestra todos los proveedores al hacer clic
+      minimumInputLength: 0, 
       language: {
         noResults: function() { return "No se encontraron resultados"; },
         searching: function() { return "Buscando..."; }
@@ -135,3 +133,46 @@ $(document).ready(function() {
   }
 });
 </script>
+
+<!-- Centro de Costos -->
+<script>
+$(document).ready(function () {
+  var $cc = $('#id_centro_costo');
+  if ($cc.length) {
+    $cc.select2({
+      placeholder: 'Seleccionar centro de costos...',
+      allowClear: true,
+      width: '100%',
+      minimumInputLength: 0,
+      language: {
+        noResults: function () { return 'No se encontraron resultados'; },
+        searching: function () { return 'Buscando...'; }
+      }
+    });
+  }
+});
+</script>
+
+<!-- Personal encargado que encargado y el que recibe -->
+<script>
+$(document).ready(function () {
+  function initSelect2($el, placeholder) {
+    if ($el.length) {
+      $el.select2({
+        placeholder: placeholder,
+        allowClear: true,           
+        width: '100%',
+        minimumInputLength: 0,
+        language: {
+          noResults: function () { return 'No se encontraron resultados'; },
+          searching: function () { return 'Buscando...'; }
+        }
+      });
+    }
+  }
+
+  initSelect2($('#id_personal_encargado'), 'Seleccionar personal encargado...');
+  initSelect2($('#id_personal_recibe'), 'Seleccionar personal que recibe...');
+});
+</script>
+

@@ -403,7 +403,13 @@ function EliminarDocumento(id_doc) {
                                                     </td>
                                                     <td>
                                                         <?php if ($compra['est_compra'] == 0) { ?>
-                                                            <span class="text-muted">Bloqueado</span>
+                                                            <button type="button" 
+                                                                    class="btn btn-sm" 
+                                                                    style="background-color:#b0b0b0; color:white; border:none; cursor:default;"
+                                                                    title="Bloqueado"
+                                                                    disabled>
+                                                                <i class="fa fa-folder-open"></i>
+                                                            </button>
                                                         <?php } else { ?>
                                                             <button type="button" 
                                                                     class="btn btn-info btn-sm" 

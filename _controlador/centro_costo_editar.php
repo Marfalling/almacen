@@ -19,7 +19,7 @@ if (!verificarPermisoEspecifico('editar_centro de costo')) {
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $id_centro = intval($_POST['id_centro_costo']);
     $nombre = trim($_POST['nom_centro_costo']);
-    $estado = intval($_POST['est_centro_costo']);
+    $estado = isset($_POST['est']) ? 1 : 0;
 
     $rpta = EditarCentroCosto($id_centro, $nombre);
     if ($rpta == "SI") {
@@ -38,6 +38,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 // Obtener datos para editar
 $id_centro = isset($_GET['id_centro_costo']) ? intval($_GET['id_centro_costo']) : 0;
 $centro = ObtenerCentroCostoPorId($id_centro);
+
+$est = ($centro['act_area'] == 1) ? 'checked' : '';
 
 // Registrar auditoría
 require_once("../_modelo/m_auditoria.php");

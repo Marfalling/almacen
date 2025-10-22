@@ -71,7 +71,7 @@
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Centro de Costos <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <select name="id_centro_costo" class="form-control" required>
+                                    <select name="id_centro_costo" id="id_centro_costo" class="form-control" required>
                                         <option value="">Seleccionar</option>
                                         <?php foreach ($centros_costo as $centro) { ?>
                                             <option value="<?php echo $centro['id_centro_costo']; ?>">
@@ -221,7 +221,7 @@
 
                             <div class="form-group">
                                 <div class="col-md-2 col-sm-2 offset-md-8">
-                                    <button type="reset" class="btn btn-outline-danger btn-block">Limpiar</button>
+                                    <a href="pedidos_mostrar.php" class="btn btn-outline-danger btn-block">Cancelar</a>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
                                     <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">Finalizar Pedido</button>

@@ -172,9 +172,10 @@
                                         </select>
                                     </div>
 
+                                    <!-- Personal Encargado -->
                                     <div class="form-group">
                                         <label class="control-label">Personal Encargado:</label>
-                                        <select name="id_personal_encargado" class="form-control">
+                                        <select name="id_personal_encargado" id="id_personal_encargado" class="form-control">
                                             <option value="0">No especificado</option>
                                             <?php foreach ($personal as $persona) { ?>
                                                 <option value="<?php echo $persona['id_personal']; ?>" 
@@ -217,9 +218,10 @@
                                         </select>
                                     </div>
 
+                                    <!-- Personal que Recibe -->
                                     <div class="form-group">
                                         <label class="control-label">Personal que Recibe:</label>
-                                        <select name="id_personal_recibe" class="form-control">
+                                        <select name="id_personal_recibe" id="id_personal_recibe" class="form-control">
                                             <option value="0">No especificado</option>
                                             <?php foreach ($personal as $persona) { ?>
                                                 <option value="<?php echo $persona['id_personal']; ?>">

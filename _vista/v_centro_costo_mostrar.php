@@ -90,7 +90,7 @@
                                                     <td><?php echo $c; ?></td>
                                                     <td><?php echo $nom; ?></td>
                                                     <td class="text-center">
-                                                        <span class="badge badge_size <?php echo ($estado == 1) ? 'badge-success' : 'badge-secondary'; ?>">
+                                                        <span class="badge badge_size <?php echo ($estado == 1) ? 'badge-success' : 'badge-danger'; ?>">
                                                             <?php echo ($estado == 1) ? 'Activo' : 'Inactivo'; ?>
                                                         </span>
                                                     </td>

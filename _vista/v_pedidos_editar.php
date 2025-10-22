@@ -60,7 +60,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Centro de Costos <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <select name="id_centro_costo" class="form-control" required>
+                                    <select name="id_centro_costo" id="id_centro_costo" class="form-control" required>
                                         <option value="">Seleccionar</option>
                                         <?php 
                                         // Cargar centros de costo en el controlador principal
