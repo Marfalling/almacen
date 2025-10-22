@@ -143,7 +143,7 @@ function MostrarClientesPorAlmacen($id_almacen)
     include("../_conexion/conexion.php"); // Conexión principal
 
     $resultado = array();
-    $bd_complemento = "arceperu";
+    //$bd_complemento = "arceperu";
 
     $id_almacen = intval($id_almacen);
     if ($id_almacen <= 0) return $resultado;
