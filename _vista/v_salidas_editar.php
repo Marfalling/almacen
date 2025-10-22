@@ -554,9 +554,6 @@ function seleccionarProducto(idProducto, nombreProducto, stockDisponible) {
         setTimeout(() => productoExistente.classList.remove('duplicado-resaltado'), 2000);
 
         $('#buscar_producto').modal('hide');
-        mostrarAlerta('warning', 'Producto ya seleccionado',
-            `El producto "${nombreProducto}" ya está agregado en la lista.`);
-
         return; // detener aquí
     }
     if (currentSearchButton) {

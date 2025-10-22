@@ -91,7 +91,7 @@
                                         <div class="col-md-6">
                                             <label>Material <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
-                                                <input type="text" readonly name="descripcion[]" class="form-control" placeholder="Buscar material" required>
+                                                <input type="text" name="descripcion[]" class="form-control" placeholder="Buscar material" required>
                                                 <input type="hidden" name="id_producto[]" value="">
                                                 <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
                                                     <i class="fa fa-search"></i>
@@ -108,6 +108,8 @@
                                             <label>Cantidad <span class="text-danger">*</span>:</label>
                                             <input type="number" name="cantidad[]" class="form-control" step="0.01" min="0.01" required>
                                         </div>
+
+                                        <input type="hidden" name="stock_disponible[]" value="">
                                     </div>
                                     <div class="row mt-2">
                                         <div class="col-md-6">
@@ -304,7 +306,6 @@ function cargarProductos(idAlmacen, idUbicacion) {
             "data": function(d) {
                 d.id_almacen = idAlmacen;
                 d.id_ubicacion = idUbicacion;
-                d.solo_con_stock = true;
                 return d;
             }
         },

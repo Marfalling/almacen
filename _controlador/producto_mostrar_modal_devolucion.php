@@ -22,38 +22,39 @@ $productos = MostrarProductosConStockPorTipo($length, $start, $searchValue, $ord
 $totalRecords = NumeroRegistrosTotalProductosConStockPorTipo($id_almacen, $id_ubicacion, 1);
 $filteredRecords = NumeroRegistrosFiltradosProductosConStockPorTipo($searchValue, $id_almacen, $id_ubicacion, 1);
 
-// Formatear datos para DataTables
-/*$data = array();
-foreach ($productos as $producto) {
-    $data[] = array(
-        $producto['cod_material'] ?: 'N/A',
-        $producto['nom_producto'],
-        $producto['nom_producto_tipo'],
-        $producto['nom_unidad_medida'],
-        $producto['mar_producto'] ?: 'N/A',
-        $producto['mod_producto'] ?: 'N/A',
-        number_format($producto['stock_disponible'], 2),
-        '<button class="btn btn-sm btn-primary" onclick="seleccionarProducto(' . 
-        $producto['id_producto'] . ', \'' . 
-        addslashes($producto['nom_producto']) . '\', ' . 
-        $producto['stock_disponible'] . ')">Seleccionar</button>'
-    );
-}*/
-
+// -------------------------------------------------------
+// ESTILO VISUAL: COLORES, BOTONES Y FORMATEO DE STOCK
+// -------------------------------------------------------
 $data = array();
+
 foreach ($productos as $producto) {
-    // Verificar si hay stock
     $stock = floatval($producto['stock_disponible']);
     
+    // Formatear stock con color (verde si hay, rojo si no)
     if ($stock > 0) {
-        $btnSeleccionar = '<button class="btn btn-sm btn-primary" onclick="seleccionarProducto(' . 
-            $producto['id_producto'] . ', \'' . 
-            addslashes($producto['nom_producto']) . '\', ' . 
-            $stock . ')">Seleccionar</button>';
+        $stock_formatted = '<span class="text-success font-weight-bold">' . number_format($stock, 2) . '</span>';
     } else {
-        $btnSeleccionar = '<button class="btn btn-sm btn-secondary" disabled>Sin stock</button>';
+        $stock_formatted = '<span class="text-danger">0.00</span>';
     }
 
+    // Botón de selección
+    if ($stock > 0) {
+        $btnSeleccionar = '<button class="btn btn-sm btn-success d-inline-flex align-items-center gap-1" 
+            onclick="seleccionarProducto(' . 
+            $producto['id_producto'] . ', \'' . 
+            addslashes($producto['nom_producto']) . '\', ' . 
+            $stock . ')" 
+            title="Seleccionar producto">
+            <i class="fa fa-check"></i> Seleccionar
+        </button>';
+    } else {
+        $btnSeleccionar = '<button class="btn btn-sm btn-secondary" disabled 
+            title="Este producto no tiene stock disponible en la ubicación seleccionada">
+            Sin Stock
+        </button>';
+    }
+
+    // Construir fila para DataTables
     $data[] = array(
         $producto['cod_material'] ?: 'N/A',
         $producto['nom_producto'],
@@ -61,12 +62,14 @@ foreach ($productos as $producto) {
         $producto['nom_unidad_medida'],
         $producto['mar_producto'] ?: 'N/A',
         $producto['mod_producto'] ?: 'N/A',
-        number_format($stock, 2),
+        $stock_formatted,
         $btnSeleccionar
     );
 }
 
-// Respuesta en formato JSON para DataTables
+// -------------------------------------------------------
+// RESPUESTA JSON PARA DATATABLES
+// -------------------------------------------------------
 echo json_encode(array(
     "draw" => isset($_POST['draw']) ? intval($_POST['draw']) : 1,
     "recordsTotal" => $totalRecords,

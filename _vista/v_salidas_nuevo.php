@@ -312,6 +312,9 @@
                                                 </div>
                                             </div>
                                             -->
+                                            <div hidden>
+                                                <div id="stock-disponible-0">0.00</div>
+                                            </div>
                                         </div>
                                         <div class="row mt-2">
                                             <div class="col-md-12 d-flex justify-content-end">
@@ -553,9 +556,6 @@ function seleccionarProducto(idProducto, nombreProducto, stockDisponible) {
         setTimeout(() => productoExistente.classList.remove('duplicado-resaltado'), 2000);
 
         $('#buscar_producto').modal('hide');
-        mostrarAlerta('warning', 'Producto ya seleccionado',
-            `El producto "${nombreProducto}" ya está agregado en la lista.`);
-
         return; // detener aquí
     }
     
@@ -608,8 +608,13 @@ function seleccionarProducto(idProducto, nombreProducto, stockDisponible) {
         mostrarAlerta('warning', 'Producto sin stock',
             `El producto "${nombreProducto}" no tiene stock disponible en esta ubicación.`);
     } else {
-        mostrarAlerta('success', 'Producto seleccionado',
-            `El producto "${nombreProducto}" ha sido seleccionado correctamente.`, 2000);
+       Swal.fire({
+            icon: 'success',
+            title: 'Producto seleccionado',
+            text: 'El producto "' + nombreProducto + '" ha sido seleccionado.',
+            showConfirmButton: false,
+            timer: 1500
+        });
     }
     
     // Limpiar la referencia

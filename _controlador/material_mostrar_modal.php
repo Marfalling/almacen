@@ -15,7 +15,6 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // Recibir parámetros
 $id_almacen = isset($_POST['id_almacen']) ? intval($_POST['id_almacen']) : 0;
 $id_ubicacion = isset($_POST['id_ubicacion']) ? intval($_POST['id_ubicacion']) : 0;
-$solo_con_stock = isset($_POST['solo_con_stock']) ? $_POST['solo_con_stock'] : false;
 
 // Parámetros de DataTables
 $draw = intval($_POST['draw']);
@@ -27,19 +26,6 @@ $search_value = $_POST['search']['value'];
 $where_conditions = array();
 $where_conditions[] = "p.est_producto = 1";
 $where_conditions[] = "p.id_producto_tipo = 1"; // Solo materiales, no servicios
-
-if ($id_almacen > 0) {
-    $where_conditions[] = "mov_stock.id_almacen = $id_almacen";
-}
-
-if ($id_ubicacion > 0) {
-    $where_conditions[] = "mov_stock.id_ubicacion = $id_ubicacion";
-}
-
-// Si se requiere solo productos con stock
-if ($solo_con_stock) {
-    $where_conditions[] = "stock_actual > 0";
-}
 
 // Construir condición de búsqueda
 $search_condition = "";
@@ -58,9 +44,9 @@ $sql = "SELECT
     p.nom_producto,
     mt.nom_material_tipo,
     um.nom_unidad_medida,
-    COALESCE(stock_actual, 0) as stock_actual,
-    COALESCE(stock_reservado, 0) as stock_reservado,
-    (COALESCE(stock_actual, 0) - COALESCE(stock_reservado, 0)) as stock_disponible
+    COALESCE(stock_físico, 0) as stock_físico,
+    COALESCE(stock_comprometido, 0) as stock_comprometido,
+    (COALESCE(stock_físico, 0) - COALESCE(stock_comprometido, 0)) as stock_disponible
 FROM producto p
 INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo
 INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
@@ -73,11 +59,11 @@ LEFT JOIN (
             WHEN tipo_movimiento = 1 THEN cant_movimiento
             WHEN tipo_movimiento = 2 AND tipo_orden != 5 THEN -cant_movimiento
             ELSE 0
-        END) AS stock_actual,
+        END) AS stock_físico,
         SUM(CASE
             WHEN tipo_movimiento = 2 AND tipo_orden = 5 AND est_movimiento = 1 THEN cant_movimiento
             ELSE 0
-        END) AS stock_reservado
+        END) AS stock_comprometido
     FROM movimiento 
     WHERE est_movimiento = 1
     " . ($id_almacen > 0 ? " AND id_almacen = $id_almacen" : "") . "
@@ -100,11 +86,11 @@ LEFT JOIN (
             WHEN tipo_movimiento = 1 THEN cant_movimiento
             WHEN tipo_movimiento = 2 AND tipo_orden != 5 THEN -cant_movimiento
             ELSE 0
-        END) AS stock_actual,
+        END) AS stock_físico,
         SUM(CASE
             WHEN tipo_movimiento = 2 AND tipo_orden = 5 AND est_movimiento = 1 THEN cant_movimiento
             ELSE 0
-        END) AS stock_reservado
+        END) AS stock_comprometido
     FROM movimiento 
     WHERE est_movimiento = 1
     " . ($id_almacen > 0 ? " AND id_almacen = $id_almacen" : "") . "
@@ -129,24 +115,43 @@ $result = mysqli_query($con, $sql);
 
 $data = array();
 while ($row = mysqli_fetch_assoc($result)) {
-    // Botón de acción para seleccionar el producto
-    $action_btn = '<button type="button" class="btn btn-primary btn-sm" 
-                    onclick="seleccionarProducto(' . $row['id_producto'] . ', \'' . 
-                    addslashes($row['nom_producto']) . '\', \'' . 
-                    addslashes($row['nom_unidad_medida']) . '\', ' . 
-                    $row['stock_disponible'] . ')">
-                    <i class="fa fa-check"></i> Seleccionar
-                  </button>';
-    
+    $stock_fisico = floatval($row['stock_físico']);
+    $stock_comprometido = floatval($row['stock_comprometido']);
+    $stock_disponible = floatval($row['stock_disponible']);
+
+    // ======= FORMATO DE STOCK CON COLOR =======
+    if ($stock_disponible > 0) {
+        $stock_disp_html = '<span class="text-success font-weight-bold">' . number_format($stock_disponible, 2) . '</span>';
+    } else {
+        $stock_disp_html = '<span class="text-danger">0.00</span>';
+    }
+
+    // ======= BOTÓN DE ACCIÓN =======
+    if ($stock_disponible > 0) {
+        $action_btn = '<button type="button" 
+                        class="btn btn-sm btn-success d-inline-flex align-items-center gap-1"
+                        onclick="seleccionarProducto(' . $row['id_producto'] . ', \'' . 
+                        addslashes($row['nom_producto']) . '\', \'' . 
+                        addslashes($row['nom_unidad_medida']) . '\', ' . 
+                        $stock_disponible . ')"
+                        title="Seleccionar producto">
+                        <i class="fa fa-check"></i><span>Seleccionar</span>
+                    </button>';
+    } else {
+        $action_btn = '<button type="button" class="btn btn-sm btn-secondary" disabled>
+                        Sin Stock
+                      </button>';
+    }
+
     $data[] = array(
-        $row['cod_material'],
-        $row['nom_producto'],
-        $row['nom_material_tipo'],
-        $row['nom_unidad_medida'],
-        number_format($row['stock_actual'], 2),       // Físico
-        number_format($row['stock_reservado'], 2),    // Reservado
-        number_format($row['stock_disponible'], 2),   // Disponible
-        $action_btn
+        htmlspecialchars($row['cod_material']),
+        htmlspecialchars($row['nom_producto']),
+        htmlspecialchars($row['nom_material_tipo']),
+        htmlspecialchars($row['nom_unidad_medida']),
+        number_format($stock_fisico, 2),          // Físico
+        number_format($stock_comprometido, 2),    // Comprometido
+        $stock_disp_html,                         // Disponible con color
+        $action_btn                               // Botón adaptativo
     );
 }
 
