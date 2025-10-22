@@ -114,9 +114,9 @@
                                                        placeholder="Material" 
                                                        value="<?php echo htmlspecialchars($detalle['det_devolucion_detalle']); ?>" required>
                                                 <input type="hidden" name="id_producto[]" value="<?php echo $detalle['id_producto']; ?>">
-                                                <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
+                                                <!--<button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
                                                     <i class="fa fa-search"></i>
-                                                </button>
+                                                </button>-->
                                             </div>
                                         </div>
                                         <div class="col-md-3">

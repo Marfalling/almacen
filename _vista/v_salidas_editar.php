@@ -233,7 +233,8 @@ function eliminarDocumento(idDoc) {
                             <div id="contenedor-materiales">
                                 <?php 
                                 $contador = 0;
-                                foreach ($salida_detalles as $detalle) { 
+                                foreach ($salida_detalles as $detalle) {
+                                    $detalle['stock_disponible_total'] = $detalle['cant_salida_detalle'] + $detalle['cantidad_disponible_origen']; 
                                 ?>
                                 <div class="material-item border p-3 mb-3">
                                     <div class="row">
@@ -252,7 +253,9 @@ function eliminarDocumento(idDoc) {
                                         <div class="col-md-4">
                                             <label>Cantidad <span class="text-danger">*</span>:</label>
                                             <input type="number" name="cantidad[]" class="form-control" step="0.01" 
-                                                   value="<?php echo $detalle['cant_salida_detalle']; ?>" required>
+                                                   value="<?php echo $detalle['cant_salida_detalle']; ?>" 
+                                                   data-stock-disponible="<?php echo $detalle['stock_disponible_total']; ?>" 
+                                                   required>
                                         </div>
                                     </div>
                                     <div class="row mt-2">

@@ -373,10 +373,12 @@ function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisp
             let inputDescripcion = materialItem.querySelector('input[name="descripcion[]"]');
             let inputIdProducto = materialItem.querySelector('input[name="id_producto[]"]');
             let inputUnidad = materialItem.querySelector('input[name="unidad[]"]');
+            let inputStock = materialItem.querySelector('input[name="stock_disponible[]"]');
             
             if (inputDescripcion) inputDescripcion.value = nombreProducto;
             if (inputIdProducto) inputIdProducto.value = idProducto;
             if (inputUnidad) inputUnidad.value = unidadMedida;
+            inputStock.value = stockDisponible; // <--- guardamos stock real
         }
     }
     
@@ -590,8 +592,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 const cantidadIngresada = parseFloat(e.target.value) || 0;
                 
                 if (cantidadIngresada > stockNumero) {
-                    e.target.style.borderColor = 'red';
+                    //e.target.style.borderColor = 'red';
                     e.target.title = `La cantidad no puede ser mayor al stock disponible (${stockNumero})`;
+                    if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Cantidad excede el stock',
+                        text: `La cantidad ingresada (${cantidadIngresada}) supera el stock disponible (${stockNumero}).`,
+                        timer: 2000,
+                        showConfirmButton: false
+                        
+                    });
+                }
                 } else {
                     e.target.style.borderColor = '';
                     e.target.title = '';

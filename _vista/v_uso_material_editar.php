@@ -96,9 +96,9 @@
                                                        value="<?php echo $detalle['nom_producto']; ?>" required>
                                                 <input type="hidden" name="id_producto[]" value="<?php echo $detalle['id_producto']; ?>">
                                                 <input type="hidden" name="id_detalle[]" value="<?php echo $detalle['id_uso_material_detalle']; ?>">
-                                                <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
+                                                <!--<button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
                                                     <i class="fa fa-search"></i>
-                                                </button>
+                                                </button> -->
                                             </div>
                                         </div>
 
@@ -110,8 +110,10 @@
 
                                         <div class="col-md-3">
                                             <label>Cantidad <span class="text-danger">*</span>:</label>
-                                            <input type="number" name="cantidad[]" class="form-control" step="0.01" min="0.01" 
-                                                   value="<?php echo $detalle['cant_uso_material_detalle']; ?>" required>
+                                            <input type="number" name="cantidad[]" class="form-control cantidad-material" step="0.01" min="0.01"
+                                                    value="<?php echo $detalle['cant_uso_material_detalle']; ?>" 
+                                                    data-stock="<?php echo $detalle['cantidad_disponible_almacen']; ?>" 
+                                                    required>
                                         </div>
                                     </div>
                                     <div class="row mt-2">
@@ -624,6 +626,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Debe seleccionar al menos un material.');
             }
         }
+        // ===== VALIDACIÓN DE STOCK =====
+        let excedeStock = false;
+        let mensajeStock = '';
+
+        const cantidades = document.querySelectorAll('input[name="cantidad[]"]');
+        cantidades.forEach((input, index) => {
+            const stock = parseFloat(input.dataset.stock) || 0;
+            const valor = parseFloat(input.value) || 0;
+
+            if (valor > stock) {
+                excedeStock = true;
+                mensajeStock = `La cantidad del material #${index + 1} excede el stock disponible (${stock.toFixed(2)}).`;
+            }
+        });
+
+        if (excedeStock) {
+            e.preventDefault();
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Stock insuficiente',
+                    text: mensajeStock
+                });
+            } else {
+                alert(mensajeStock);
+            }
+        }
     });
 });
 
@@ -635,41 +664,61 @@ $('#buscar_producto').on('hidden.bs.modal', function () {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Selecciona el formulario por action o por clase
-    const form = document.querySelector('form[action="uso_material_nuevo.php"], form[action="uso_material_editar.php"]');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            let archivosInvalidos = false;
-            let mensajeError = '';
-            // Buscar todos los inputs de archivos
-            const archivosInputs = form.querySelectorAll('input[type="file"][name^="archivos_"]');
-            archivosInputs.forEach(input => {
-                for (let i = 0; i < input.files.length; i++) {
-                    if (input.files[i].size > 5 * 1024 * 1024) { // 5MB
-                        archivosInvalidos = true;
-                        mensajeError = 'Uno o más archivos superan el límite de 5MB. Por favor seleccione archivos más pequeños.';
-                        break;
-                    }
-                }
-            });
-            if (archivosInvalidos) {
-                e.preventDefault();
+    // Seleccionamos todos los inputs de cantidad
+    const cantidadInputs = document.querySelectorAll('.cantidad-material');
+
+    cantidadInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            const stock = parseFloat(this.getAttribute('data-stock')) || 0;
+            const valor = parseFloat(this.value) || 0;
+
+            if (valor > stock) {
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
-                        icon: 'error',
-                        title: 'Archivo demasiado grande',
-                        text: mensajeError
+                        icon: 'warning',
+                        title: 'Cantidad excede stock disponible',
+                        text: `Stock disponible: ${stock}, cantidad ingresada: ${valor}`,
+                        timer: 2500,
+                        showConfirmButton: false
                     });
                 } else {
-                    alert(mensajeError);
+                    alert(`Cantidad excede stock disponible: ${stock}`);
                 }
-                // El formulario NO se envía y los datos NO se pierden
             }
         });
-    }
+    });
 });
 </script>
 
+<script>
+// Validación inmediata de cantidad vs stock
+document.addEventListener('DOMContentLoaded', function() {
+    const cantidadInputs = document.querySelectorAll('.cantidad-material');
+
+    cantidadInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            const stock = parseFloat(this.dataset.stock);
+            const valor = parseFloat(this.value);
+
+            if (!isNaN(valor) && valor > stock) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Cantidad excede stock disponible',
+                        text: `Stock disponible: ${stock.toFixed(2)}, cantidad ingresada: ${valor.toFixed(2)}`,
+                        confirmButtonText: 'Entendido'
+                    });
+                } else {
+                    alert(`Cantidad ingresada (${valor}) supera el stock disponible (${stock})`);
+                }
+                this.classList.add('border border-danger'); // resalta el input
+            } else {
+                this.classList.remove('border', 'border-danger');
+            }
+        });
+    });
+});
+</script>
 <style>
 .duplicado-resaltado {
     background-color: #ffe6e6 !important; /* rojo pálido */
