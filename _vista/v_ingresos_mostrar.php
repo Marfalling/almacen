@@ -167,28 +167,30 @@
                                                             
                                                             <!-- COLUMNA: ESTADO -->
                                                             <td>
-                                                                <?php 
-                                                                if ($tipo == 'COMPRA') { 
-                                                                    $est_compra = intval($est_compra);
-                                                                    
-                                                                    if ($est_compra == 0) { ?>
-                                                                        <span class="badge badge-danger badge_size">Anulado</span>
-                                                                    <?php } elseif ($est_compra == 1) { ?>
-                                                                        <span class="badge badge-warning badge_size">Pendiente</span>
-                                                                    <?php } elseif ($est_compra == 2) { ?>
-                                                                        <span class="badge badge-success badge_size">Aprobado</span>
-                                                                    <?php } elseif ($est_compra == 3) { ?>
-                                                                        <span class="badge badge-info badge_size">Cerrada</span>
-                                                                    <?php } elseif ($est_compra == 4) { ?>
-                                                                        <span class="badge badge-primary badge_size">Pagada</span>
-                                                                    <?php } ?>
-                                                                <?php } else { ?>
-                                                                    <?php if ($ingreso['estado'] == 0) { ?>
-                                                                        <span class="badge badge-danger badge_size">Anulado</span>
+                                                                <center>
+                                                                    <?php 
+                                                                    if ($tipo == 'COMPRA') { 
+                                                                        $est_compra = intval($est_compra);
+                                                                        
+                                                                        if ($est_compra == 0) { ?>
+                                                                            <span class="badge badge-danger badge_size">ANULADO</span>
+                                                                        <?php } elseif ($est_compra == 1) { ?>
+                                                                            <span class="badge badge-warning badge_size">PENDIENTE</span>
+                                                                        <?php } elseif ($est_compra == 2) { ?>
+                                                                            <span class="badge badge-success badge_size">APROBADO</span>
+                                                                        <?php } elseif ($est_compra == 3) { ?>
+                                                                            <span class="badge badge-info badge_size">CERRADA</span>
+                                                                        <?php } elseif ($est_compra == 4) { ?>
+                                                                            <span class="badge badge-primary badge_size">PAGADA</span>
+                                                                        <?php } ?>
                                                                     <?php } else { ?>
-                                                                        <span class="badge badge-success badge_size">Registrado</span>
+                                                                        <?php if ($ingreso['estado'] == 0) { ?>
+                                                                            <span class="badge badge-danger badge_size">ANULADO</span>
+                                                                        <?php } else { ?>
+                                                                            <span class="badge badge-success badge_size">REGISTRADO</span>
+                                                                        <?php } ?>
                                                                     <?php } ?>
-                                                                <?php } ?>
+                                                                </center>      
                                                             </td>
                                                             
                                                             <!-- COLUMNA: PRODUCTOS -->

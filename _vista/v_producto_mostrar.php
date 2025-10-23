@@ -124,11 +124,13 @@
                                                         <?php } ?>
                                                     </td>
                                                     <td>
-                                                        <?php if ($est_producto == 1) { ?>
-                                                            <span class="badge badge-success"><?php echo $estado; ?></span>
-                                                        <?php } else { ?>
-                                                            <span class="badge badge-danger"><?php echo $estado; ?></span>
-                                                        <?php } ?>
+                                                        <center>
+                                                            <?php if ($est_producto == 1) { ?>
+                                                                <span class="badge badge-success badge_size">ACTIVO</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge badge-danger badge_size">INACTIVO</span>
+                                                            <?php } ?>
+                                                        </center>
                                                     </td>
                                                     <td>
                                                         <center>

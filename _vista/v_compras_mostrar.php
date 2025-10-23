@@ -383,23 +383,25 @@ function EliminarDocumento(id_doc) {
                                                         ?>
                                                     </td>
                                                     <td>
-                                                        <?php if ($compra['est_compra'] == 1) { ?>
+                                                        <center>
+                                                            <?php if ($compra['est_compra'] == 1) { ?>
                                                             <?php if ($tiene_financiera && !$tiene_tecnica) { ?>
-                                                                <span class="badge badge-info badge_size">Aprobado Financiera</span>
+                                                                <span class="badge badge-info badge_size">APROBADO FINANCIERA</span>
                                                             <?php } elseif ($tiene_tecnica && !$tiene_financiera) { ?>
-                                                                <span class="badge badge-info badge_size">Aprobado Técnico</span>
+                                                                <span class="badge badge-info badge_size">APROBADO TÉCNICO</span>
                                                             <?php } elseif (!$tiene_tecnica && !$tiene_financiera) { ?>
-                                                                <span class="badge badge-warning badge_size">Pendiente</span>
+                                                                <span class="badge badge-warning badge_size">PENDIENTE</span>
                                                             <?php } ?>
-                                                        <?php } elseif ($compra['est_compra'] == 2) { ?>
-                                                            <span class="badge badge-success badge_size">Aprobado</span>
-                                                        <?php } elseif ($compra['est_compra'] == 3) { ?>
-                                                            <span class="badge badge-success badge_size">Aprobado</span>
-                                                        <?php } elseif ($compra['est_compra'] == 4) { ?>
-                                                            <span class="badge badge-primary badge_size">Pagado</span>
-                                                        <?php } else { ?>
-                                                            <span class="badge badge-danger badge_size">Anulado</span>
-                                                        <?php } ?>
+                                                            <?php } elseif ($compra['est_compra'] == 2) { ?>
+                                                                <span class="badge badge-success badge_size">APROBADO</span>
+                                                            <?php } elseif ($compra['est_compra'] == 3) { ?>
+                                                                <span class="badge badge-success badge_size">APROBADO</span>
+                                                            <?php } elseif ($compra['est_compra'] == 4) { ?>
+                                                                <span class="badge badge-primary badge_size">PAGADO</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge badge-danger badge_size">ANULADO</span>
+                                                            <?php } ?>
+                                                        </center>
                                                     </td>
                                                     <td>
                                                         <?php if ($compra['est_compra'] == 0) { ?>

@@ -128,12 +128,14 @@ function AnularUso(id_uso_material) {
                                                     <td><?php echo $uso['nom_completo_solicitante']; ?></td>
                                                     <td><?php echo $uso['nom_registrado']; ?></td>
                                                     <td><?php echo date('d/m/Y H:i', strtotime($uso['fec_uso_material'])); ?></td>
-                                                    <td>
-                                                        <?php if($uso['est_uso_material'] == 2) { ?>
-                                                            <span class="badge badge-success badge_size">Registrado</span>
-                                                        <?php } else { ?>
-                                                            <span class="badge badge-danger badge_size">Anulado</span>
-                                                        <?php } ?>
+                                                    <td>  
+                                                        <center>
+                                                            <?php if($uso['est_uso_material'] == 2) { ?>
+                                                                <span class="badge badge-success badge_size">REGISTRADO</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge badge-danger badge_size">ANULADO</span>
+                                                            <?php } ?>
+                                                        </center>
                                                     </td>
                                                     <td>
                                                         <div class="d-flex flex-wrap gap-2">

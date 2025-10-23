@@ -62,7 +62,15 @@
                                                         <td><?php echo htmlspecialchars($nom_almacen); ?></td>
                                                         <td><?php echo htmlspecialchars($nom_cliente); ?></td>
                                                         <td><?php echo htmlspecialchars($nom_obra); ?></td>
-                                                        <td><?php echo $estado; ?></td>
+                                                        <td>
+                                                            <center>
+                                                                <?php if ($est_almacen == 1) { ?>
+                                                                    <span class="badge badge-success badge_size">ACTIVO</span>
+                                                                <?php } else { ?>
+                                                                    <span class="badge badge-danger badge_size">INACTIVO</span>
+                                                                <?php } ?>
+                                                            </center>
+                                                        </td>
                                                         <td>
                                                             <center>
                                                                 <a class="btn btn-warning btn-sm" href="almacen_editar.php?id_almacen=<?php echo $id_almacen; ?>" title="Editar almacén">

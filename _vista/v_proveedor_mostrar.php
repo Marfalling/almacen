@@ -110,7 +110,15 @@
                                             <span class="text-muted">Sin cuentas</span>
                                         <?php } ?>
                                     </td>
-                                    <td><?= ($value['est_proveedor']==1) ? "ACTIVO":"INACTIVO"; ?></td>
+                                    <td>
+                                        <center>
+                                            <?php if ($value['est_proveedor'] == 1) { ?>
+                                                <span class="badge badge-success badge_size">ACTIVO</span>
+                                            <?php } else { ?>
+                                                <span class="badge badge-danger badge_size">INACTIVO</span>
+                                            <?php } ?>
+                                        </center>
+                                    </td>
                                     <td>
                                         <a class="btn btn-warning btn-sm" href="proveedor_editar.php?id_proveedor=<?= $id_proveedor; ?>">
                                             <i class="fa fa-edit"></i>

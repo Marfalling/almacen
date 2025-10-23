@@ -44,7 +44,15 @@
                                     <tr>
                                         <td><?php echo $index + 1; ?></td>
                                         <td><?php echo htmlspecialchars($obra['nom_subestacion']); ?></td>
-                                        <td><?php echo ($obra['act_subestacion'] == 1) ? 'Activo' : 'Inactivo'; ?></td>
+                                        <td>
+                                            <center>
+                                                <?php if ($obra['act_subestacion'] == 1) { ?>
+                                                    <span class="badge badge-success badge_size">ACTIVO</span>
+                                                <?php } else { ?>
+                                                    <span class="badge badge-danger badge_size">INACTIVO</span>
+                                                <?php } ?>
+                                            </center>
+                                        </td>
                                         <td class="text-center">
                                             <a href="obras_editar.php?id_obra=<?php echo $obra['id_subestacion']; ?>" 
                                             class="btn btn-warning btn-sm">

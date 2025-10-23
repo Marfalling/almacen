@@ -52,10 +52,14 @@
                                                 <tr>
                                                     <td><?php echo $c; ?></td>
                                                     <td><?php echo $nom_moneda; ?></td>
-                                                    <td class="text-center">
-                                                        <span class="badge badge_size <?php echo ($est_moneda == 1) ? 'badge-success' : 'badge-secondary'; ?>">
-                                                            <?php echo $estado_texto; ?>
-                                                        </span>
+                                                    <td>
+                                                        <center>
+                                                            <?php if ($est_moneda == 1) { ?>
+                                                                <span class="badge badge-success badge_size">ACTIVO</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge badge-danger badge_size">INACTIVO</span>
+                                                            <?php } ?>
+                                                        </center>
                                                     </td>
                                                     <td class="text-center">
                                                         <a class="btn btn-warning btn-sm" href="moneda_editar.php?id_moneda=<?php echo $id_moneda; ?>">

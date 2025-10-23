@@ -53,7 +53,15 @@
                                                 <tr>
                                                     <td><?php echo $c; ?></td>
                                                     <td><?php echo $nom_cliente; ?></td>
-                                                    <td><?php echo $estado; ?></td>
+                                                    <td>
+                                                        <center>
+                                                            <?php if ($est_cliente == 1) { ?>
+                                                                <span class="badge badge-success badge_size">ACTIVO</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge badge-danger badge_size">INACTIVO</span>
+                                                            <?php } ?>
+                                                        </center>
+                                                    </td>
                                                     <td>
                                                         <center>
                                                            <a class="btn btn-warning" href="clientes_editar.php?id_cliente=<?php echo $id_cliente; ?>"><i class="fa fa-edit"></i></a>

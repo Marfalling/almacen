@@ -61,9 +61,13 @@
                                                         <span ><?php echo $total_acciones; ?> acciones</span>
                                                     </td>
                                                     <td>
-                                                        <span class="badge badge_size badge-<?php echo $clase_estado; ?>">
-                                                            <?php echo $estado; ?>
-                                                        </span>
+                                                        <center>
+                                                            <?php if ($est_modulo == 1) { ?>
+                                                                <span class="badge badge-success badge_size">ACTIVO</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge badge-danger badge_size">INACTIVO</span>
+                                                            <?php } ?>
+                                                        </center>
                                                     </td>
                                                     <td>
                                                         <center>

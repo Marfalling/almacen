@@ -72,7 +72,13 @@
                                                         <small><?php echo $roles; ?></small>
                                                     </td>
                                                     <td>
-                                                        <span class="<?php echo $estado_class; ?>"><?php echo $estado; ?></span>
+                                                        <center>
+                                                            <?php if ($est_usuario == 1) { ?>
+                                                                <span class="badge badge-success badge_size"><?php echo $estado; ?></span>
+                                                            <?php } else { ?>
+                                                                <span class="badge badge-danger badge_size"><?php echo $estado; ?></span>
+                                                            <?php } ?>
+                                                        </center>
                                                     </td>
                                                     <td>
                                                         <center>

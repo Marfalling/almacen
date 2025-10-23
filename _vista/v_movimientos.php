@@ -94,11 +94,13 @@
                                         </td>
                                         <td><?php echo number_format($mov['cant_movimiento'] ?? 0, 2); ?></td>
                                         <td>
-                                            <?php 
-                                            echo (intval($mov['est_movimiento']) === 1) 
-                                                ? '<span class="badge badge-success badge_size">Activo</span>'
-                                                : '<span class="badge badge-danger badge_size">Inactivo</span>';
-                                            ?>
+                                            <center>
+                                                <?php if (intval($mov['est_movimiento']) === 1) { ?>
+                                                    <span class="badge badge-success badge_size">ACTIVO</span>
+                                                <?php } else { ?>
+                                                    <span class="badge badge-danger badge_size">INACTIVO</span>
+                                                <?php } ?>
+                                            </center>
                                         </td>
                                     </tr>
                                     <?php 

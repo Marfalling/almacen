@@ -52,7 +52,15 @@
                                                 <tr>
                                                     <td><?php echo $c; ?></td>
                                                     <td><?php echo $nom_unidad_medida; ?></td>
-                                                    <td><?php echo $estado; ?></td>
+                                                    <td>
+                                                        <center>
+                                                            <?php if ($est_unidad_medida == 1) { ?>
+                                                                <span class="badge badge-success badge_size">ACTIVO</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge badge-danger badge_size">INACTIVO</span>
+                                                            <?php } ?>
+                                                        </center>
+                                                    </td>
                                                     <td>
                                                         <center><a class="btn btn-warning" href="unidad_medida_editar.php?id_unidad_medida=<?php echo $id_unidad_medida; ?>"><i class="fa fa-edit" ></i></a></center>
                                                     </td>

@@ -76,14 +76,16 @@
                                                     <td><?php echo $devolucion['nom_personal']; ?></td>
                                                     <td><?php echo date('d/m/Y H:i', strtotime($devolucion['fec_devolucion'])); ?></td>
                                                     <td><?php echo $devolucion['obs_devolucion']; ?></td>
-                                                    <td>
-                                                        <?php if($devolucion['est_devolucion'] == 1) { ?>
-                                                            <span class="badge badge-success badge_size">Activo</span>
-                                                        <?php } elseif($devolucion['est_devolucion'] == 2) { ?>
-                                                            <span class="badge badge-success badge_size">Confirmado</span>
-                                                          <?php } else { ?>
-                                                            <span class="badge badge-danger badge_size">Anulado</span>
-                                                        <?php } ?>
+                                                    <td>       
+                                                        <center>
+                                                            <?php if($devolucion['est_devolucion'] == 1) { ?>
+                                                            <span class="badge badge-success badge_size">ACTIVO</span>
+                                                            <?php } elseif($devolucion['est_devolucion'] == 2) { ?>
+                                                                <span class="badge badge-success badge_size">CONFIRMADO</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge badge-danger badge_size">ANULADO</span>
+                                                            <?php } ?>
+                                                        </center>
                                                     </td>
                                                     <td>
                                                         <div class="d-flex flex-wrap gap-2">

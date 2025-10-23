@@ -121,10 +121,14 @@
                                                     </td>
                                                     <td><?php echo htmlspecialchars($nom); ?></td>
                                                     <td class="text-right"><?php echo number_format($porcentaje, 2); ?> %</td>
-                                                    <td class="text-center">
-                                                        <span class="badge badge_size <?php echo ($estado == 1) ? 'badge-success' : 'badge-secondary'; ?>">
-                                                            <?php echo ($estado == 1) ? 'Activo' : 'Inactivo'; ?>
-                                                        </span>
+                                                    <td>
+                                                        <center>
+                                                            <?php if ($estado == 1) { ?>
+                                                                <span class="badge badge-success badge_size">ACTIVO</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge badge-danger badge_size">INACTIVO</span>
+                                                            <?php } ?>
+                                                        </center>
                                                     </td>
                                                     <td class="text-center">
                                                         <?php if (verificarPermisoEspecifico('editar_detraccion')): ?>

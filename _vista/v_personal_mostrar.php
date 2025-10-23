@@ -83,12 +83,15 @@ $personal = MostrarPersonal();
                                                         <td><?php echo htmlspecialchars($email_personal); ?></td>
                                                         <td><?php echo htmlspecialchars($cel_personal); ?></td>
                                                         <td>
-                                                            <?php if ($act_personal == 1) { ?>
-                                                                <span class="badge badge-success"><?php echo $estado; ?></span>
-                                                            <?php } else { ?>
-                                                                <span class="badge badge-danger"><?php echo $estado; ?></span>
-                                                            <?php } ?>
+                                                            <center>
+                                                                <?php if ($act_personal == 1) { ?>
+                                                                    <span class="badge badge-success badge_size"><?php echo $estado; ?></span>
+                                                                <?php } else { ?>
+                                                                    <span class="badge badge-danger badge_size"><?php echo $estado; ?></span>
+                                                                <?php } ?>
+                                                            </center>
                                                         </td>
+
                                                         <td class="text-center">
                                                             <a class="btn btn-warning btn-xs" href="personal_editar.php?id_personal=<?php echo $id_personal; ?>">
                                                                 <i class="fa fa-edit"></i>

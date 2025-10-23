@@ -89,10 +89,14 @@
                                                 <tr>
                                                     <td><?php echo $c; ?></td>
                                                     <td><?php echo $nom; ?></td>
-                                                    <td class="text-center">
-                                                        <span class="badge badge_size <?php echo ($estado == 1) ? 'badge-success' : 'badge-danger'; ?>">
-                                                            <?php echo ($estado == 1) ? 'Activo' : 'Inactivo'; ?>
-                                                        </span>
+                                                    <td>
+                                                        <center>
+                                                            <?php if ($estado == 1) { ?>
+                                                                <span class="badge badge-success badge_size">ACTIVO</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge badge-danger badge_size">INACTIVO</span>
+                                                            <?php } ?>
+                                                        </center>
                                                     </td>
                                                     <td class="text-center">
                                                         <?php if (verificarPermisoEspecifico('editar_centro de costo')): ?>

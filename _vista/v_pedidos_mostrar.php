@@ -92,26 +92,28 @@
                                                     <td><?php echo date('d/m/Y H:i', strtotime($pedido['fec_pedido'])); ?></td>
                                                     <td><?php echo date('d/m/Y', strtotime($pedido['fec_req_pedido'])); ?></td>
                                                     <td>
-                                                        <?php 
-                                                        // Verificar si este pedido está en la lista de rechazados
-                                                        $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
-                                                        
-                                                        // ESTADOS CORREGIDOS - Tu versión original estaba bien
-                                                        if ($pedido['est_pedido'] == 0) { ?>
-                                                            <span class="badge badge-danger badge_size">Anulado</span>
-                                                        <?php } elseif ($pedido['est_pedido'] == 1) { ?>
-                                                            <span class="badge badge-warning badge_size">Pendiente</span>
-                                                        <?php } elseif ($pedido['est_pedido'] == 2) { ?>
-                                                            <span class="badge badge-info badge_size">Completado</span>
-                                                        <?php } elseif ($pedido['est_pedido'] == 3) { ?>
-                                                            <span class="badge badge-primary badge_size">Aprobado</span>
-                                                        <?php } elseif ($pedido['est_pedido'] == 4) { ?>
-                                                            <span class="badge badge-success badge_size">Ingresado</span>
-                                                        <?php } elseif ($pedido['est_pedido'] == 5) { ?>
-                                                            <span class="badge badge-dark badge_size">Finalizado</span>
-                                                        <?php } else { ?>
-                                                            <span class="badge badge-secondary badge_size">Desconocido</span>
-                                                        <?php } ?>
+                                                        <center>
+                                                            <?php 
+                                                            // Verificar si este pedido está en la lista de rechazados
+                                                            $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
+
+                                                            // ESTADOS CORREGIDOS - Tu versión original estaba bien
+                                                            if ($pedido['est_pedido'] == 0) { ?>
+                                                                <span class="badge badge-danger badge_size">ANULADO</span>
+                                                            <?php } elseif ($pedido['est_pedido'] == 1) { ?>
+                                                                <span class="badge badge-warning badge_size">PENDIENTE</span>
+                                                            <?php } elseif ($pedido['est_pedido'] == 2) { ?>
+                                                                <span class="badge badge-info badge_size">COMPLETADO</span>
+                                                            <?php } elseif ($pedido['est_pedido'] == 3) { ?>
+                                                                <span class="badge badge-primary badge_size">APROBADO</span>
+                                                            <?php } elseif ($pedido['est_pedido'] == 4) { ?>
+                                                                <span class="badge badge-success badge_size">INGRESADO</span>
+                                                            <?php } elseif ($pedido['est_pedido'] == 5) { ?>
+                                                                <span class="badge badge-dark badge_size">FINALIZADO</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge badge-secondary badge_size">DESCONOCIDO</span>
+                                                            <?php } ?>
+                                                        </center>
                                                     </td>
 <td>
     <div class="d-flex flex-wrap gap-2">

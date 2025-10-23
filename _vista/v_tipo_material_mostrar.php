@@ -51,7 +51,15 @@
                                                 <tr>
                                                     <td><?php echo $c; ?></td>
                                                     <td><?php echo $nom_material_tipo; ?></td>
-                                                    <td><?php echo $estado; ?></td>
+                                                    <td>
+                                                        <center>
+                                                            <?php if ($est_material_tipo == 1) { ?>
+                                                                <span class="badge badge-success badge_size">ACTIVO</span>
+                                                            <?php } else { ?>
+                                                                <span class="badge badge-danger badge_size">INACTIVO</span>
+                                                            <?php } ?>
+                                                        </center>
+                                                    </td>
                                                     <td>
                                                         <center><a class="btn btn-warning" href="tipo_material_editar.php?id_material_tipo=<?php echo $id_material_tipo; ?>"><i class="fa fa-edit"></i></a></center>
                                                     </td>

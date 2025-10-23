@@ -176,3 +176,124 @@ $(document).ready(function () {
 });
 </script>
 
+<!-- Proveedor (Dashboard) -->
+<script>
+$(document).ready(function () {
+  const $provDash = $('#proveedor');
+  if ($provDash.length) {
+    $provDash.select2({
+      placeholder: 'Todos',
+      allowClear: true,       
+      width: '100%',
+      minimumInputLength: 0,
+      language: {
+        noResults: function () { return 'No se encontraron resultados'; },
+        searching: function () { return 'Buscando...'; }
+      }
+    });
+  }
+});
+</script>
+
+<!-- Almacén y Ubicación (Uso de Material) -->
+<script>
+$(document).ready(function () {
+  function initSelect2($el, placeholder) {
+    if ($el.length) {
+      $el.select2({
+        placeholder: placeholder,
+        allowClear: true,      
+        width: '100%',
+        minimumInputLength: 0,
+        language: {
+          noResults: function () { return 'No se encontraron resultados'; },
+          searching: function () { return 'Buscando...'; }
+        }
+      });
+    }
+  }
+
+  // Usamos los name actuales para NO modificar la vista
+  initSelect2($('select[name="id_almacen"]'),  'Seleccionar almacén...');
+  initSelect2($('select[name="id_ubicacion"]'), 'Seleccionar ubicación...');
+});
+</script>
+
+<!-- v_pedidos_nuevo: Tipo de pedido, Almacén y Unidad de Medida -->
+<script>
+$(document).ready(function () {
+  function initSelect2($el, placeholder) {
+    if ($el.length) {
+      $el.select2({
+        placeholder: placeholder,
+        allowClear: true,   
+        width: '100%',
+        minimumInputLength: 0,
+        language: {
+          noResults: function () { return 'No se encontraron resultados'; },
+          searching: function () { return 'Buscando...'; }
+        }
+      });
+    }
+  }
+
+  // Fijos
+  initSelect2($('select[name="tipo_pedido"]'), 'Seleccionar tipo de pedido...');
+  initSelect2($('select[name="id_obra"]'), 'Seleccionar almacén...');
+
+  // Unidad de Medida 
+  function initUnidadMedida($scope) {
+    $scope.find('select[name="unidad[]"]').each(function () {
+      if (!$(this).data('select2')) {
+        initSelect2($(this), 'Seleccionar unidad de medida...');
+      }
+    });
+  }
+
+  // Inicial existentes
+  initUnidadMedida($(document));
+
+  // Inicial las nuevas cuando se agrega material
+  $(document).on('click', '#agregar-material', function () {
+    setTimeout(function () {
+      const $nuevoItem = $('#contenedor-materiales .material-item').last();
+      initUnidadMedida($nuevoItem);
+    }, 0);
+  });
+});
+</script>
+
+<!--  (v_salidas_nuevo): Tipo de material + Origen/Destino -->
+<script>
+$(document).ready(function () {
+  function initSelect2($el, placeholder) {
+    if ($el.length) {
+      $el.select2({
+        placeholder: placeholder,
+        allowClear: true,
+        width: '100%',
+        minimumInputLength: 0,
+        language: {
+          noResults: function () { return 'No se encontraron resultados'; },
+          searching: function () { return 'Buscando...'; }
+        }
+      });
+    }
+  }
+
+  // Tipo de material (no tiene id en el HTML, se usa selector por name)
+  initSelect2($('select[name="id_material_tipo"]'), 'Seleccionar tipo de material...');
+
+  // Origen
+  initSelect2($('#id_almacen_origen'),   'Seleccionar almacén origen...');
+  initSelect2($('#id_ubicacion_origen'), 'Seleccionar ubicación origen...');
+
+  // Destino
+  initSelect2($('#id_almacen_destino'),   'Seleccionar almacén destino...');
+  initSelect2($('#id_ubicacion_destino'), 'Seleccionar ubicación destino...');
+});
+</script>
+
+
+
+
