@@ -464,7 +464,7 @@ if ($id_pedido > 0) {
                 $id_ubicacion = intval($pedido_data[0]['id_ubicacion']);
 
                 // Llamamos a una función en el modelo (m_pedidos.php)
-                $stock = ObtenerStockProducto($detalle['id_producto'], $pedido['id_almacen'], $pedido['id_ubicacion']);
+                $stock = ObtenerStockProducto($detalle['id_producto'], $pedido['id_almacen'], $pedido['id_ubicacion'], $id_pedido);
                 $detalle['cantidad_disponible_almacen'] = $stock['stock_fisico'];    // lo que muestras como "/Almacén"
                 $detalle['cantidad_disponible_real']   = $stock['stock_disponible']; // disponible real (físico - reservado)
             }

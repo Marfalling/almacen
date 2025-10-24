@@ -280,6 +280,7 @@ foreach ($pedido_detalle as $detalle) {
                 data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
                 data-cantidad-actual="<?php echo $detalle['cant_pedido_detalle']; ?>"
                 data-cantidad-almacen="<?php echo $detalle['cantidad_disponible_almacen']; ?>"
+                data-cantidad-disponible="<?php echo $detalle['cantidad_disponible_real']; ?>"
                 title="Verificar Item" style="padding: 2px 8px; font-size: 11px;">
             Verificar
         </button>
@@ -2036,8 +2037,9 @@ document.addEventListener('click', function(event) {
             btn.addEventListener('click', function() {
                 const idDetalle = this.getAttribute('data-id-detalle');
                 const cantidadActual = this.getAttribute('data-cantidad-actual');
-                const cantidadAlmacen = parseFloat(this.getAttribute('data-cantidad-almacen'));
-                const diferencia = cantidadActual - cantidadAlmacen;
+                //const cantidadAlmacen = parseFloat(this.getAttribute('data-cantidad-almacen'));
+                const cantidadDisponible = parseFloat(this.getAttribute('data-cantidad-disponible'));
+                const diferencia = cantidadActual - cantidadDisponible;
                 document.getElementById('id_pedido_detalle_input').value = idDetalle;
                 document.getElementById('fin_cant_pedido_detalle').value = diferencia;
                 $('#verificarModal').modal('show');

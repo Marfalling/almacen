@@ -1765,7 +1765,7 @@ function ObtenerTipoMaterialProducto($id_producto)
  *  ]
  */
 //-----------------------------------------------------------------------
-function ObtenerStockProducto($id_producto, $id_almacen = null, $id_ubicacion = null) {
+function ObtenerStockProducto($id_producto, $id_almacen = null, $id_ubicacion = null, $id_pedido_excluir = null) {
     include("../_conexion/conexion.php");
 
     $id_producto = intval($id_producto);
@@ -1797,12 +1797,17 @@ function ObtenerStockProducto($id_producto, $id_almacen = null, $id_ubicacion = 
     $stock_fisico = $row ? floatval($row['stock_fisico']) : 0.0;
 
     // 2) Stock reservado (compromisos): tipo_orden = 5, tipo_movimiento = 2, est_movimiento = 1
+    $whereReservado = "$whereBase AND tipo_orden = 5 AND tipo_movimiento = 2 AND est_movimiento = 1";
+
+     // 👇 Excluir compromisos del pedido actual (si se pasa el ID)
+    if (!is_null($id_pedido_excluir)) {
+        $id_pedido_excluir = intval($id_pedido_excluir);
+        $whereReservado .= " AND id_orden <> $id_pedido_excluir";
+    }
+
     $sql_reservado = "SELECT COALESCE(SUM(cant_movimiento),0) AS stock_reservado
                       FROM movimiento
-                      WHERE $whereBase
-                        AND tipo_orden = 5
-                        AND tipo_movimiento = 2
-                        AND est_movimiento = 1";
+                      WHERE $whereReservado";
 
     $res2 = mysqli_query($con, $sql_reservado);
     $row2 = $res2 ? mysqli_fetch_assoc($res2) : null;
