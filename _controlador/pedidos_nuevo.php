@@ -57,14 +57,14 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                 mkdir("../_archivos/pedidos/", 0777, true);
             }
             //=======================================================================
-            // CONTROLADOR CORREGIDO
+            // CONTROLADOR CORREGIDO CON CENTROS DE COSTO MULTIPLES
             //=======================================================================
             if (isset($_REQUEST['registrar'])) {
                 // Recibir datos del formulario
-                $id_producto_tipo = intval($_REQUEST['tipo_pedido']); // El select envía el ID
-                $id_almacen = intval($_REQUEST['id_obra']); // El select envía el ID del almacén
-                $id_ubicacion = intval($_REQUEST['id_ubicacion']); // Recibir ubicación
-                $id_centro_costo = intval($_REQUEST['id_centro_costo']); // NUEVO CAMPO: Centro de Costo
+                $id_producto_tipo = intval($_REQUEST['tipo_pedido']);
+                $id_almacen = intval($_REQUEST['id_obra']);
+                $id_ubicacion = intval($_REQUEST['id_ubicacion']);
+                $id_centro_costo = intval($_REQUEST['id_centro_costo']); // Centro de costo de cabecera
                 $nom_pedido = strtoupper($_REQUEST['nom_pedido']);
                 $solicitante = strtoupper($_REQUEST['solicitante']);
                 $fecha_necesidad = $_REQUEST['fecha_necesidad'];
@@ -73,13 +73,50 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                 $lugar_entrega = strtoupper($_REQUEST['lugar_entrega']);
                 $aclaraciones = strtoupper($_REQUEST['aclaraciones']);
                 
-                // Procesar materiales - CORREGIDO: SST como campo único
+                //  Procesar materiales con centros de costo multiples independientes
                 $materiales = array();
+                $errores_validacion = array();
+                
                 if (isset($_REQUEST['descripcion']) && is_array($_REQUEST['descripcion'])) {
                     for ($i = 0; $i < count($_REQUEST['descripcion']); $i++) {
                         
                         $sst_descripcion = trim($_REQUEST['sst'][$i]);
                         $ot_detalle = isset($_REQUEST['ot_detalle'][$i]) ? trim($_REQUEST['ot_detalle'][$i]) : '';
+                        
+                        //  Procesar centros de costo múltiples para este material
+                        $centros_costo_material = array();
+                        
+                        // Select2 múltiple envía los datos de diferentes formas según el navegador
+                        if (isset($_REQUEST['centros_costo'])) {
+                            // Puede venir como array si es PHP >= 7.4 o como string separado por comas
+                            if (is_array($_REQUEST['centros_costo'])) {
+                                // Si viene como array directo
+                                if (isset($_REQUEST['centros_costo'][$i])) {
+                                    $centros_value = $_REQUEST['centros_costo'][$i];
+                                    
+                                    if (is_array($centros_value)) {
+                                        // Ya es array
+                                        $centros_costo_material = $centros_value;
+                                    } else if (is_string($centros_value) && !empty($centros_value)) {
+                                        // String separado por comas
+                                        $centros_costo_material = explode(',', $centros_value);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Limpiar y validar IDs
+                        $centros_costo_material = array_map('intval', $centros_costo_material);
+                        $centros_costo_material = array_filter($centros_costo_material, function($id) {
+                            return $id > 0;
+                        });
+                        $centros_costo_material = array_unique($centros_costo_material);
+                        
+                        //  Validación: Cada material DEBE tener al menos un centro de costo
+                        if (empty($centros_costo_material)) {
+                            $descripcion_corta = substr($_REQUEST['descripcion'][$i], 0, 50);
+                            $errores_validacion[] = "Material " . ($i + 1) . " ({$descripcion_corta}): Debe seleccionar al menos un centro de costo";
+                        }
 
                         $materiales[] = array(
                             'id_producto' => $_REQUEST['id_material'][$i],
@@ -87,10 +124,22 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                             'cantidad' => $_REQUEST['cantidad'][$i],
                             'unidad' => $_REQUEST['unidad'][$i],
                             'observaciones' => $_REQUEST['observaciones'][$i],
-                            'sst_descripcion' => $sst_descripcion,  // Campo de texto libre
-                            'ot_detalle' => $ot_detalle
+                            'sst_descripcion' => $sst_descripcion,
+                            'ot_detalle' => $ot_detalle,
+                            'centros_costo' => $centros_costo_material  // 🔴 Array de IDs
                         );
                     }
+                }
+                
+                if (!empty($errores_validacion)) {
+                    $mensaje_error = "Errores en el formulario:\\n\\n" . implode("\\n", $errores_validacion);
+                    ?>
+                    <script Language="JavaScript">
+                        alert('<?php echo addslashes($mensaje_error); ?>');
+                        history.back();
+                    </script>
+                    <?php
+                    exit;
                 }
 
                 // Procesar archivos
@@ -102,8 +151,8 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                     }
                 }
 
-                // LLAMADA CORREGIDA con los parámetros correctos, incluyendo centro de costo
-                $rpta = GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo, // NUEVO PARÁMETRO
+                // LLAMADA a GrabarPedido con centros de costo
+                $rpta = GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo,
                                 $nom_pedido, $solicitante, $fecha_necesidad, $num_ot, 
                                 $contacto, $lugar_entrega, $aclaraciones, $id, 
                                 $materiales, $archivos_subidos);
@@ -117,12 +166,13 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                 } else {
                 ?>
                     <script Language="JavaScript">
-                        alert('Error al registrar el pedido: <?php echo $rpta; ?>');
+                        alert('Error al registrar el pedido: <?php echo addslashes($rpta); ?>');
                         location.href = 'pedidos_mostrar.php?error=true';
                     </script>
             <?php
                 }
             }
+
             //-------------------------------------------
 
             

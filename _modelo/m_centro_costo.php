@@ -136,3 +136,28 @@ function ObtenerNombreCentroCosto($id_centro_costo)
     mysqli_close($con);
     return 'N/A';
 }
+
+//-----------------------------------------------------------------------
+// Obtener centros de costo por detalle
+function ObtenerCentrosCostoPorDetalle($id_pedido_detalle)
+{
+    include("../_conexion/conexion.php");
+    
+    $id_pedido_detalle = intval($id_pedido_detalle);
+    $centros = array();
+    
+    $sql = "SELECT cc.id_centro_costo 
+            FROM pedido_detalle_centro_costo cc
+            WHERE cc.id_pedido_detalle = $id_pedido_detalle";
+    
+    $resultado = mysqli_query($con, $sql);
+    
+    if ($resultado) {
+        while ($row = mysqli_fetch_assoc($resultado)) {
+            $centros[] = $row['id_centro_costo'];
+        }
+    }
+    
+    mysqli_close($con);
+    return $centros;
+}

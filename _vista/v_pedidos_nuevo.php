@@ -177,6 +177,24 @@
                                             <input name="observaciones[]" class="form-control" placeholder="Observaciones o comentarios">
                                         </div>
                                     </div>
+
+                                    <!-- NUEVA FILA PARA CENTROS DE COSTO MÚLTIPLES -->
+
+                                    <div class="row mt-2">
+                                        <div class="col-md-12">
+                                            <label>Centros de Costo para este Material <span class="text-danger">*</span>:</label>
+                                            <select name="centros_costo[0][]" class="form-control select2-centros-costo-detalle" multiple required>
+                                                <?php foreach ($centros_costo as $centro) { ?>
+                                                    <option value="<?php echo $centro['id_centro_costo']; ?>">
+                                                        <?php echo $centro['nom_centro_costo']; ?>
+                                                    </option>
+                                                <?php } ?>
+                                            </select>
+                                            <small class="form-text text-muted">
+                                                <i class="fa fa-info-circle"></i> Seleccione uno o más centros de costo específicos para este material.
+                                            </small>
+                                        </div>
+                                    </div>
                                     
                                     <div class="row mt-2">
                                         <div class="col-md-6">
@@ -607,10 +625,15 @@ function seleccionarProducto(idProducto, nombreProducto, idUnidad, nombreUnidad)
                 inputIdMaterial.value = idProducto;
             }
             
-            // Actualizar el select de unidad de medida
+            // Actualizar el select de unidad de medida 
             let selectUnidad = materialItem.querySelector('select[name="unidad[]"]');
             if (selectUnidad) {
-                selectUnidad.value = idUnidad;
+                
+                if ($(selectUnidad).data('select2')) {
+                    $(selectUnidad).val(idUnidad).trigger('change');
+                } else {
+                    selectUnidad.value = idUnidad;
+                }
             }
         }
     }
@@ -681,18 +704,15 @@ document.addEventListener('DOMContentLoaded', function() {
         formularioModificado = true;
     }
     
-    // Función para agregar eventos a campos específicos (excluye botones y selects específicos)
+    // Función para agregar eventos a campos específicos
     function agregarEventosACampos() {
         const campos = document.querySelectorAll('input:not([type="button"]):not([type="submit"]):not([type="reset"]), textarea, select');
         
         campos.forEach(campo => {
-            // Solo agregar eventos a campos que NO sean el tipo de pedido
             if (campo.name !== 'tipo_pedido') {
-                // Remover eventos anteriores para evitar duplicados
                 campo.removeEventListener('change', marcarFormularioComoModificado);
                 campo.removeEventListener('input', marcarFormularioComoModificado);
                 
-                // Agregar eventos nuevamente
                 campo.addEventListener('change', marcarFormularioComoModificado);
                 campo.addEventListener('input', marcarFormularioComoModificado);
             }
@@ -701,10 +721,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Función para limpiar todo el formulario
     function limpiarFormularioCompleto() {
-        // Limpiar campos básicos
         const camposALimpiar = [
             'select[name="id_obra"]',
-            'select[name="id_ubicacion"]', 
+            'select[name="id_ubicacion"]',
+            'select[name="id_centro_costo"]',
             'input[name="nom_pedido"]',
             'input[name="fecha_necesidad"]',
             'input[name="num_ot"]',
@@ -716,41 +736,52 @@ document.addEventListener('DOMContentLoaded', function() {
         camposALimpiar.forEach(selector => {
             const elemento = document.querySelector(selector);
             if (elemento) {
-                elemento.value = '';
+                if ($(elemento).data('select2')) {
+                    $(elemento).val(null).trigger('change');
+                } else {
+                    elemento.value = '';
+                }
             }
         });
         
-        // Limpiar sección de materiales - mantener solo el primer item y limpiarlo
+        // Limpiar sección de materiales
         const contenedorMateriales = document.getElementById('contenedor-materiales');
         const materialesItems = contenedorMateriales.querySelectorAll('.material-item');
         
-        // Eliminar todos los items adicionales, mantener solo el primero
+        // Eliminar todos los items adicionales
         for (let i = 1; i < materialesItems.length; i++) {
             materialesItems[i].remove();
         }
         
-        // Limpiar el primer item de material
+        // Limpiar el primer item
         const primerMaterial = contenedorMateriales.querySelector('.material-item');
         if (primerMaterial) {
-            const inputs = primerMaterial.querySelectorAll('input, textarea, select');
+            const inputs = primerMaterial.querySelectorAll('input, textarea');
             inputs.forEach(input => {
                 if (input.name !== 'tipo_pedido') {
                     input.value = '';
                 }
             });
             
-            // Ocultar el botón eliminar del primer item
+            // Limpiar selects con Select2
+            const selects = primerMaterial.querySelectorAll('select');
+            selects.forEach(select => {
+                if ($(select).data('select2')) {
+                    $(select).val(null).trigger('change');
+                } else {
+                    select.selectedIndex = 0;
+                }
+            });
+            
             const btnEliminar = primerMaterial.querySelector('.eliminar-material');
             if (btnEliminar) {
                 btnEliminar.style.display = 'none';
             }
         }
         
-        // Reiniciar contadores y estado
         contadorMateriales = 1;
         formularioModificado = false;
         
-        // Actualizar eventos
         actualizarEventosEliminar();
         agregarEventosACampos();
     }
@@ -760,16 +791,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Evento para el select tipo de pedido
     if (selectTipoProducto) {
-        selectTipoProducto.addEventListener('focus', function() {
-            valorInicialTipoPedido = this.value;
+        $(selectTipoProducto).on('select2:opening', function() {
+            valorInicialTipoPedido = $(this).val();
         });
         
-        selectTipoProducto.addEventListener('change', function() {
-            const valorActual = this.value;
+        $(selectTipoProducto).on('select2:select', function(e) {
+            const valorActual = $(this).val();
             
-            // Si el formulario ha sido modificado y se está cambiando el tipo de pedido
             if (formularioModificado && valorInicialTipoPedido !== valorActual) {
-                // Verificar si SweetAlert está disponible
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
                         title: '¿Estás seguro?',
@@ -792,7 +821,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 showConfirmButton: false
                             });
                         } else {
-                            this.value = valorInicialTipoPedido;
+                            $(selectTipoProducto).val(valorInicialTipoPedido).trigger('change');
                         }
                     });
                 } else {
@@ -800,7 +829,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         limpiarFormularioCompleto();
                         alert('Formulario limpiado');
                     } else {
-                        this.value = valorInicialTipoPedido;
+                        $(selectTipoProducto).val(valorInicialTipoPedido).trigger('change');
                     }
                 }
             } else {
@@ -809,77 +838,141 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // FUNCIONALIDAD PRINCIPAL: Agregar nuevo material
+    // FUNCIONALIDAD: Agregar nuevo material - CENTROS DE COSTO INDEPENDIENTES
     const btnAgregarMaterial = document.getElementById('agregar-material');
     if (btnAgregarMaterial) {
         btnAgregarMaterial.addEventListener('click', function(e) {
-            e.preventDefault(); // Prevenir comportamiento por defecto
+            e.preventDefault();
             
             const contenedor = document.getElementById('contenedor-materiales');
             const materialOriginal = contenedor.querySelector('.material-item');
             
             if (materialOriginal) {
-                // Clonar el elemento original
+                // Destruir Select2 antes de clonar
+                const selectsOriginales = materialOriginal.querySelectorAll('select[name="unidad[]"], select.select2-centros-costo-detalle');
+                selectsOriginales.forEach(select => {
+                    if ($(select).data('select2')) {
+                        $(select).select2('destroy');
+                    }
+                });
+                
+                // Clonar el elemento
                 const nuevoMaterial = materialOriginal.cloneNode(true);
                 
-                // Limpiar todos los valores del nuevo elemento
-                const inputs = nuevoMaterial.querySelectorAll('input, textarea, select');
+                // Reinicializar Select2 en el original
+                selectsOriginales.forEach(select => {
+                    if (select.name === 'unidad[]') {
+                        $(select).select2({
+                            placeholder: 'Seleccionar unidad de medida...',
+                            allowClear: true,
+                            width: '100%',
+                            language: {
+                                noResults: function () { return 'No se encontraron resultados'; }
+                            }
+                        });
+                    } else if ($(select).hasClass('select2-centros-costo-detalle')) {
+                        $(select).select2({
+                            placeholder: 'Seleccionar uno o más centros de costo...',
+                            allowClear: true,
+                            width: '100%',
+                            multiple: true,
+                            language: {
+                                noResults: function () { return 'No se encontraron resultados'; }
+                            }
+                        });
+                    }
+                });
+                
+                // Limpiar valores del clon
+                const inputs = nuevoMaterial.querySelectorAll('input, textarea');
                 inputs.forEach(input => {
                     if (input.type === 'file') {
-                        // Para inputs de archivo, limpiar el valor y actualizar el name
                         input.value = '';
                         input.name = `archivos_${contadorMateriales}[]`;
                     } else if (input.type === 'hidden') {
-                        input.value = '';
-                    } else if (input.tagName.toLowerCase() === 'select') {
-                        input.selectedIndex = 0; // Seleccionar la primera opción (vacía)
-                    } else if (input.name === 'ot_detalle[]') {
-                        // Limpiar campo OT también
                         input.value = '';
                     } else {
                         input.value = '';
                     }
                 });
                 
-                // Mostrar el botón eliminar en el nuevo elemento
+                // Limpiar y configurar selects del clon
+                const selectsClonados = nuevoMaterial.querySelectorAll('select');
+                selectsClonados.forEach(select => {
+                    // Actualizar el name del select de centros de costo con el índice correcto
+                    if ($(select).hasClass('select2-centros-costo-detalle')) {
+                        select.name = `centros_costo[${contadorMateriales}][]`;
+                    }
+                    
+                    // Remover clases de Select2
+                    $(select).removeClass('select2-hidden-accessible');
+                    const select2Container = select.nextElementSibling;
+                    if (select2Container && select2Container.classList.contains('select2')) {
+                        select2Container.remove();
+                    }
+                    
+                    // Limpiar todas las opciones seleccionadas
+                    Array.from(select.options).forEach(option => {
+                        option.selected = false;
+                    });
+                    select.selectedIndex = -1; // No hay opción seleccionada
+                });
+                
+                // Mostrar botón eliminar
                 const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
                 if (btnEliminar) {
                     btnEliminar.style.display = 'block';
                 }
                 
-                // Agregar el nuevo elemento al contenedor
+                // Agregar al contenedor
                 contenedor.appendChild(nuevoMaterial);
-                contadorMateriales++;
                 
-                // Actualizar eventos
+                // Inicializar Select2 en el nuevo elemento (VACÍOS, sin preselección)
+                const selectsNuevos = nuevoMaterial.querySelectorAll('select');
+                selectsNuevos.forEach(select => {
+                    if (select.name === 'unidad[]') {
+                        $(select).select2({
+                            placeholder: 'Seleccionar unidad de medida...',
+                            allowClear: true,
+                            width: '100%',
+                            language: {
+                                noResults: function () { return 'No se encontraron resultados'; }
+                            }
+                        });
+                    } else if ($(select).hasClass('select2-centros-costo-detalle')) {
+                        // Inicializar VACÍO, sin valores preseleccionados
+                        $(select).select2({
+                            placeholder: 'Seleccionar uno o más centros de costo...',
+                            allowClear: true,
+                            width: '100%',
+                            multiple: true,
+                            language: {
+                                noResults: function () { return 'No se encontraron resultados'; }
+                            }
+                        });
+                    }
+                });
+                
+                contadorMateriales++;
                 actualizarEventosEliminar();
                 agregarEventosACampos();
-                
-                // Marcar como modificado
                 formularioModificado = true;
                 
-                // Scroll suave hacia el nuevo elemento agregado
-                nuevoMaterial.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'nearest' 
-                });
+                nuevoMaterial.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         });
     }
     
     // Función para actualizar eventos de eliminar
     function actualizarEventosEliminar() {
-        // Remover todos los event listeners anteriores y agregar nuevos
         const botonesEliminar = document.querySelectorAll('.eliminar-material');
         
         botonesEliminar.forEach(btn => {
-            // Crear una nueva función para cada botón para evitar conflicts
             btn.onclick = function(e) {
                 e.preventDefault();
                 const materialesItems = document.querySelectorAll('.material-item');
                 
                 if (materialesItems.length > 1) {
-                    // Confirmar eliminación
                     if (typeof Swal !== 'undefined') {
                         Swal.fire({
                             title: '¿Eliminar material?',
@@ -892,13 +985,29 @@ document.addEventListener('DOMContentLoaded', function() {
                             cancelButtonText: 'Cancelar'
                         }).then((result) => {
                             if (result.isConfirmed) {
-                                this.closest('.material-item').remove();
+                                const itemAEliminar = this.closest('.material-item');
+                                $(itemAEliminar).find('select').each(function() {
+                                    if ($(this).data('select2')) {
+                                        $(this).select2('destroy');
+                                    }
+                                });
+                                itemAEliminar.remove();
+                                // Reindexar después de eliminar
+                                reindexarCentrosCosto();
                                 formularioModificado = true;
                             }
                         });
                     } else {
                         if (confirm('¿Eliminar este material?')) {
-                            this.closest('.material-item').remove();
+                            const itemAEliminar = this.closest('.material-item');
+                            $(itemAEliminar).find('select').each(function() {
+                                if ($(this).data('select2')) {
+                                    $(this).select2('destroy');
+                                }
+                            });
+                            itemAEliminar.remove();
+                            // Reindexar después de eliminar
+                            reindexarCentrosCosto();
                             formularioModificado = true;
                         }
                     }
@@ -917,7 +1026,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Inicializar eventos de eliminar
+    // Reindexar los names de centros de costo después de eliminar
+    function reindexarCentrosCosto() {
+        const materiales = document.querySelectorAll('.material-item');
+        materiales.forEach((material, index) => {
+            const selectCentros = material.querySelector('select.select2-centros-costo-detalle');
+            if (selectCentros) {
+                selectCentros.name = `centros_costo[${index}][]`;
+            }
+        });
+    }
+    
     actualizarEventosEliminar();
     
     // Interceptar el botón reset del formulario
@@ -1025,10 +1144,15 @@ function seleccionarProductoCreado(producto) {
                 inputIdMaterial.value = producto.id_producto;
             }
             
-            // Actualizar el select de unidad de medida
+            // Actualizar el select de unidad de medida - CORREGIDO PARA SELECT2
             let selectUnidad = materialItem.querySelector('select[name="unidad[]"]');
             if (selectUnidad) {
-                selectUnidad.value = producto.id_unidad_medida;
+                // Si es Select2, usar su API
+                if ($(selectUnidad).data('select2')) {
+                    $(selectUnidad).val(producto.id_unidad_medida).trigger('change');
+                } else {
+                    selectUnidad.value = producto.id_unidad_medida;
+                }
             }
         }
     }

@@ -263,6 +263,42 @@ $(document).ready(function () {
 });
 </script>
 
+<!-- Centros de Costo Múltiples en Detalle de Pedidos - INDEPENDIENTES -->
+<script>
+$(document).ready(function () {
+  // Función única para inicializar Select2 múltiple en centros de costo del detalle
+  function initCentrosCostoDetalle($scope) {
+    $scope.find('select.select2-centros-costo-detalle').each(function () {
+      if (!$(this).data('select2')) {
+        $(this).select2({
+          placeholder: 'Seleccionar uno o más centros de costo...',
+          allowClear: true,   
+          width: '100%',
+          minimumInputLength: 0,
+          language: {
+            noResults: function () { return 'No se encontraron resultados'; },
+            searching: function () { return 'Buscando...'; }
+          }
+        });
+      }
+    });
+  }
+
+  // Inicializar centros de costo en los materiales existentes al cargar la página
+  initCentrosCostoDetalle($(document));
+
+  // Al agregar nuevo material - SIN preselección automática
+  $(document).on('click', '#agregar-material', function () {
+    setTimeout(function () {
+      const $nuevoItem = $('#contenedor-materiales .material-item').last();
+      
+      // Inicializar Select2 en el nuevo item (VACÍO, sin preselección)
+      initCentrosCostoDetalle($nuevoItem);
+    }, 100);
+  });
+});
+</script>
+
 <!--  (v_salidas_nuevo): Tipo de material + Origen/Destino -->
 <script>
 $(document).ready(function () {

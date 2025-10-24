@@ -8,6 +8,7 @@
 
 //-----------------------------------------------------------------------
 // Grabar Pedido (ahora acepta opcionalmente $id_obra) (debe iniciar con estado 1, no 5)
+// Grabar Pedido con centros de costo múltiples por detalle
 function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo, 
                      $nom_pedido, $solicitante, $fecha_necesidad, 
                      $num_ot, $contacto, $lugar_entrega, $aclaraciones, $id_personal, 
@@ -46,6 +47,7 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
             $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
             $sst_descripcion = mysqli_real_escape_string($con, $material['sst_descripcion']); 
             $ot_detalle = mysqli_real_escape_string($con, $material['ot_detalle']);
+            $centros_costo = isset($material['centros_costo']) ? $material['centros_costo'] : array(); // 🔴 NUEVO
             
             // Obtener el nombre de la unidad por su ID
             $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
@@ -69,14 +71,27 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
             if (mysqli_query($con, $sql_detalle)) {
                 $id_detalle = mysqli_insert_id($con);
 
-                // ----------------------------------------------------------------
-                // 🔍 Verificar stock y registrar reserva si hay disponible
-                // ----------------------------------------------------------------
+                //  Guardar centros de costo para este detalle
+                if (!empty($centros_costo) && is_array($centros_costo)) {
+                    foreach ($centros_costo as $id_centro) {
+                        $id_centro = intval($id_centro);
+                        if ($id_centro > 0) {
+                            $sql_cc = "INSERT INTO pedido_detalle_centro_costo 
+                                      (id_pedido_detalle, id_centro_costo) 
+                                      VALUES ($id_detalle, $id_centro)";
+                            
+                            if (!mysqli_query($con, $sql_cc)) {
+                                error_log("Error al insertar centro de costo: " . mysqli_error($con));
+                            }
+                        }
+                    }
+                }
+
+                // Verificar stock y registrar reserva si hay disponible
                 $stock = ObtenerStock($id_producto, $id_almacen, $id_ubicacion);
                 $stock_disponible = floatval($stock['disponible']);
 
                 if ($stock_disponible > 0) {
-                    // Si hay stock total o parcial
                     $cantidad_a_reservar = min($cantidad, $stock_disponible);
 
                     $sql_insert_mov = "INSERT INTO movimiento (
@@ -425,6 +440,7 @@ function ConsultarPedidoDetalle($id_pedido)
     return $resultado;
 }
 //-----------------------------------------------------------------------
+// Actualizar Pedido con centros de costo múltiples - FUNCIÓN ACTUALIZADA
 function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedido, $fecha_necesidad, $num_ot, 
                          $contacto, $lugar_entrega, $aclaraciones, $materiales, $archivos_subidos, $id_obra = null) 
 {
@@ -432,7 +448,7 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
 
     $id_obra_sql = ($id_obra && $id_obra > 0) ? intval($id_obra) : "NULL";
 
-    // Actualizar pedido principal - AHORA INCLUYE id_ubicacion, id_centro_costo e id_obra
+    // Actualizar pedido principal
     $sql = "UPDATE pedido SET 
             id_ubicacion = $id_ubicacion,
             id_centro_costo = $id_centro_costo,
@@ -459,16 +475,17 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
         // Array para trackear qué detalles se están usando
         $detalles_utilizados = array();
         
-        // Procesar cada material - CORREGIDO: SST como campo único
+        // Procesar cada material
         foreach ($materiales as $index => $material) {
             $id_producto = intval($material['id_producto']);
             $descripcion = mysqli_real_escape_string($con, $material['descripcion']);
             $cantidad = floatval($material['cantidad']);
             $id_unidad = intval($material['unidad']);
             $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
-            $sst_descripcion = mysqli_real_escape_string($con, $material['sst_descripcion']); // CAMBIO: campo único
+            $sst_descripcion = mysqli_real_escape_string($con, $material['sst_descripcion']);
             $id_detalle = isset($material['id_detalle']) ? intval($material['id_detalle']) : 0;
             $ot_detalle = mysqli_real_escape_string($con, $material['ot_detalle']);
+            $centros_costo = isset($material['centros_costo']) ? $material['centros_costo'] : array(); // 🔴 NUEVO
 
             // OBTENER EL NOMBRE DE LA UNIDAD
             $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
@@ -476,7 +493,6 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
             $unidad_data = $resultado_unidad ? mysqli_fetch_assoc($resultado_unidad) : null;
             $nombre_unidad = $unidad_data ? $unidad_data['nom_unidad_medida'] : '';
             
-            // CAMBIO: req_pedido ahora almacena directamente la descripción SST/MA/CA
             $requisitos = $sst_descripcion;
             $comentario_detalle = "Unidad: $nombre_unidad | Unidad ID: $id_unidad | Obs: $observaciones";
             
@@ -495,15 +511,34 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
                 if (mysqli_query($con, $sql_detalle)) {
                     $id_detalle_actual = $id_detalle;
                     $detalles_utilizados[] = $id_detalle;
-                } else {
-                    // en caso de error, continuar para no interrumpir la edición masiva
-                    $id_detalle_actual = $id_detalle;
+
+                    // Actualizar centros de costo para este detalle
+                    if (!empty($centros_costo) && is_array($centros_costo)) {
+                        // Eliminar centros de costo existentes
+                        $sql_eliminar_cc = "DELETE FROM pedido_detalle_centro_costo 
+                                          WHERE id_pedido_detalle = $id_detalle_actual";
+                        mysqli_query($con, $sql_eliminar_cc);
+                        
+                        // Insertar nuevos centros de costo
+                        foreach ($centros_costo as $id_centro) {
+                            $id_centro = intval($id_centro);
+                            if ($id_centro > 0) {
+                                $sql_cc = "INSERT INTO pedido_detalle_centro_costo 
+                                          (id_pedido_detalle, id_centro_costo) 
+                                          VALUES ($id_detalle_actual, $id_centro)";
+                                
+                                if (!mysqli_query($con, $sql_cc)) {
+                                    error_log("Error al insertar centro de costo: " . mysqli_error($con));
+                                }
+                            }
+                        }
+                    }
                 }
             } else {
-                // INSERTAR NUEVO DETALLE (solo para materiales completamente nuevos)
+                // INSERTAR NUEVO DETALLE
                 $sql_detalle = "INSERT INTO pedido_detalle (
                                     id_pedido, id_producto, prod_pedido_detalle, 
-                                    ot_pedido_detalle,cant_pedido_detalle, cant_fin_pedido_detalle, 
+                                    ot_pedido_detalle, cant_pedido_detalle, cant_fin_pedido_detalle, 
                                     com_pedido_detalle, req_pedido, est_pedido_detalle
                                 ) VALUES (
                                     $id_pedido, $id_producto, '$descripcion', 
@@ -514,15 +549,31 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
                 
                 if (mysqli_query($con, $sql_detalle)) {
                     $id_detalle_actual = mysqli_insert_id($con);
+
+                    //Insertar centros de costo para el nuevo detalle
+                    if (!empty($centros_costo) && is_array($centros_costo)) {
+                        foreach ($centros_costo as $id_centro) {
+                            $id_centro = intval($id_centro);
+                            if ($id_centro > 0) {
+                                $sql_cc = "INSERT INTO pedido_detalle_centro_costo 
+                                          (id_pedido_detalle, id_centro_costo) 
+                                          VALUES ($id_detalle_actual, $id_centro)";
+                                
+                                if (!mysqli_query($con, $sql_cc)) {
+                                    error_log("Error al insertar centro de costo: " . mysqli_error($con));
+                                }
+                            }
+                        }
+                    }
                 } else {
                     $id_detalle_actual = 0;
                 }
             }
             
-            // MANEJO MEJORADO DE ARCHIVOS - REEMPLAZAR ARCHIVOS EXISTENTES
+            // MANEJO DE ARCHIVOS (código existente)
             if ($id_detalle_actual > 0 && isset($archivos_subidos[$index]) && !empty($archivos_subidos[$index]['name'][0])) {
                 
-                // PASO 1: Obtener archivos existentes para este detalle
+                // Obtener archivos existentes
                 $sql_archivos_existentes = "SELECT nom_pedido_detalle_documento 
                                           FROM pedido_detalle_documento 
                                           WHERE id_pedido_detalle = $id_detalle_actual 
@@ -534,21 +585,21 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
                     $archivos_a_eliminar[] = $row_archivo['nom_pedido_detalle_documento'];
                 }
                 
-                // PASO 2: Eliminar archivos físicos del servidor
+                // Eliminar archivos físicos
                 foreach ($archivos_a_eliminar as $nombre_archivo) {
                     $ruta_archivo = "../_archivos/pedidos/" . $nombre_archivo;
                     if (file_exists($ruta_archivo)) {
-                        unlink($ruta_archivo); // Eliminar archivo físico
+                        unlink($ruta_archivo);
                     }
                 }
                 
-                // PASO 3: Marcar como inactivos los registros de archivos anteriores
+                // Marcar como inactivos los registros anteriores
                 $sql_inactivar_docs = "UPDATE pedido_detalle_documento 
                                       SET est_pedido_detalle_documento = 0 
                                       WHERE id_pedido_detalle = $id_detalle_actual";
                 mysqli_query($con, $sql_inactivar_docs);
                 
-                // PASO 4: Guardar los nuevos archivos
+                // Guardar nuevos archivos
                 foreach ($archivos_subidos[$index]['name'] as $key => $archivo_nombre) {
                     if (!empty($archivo_nombre)) {
                         $extension = pathinfo($archivo_nombre, PATHINFO_EXTENSION);
@@ -568,13 +619,13 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
             }
         }
         
-        // Marcar como inactivos los detalles que ya no existen (fueron eliminados en la edición)
+        // Marcar como inactivos los detalles que ya no existen
         if (!empty($detalles_existentes)) {
             $detalles_a_eliminar = array_diff($detalles_existentes, $detalles_utilizados);
             if (!empty($detalles_a_eliminar)) {
                 $ids_eliminar = implode(',', $detalles_a_eliminar);
                 
-                // Antes de marcar como inactivos, eliminar los archivos físicos asociados
+                // Eliminar archivos físicos
                 $sql_archivos_eliminar = "SELECT nom_pedido_detalle_documento 
                                         FROM pedido_detalle_documento 
                                         WHERE id_pedido_detalle IN ($ids_eliminar) 
@@ -584,9 +635,14 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
                 while ($row_archivo = mysqli_fetch_assoc($resultado_archivos_eliminar)) {
                     $ruta_archivo = "../_archivos/pedidos/" . $row_archivo['nom_pedido_detalle_documento'];
                     if (file_exists($ruta_archivo)) {
-                        unlink($ruta_archivo); // Eliminar archivo físico
+                        unlink($ruta_archivo);
                     }
                 }
+                
+                // Eliminar centros de costo asociados
+                $sql_eliminar_cc = "DELETE FROM pedido_detalle_centro_costo 
+                                   WHERE id_pedido_detalle IN ($ids_eliminar)";
+                mysqli_query($con, $sql_eliminar_cc);
                 
                 // Marcar detalles como inactivos
                 $sql_eliminar = "UPDATE pedido_detalle SET est_pedido_detalle = 0 

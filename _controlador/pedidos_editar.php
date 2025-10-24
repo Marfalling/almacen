@@ -57,10 +57,10 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
             $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
 
             //=======================================================================
-            // CONTROLADOR ACTUALIZADO - SST COMO CAMPO ÚNICO
+            // CONTROLADOR ACTUALIZADO - CENTROS DE COSTO MULTIPLES
             //=======================================================================
             if (isset($_REQUEST['actualizar'])) {
-                $id_ubicacion = intval($_REQUEST['id_ubicacion']); // AGREGADO: Recibir ubicación
+                $id_ubicacion = intval($_REQUEST['id_ubicacion']);
                 $id_centro_costo = intval($_REQUEST['id_centro_costo']); 
                 $nom_pedido = strtoupper($_REQUEST['nom_pedido']);
                 $fecha_necesidad = $_REQUEST['fecha_necesidad'];
@@ -69,13 +69,43 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                 $lugar_entrega = strtoupper($_REQUEST['lugar_entrega']);
                 $aclaraciones = strtoupper($_REQUEST['aclaraciones']);
                 
-                // Procesar materiales - CORREGIDO: SST como campo único
+                // Procesar materiales con centros de costo multiples
                 $materiales = array();
+                $errores_validacion = array();
+                
                 if (isset($_REQUEST['descripcion']) && is_array($_REQUEST['descripcion'])) {
                     for ($i = 0; $i < count($_REQUEST['descripcion']); $i++) {
                         
                         $sst_descripcion = trim($_REQUEST['sst'][$i]);
                         $ot_detalle = isset($_REQUEST['ot_detalle'][$i]) ? trim($_REQUEST['ot_detalle'][$i]) : '';
+
+                        // Procesar centros de costo múltiples para este material
+                        $centros_costo_material = array();
+                        
+                        if (isset($_REQUEST['centros_costo']) && is_array($_REQUEST['centros_costo'])) {
+                            if (isset($_REQUEST['centros_costo'][$i])) {
+                                $centros_value = $_REQUEST['centros_costo'][$i];
+                                
+                                if (is_array($centros_value)) {
+                                    $centros_costo_material = $centros_value;
+                                } else if (is_string($centros_value) && !empty($centros_value)) {
+                                    $centros_costo_material = explode(',', $centros_value);
+                                }
+                            }
+                        }
+                        
+                        // Limpiar y validar IDs
+                        $centros_costo_material = array_map('intval', $centros_costo_material);
+                        $centros_costo_material = array_filter($centros_costo_material, function($id) {
+                            return $id > 0;
+                        });
+                        $centros_costo_material = array_unique($centros_costo_material);
+                        
+                        //  Validación: Cada material DEBE tener al menos un centro de costo
+                        if (empty($centros_costo_material)) {
+                            $descripcion_corta = substr($_REQUEST['descripcion'][$i], 0, 50);
+                            $errores_validacion[] = "Material " . ($i + 1) . " ({$descripcion_corta}): Debe seleccionar al menos un centro de costo";
+                        }
 
                         $materiales[] = array(
                             'id_producto' => $_REQUEST['id_material'][$i],
@@ -83,11 +113,24 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                             'cantidad' => $_REQUEST['cantidad'][$i],
                             'unidad' => $_REQUEST['unidad'][$i],
                             'observaciones' => $_REQUEST['observaciones'][$i],
-                            'sst_descripcion' => $sst_descripcion,  
+                            'sst_descripcion' => $sst_descripcion,
                             'ot_detalle' => $ot_detalle,
-                            'id_detalle' => $_REQUEST['id_detalle'][$i]
+                            'id_detalle' => $_REQUEST['id_detalle'][$i],
+                            'centros_costo' => $centros_costo_material  
                         );
                     }
+                }
+                
+                //  Si hay errores de validación, mostrarlos y detener
+                if (!empty($errores_validacion)) {
+                    $mensaje_error = "Errores en el formulario:\\n\\n" . implode("\\n", $errores_validacion);
+                    ?>
+                    <script Language="JavaScript">
+                        alert('<?php echo addslashes($mensaje_error); ?>');
+                        history.back();
+                    </script>
+                    <?php
+                    exit;
                 }
 
                 // Procesar archivos
@@ -99,10 +142,10 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                     }
                 }
 
-                // LLAMADA ACTUALIZADA con ubicación
+                // LLAMADA ACTUALIZADA con centros de costo múltiples
                 $rpta = ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedido, $fecha_necesidad, 
-                           $num_ot, $contacto, $lugar_entrega, 
-                           $aclaraciones, $materiales, $archivos_subidos);
+                        $num_ot, $contacto, $lugar_entrega, 
+                        $aclaraciones, $materiales, $archivos_subidos);
 
                 if ($rpta == "SI") {
             ?>
@@ -134,6 +177,9 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                     // Ajusta nombres según lo que devuelve tu función
                     $detalle['cantidad_disponible_almacen'] = $stock['stock_fisico'];
                     $detalle['cantidad_disponible_real']    = $stock['stock_disponible'];
+
+                     // Cargar centros de costo para este detalle
+                    $detalle['centros_costo'] = ObtenerCentrosCostoPorDetalle($detalle['id_pedido_detalle']);
                 }
                 unset($detalle);
                 
