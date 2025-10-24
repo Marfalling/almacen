@@ -11,7 +11,7 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
     // VALIDACIONES ANTES DE PROCESAR
     $errores_validacion = ValidarSalidaAntesDeProcesar(
         $id_material_tipo, $id_almacen_origen, $id_ubicacion_origen, 
-        $id_almacen_destino, $id_ubicacion_destino, $materiales
+        $id_almacen_destino, $id_ubicacion_destino, $materiales, $id_pedido
     );
     
     if (!empty($errores_validacion)) {
@@ -50,7 +50,7 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
             $cantidad = floatval($material['cantidad']);
             
             // Verificar stock una vez más antes de cada inserción (por seguridad)
-            $stock_actual = ObtenerStockDisponible($id_producto, $id_almacen_origen, $id_ubicacion_origen);
+            $stock_actual = ObtenerStockDisponible($id_producto, $id_almacen_origen, $id_ubicacion_origen, $id_pedido);
             if ($cantidad > $stock_actual) {
                 // Rollback: eliminar la salida creada
                 mysqli_query($con, "DELETE FROM salida WHERE id_salida = $id_salida");
@@ -369,17 +369,25 @@ function ActualizarSalida($id_salida, $id_almacen_origen, $id_ubicacion_origen,
 }
 
 //-----------------------------------------------------------------------
-function ObtenerStockDisponible($id_producto, $id_almacen, $id_ubicacion)
+function ObtenerStockDisponible($id_producto, $id_almacen, $id_ubicacion, $id_pedido = null)
 {
     include("../_conexion/conexion.php");
 
+    // Asegurarse de que $id_pedido sea un entero válido o NULL
+    $id_pedido = $id_pedido !== null ? intval($id_pedido) : null;
+
     $sql = "SELECT COALESCE(
-                SUM(CASE
-                    WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
-                    WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
-                    ELSE 0
-                END), 0
-            ) AS stock_disponible
+                SUM(
+                    CASE
+                        WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 2 THEN 
+                            CASE
+                                WHEN mov.tipo_orden = 5 AND ".($id_pedido !== null ? "mov.id_orden = $id_pedido" : "0")." THEN 0
+                                ELSE -mov.cant_movimiento
+                            END
+                        ELSE 0
+                    END
+                ), 0) AS stock_disponible
             FROM movimiento mov
             WHERE mov.id_producto = $id_producto 
             AND mov.id_almacen = $id_almacen 
@@ -399,7 +407,7 @@ function ObtenerStockDisponible($id_producto, $id_almacen, $id_ubicacion)
 //=======================================================================
 
 function ValidarSalidaAntesDeProcesar($id_material_tipo, $id_almacen_origen, $id_ubicacion_origen, 
-                                     $id_almacen_destino, $id_ubicacion_destino, $materiales) 
+                                     $id_almacen_destino, $id_ubicacion_destino, $materiales, $id_pedido = null) 
 {
     include("../_conexion/conexion.php");
     
@@ -422,7 +430,9 @@ function ValidarSalidaAntesDeProcesar($id_material_tipo, $id_almacen_origen, $id
         $descripcion = $material['descripcion'];
         
         // Obtener stock actual del producto en la ubicación origen
-        $stock_disponible = ObtenerStockDisponible($id_producto, $id_almacen_origen, $id_ubicacion_origen);
+        $stock_disponible = ObtenerStockDisponible($id_producto, $id_almacen_origen, $id_ubicacion_origen, $id_pedido);
+        
+         // Validar stock
         
         if ($stock_disponible <= 0) {
             $errores[] = "El producto '{$descripcion}' no tiene stock disponible en la ubicación origen seleccionada.";

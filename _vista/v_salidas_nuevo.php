@@ -425,6 +425,7 @@
 <script>
 // Variable global para rastrear qué botón de búsqueda se clickeó
 let currentSearchButton = null;
+const idPedido = <?php echo $desde_pedido > 0 ? intval($desde_pedido) : 0; ?>;
 
 function buscarMaterial(button) {
     // Obtener valores de almacén y ubicación origen
@@ -1041,14 +1042,20 @@ document.addEventListener('DOMContentLoaded', function() {
         materialesItems.forEach((item, index) => {
             const inputIdProducto = item.querySelector('input[name="id_producto[]"]');
             if (inputIdProducto && inputIdProducto.value) {
-                
+            
+                let body = `id_producto=${encodeURIComponent(inputIdProducto.value)}&id_almacen=${encodeURIComponent(idAlmacen)}&id_ubicacion=${encodeURIComponent(idUbicacion)}`;
+
+                if (idPedido && idPedido > 0) {
+                    body += `&id_pedido=${encodeURIComponent(idPedido)}`;
+                }
+
                 // Crear un controlador temporal para obtener stock actualizado
                 fetch(`obtener_stock.php`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
-                    body: `id_producto=${inputIdProducto.value}&id_almacen=${idAlmacen}&id_ubicacion=${idUbicacion}`
+                    body: body
                 })
                 .then(response => response.json())
                 .then(data => {

@@ -9,6 +9,7 @@ require_once("../_modelo/m_salidas.php");
 $id_producto = isset($_POST['id_producto']) ? intval($_POST['id_producto']) : (isset($_GET['id_producto']) ? intval($_GET['id_producto']) : 0);
 $id_almacen = isset($_POST['id_almacen']) ? intval($_POST['id_almacen']) : (isset($_GET['id_almacen']) ? intval($_GET['id_almacen']) : 0);
 $id_ubicacion = isset($_POST['id_ubicacion']) ? intval($_POST['id_ubicacion']) : (isset($_GET['id_ubicacion']) ? intval($_GET['id_ubicacion']) : 0);
+$id_pedido    = isset($_POST['id_pedido']) ? intval($_POST['id_pedido']) : (isset($_GET['id_pedido']) ? intval($_GET['id_pedido']) : null);
 
 // Validar parámetros
 if ($id_producto <= 0 || $id_almacen <= 0 || $id_ubicacion <= 0) {
@@ -22,14 +23,15 @@ if ($id_producto <= 0 || $id_almacen <= 0 || $id_ubicacion <= 0) {
 
 try {
     // Obtener el stock disponible
-    $stock = ObtenerStockDisponible($id_producto, $id_almacen, $id_ubicacion);
+    $stock = ObtenerStockDisponible($id_producto, $id_almacen, $id_ubicacion, $id_pedido);
     
     echo json_encode([
         'success' => true,
         'stock' => $stock,
         'id_producto' => $id_producto,
         'id_almacen' => $id_almacen,
-        'id_ubicacion' => $id_ubicacion
+        'id_ubicacion' => $id_ubicacion,
+        'id_pedido'    => $id_pedido
     ]);
     
 } catch (Exception $e) {

@@ -1177,3 +1177,64 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
     mysqli_close($con);
     return $todos_ingresos;
 }
+
+function ActualizarCompromisoPedido($id_compra, $id_producto, $cantidad_ingresada, $id_personal) {
+    include("../_conexion/conexion.php");
+
+    // 1️⃣ Buscar el pedido asociado a la compra
+    $sql = "SELECT id_pedido FROM compra WHERE id_compra = $id_compra";
+    $res = mysqli_query($con, $sql);
+    if (!$res || mysqli_num_rows($res) == 0) {
+        mysqli_close($con);
+        return ['success' => false, 'message' => 'No se encontró pedido asociado.'];
+    }
+    $pedido = mysqli_fetch_assoc($res);
+    $id_pedido = $pedido['id_pedido'];
+
+    // 2️⃣ Buscar información base del producto (almacén, ubicación)
+    $sql_info = "SELECT id_almacen, id_ubicacion, est_pedido
+                 FROM pedido 
+                 WHERE id_pedido = $id_pedido";
+    $res_info = mysqli_query($con, $sql_info);
+    $info = mysqli_fetch_assoc($res_info);
+    $id_almacen = $info['id_almacen'];
+    $id_ubicacion = $info['id_ubicacion'];
+    $estado_actual_pedido = $info['est_pedido'];
+
+    // 3️⃣ Insertar movimiento comprometido (tipo_orden=5, tipo_movimiento=2)
+    $sql_insert = "INSERT INTO movimiento (
+                        id_personal, id_orden, id_producto, id_almacen,
+                        id_ubicacion, tipo_orden, tipo_movimiento,
+                        cant_movimiento, fec_movimiento, est_movimiento
+                    ) VALUES (
+                        '$id_personal', '$id_pedido', '$id_producto', '$id_almacen',
+                        '$id_ubicacion', 5, 2,
+                        '$cantidad_ingresada', NOW(), 1
+                    )";
+    mysqli_query($con, $sql_insert);
+
+    // 4️⃣ Verificar si el pedido ya está totalmente ingresado
+    $sql_total_pedido = "SELECT COALESCE(SUM(cant_pedido_detalle), 0) AS total_pedido
+                         FROM pedido_detalle WHERE id_pedido = $id_pedido";
+    $sql_total_ingresado = "
+        SELECT COALESCE(SUM(m.cant_movimiento), 0) AS total_ingresado
+        FROM movimiento m
+        WHERE m.tipo_orden = 5
+          AND m.tipo_movimiento = 2
+          AND m.id_orden = $id_pedido
+          AND m.est_movimiento = 1";
+    
+    $res_ped = mysqli_query($con, $sql_total_pedido);
+    $res_ing = mysqli_query($con, $sql_total_ingresado);
+    $total_pedido = floatval(mysqli_fetch_assoc($res_ped)['total_pedido']);
+    $total_ingresado = floatval(mysqli_fetch_assoc($res_ing)['total_ingresado']);
+
+    // 5️⃣ Si ya se ingresó todo lo pedido → marcar pedido como INGRESADO (4)
+    if ($total_ingresado >= $total_pedido && $total_pedido > 0 && $estado_actual_pedido == 3) {
+        $sql_update = "UPDATE pedido SET est_pedido = 4 WHERE id_pedido = $id_pedido";
+        mysqli_query($con, $sql_update);
+    }
+
+    mysqli_close($con);
+    return ['success' => true];
+}

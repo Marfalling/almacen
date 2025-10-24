@@ -114,9 +114,16 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                         foreach ($_REQUEST['id_producto'] as $index => $id_producto) {
                             if (!empty($id_producto) && !empty($_REQUEST['cantidad'][$index])) {
                                 $cantidad = floatval($_REQUEST['cantidad'][$index]);
-                                
+                                $id_pedido_inicial = isset($_REQUEST['id_pedido_origen']) ? intval($_REQUEST['id_pedido_origen']) : 0;
+
                                 // VALIDACIÓN 3: Verificar stock antes de procesar
-                                $stock_disponible = ObtenerStockDisponible($id_producto, $id_almacen_origen, $id_ubicacion_origen);
+                                error_log("Index: $index");
+                                error_log("id_producto: $id_producto");
+                                error_log("Cantidad solicitada: $cantidad");
+                                error_log("id_pedido_inicial: " . var_export($id_pedido_inicial, true));
+                                error_log("id_almacen_origen: $id_almacen_origen");
+                                error_log("id_ubicacion_origen: $id_ubicacion_origen");
+                                $stock_disponible = ObtenerStockDisponible($id_producto, $id_almacen_origen, $id_ubicacion_origen, $id_pedido_inicial);
                                 
                                 if ($stock_disponible <= 0) {
                                     $mostrar_alerta = true;

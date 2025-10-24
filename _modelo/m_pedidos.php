@@ -833,6 +833,7 @@ function ObtenerItemsParaSalida($id_pedido)
                       AND mov.tipo_movimiento = 2
                       AND mov.tipo_orden = 5
                       AND mov.est_movimiento = 1
+                      AND mov.id_orden <> pd.id_pedido
                 ), 0) AS stock_comprometido,
 
                 -- ==========================================
@@ -861,6 +862,7 @@ function ObtenerItemsParaSalida($id_pedido)
                       AND mov.tipo_movimiento = 2
                       AND mov.tipo_orden = 5
                       AND mov.est_movimiento = 1
+                      AND mov.id_orden <> pd.id_pedido
                 ), 0)
                 AS stock_disponible,
 
