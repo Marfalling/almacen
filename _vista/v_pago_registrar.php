@@ -278,7 +278,15 @@ function AnularPago(id_pago) {
                 </div>
                 <div class="form-group form-check">
                     <input type="checkbox" class="form-check-input" name="enviar_correo" id="enviar_correo" value="1" checked>
-                    <label class="form-check-label" for="enviar_correo">Notificar por correo al proveedor</label>
+                    <label class="form-check-label" for="enviar_correo">Notificar por correo al Proveedor</label>
+                </div>
+                <div class="form-group form-check">
+                    <input type="checkbox" class="form-check-input" name="enviar_correo2" id="enviar_correo2" value="1" checked>
+                    <label class="form-check-label" for="enviar_correo2">Notificar por correo a Contabilidad</label>
+                </div>
+                <div class="form-group form-check">
+                    <input type="checkbox" class="form-check-input" name="enviar_correo3" id="enviar_correo3" value="1" checked>
+                    <label class="form-check-label" for="enviar_correo3">Notificar por correo a Tesorería</label>
                 </div>
             </div>
             <div class="modal-footer">

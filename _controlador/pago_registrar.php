@@ -45,6 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['monto'])) {
     $id_cuenta = intval($_POST['id_cuenta']);
     $id_personal = $_SESSION['id_personal'];
     $enviar_correo = isset($_POST['enviar_correo']) ? 1 : 0;
+    $enviar_correo2 = isset($_POST['enviar_correo2']) ? 1 : 0;
+    $enviar_correo3 = isset($_POST['enviar_correo3']) ? 1 : 0;
 
     // Guardar archivo de comprobante
     $comprobante = null;
@@ -86,7 +88,7 @@ if ($monto <= 0) {
     $mensaje_alerta = "El monto del pago ($monto) no puede superar el saldo pendiente ($saldo).";
 } else {
     // Registrar pago en BD
-    $resultado = GrabarPago($id_compra, $id_cuenta, $monto, $comprobante, $id_personal, $enviar_correo);
+    $resultado = GrabarPago($id_compra, $id_cuenta, $monto, $comprobante, $id_personal, $enviar_correo, $enviar_correo2, $enviar_correo3);
 
     if ($resultado === "SI") {
         ?>

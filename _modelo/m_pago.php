@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------
 // Insertar nuevo pago de una compra
 //-----------------------------------------------------------------------
-function GrabarPago($id_compra, $id_proveedor_cuenta, $monto, $comprobante, $id_personal, $enviarCorreo = 0) 
+function GrabarPago($id_compra, $id_proveedor_cuenta, $monto, $comprobante, $id_personal, $enviarCorreo = 0, $enviarCorreo2 = 0, $enviarCorreo3 = 0) 
 {
     include("../_conexion/conexion.php");
 
@@ -11,6 +11,8 @@ function GrabarPago($id_compra, $id_proveedor_cuenta, $monto, $comprobante, $id_
     $id_proveedor_cuenta = intval($id_proveedor_cuenta);
     $monto = round(floatval($monto), 2);
     $enviarCorreo = intval($enviarCorreo);
+    $enviarCorreo2 = intval($enviarCorreo2);
+    $enviarCorreo3 = intval($enviarCorreo3);
 
     // Validar compra usando m_pago
     $compra = ConsultarCompraPago($id_compra);
@@ -48,22 +50,40 @@ function GrabarPago($id_compra, $id_proveedor_cuenta, $monto, $comprobante, $id_
     }
 
     // ================================================================
-    // Enviar correo de confirmación al proveedor (si aplica)
+    // Enviar correo de confirmación (si aplica)
     // ================================================================
-    if ($enviarCorreo) {
+    if ($enviarCorreo || $enviarCorreo2 || $enviarCorreo3) {
+
         require_once("m_proveedor.php");
         $prov = ObtenerProveedor($compra['id_proveedor']);
 
-        if ($prov && !empty($prov['mail_proveedor'])) {
+        // Base de destinatarios
+        $destinatarios = [];
 
-            // ---------------------------------------
-            // 📧 Datos del correo
-            // ---------------------------------------
-            $para = trim($prov['mail_proveedor']); // destinatario real
+        // 1️⃣ Enviar al proveedor
+        if ($enviarCorreo && $prov && !empty($prov['mail_proveedor'])) {
+            $destinatarios[] = trim($prov['mail_proveedor']);
+        }
+
+        // 2️⃣ Enviar a contabilidad
+        if ($enviarCorreo2) {
+            $destinatarios[] = "contabilidad@arceperu.pe";
+        }
+
+        // 3️⃣ Enviar a tesorería
+        if ($enviarCorreo3) {
+            $destinatarios[] = "tesoreria@arceperu.pe";
+        }
+
+        // Solo continuar si hay al menos un destinatario
+        if (count($destinatarios) > 0) {
+
+            // Unir todos los correos con coma
+            $para = implode(", ", $destinatarios);
             $asunto = "Confirmación de Pago - Orden de Compra C00$id_compra";
             $url_comprobante = "https://montajeseingenieriaarceperusac.pe/almacen/" . $comprobante;
-            // Cuerpo HTML del correo
-            $mensaje = "
+
+             $mensaje = "
                     <html>
                         <head>
                             <meta charset='UTF-8'>
@@ -190,23 +210,19 @@ function GrabarPago($id_compra, $id_proveedor_cuenta, $monto, $comprobante, $id_
             $cabeceras .= "Bcc: notificaciones@montajeseingenieriaarceperusac.pe\r\n";
             $cabeceras .= "X-Mailer: PHP/" . phpversion() . "\r\n";
 
-            // ---------------------------------------
             // 🚀 Enviar correo
-            // ---------------------------------------
             $ok = @mail($para, $asunto, $mensaje, $cabeceras);
 
-            // ---------------------------------------
             // 🧾 Log de resultado
-            // ---------------------------------------
             $log_msg = $ok 
-                ? "✅ MAIL OK → enviado a $para (OC C00$id_compra)" 
-                : "❌ MAIL FAIL → error al enviar a $para (OC C00$id_compra)";
+                ? "✅ MAIL OK → enviado a [$para] (OC C00$id_compra)" 
+                : "❌ MAIL FAIL → error al enviar a [$para] (OC C00$id_compra)";
             error_log($log_msg);
-
         } else {
-            error_log("⚠️ MAIL SKIP → proveedor sin correo electrónico (OC C00$id_compra)");
+            error_log("⚠️ MAIL SKIP → sin destinatarios válidos (OC C00$id_compra)");
         }
     }
+    
     mysqli_close($con);
     return "SI";
 }
