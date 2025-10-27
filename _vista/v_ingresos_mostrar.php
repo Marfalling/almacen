@@ -332,7 +332,18 @@
                                                                 <?php } ?>
                                                             </td>
                                                             <td>
-                                                                <div class="d-flex flex-wrap gap-2">                                                                    
+                                                                <div class="d-flex flex-wrap gap-2"> 
+                                                                    <?php
+                                                                    // MOSTRAR BOTÓN SOLO SI NO está anulada Y hay pendientes
+                                                                    if ($est_compra != 0 && $hay_pendientes) { 
+                                                                    ?>
+                                                                    <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
+                                                                        class="btn btn-success btn-sm"
+                                                                        title="Verificar ingreso">
+                                                                        <i class="fa fa-check"></i>
+                                                                    </a>
+                                                                    <?php } ?>
+
                                                                     <?php if ($est_compra != 0) { ?>
                                                                     <a href="ingresos_detalle.php?id_compra=<?php echo $id_compra; ?>" 
                                                                         class="btn btn-secondary btn-sm"
