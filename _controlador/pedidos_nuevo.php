@@ -112,11 +112,6 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                         });
                         $centros_costo_material = array_unique($centros_costo_material);
                         
-                        //  Validación: Cada material DEBE tener al menos un centro de costo
-                        if (empty($centros_costo_material)) {
-                            $descripcion_corta = substr($_REQUEST['descripcion'][$i], 0, 50);
-                            $errores_validacion[] = "Material " . ($i + 1) . " ({$descripcion_corta}): Debe seleccionar al menos un centro de costo";
-                        }
 
                         $materiales[] = array(
                             'id_producto' => $_REQUEST['id_material'][$i],
@@ -126,22 +121,11 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                             'observaciones' => $_REQUEST['observaciones'][$i],
                             'sst_descripcion' => $sst_descripcion,
                             'ot_detalle' => $ot_detalle,
-                            'centros_costo' => $centros_costo_material  // 🔴 Array de IDs
+                            'centros_costo' => $centros_costo_material  //  Array de IDs
                         );
                     }
                 }
                 
-                if (!empty($errores_validacion)) {
-                    $mensaje_error = "Errores en el formulario:\\n\\n" . implode("\\n", $errores_validacion);
-                    ?>
-                    <script Language="JavaScript">
-                        alert('<?php echo addslashes($mensaje_error); ?>');
-                        history.back();
-                    </script>
-                    <?php
-                    exit;
-                }
-
                 // Procesar archivos
                 $archivos_subidos = array();
                 foreach ($_FILES as $key => $file) {

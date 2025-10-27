@@ -788,6 +788,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let contadorMateriales = <?php echo count($pedido_detalle); ?>;
     let formularioModificado = false;
     
+    // Variable para control de aplicación automática de centro de costo
+    let aplicarCentroCostoAutomaticamente = false;
+    
     // CORRECCIÓN 2: Obtener y almacenar el tipo de producto para uso en JavaScript
     const tipoProductoElement = document.querySelector('input[value*="MATERIAL"], input[value*="SERVICIO"]');
     if (tipoProductoElement) {
@@ -797,6 +800,76 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (valor.includes('SERVICIO')) {
             window.tipoPedidoActual = '2';
         }
+    }
+    
+    // Sincronización de centro de costo de cabecera con materiales
+    const selectCentroCostoCabecera = document.querySelector('select[name="id_centro_costo"]');
+    
+    if (selectCentroCostoCabecera) {
+        $(selectCentroCostoCabecera).on('select2:select', function(e) {
+            const centroCostoSeleccionado = $(this).val();
+            const nombreCentroCosto = $(this).find('option:selected').text();
+            
+            // Preguntar si desea aplicar a todos los materiales
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'question',
+                    title: '¿Aplicar a todos los materiales?',
+                    html: `¿Desea aplicar el centro de costo <strong>"${nombreCentroCosto}"</strong> a todos los materiales del pedido?<br><br><small>Los nuevos materiales también usarán este centro de costo automáticamente.</small>`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, aplicar',
+                    cancelButtonText: 'No, solo cabecera',
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#6c757d'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        aplicarCentroCostoAutomaticamente = true;
+                        aplicarCentroCostoATodosMateriales(centroCostoSeleccionado);
+                        formularioModificado = true;
+                        
+                        // Mensaje de confirmación
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Aplicado',
+                            text: 'El centro de costo se aplicará a todos los materiales actuales y futuros',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        aplicarCentroCostoAutomaticamente = false;
+                    }
+                });
+            } else {
+                // Fallback para navegadores sin SweetAlert
+                const confirmar = confirm(`¿Desea aplicar el centro de costo "${nombreCentroCosto}" a todos los materiales del pedido?\n\nLos nuevos materiales también usarán este centro de costo automáticamente.`);
+                if (confirmar) {
+                    aplicarCentroCostoAutomaticamente = true;
+                    aplicarCentroCostoATodosMateriales(centroCostoSeleccionado);
+                    formularioModificado = true;
+                    alert('El centro de costo se aplicará a todos los materiales actuales y futuros');
+                } else {
+                    aplicarCentroCostoAutomaticamente = false;
+                }
+            }
+        });
+    }
+    
+    // Función para aplicar centro de costo a todos los materiales
+    function aplicarCentroCostoATodosMateriales(centroCostoId) {
+        const selectsCentrosCosto = document.querySelectorAll('select.select2-centros-costo-detalle');
+        
+        selectsCentrosCosto.forEach(select => {
+            if ($(select).data('select2')) {
+                // Obtener valores actuales
+                let valoresActuales = $(select).val() || [];
+                
+                // Si no está ya incluido, agregarlo
+                if (!valoresActuales.includes(centroCostoId)) {
+                    valoresActuales = [centroCostoId]; // Reemplazar con el de cabecera
+                    $(select).val(valoresActuales).trigger('change');
+                }
+            }
+        });
     }
     
     // Detectar cambios en cualquier campo del formulario
@@ -824,8 +897,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const materialOriginal = contenedor.querySelector('.material-item');
             
             if (materialOriginal) {
-                // Destruir Select2 antes de clonar
+                // Guardar los valores de Select2 del material original ANTES de destruir
+                const valoresOriginalesSelect2 = {};
                 const selectsOriginales = materialOriginal.querySelectorAll('select[name="unidad[]"], select.select2-centros-costo-detalle');
+                
+                selectsOriginales.forEach((select, index) => {
+                    if ($(select).data('select2')) {
+                        valoresOriginalesSelect2[index] = $(select).val();
+                    }
+                });
+                
+                // Destruir Select2 SOLO del material que se va a clonar
                 selectsOriginales.forEach(select => {
                     if ($(select).data('select2')) {
                         $(select).select2('destroy');
@@ -835,8 +917,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Clonar el elemento
                 const nuevoMaterial = materialOriginal.cloneNode(true);
                 
-                // Reinicializar Select2 en el original
-                selectsOriginales.forEach(select => {
+                // Reinicializar los Select2 del material ORIGINAL inmediatamente
+                selectsOriginales.forEach((select, index) => {
                     if (select.name === 'unidad[]') {
                         $(select).select2({
                             placeholder: 'Seleccionar unidad de medida...',
@@ -846,6 +928,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 noResults: function () { return 'No se encontraron resultados'; }
                             }
                         });
+                        // Restaurar valor original
+                        if (valoresOriginalesSelect2[index]) {
+                            $(select).val(valoresOriginalesSelect2[index]).trigger('change');
+                        }
                     } else if ($(select).hasClass('select2-centros-costo-detalle')) {
                         $(select).select2({
                             placeholder: 'Seleccionar uno o más centros de costo...',
@@ -856,32 +942,51 @@ document.addEventListener('DOMContentLoaded', function() {
                                 noResults: function () { return 'No se encontraron resultados'; }
                             }
                         });
-                    }
-                });
-                
-                // Limpiar valores del clon
-                const inputs = nuevoMaterial.querySelectorAll('input, textarea');
-                inputs.forEach(input => {
-                    if (input.type === 'file') {
-                        input.value = '';
-                        input.name = `archivos_${contadorMateriales}[]`;
-                    } else if (input.type === 'hidden') {
-                        if (input.name === 'id_material[]' || input.name === 'id_detalle[]') {
-                            input.value = '';
+                        // Restaurar valor original
+                        if (valoresOriginalesSelect2[index]) {
+                            $(select).val(valoresOriginalesSelect2[index]).trigger('change');
                         }
-                    } else {
-                        input.value = '';
                     }
                 });
                 
-                // Limpiar y configurar selects del clon
-                const selectsClonados = nuevoMaterial.querySelectorAll('select');
-                selectsClonados.forEach(select => {
-                    // Actualizar el name del select de centros de costo con el índice correcto
-                    if ($(select).hasClass('select2-centros-costo-detalle')) {
-                        select.name = `centros_costo[${contadorMateriales}][]`;
+                // Limpiar campos del nuevo material
+                const inputDescripcion = nuevoMaterial.querySelector('input[name="descripcion[]"]');
+                if (inputDescripcion) inputDescripcion.value = '';
+                
+                const inputIdMaterial = nuevoMaterial.querySelector('input[name="id_material[]"]');
+                if (inputIdMaterial) inputIdMaterial.value = '';
+                
+                const inputCantidad = nuevoMaterial.querySelector('input[name="cantidad[]"]');
+                if (inputCantidad) inputCantidad.value = '';
+
+                const inputIdDetalle = nuevoMaterial.querySelector('input[name="id_detalle[]"]');
+                if (inputIdDetalle) inputIdDetalle.value = '';
+
+                const inputEspecificaciones = nuevoMaterial.querySelector('textarea[name="especificaciones[]"]');
+                if (inputEspecificaciones) inputEspecificaciones.value = '';
+                
+                const inputOtDetalle = nuevoMaterial.querySelector('input[name="ot_detalle[]"]');
+                if (inputOtDetalle) inputOtDetalle.value = '';
+
+                const inputObservaciones = nuevoMaterial.querySelector('input[name="observaciones[]"]');
+                if (inputObservaciones) inputObservaciones.value = '';
+
+                const inputSST = nuevoMaterial.querySelector('input[name="sst[]"]');
+                if (inputSST) inputSST.value = '';
+
+                const inputFoto = nuevoMaterial.querySelector('input[type="file"]');
+                if (inputFoto) {
+                    inputFoto.value = '';
+                    const archivoName = inputFoto.getAttribute('name').match(/\d+/);
+                    if (archivoName) {
+                        const nuevoName = 'archivos_' + contadorMateriales;
+                        inputFoto.setAttribute('name', nuevoName + '[]');
                     }
-                    
+                }
+                
+                // Limpiar selects múltiples (centros de costo) del NUEVO material
+                const selectsCentros = nuevoMaterial.querySelectorAll('select.select2-centros-costo-detalle');
+                selectsCentros.forEach(select => {
                     // Remover clases de Select2
                     $(select).removeClass('select2-hidden-accessible');
                     const select2Container = select.nextElementSibling;
@@ -894,6 +999,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         option.selected = false;
                     });
                     select.selectedIndex = -1;
+                    
+                    // Asignar el índice correcto para el nuevo material
+                    select.name = `centros_costo[${contadorMateriales}][]`;
                 });
 
                 // Remover sección de archivos existentes
@@ -926,7 +1034,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Agregar al contenedor
                 contenedor.appendChild(nuevoMaterial);
                 
-                // Inicializar Select2 en el nuevo elemento (VACÍOS)
+                // Inicializar Select2 en el NUEVO elemento (VACÍOS)
                 const selectsNuevos = nuevoMaterial.querySelectorAll('select');
                 selectsNuevos.forEach(select => {
                     if (select.name === 'unidad[]') {
@@ -948,6 +1056,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                 noResults: function () { return 'No se encontraron resultados'; }
                             }
                         });
+                        
+                        // SIEMPRE aplicar centro de costo de cabecera si existe
+                        if (selectCentroCostoCabecera && selectCentroCostoCabecera.value) {
+                            setTimeout(() => {
+                                $(select).val([selectCentroCostoCabecera.value]).trigger('change');
+                            }, 100);
+                        }
                     }
                 });
                 
@@ -960,21 +1075,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    
+
     // Función para actualizar eventos de eliminar
     function actualizarEventosEliminar() {
         document.querySelectorAll('.eliminar-material').forEach(btn => {
             btn.onclick = function() {
                 if (document.querySelectorAll('.material-item').length > 1) {
-                    // Reindexar los centros de costo después de eliminar
                     this.closest('.material-item').remove();
-                    reindexarCentrosCosto();
                     formularioModificado = true;
                 }
             };
         });
     }
     
+    /*
     // Reindexar los names de centros de costo después de eliminar
     function reindexarCentrosCosto() {
         const materiales = document.querySelectorAll('.material-item');
@@ -985,6 +1099,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    */
     
     // Inicializar eventos
     actualizarEventosEliminar();
@@ -1051,10 +1166,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-// Limpiar la referencia cuando se cierre la modal sin seleccionar
-$('#buscar_producto').on('hidden.bs.modal', function () {
-    currentSearchButton = null;
-});
+    
+    // Limpiar la referencia cuando se cierre la modal sin seleccionar
+    $('#buscar_producto').on('hidden.bs.modal', function () {
+        currentSearchButton = null;
+    });
+    
     // Validación de stock
     document.querySelectorAll('input[name="cantidad[]"]').forEach(input => {
         input.addEventListener('change', e => {

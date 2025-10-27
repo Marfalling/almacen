@@ -694,6 +694,116 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Variable para guardar la decisión del usuario
+    let aplicarCentroCostoAutomaticamente = false;
+    
+    //  Centro de costo de cabecera con materiales
+    const selectCentroCostoCabecera = document.querySelector('select[name="id_centro_costo"]');
+    
+    if (selectCentroCostoCabecera) {
+        $(selectCentroCostoCabecera).on('select2:select', function(e) {
+            const centroCostoSeleccionado = $(this).val();
+            const nombreCentroCosto = $(this).find('option:selected').text();
+            
+            // Preguntar si desea aplicar a todos los materiales
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'question',
+                    title: '¿Aplicar a todos los materiales?',
+                    html: `¿Desea aplicar el centro de costo <strong>"${nombreCentroCosto}"</strong> a todos los materiales del pedido?<br><br><small>Los nuevos materiales también usarán este centro de costo automáticamente.</small>`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, aplicar',
+                    cancelButtonText: 'No, solo cabecera',
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#6c757d'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        aplicarCentroCostoAutomaticamente = true;
+                        aplicarCentroCostoATodosMateriales(centroCostoSeleccionado);
+                        
+                        // Mensaje de confirmación
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Aplicado',
+                            text: 'El centro de costo se aplicará a todos los materiales actuales y futuros',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        aplicarCentroCostoAutomaticamente = false;
+                    }
+                });
+            } else {
+                // Fallback para navegadores sin SweetAlert
+                const confirmar = confirm(`¿Desea aplicar el centro de costo "${nombreCentroCosto}" a todos los materiales del pedido?\n\nLos nuevos materiales también usarán este centro de costo automáticamente.`);
+                if (confirmar) {
+                    aplicarCentroCostoAutomaticamente = true;
+                    aplicarCentroCostoATodosMateriales(centroCostoSeleccionado);
+                    alert('El centro de costo se aplicará a todos los materiales actuales y futuros');
+                } else {
+                    aplicarCentroCostoAutomaticamente = false;
+                }
+            }
+        });
+    }
+    
+    // Función para aplicar centro de costo a todos los materiales
+    function aplicarCentroCostoATodosMateriales(centroCostoId) {
+        const selectsCentrosCosto = document.querySelectorAll('select.select2-centros-costo-detalle');
+        
+        selectsCentrosCosto.forEach(select => {
+            if ($(select).data('select2')) {
+                // Obtener valores actuales
+                let valoresActuales = $(select).val() || [];
+                
+                // Si no está ya incluido, agregarlo
+                if (!valoresActuales.includes(centroCostoId)) {
+                    valoresActuales = [centroCostoId]; // Reemplazar con el de cabecera
+                    $(select).val(valoresActuales).trigger('change');
+                }
+            }
+        });
+    }
+    
+    // Aplicar centro de costo automáticamente cuando se agrega un nuevo material
+    const btnAgregarMaterialOriginal = document.getElementById('agregar-material');
+    if (btnAgregarMaterialOriginal) {
+        // Observar cuando se agregue un nuevo material
+        const observador = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length > 0) {
+                    mutation.addedNodes.forEach(function(nodo) {
+                        // Si el nodo agregado es un material-item
+                        if (nodo.classList && nodo.classList.contains('material-item')) {
+                            // Solo aplicar si el usuario eligió hacerlo automáticamente
+                            if (aplicarCentroCostoAutomaticamente) {
+                                const centroCostoCabecera = document.querySelector('select[name="id_centro_costo"]');
+                                if (centroCostoCabecera && centroCostoCabecera.value) {
+                                    const selectCentros = nodo.querySelector('select.select2-centros-costo-detalle');
+                                    if (selectCentros && $(selectCentros).data('select2')) {
+                                        // Aplicar el centro de costo automáticamente
+                                        setTimeout(() => {
+                                            $(selectCentros).val([centroCostoCabecera.value]).trigger('change');
+                                        }, 100);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        });
+        
+        // Configurar el observador en el contenedor de materiales
+        const contenedorMateriales = document.getElementById('contenedor-materiales');
+        if (contenedorMateriales) {
+            observador.observe(contenedorMateriales, { childList: true });
+        }
+    }
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
     let contadorMateriales = 1;
     let selectTipoProducto = document.querySelector('select[name="tipo_pedido"]'); 
     let valorInicialTipoPedido = '';
