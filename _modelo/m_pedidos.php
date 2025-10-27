@@ -91,7 +91,7 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
                 $stock = ObtenerStock($id_producto, $id_almacen, $id_ubicacion);
                 $stock_disponible = floatval($stock['disponible']);
 
-                if ($stock_disponible > 0) {
+                /*if ($stock_disponible > 0) {
                     $cantidad_a_reservar = min($cantidad, $stock_disponible);
 
                     $sql_insert_mov = "INSERT INTO movimiento (
@@ -104,7 +104,7 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
                                             '$cantidad_a_reservar', NOW(), 1
                                         )";
                     mysqli_query($con, $sql_insert_mov);
-                }
+                }*/
                 
                 // Guardar archivos si existen
                 if (isset($archivos_subidos[$index]) && !empty($archivos_subidos[$index]['name'][0])) {
@@ -215,6 +215,7 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
                 COALESCE(obp.nom_subestacion, oba.nom_subestacion, 'N/A') AS nom_obra,
                 COALESCE(c.nom_cliente, 'N/A') AS nom_cliente,
                 COALESCE(pr.nom_personal, 'Sin asignar') AS nom_personal,
+                COALESCE(per2.nom_personal, '-') AS nom_aprobado_tecnica,
                 COALESCE(a.nom_almacen, 'N/A') AS nom_almacen,
                 COALESCE(u.nom_ubicacion, 'N/A') AS nom_ubicacion,
                 COALESCE(pt.nom_producto_tipo, 'N/A') AS nom_producto_tipo,
@@ -243,6 +244,8 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
                 ON p.id_ubicacion = u.id_ubicacion AND u.est_ubicacion = 1
             LEFT JOIN {$bd_complemento}.personal pr 
                 ON p.id_personal = pr.id_personal AND pr.act_personal = 1
+            LEFT JOIN {$bd_complemento}.personal per2 
+                ON p.id_personal_aprueba_tecnica = per2.id_personal
             LEFT JOIN {$bd_complemento}.area ar 
                 ON pr.id_area = ar.id_area AND ar.act_area = 1
             LEFT JOIN producto_tipo pt 
@@ -2338,4 +2341,46 @@ function ObtenerCantidadPendienteOrdenarServicio($id_pedido, $id_producto) {
     
     $cantidad_pendiente = $cant_original - $cant_ordenada;
     return max(0, $cantidad_pendiente);
+}
+
+function AprobarPedidoTecnica($id_pedido, $id_personal)
+{
+    include("../_conexion/conexion.php");
+
+    //  AGREGAR {$bd_complemento} 
+    $sql_validar = "SELECT id_personal FROM {$bd_complemento}.personal WHERE id_personal = '$id_personal'";
+    $res_validar = mysqli_query($con, $sql_validar);
+    
+    if (!$res_validar || mysqli_num_rows($res_validar) == 0) {
+        mysqli_close($con);
+        error_log("Error: id_personal $id_personal no existe en la tabla personal");
+        return false;
+    }
+
+    $sql_check = "SELECT p.est_pedido, p.id_personal_aprueba_tecnica
+                  FROM pedido p 
+                  WHERE p.id_pedido = '$id_pedido'";
+    $res_check = mysqli_query($con, $sql_check);
+    $row = mysqli_fetch_array($res_check, MYSQLI_ASSOC);
+
+    // 🔸 Validar existencia y estados no válidos
+    if (!$row || $row['est_pedido'] == 0 || $row['est_pedido'] == 5) {
+        mysqli_close($con);
+        return false;
+    }
+
+    // 🔸 Evitar aprobar si ya fue aprobado antes
+    if (!empty($row['id_personal_aprueba_tecnica'])) {
+        mysqli_close($con);
+        return false;
+    }
+
+    // 🔸 Registrar aprobación técnica
+    $sql_update = "UPDATE pedido 
+                   SET id_personal_aprueba_tecnica = '$id_personal'
+                   WHERE id_pedido = '$id_pedido'";
+    $res_update = mysqli_query($con, $sql_update);
+
+    mysqli_close($con);
+    return $res_update;
 }

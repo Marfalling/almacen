@@ -115,12 +115,12 @@
                                                 <td><strong>Registrado Por:</strong></td>
                                                 <td><?php echo $detalle_ingreso['compra']['registrado_por'] ?? 'No especificado'; ?></td>
                                             </tr>
-                                            <tr>
+                                            <!--<tr>
                                                 <td><strong>Aprobación Técnica Por:</strong></td>
                                                 <td>
                                                     <?php echo $detalle_ingreso['compra']['aprobado_tecnica_por'] ?? 'Pendiente'; ?>
                                                 </td>
-                                            </tr>
+                                            </tr> -->
                                             <tr>
                                                 <td><strong>Aprobación Financiera Por:</strong></td>
                                                 <td>

@@ -14,7 +14,7 @@ function MostrarCompras()
             LEFT JOIN pedido pe ON c.id_pedido = pe.id_pedido
             LEFT JOIN proveedor p ON c.id_proveedor = p.id_proveedor 
             LEFT JOIN {$bd_complemento}.personal per1 ON c.id_personal = per1.id_personal
-            LEFT JOIN {$bd_complemento}.personal per2 ON c.id_personal_aprueba_tecnica = per2.id_personal
+            /*LEFT JOIN {$bd_complemento}.personal per2 ON c.id_personal_aprueba_tecnica = per2.id_personal*/
             LEFT JOIN {$bd_complemento}.personal per3 ON c.id_personal_aprueba_financiera = per3.id_personal
             ORDER BY c.id_compra DESC";
 
@@ -45,13 +45,13 @@ function MostrarComprasFecha($fecha_inicio = null, $fecha_fin = null)
                 pe.cod_pedido,
                 p.nom_proveedor,
                 per1.nom_personal AS nom_registrado,
-                COALESCE(per2.nom_personal, '-') AS nom_aprobado_tecnica,
+                /*COALESCE(per2.nom_personal, '-') AS nom_aprobado_tecnica,*/
                 COALESCE(per3.nom_personal, '-') AS nom_aprobado_financiera
             FROM compra c
             LEFT JOIN pedido pe ON c.id_pedido = pe.id_pedido
             LEFT JOIN proveedor p ON c.id_proveedor = p.id_proveedor 
             LEFT JOIN {$bd_complemento}.personal per1 ON c.id_personal = per1.id_personal
-            LEFT JOIN {$bd_complemento}.personal per2 ON c.id_personal_aprueba_tecnica = per2.id_personal
+            /*LEFT JOIN {$bd_complemento}.personal per2 ON c.id_personal_aprueba_tecnica = per2.id_personal*/
             LEFT JOIN {$bd_complemento}.personal per3 ON c.id_personal_aprueba_financiera = per3.id_personal
             $where
             ORDER BY c.id_compra DESC";
@@ -136,7 +136,7 @@ function AprobarCompraTecnica($id_compra, $id_personal)
         return false;
     }
 
-    $sql_check = "SELECT c.est_compra, c.id_pedido, c.id_personal_aprueba_tecnica, c.id_personal_aprueba_financiera 
+    $sql_check = "SELECT c.est_compra, c.id_pedido, c.id_personal_aprueba_tecnica
                   FROM compra c 
                   WHERE c.id_compra = '$id_compra'";
     $res_check = mysqli_query($con, $sql_check);
@@ -158,10 +158,10 @@ function AprobarCompraTecnica($id_compra, $id_personal)
     $res_update = mysqli_query($con, $sql_update);
 
     if ($res_update) {
-        if (!empty($row['id_personal_aprueba_financiera'])) {
+        /*if (!empty($row['id_personal_aprueba_financiera'])) {*/
             mysqli_query($con, "UPDATE compra SET est_compra = 2 WHERE id_compra = '$id_compra'");
             verificarYCompletarPedido($row['id_pedido'], $con);
-        }
+        /*}*/
     }
 
     mysqli_close($con);
@@ -182,7 +182,7 @@ function AprobarCompraFinanciera($id_compra, $id_personal)
         return false;
     }
 
-    $sql_check = "SELECT c.est_compra, c.id_pedido, c.id_personal_aprueba_tecnica, c.id_personal_aprueba_financiera 
+    $sql_check = "SELECT c.est_compra, c.id_pedido, c.id_personal_aprueba_financiera 
                   FROM compra c 
                   WHERE c.id_compra = '$id_compra'";
     $res_check = mysqli_query($con, $sql_check);
@@ -204,10 +204,8 @@ function AprobarCompraFinanciera($id_compra, $id_personal)
     $res_update = mysqli_query($con, $sql_update);
 
     if ($res_update) {
-        if (!empty($row['id_personal_aprueba_tecnica'])) {
-            mysqli_query($con, "UPDATE compra SET est_compra = 2 WHERE id_compra = '$id_compra'");
-            verificarYCompletarPedido($row['id_pedido'], $con);
-        }
+        mysqli_query($con, "UPDATE compra SET est_compra = 2 WHERE id_compra = '$id_compra'");
+        verificarYCompletarPedido($row['id_pedido'], $con);
     }
 
     mysqli_close($con);
@@ -284,7 +282,7 @@ function ConsultarCompraPorId($id_compra)
                     ELSE 'S/.'
                 END as sim_moneda,
                 per.nom_personal,
-                per_tec.nom_personal AS nom_aprobado_tecnica,
+                /*per_tec.nom_personal AS nom_aprobado_tecnica,*/
                 per_fin.nom_personal AS nom_aprobado_financiera,
                 COALESCE(obp.nom_subestacion, oba.nom_subestacion, 'N/A') AS nom_obra,
                 COALESCE(cli.nom_cliente, 'N/A') AS nom_cliente,
@@ -306,7 +304,7 @@ function ConsultarCompraPorId($id_compra)
             INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor
             INNER JOIN moneda m ON c.id_moneda = m.id_moneda
             LEFT JOIN {$bd_complemento}.personal per ON c.id_personal = per.id_personal
-            LEFT JOIN {$bd_complemento}.personal per_tec ON c.id_personal_aprueba_tecnica = per_tec.id_personal
+            /*LEFT JOIN {$bd_complemento}.personal per_tec ON c.id_personal_aprueba_tecnica = per_tec.id_personal*/
             LEFT JOIN {$bd_complemento}.personal per_fin ON c.id_personal_aprueba_financiera = per_fin.id_personal
             LEFT JOIN pedido ped ON c.id_pedido = ped.id_pedido
             LEFT JOIN {$bd_complemento}.subestacion obp 
@@ -349,7 +347,7 @@ function ConsultarCompra($id_pedido)
                 p.ruc_proveedor,
                 m.nom_moneda,
                 per.nom_personal,
-                per_tec.nom_personal AS nom_aprobado_tecnica,
+                /*per_tec.nom_personal AS nom_aprobado_tecnica,*/
                 per_fin.nom_personal AS nom_aprobado_financiera,
                 COALESCE(obp.nom_subestacion, oba.nom_subestacion, 'N/A') AS nom_obra,
                 COALESCE(cli.nom_cliente, 'N/A') AS nom_cliente,
@@ -365,7 +363,7 @@ function ConsultarCompra($id_pedido)
             INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor
             INNER JOIN moneda m ON c.id_moneda = m.id_moneda
             LEFT JOIN {$bd_complemento}.personal per ON c.id_personal = per.id_personal
-            LEFT JOIN {$bd_complemento}.personal per_tec ON c.id_personal_aprueba_tecnica = per_tec.id_personal
+            /*LEFT JOIN {$bd_complemento}.personal per_tec ON c.id_personal_aprueba_tecnica = per_tec.id_personal*/
             LEFT JOIN {$bd_complemento}.personal per_fin ON c.id_personal_aprueba_financiera = per_fin.id_personal
             LEFT JOIN pedido ped ON c.id_pedido = ped.id_pedido
             LEFT JOIN {$bd_complemento}.subestacion obp 

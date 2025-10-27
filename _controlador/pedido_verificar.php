@@ -107,7 +107,7 @@ if (isset($_REQUEST['verificar_item'])) {
                         }
 
                         //  Registrar movimiento si hay algo que reservar
-                        if ($cantidad_reservar > 0) {
+                       /* if ($cantidad_reservar > 0) {
                             RegistrarMovimientoPedido(
                                 $id_pedido_real,
                                 $id_producto,
@@ -115,7 +115,7 @@ if (isset($_REQUEST['verificar_item'])) {
                                 $id_ubicacion,
                                 $cantidad_reservar
                             );
-                        }
+                        }*/
                         // ===============================================================
                         //  Verificación exitosa
                         header("Location: pedido_verificar.php?id=$id_pedido_real&success=verificado");

@@ -115,7 +115,7 @@ try {
                 $resultados_exitosos++;
                 //Comprometer stock que ingresa sea parcial o total del pedido
                 //Y actualizar estado de pedido a INGRESADO si se ingresó el total
-                ActualizarCompromisoPedido($id_compra, $id_producto, $cantidad, $id_personal);
+                //ActualizarCompromisoPedido($id_compra, $id_producto, $cantidad, $id_personal);
             } else {
                 $errores[] = "Producto ID $id_producto: " . ($resultado['message'] ?? 'Error desconocido');
             }
@@ -123,7 +123,7 @@ try {
     }
 
     // Actualizar estado del pedido si hubo ingresos exitosos
-    /*if ($resultados_exitosos > 0 && $id_compra) {
+    if ($resultados_exitosos > 0 && $id_compra) {
         include("../_conexion/conexion.php");
         
         $sql_pedido = "SELECT p.id_pedido, p.est_pedido 
@@ -144,7 +144,7 @@ try {
         }
         
         mysqli_close($con);
-    }*/
+    }
 
     // Preparar respuesta
     if ($resultados_exitosos == $total_productos && $total_productos > 0) {

@@ -6,7 +6,7 @@
 
 <script>
 // Aprobar por el área técnica
-function AprobarCompraTecnica(id_compra) {
+/*function AprobarCompraTecnica(id_compra) {
     Swal.fire({
         title: '¿Deseas aprobar técnicamente esta compra?',
         text: "Esta acción no se puede deshacer.",
@@ -37,7 +37,7 @@ function AprobarCompraTecnica(id_compra) {
             });
         }
     });
-}
+}*/
 
 // Aprobar por el área financiera
 function AprobarCompraFinanciera(id_compra) {
@@ -294,7 +294,7 @@ function EliminarDocumento(id_doc) {
                                                 <th>Fecha Registro</th>
                                                 <th>Tipo Pago</th>
                                                 <th>Registrado Por</th>
-                                                <th>Aprob. Técnica Por</th>
+                                                <!--<th>Aprob. Técnica Por</th>-->
                                                 <th>Aprob. Financiera Por</th>
                                                 <th>Estado</th>
                                                 <th>Docs</th>
@@ -364,7 +364,7 @@ function EliminarDocumento(id_doc) {
                                                     </td>
                                                     
                                                     <td><?php echo $compra['nom_registrado']; ?></td>
-                                                    <td>
+                                                    <!--<td>
                                                         <?php 
                                                         if ($tiene_tecnica) {
                                                             echo $compra['nom_aprobado_tecnica'];
@@ -372,7 +372,7 @@ function EliminarDocumento(id_doc) {
                                                             echo '-';
                                                         }
                                                         ?>
-                                                    </td>
+                                                    </td>-->
                                                     <td>
                                                         <?php 
                                                         if ($tiene_financiera) {
@@ -425,8 +425,9 @@ function EliminarDocumento(id_doc) {
                                                         <div class="d-flex flex-wrap gap-2">
                                                             <?php 
                                                             // Verificar si tiene aprobaciones
-                                                            $tiene_aprobacion = !empty($compra['id_personal_aprueba_tecnica']) || !empty($compra['id_personal_aprueba_financiera']);
-                                                            
+                                                            //$tiene_aprobacion = !empty($compra['id_personal_aprueba_tecnica']) || !empty($compra['id_personal_aprueba_financiera']);
+                                                            $tiene_aprobacion = !empty($compra['id_personal_aprueba_financiera']);
+
                                                                 ?>
                                                                 <button class="btn btn-info btn-sm btn-ver-detalle-compra" 
                                                                         title="Ver Detalles de la Orden"
@@ -439,7 +440,7 @@ function EliminarDocumento(id_doc) {
                                                                 if ($compra['est_compra'] == 1) { 
                                                                 ?>
                                                                 <!-- Compra PENDIENTE: botones habilitados según aprobaciones -->
-                                                                <a href="#"
+                                                                <!--<a href="#"
                                                                 <?php if ($tiene_tecnica) { ?>
                                                                     class="btn btn-outline-secondary btn-sm disabled"
                                                                     title="Ya aprobado técnica"
@@ -450,7 +451,7 @@ function EliminarDocumento(id_doc) {
                                                                     title="Aprobar Técnica"
                                                                 <?php } ?>>
                                                                     <i class="fa fa-check"></i>
-                                                                </a>
+                                                                </a>-->
 
                                                                 <a href="#"
                                                                 <?php if ($tiene_financiera) { ?>
@@ -508,7 +509,7 @@ function EliminarDocumento(id_doc) {
                                                                 <?php } ?>
 
                                                                 <!-- Botón Pagos -->
-                                                                <?php if ($tiene_tecnica && $tiene_financiera) { ?>
+                                                                <?php if ($tiene_financiera) { ?>
                                                                     <a href="pago_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
                                                                     class="btn btn-warning btn-sm"
                                                                     title="Registrar/Ver Pagos">
@@ -517,16 +518,16 @@ function EliminarDocumento(id_doc) {
                                                                 <?php } else { ?>
                                                                     <a href="#"
                                                                     class="btn btn-outline-secondary btn-sm disabled"
-                                                                    title="Requiere aprobación técnica y financiera"
+                                                                    title="Requiere aprobación financiera"
                                                                     tabindex="-1" aria-disabled="true">
                                                                         <i class="fa fa-money"></i>
                                                                     </a>
                                                                 <?php } ?>
                                                             <?php } else { ?>
                                                                 <!-- Compra NO pendiente (anulada, aprobada o pagada): todos deshabilitados -->
-                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Aprobar Técnica" tabindex="-1" aria-disabled="true">
+                                                                <!--<a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Aprobar Técnica" tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-check"></i>
-                                                                </a>
+                                                                </a>-->
                                                                 <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Aprobar Financiera" tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-check"></i>
                                                                 </a>

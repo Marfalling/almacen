@@ -5,6 +5,40 @@
 // Estados correctos: 0=Anulado, 1=Pendiente, 2=Completado, 3=Aprobado, 4=Ingresado, 5=Finalizado
 
 ?>
+<script>
+function AprobarPedidoTecnica(id_pedido) {
+    Swal.fire({
+        title: '¿Deseas aprobar técnicamente este pedido?',
+        text: "Esta acción no se puede deshacer.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, aprobar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: 'pedidos_aprobar_tecnica.php',
+                type: 'POST',
+                data: { id_pedido: id_pedido },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.tipo_mensaje === 'success') {
+                        Swal.fire('¡Aprobado!', response.mensaje, 'success')
+                        .then(() => { location.reload(); });
+                    } else {
+                        Swal.fire('Error', response.mensaje, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+                }
+            });
+        }
+    });
+}
+</script>
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -70,6 +104,7 @@
                                                 <th>Solicitante</th>
                                                 <th>Fecha Pedido</th>
                                                 <th>Fecha Necesidad</th>
+                                                <th>Aprob. Técnica Por</th>
                                                 <th>Estado</th>
                                                 <th>Acciones</th>
                                             </tr>
@@ -79,6 +114,7 @@
                                             <?php 
                                             $contador = 1;
                                             foreach($pedidos as $pedido) { 
+                                                $tiene_tecnica = !empty($pedido['id_personal_aprueba_tecnica']);
                                             ?>
                                                 <tr>
                                                     <td><?php echo $contador; ?></td>
@@ -91,6 +127,15 @@
                                                     <td><?php echo $pedido['nom_personal']; ?></td>
                                                     <td><?php echo date('d/m/Y H:i', strtotime($pedido['fec_pedido'])); ?></td>
                                                     <td><?php echo date('d/m/Y', strtotime($pedido['fec_req_pedido'])); ?></td>
+                                                    <td>
+                                                        <?php 
+                                                        if ($tiene_tecnica) {
+                                                            echo $pedido['nom_aprobado_tecnica'];
+                                                        } else {
+                                                            echo '-';
+                                                        }
+                                                        ?>
+                                                    </td>
                                                     <td>
                                                         <center>
                                                             <?php 
@@ -125,9 +170,22 @@
                 title="Ver Detalle">
             <i class="fa fa-eye"></i>
         </button>
-
+    
+    <a href="#"
+        <?php if ($tiene_tecnica) { ?>
+            class="btn btn-outline-secondary btn-sm disabled"
+            title="Ya aprobado técnica"
+            tabindex="-1" aria-disabled="true"
+        <?php } else { ?>
+            onclick="AprobarPedidoTecnica(<?php echo $pedido['id_pedido']; ?>)"
+            class="btn btn-success btn-sm"
+            title="Aprobar Técnica"
+        <?php } ?>>
+            <i class="fa fa-check"></i>
+    </a>
 <?php
 $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
+
 
 //  BOTÓN EDITAR PEDIDO - LÓGICA CORREGIDA
 // Solo se puede editar si:
@@ -188,9 +246,8 @@ if ($puede_editar) { ?>
         $tiene_orden_editable = false;
         if ($tiene_ordenes) {
             foreach ($ordenes as $orden) {
-                $sin_aprobacion_tecnica = empty($orden['id_personal_aprueba_tecnica']);
                 $sin_aprobacion_financiera = empty($orden['id_personal_aprueba_financiera']);
-                if ($orden['est_compra'] == 1 && $sin_aprobacion_tecnica && $sin_aprobacion_financiera) {
+                if ($orden['est_compra'] == 1 && $sin_aprobacion_financiera) {
                     $tiene_orden_editable = true;
                     break;
                 }
@@ -250,11 +307,28 @@ $puede_gestionar = (
 
 
 if ($puede_gestionar) { ?>
-    <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+    <!-- 🔹 Botón para gestionar pedido -->
+    <?php if ($tiene_tecnica) { ?>
+        <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+           class="btn btn-success btn-sm" 
+           title="Gestionar pedido">
+            <i class="fa fa fa-check"></i>
+        </a>
+    <?php } else { ?>
+        <span title="Requiere aprobación técnica">
+        <a href="#"
+           class="btn btn-outline-secondary btn-sm disabled"
+           title="Requiere aprobación técnica"
+           tabindex="-1" aria-disabled="true">
+            <i class="fa fa fa-check"></i>
+        </a>
+        </span>
+    <?php } ?>
+    <!--<a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
        class="btn btn-success btn-sm" 
        title="Gestionar pedido">
         <i class="fa fa-check"></i>
-    </a>
+    </a>-->
 <?php } else {
     $titulo_verificar = '';
     

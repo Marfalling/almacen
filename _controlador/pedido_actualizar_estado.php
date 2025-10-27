@@ -68,7 +68,7 @@ if ($accion === 'completar_automatico') {
                 $cantidad_reservar = 0;
             }
 
-            if ($cantidad_reservar > 0) {
+            /*if ($cantidad_reservar > 0) {
                 RegistrarMovimientoPedido(
                     $id_pedido,
                     $id_producto,
@@ -77,7 +77,7 @@ if ($accion === 'completar_automatico') {
                     $cantidad_reservar
                 );
                 
-            }
+            }*/
         }
         echo json_encode([
             'success' => true,
