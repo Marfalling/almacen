@@ -42,13 +42,20 @@
 
                                     <div class="ln_solid"></div>
 
+                                    <!-- Botones -->
                                     <div class="form-group">
-                                        <div class="col-md-2 col-sm-2 offset-md-10">
+                                        <div class="col-md-2 col-sm-2 offset-md-8">
+                                            <a href="obras_mostrar.php" class="btn btn-outline-danger btn-block">
+                                                Cancelar
+                                            </a>
+                                        </div>
+                                        <div class="col-md-2 col-sm-2">
                                             <button type="submit" name="registrar" class="btn btn-success btn-block actualizar-btn">
                                             Actualizar
                                             </button>
                                         </div>
                                     </div>
+
                                     <div class="form-group">
                                         <div class="col-md-12 col-sm-12">
                                             <p><span class="text-danger">*</span> Los campos con (<span class="text-danger">*</span>) son obligatorios.</p>
@@ -65,19 +72,3 @@
             </div>
     </div>
 </div>
-
-<!-- ====== ESTILOS DEL BOTÓN ====== -->
-<style>
-/* Botón Actualizar - consistencia con Editar Personal */
-.actualizar-btn {
-    background-color: #26B99A;
-    border-color: #26B99A;
-    font-weight: bold;
-    font-size: 13px;
-}
-
-.actualizar-btn:hover {
-    background-color: #1e9e83;
-    border-color: #1e9e83;
-}
-</style>

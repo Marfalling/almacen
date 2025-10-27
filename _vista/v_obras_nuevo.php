@@ -46,9 +46,15 @@
                                     </div>
 
                                     <div class="ln_solid"></div>
+
                                     <div class="form-group">
-                                        <div class="col-md-2 col-sm-2 offset-md-10">
-                                            <button type="submit" name="registrar" class="btn btn-success btn-block">Registrar</button>
+                                        <div class="col-md-2 col-sm-2 offset-md-8">
+                                            <a href="obras_mostrar.php" class="btn btn-outline-danger btn-block">
+                                                Cancelar
+                                            </a>
+                                        </div>
+                                        <div class="col-md-2 col-sm-2">
+                                            <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">Registrar</button>
                                         </div>
                                     </div>
 

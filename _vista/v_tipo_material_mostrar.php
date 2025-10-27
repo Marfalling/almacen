@@ -3,7 +3,7 @@
     <div class="">
         <div class="page-title">
             <div class="title_left">
-                <h3>Material<small></small></h3>
+                <h3>Tipo de Material<small></small></h3>
             </div>
         </div>
 

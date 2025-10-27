@@ -3,7 +3,7 @@
     <div class="">
         <div class="page-title">
             <div class="title_left">
-                <h3>Producto<small></small></h3>
+                <h3>Tipo de Producto<small></small></h3>
             </div>
         </div>
 

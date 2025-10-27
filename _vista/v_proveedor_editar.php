@@ -69,7 +69,18 @@
                             <label><input type="checkbox" name="est" class="js-switch" <?php echo $est; ?>> Activo</label><br><br>
 
                             <!-- Botones -->
-                            <button type="submit" name="registrar" class="btn btn-warning">Actualizar</button>
+                            <div class="form-group">
+                                <div class="col-md-2 col-sm-2 offset-md-8">
+                                    <a href="proveedor_mostrar.php" class="btn btn-outline-danger btn-block">
+                                        Cancelar
+                                    </a>
+                                </div>
+                                <div class="col-md-2 col-sm-2">
+                                    <button type="submit" name="registrar" class="btn btn-success btn-block actualizar-btn">
+                                     Actualizar
+                                    </button>
+                                </div>
+                            </div>
 
                             <!-- Campo oculto -->
                             <input type="hidden" name="id_proveedor" value="<?php echo $id_proveedor; ?>">

@@ -88,7 +88,7 @@
                             <!-- Botones -->
                             <div class="form-group">
                                 <div class="col-md-2 col-sm-2 offset-md-8">
-                                    <a href="detraccion_mostrar.php" class="btn btn-outline-secondary btn-block">
+                                    <a href="detraccion_mostrar.php" class="btn btn-outline-danger btn-block">
                                         Cancelar
                                     </a>
                                 </div>

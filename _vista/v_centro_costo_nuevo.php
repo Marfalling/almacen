@@ -46,9 +46,7 @@
                                     </a>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
-                                    <button type="submit" name="registrar" class="btn btn-success btn-block actualizar-btn">
-                                        Guardar
-                                    </button>
+                                    <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">Registrar</button>
                                 </div>
                             </div>
 
@@ -67,33 +65,8 @@
 </div>
 <!-- /page content -->
 
-<!-- ====== ESTILOS DEL BOTÓN ====== -->
-<style>
-/* Botón Guardar - consistencia con Editar Personal y Cliente */
-.actualizar-btn {
-    background-color: #26B99A;
-    border-color: #26B99A;
-    font-weight: bold;
-    font-size: 13px;
-}
 
-.actualizar-btn:hover {
-    background-color: #1e9e83;
-    border-color: #1e9e83;
-}
 
-/* Botón Cancelar - outline-danger */
-.btn-outline-danger {
-    border: 1px solid #d9534f;
-    color: #d9534f;
-    font-weight: bold;
-}
-
-.btn-outline-danger:hover {
-    background-color: #f2dede;
-    border-color: #d43f3a;
-}
-</style>
 
 
 

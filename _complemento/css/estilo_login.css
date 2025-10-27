@@ -564,3 +564,18 @@ select:focus ~ .highlight {
 td {
     vertical-align: middle;
 }
+
+/*  ESTILOS DEL BOTÓN */
+/* Botón Actualizar*/
+.actualizar-btn {
+    background-color: #26B99A;
+    border-color: #26B99A;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+.actualizar-btn:hover {
+    background-color: #1e9e83;
+    border-color: #1e9e83;
+}
+

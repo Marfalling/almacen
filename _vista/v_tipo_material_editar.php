@@ -44,9 +44,17 @@
 
                             <div class="ln_solid"></div>
 
+                            <!-- Botones -->
                             <div class="form-group">
-                                <div class="col-md-2 col-sm-2 offset-md-10">
-                                    <button type="submit" name="registrar" class="btn btn-warning btn-block">Actualizar</button>
+                                <div class="col-md-2 col-sm-2 offset-md-8">
+                                    <a href="tipo_material_mostrar.php" class="btn btn-outline-danger btn-block">
+                                        Cancelar
+                                    </a>
+                                </div>
+                                <div class="col-md-2 col-sm-2">
+                                    <button type="submit" name="registrar" class="btn btn-success btn-block actualizar-btn">
+                                     Actualizar
+                                    </button>
                                 </div>
                             </div>
 

@@ -52,7 +52,7 @@
 
                             <div class="ln_solid"></div>
 
-                            <!-- Botones Cancelar y Actualizar alineados -->
+                            <!-- Botones -->
                             <div class="form-group">
                                 <div class="col-md-2 col-sm-2 offset-md-8">
                                     <a href="centro_costo_mostrar.php" class="btn btn-outline-danger btn-block">
@@ -81,30 +81,4 @@
 </div>
 <!-- /page content -->
 
-<!-- ====== ESTILOS DEL BOTÓN ====== -->
-<style>
-/* Botón Actualizar - consistencia con Editar Personal y Cliente */
-.actualizar-btn {
-    background-color: #26B99A;
-    border-color: #26B99A;
-    font-weight: bold;
-    font-size: 13px;
-}
 
-.actualizar-btn:hover {
-    background-color: #1e9e83;
-    border-color: #1e9e83;
-}
-
-/* Botón Cancelar - outline-danger */
-.btn-outline-danger {
-    border: 1px solid #d9534f;
-    color: #d9534f;
-    font-weight: bold;
-}
-
-.btn-outline-danger:hover {
-    background-color: #f2dede;
-    border-color: #d43f3a;
-}
-</style>
