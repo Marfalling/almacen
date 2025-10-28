@@ -298,7 +298,39 @@ $(document).ready(function () {
   });
 });
 </script>
+<!-- Personal Múltiple en Detalle de Pedidos -->
+<script>
+$(document).ready(function () {
+  // Función para inicializar Select2 múltiple en personal del detalle
+  function initPersonalDetalle($scope) {
+    $scope.find('select.select2-personal-detalle').each(function () {
+      if (!$(this).data('select2')) {
+        $(this).select2({
+          placeholder: 'Seleccionar personal...',
+          allowClear: true,
+          width: '100%',
+          minimumInputLength: 0,
+          language: {
+            noResults: function () { return 'No se encontraron resultados'; },
+            searching: function () { return 'Buscando...'; }
+          }
+        });
+      }
+    });
+  }
 
+  // Inicializar personal en los materiales existentes al cargar la página
+  initPersonalDetalle($(document));
+
+  // Al agregar nuevo material
+  $(document).on('click', '#agregar-material', function () {
+    setTimeout(function () {
+      const $nuevoItem = $('#contenedor-materiales .material-item').last();
+      initPersonalDetalle($nuevoItem);
+    }, 100);
+  });
+});
+</script>
 <!--  (v_salidas_nuevo): Tipo de material + Origen/Destino -->
 <script>
 $(document).ready(function () {

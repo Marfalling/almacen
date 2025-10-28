@@ -16,7 +16,6 @@ if (!$id_compra) {
 include("../_conexion/conexion.php");
 
 $sql_check = "SELECT 
-                id_personal_aprueba_tecnica,
                 id_personal_aprueba_financiera
               FROM compra 
               WHERE id_compra = ?";
@@ -28,9 +27,7 @@ $result_check = $stmt_check->get_result();
 $compra_check = $result_check->fetch_assoc();
 $stmt_check->close();
 
-if (!empty($compra_check['id_personal_aprueba_tecnica']) || 
-    !empty($compra_check['id_personal_aprueba_financiera'])) {
-    mysqli_close($con);
+if (!empty($compra_check['id_personal_aprueba_financiera'])) {
     echo json_encode([
         'success' => false, 
         'message' => 'No se puede editar una orden con aprobación iniciada'
@@ -42,12 +39,11 @@ if (!empty($compra_check['id_personal_aprueba_tecnica']) ||
 $orden_data = ConsultarCompraPorId($id_compra);
 
 if (empty($orden_data)) {
-    mysqli_close($con);
     echo json_encode(['success' => false, 'message' => 'Orden no encontrada']);
     exit;
 }
 
-//  OBTENER EL TIPO DE PRODUCTO DEL PEDIDO
+// OBTENER EL TIPO DE PRODUCTO DEL PEDIDO
 $sql_tipo = "SELECT p.id_producto_tipo 
              FROM pedido p
              INNER JOIN compra c ON c.id_pedido = p.id_pedido
@@ -66,8 +62,6 @@ if ($row_tipo) {
 } else {
     $orden_data[0]['id_producto_tipo'] = 1; // Por defecto: material
 }
-
-mysqli_close($con);
 
 // Obtener detalles y otros datos
 $orden_detalle = ConsultarCompraDetalle($id_compra);

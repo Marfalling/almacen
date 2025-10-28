@@ -258,3 +258,33 @@ function BuscarPersonalPorDNI($dni)
     mysqli_close($con);
     return $row;
 }
+// Mostrar solo el personal activo
+function MostrarPersonalActivo() {
+    include("../_conexion/conexion.php");
+
+    $personal = [];
+    $sql = "SELECT 
+                p.id_personal,
+                p.nom_personal,
+                p.dni_personal,
+                p.cel_personal,
+                p.email_personal,
+                p.act_personal,
+                a.nom_area,
+                c.nom_cargo
+            FROM {$bd_complemento}.personal p
+            LEFT JOIN {$bd_complemento}.area a ON p.id_area = a.id_area
+            LEFT JOIN {$bd_complemento}.cargo c ON p.id_cargo = c.id_cargo
+            WHERE p.act_personal = 1
+            ORDER BY p.nom_personal ASC";
+
+    $res = mysqli_query($con, $sql);
+    if ($res) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $personal[] = $row;
+        }
+    }
+
+    mysqli_close($con);
+    return $personal;
+}

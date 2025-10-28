@@ -42,7 +42,8 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
             require_once("../_modelo/m_unidad_medida.php");
             require_once("../_modelo/m_tipo_material.php");
             require_once("../_modelo/m_ubicacion.php");
-            require_once("../_modelo/m_centro_costo.php"); // AGREGADO
+            require_once("../_modelo/m_centro_costo.php");
+            require_once("../_modelo/m_personal.php");
 
             // Cargar datos para el formulario
             $almacenes = MostrarAlmacenesActivos();
@@ -50,21 +51,23 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
             $unidades_medida = MostrarUnidadMedidaActiva();
             $material_tipos = MostrarMaterialTipoActivos();
             $ubicaciones = MostrarUbicacionesActivas(); 
-            $centros_costo = MostrarCentrosCostoActivos(); // AGREGADO
+            $centros_costo = MostrarCentrosCostoActivos();
+            $personal_list = MostrarPersonalActivo(); //  AGREGADO - Lista de personal activo
             
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/pedidos/")) {
                 mkdir("../_archivos/pedidos/", 0777, true);
             }
+            
             //=======================================================================
-            // CONTROLADOR CORREGIDO CON CENTROS DE COSTO MULTIPLES
+            // CONTROLADOR ACTUALIZADO CON PERSONAL
             //=======================================================================
             if (isset($_REQUEST['registrar'])) {
                 // Recibir datos del formulario
                 $id_producto_tipo = intval($_REQUEST['tipo_pedido']);
                 $id_almacen = intval($_REQUEST['id_obra']);
                 $id_ubicacion = intval($_REQUEST['id_ubicacion']);
-                $id_centro_costo = intval($_REQUEST['id_centro_costo']); // Centro de costo de cabecera
+                $id_centro_costo = intval($_REQUEST['id_centro_costo']);
                 $nom_pedido = strtoupper($_REQUEST['nom_pedido']);
                 $solicitante = strtoupper($_REQUEST['solicitante']);
                 $fecha_necesidad = $_REQUEST['fecha_necesidad'];
@@ -73,7 +76,7 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                 $lugar_entrega = strtoupper($_REQUEST['lugar_entrega']);
                 $aclaraciones = strtoupper($_REQUEST['aclaraciones']);
                 
-                //  Procesar materiales con centros de costo multiples independientes
+                //  Procesar materiales con centros de costo Y PERSONAL
                 $materiales = array();
                 $errores_validacion = array();
                 
@@ -83,35 +86,53 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                         $sst_descripcion = trim($_REQUEST['sst'][$i]);
                         $ot_detalle = isset($_REQUEST['ot_detalle'][$i]) ? trim($_REQUEST['ot_detalle'][$i]) : '';
                         
-                        //  Procesar centros de costo múltiples para este material
+                        // Procesar centros de costo múltiples
                         $centros_costo_material = array();
                         
-                        // Select2 múltiple envía los datos de diferentes formas según el navegador
                         if (isset($_REQUEST['centros_costo'])) {
-                            // Puede venir como array si es PHP >= 7.4 o como string separado por comas
                             if (is_array($_REQUEST['centros_costo'])) {
-                                // Si viene como array directo
                                 if (isset($_REQUEST['centros_costo'][$i])) {
                                     $centros_value = $_REQUEST['centros_costo'][$i];
                                     
                                     if (is_array($centros_value)) {
-                                        // Ya es array
                                         $centros_costo_material = $centros_value;
                                     } else if (is_string($centros_value) && !empty($centros_value)) {
-                                        // String separado por comas
                                         $centros_costo_material = explode(',', $centros_value);
                                     }
                                 }
                             }
                         }
                         
-                        // Limpiar y validar IDs
+                        // Limpiar y validar IDs de centros de costo
                         $centros_costo_material = array_map('intval', $centros_costo_material);
                         $centros_costo_material = array_filter($centros_costo_material, function($id) {
                             return $id > 0;
                         });
                         $centros_costo_material = array_unique($centros_costo_material);
                         
+                        //  NUEVO: Procesar personal asignado
+                        $personal_material = array();
+                        
+                        if (isset($_REQUEST['personal_ids'])) {
+                            if (is_array($_REQUEST['personal_ids'])) {
+                                if (isset($_REQUEST['personal_ids'][$i])) {
+                                    $personal_value = $_REQUEST['personal_ids'][$i];
+                                    
+                                    if (is_array($personal_value)) {
+                                        $personal_material = $personal_value;
+                                    } else if (is_string($personal_value) && !empty($personal_value)) {
+                                        $personal_material = explode(',', $personal_value);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Limpiar y validar IDs de personal
+                        $personal_material = array_map('intval', $personal_material);
+                        $personal_material = array_filter($personal_material, function($id) {
+                            return $id > 0;
+                        });
+                        $personal_material = array_unique($personal_material);
 
                         $materiales[] = array(
                             'id_producto' => $_REQUEST['id_material'][$i],
@@ -121,7 +142,8 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                             'observaciones' => $_REQUEST['observaciones'][$i],
                             'sst_descripcion' => $sst_descripcion,
                             'ot_detalle' => $ot_detalle,
-                            'centros_costo' => $centros_costo_material  //  Array de IDs
+                            'centros_costo' => $centros_costo_material,
+                            'personal_ids' => $personal_material  
                         );
                     }
                 }
@@ -135,7 +157,7 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                     }
                 }
 
-                // LLAMADA a GrabarPedido con centros de costo
+                // LLAMADA a GrabarPedido
                 $rpta = GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo,
                                 $nom_pedido, $solicitante, $fecha_necesidad, $num_ot, 
                                 $contacto, $lugar_entrega, $aclaraciones, $id, 

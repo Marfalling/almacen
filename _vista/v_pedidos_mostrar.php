@@ -100,7 +100,6 @@ function AprobarPedidoTecnica(id_pedido) {
                                                 <th>Nombre Pedido</th>
                                                 <th>Almacén</th>
                                                 <th>Ubicación</th>
-                                                <th>Centro de Costos</th>
                                                 <th>Solicitante</th>
                                                 <th>Fecha Pedido</th>
                                                 <th>Fecha Necesidad</th>
@@ -123,7 +122,6 @@ function AprobarPedidoTecnica(id_pedido) {
                                                     <td><?php echo $pedido['nom_pedido']; ?></td>
                                                     <td><?php echo $pedido['nom_almacen']; ?></td>
                                                     <td><?php echo $pedido['nom_ubicacion']; ?></td>
-                                                    <td><?php echo $pedido['nom_centro_costo']; ?></td>
                                                     <td><?php echo $pedido['nom_personal']; ?></td>
                                                     <td><?php echo date('d/m/Y H:i', strtotime($pedido['fec_pedido'])); ?></td>
                                                     <td><?php echo date('d/m/Y', strtotime($pedido['fec_req_pedido'])); ?></td>

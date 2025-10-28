@@ -47,13 +47,18 @@ if (!$id_compra || !$proveedor || !$moneda) {
 try {
     // PASO 1: Verificar que la orden esté en estado válido para edición
     $sql_check = "SELECT c.est_compra, c.id_pedido,
-                         c.id_personal_aprueba_tecnica,
                          c.id_personal_aprueba_financiera,
                          p.id_producto_tipo
                   FROM compra c 
                   INNER JOIN pedido p ON c.id_pedido = p.id_pedido
                   WHERE c.id_compra = ?";
+    
     $stmt_check = $con->prepare($sql_check);
+    
+    if ($stmt_check === false) {
+        throw new Exception("Error en la consulta SQL: " . $con->error);
+    }
+    
     $stmt_check->bind_param("i", $id_compra);
     $stmt_check->execute();
     $result_check = $stmt_check->get_result();
@@ -64,9 +69,8 @@ try {
         throw new Exception("Orden no encontrada");
     }
 
-    // Verificar que no tenga aprobaciones
-    if (!empty($compra_check['id_personal_aprueba_tecnica']) || 
-        !empty($compra_check['id_personal_aprueba_financiera'])) {
+    // Verificar que no tenga aprobaciones (SOLO FINANCIERA)
+    if (!empty($compra_check['id_personal_aprueba_financiera'])) {
         throw new Exception("No se puede editar una orden con aprobación iniciada");
     }
 
@@ -92,6 +96,11 @@ try {
                 // Obtener producto antes de eliminar
                 $sql_get_producto = "SELECT id_producto FROM compra_detalle WHERE id_compra_detalle = ?";
                 $stmt_get = $con->prepare($sql_get_producto);
+                
+                if ($stmt_get === false) {
+                    throw new Exception("Error al obtener producto: " . $con->error);
+                }
+                
                 $stmt_get->bind_param("i", $id_detalle);
                 $stmt_get->execute();
                 $result_get = $stmt_get->get_result();
@@ -105,6 +114,11 @@ try {
                     // Eliminar el detalle
                     $sql_eliminar = "DELETE FROM compra_detalle WHERE id_compra_detalle = ? AND id_compra = ?";
                     $stmt_eliminar = $con->prepare($sql_eliminar);
+                    
+                    if ($stmt_eliminar === false) {
+                        throw new Exception("Error al eliminar detalle: " . $con->error);
+                    }
+                    
                     $stmt_eliminar->bind_param("ii", $id_detalle, $id_compra);
                     $stmt_eliminar->execute();
                     $stmt_eliminar->close();

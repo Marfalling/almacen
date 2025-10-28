@@ -48,7 +48,8 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
             $sst_descripcion = mysqli_real_escape_string($con, $material['sst_descripcion']); 
             $ot_detalle = mysqli_real_escape_string($con, $material['ot_detalle']);
             $centros_costo = isset($material['centros_costo']) ? $material['centros_costo'] : array(); // 🔴 NUEVO
-            
+            $personal_ids = isset($material['personal_ids']) ? $material['personal_ids'] : array(); // 🔴 NUEVO
+
             // Obtener el nombre de la unidad por su ID
             $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
             $resultado_unidad = mysqli_query($con, $sql_unidad);
@@ -105,6 +106,36 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
                                         )";
                     mysqli_query($con, $sql_insert_mov);
                 }*/
+
+                // Guardar personal asignado (CON VALIDACIÓN MANUAL)
+                if (!empty($personal_ids) && is_array($personal_ids)) {
+                    foreach ($personal_ids as $id_personal_item) {
+                        $id_personal_item = intval($id_personal_item);
+                        if ($id_personal_item > 0) {
+                            // VALIDAR que el personal existe en la BD complementaria
+                            $sql_check = "SELECT id_personal FROM {$bd_complemento}.personal 
+                                        WHERE id_personal = $id_personal_item 
+                                        AND act_personal = 1 
+                                        LIMIT 1";
+                            $res_check = mysqli_query($con, $sql_check);
+                            
+                            if ($res_check && mysqli_num_rows($res_check) > 0) {
+                                // Personal existe, insertar
+                                $sql_personal = "INSERT INTO pedido_detalle_personal 
+                                            (id_pedido_detalle, id_personal) 
+                                            VALUES ($id_detalle, $id_personal_item)";
+                                
+                                if (mysqli_query($con, $sql_personal)) {
+                                    error_log("Personal ID $id_personal_item asignado correctamente al detalle $id_detalle");
+                                } else {
+                                    error_log("Error al insertar personal: " . mysqli_error($con));
+                                }
+                            } else {
+                                error_log("Personal ID $id_personal_item no existe o está inactivo - NO SE INSERTÓ");
+                            }
+                        }
+                    }
+                }
                 
                 // Guardar archivos si existen
                 if (isset($archivos_subidos[$index]) && !empty($archivos_subidos[$index]['name'][0])) {
@@ -179,7 +210,7 @@ function MostrarPedidos()
             LEFT JOIN producto_tipo pt 
                 ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
             WHERE p.est_pedido IN (0, 1, 2, 3, 4, 5)
-            ORDER BY p.fec_pedido DESC";
+            ORDER BY p.fec_req_pedido DESC";
 
     $resc = mysqli_query($con, $sqlc);
 
@@ -252,7 +283,7 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
                 ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
             WHERE p.est_pedido IN (0, 1, 2, 3, 4, 5)
             $where_fecha
-            ORDER BY p.fec_pedido DESC";
+            ORDER BY p.fec_req_pedido DESC";
 
     $resc = mysqli_query($con, $sqlc);
 
@@ -488,7 +519,8 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
             $sst_descripcion = mysqli_real_escape_string($con, $material['sst_descripcion']);
             $id_detalle = isset($material['id_detalle']) ? intval($material['id_detalle']) : 0;
             $ot_detalle = mysqli_real_escape_string($con, $material['ot_detalle']);
-            $centros_costo = isset($material['centros_costo']) ? $material['centros_costo'] : array(); // 🔴 NUEVO
+            $centros_costo = isset($material['centros_costo']) ? $material['centros_costo'] : array(); 
+            $personal_ids = isset($material['personal_ids']) ? $material['personal_ids'] : array(); // NUEVO
 
             // OBTENER EL NOMBRE DE LA UNIDAD
             $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
@@ -515,26 +547,52 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
                     $id_detalle_actual = $id_detalle;
                     $detalles_utilizados[] = $id_detalle;
 
-                    // Actualizar centros de costo para este detalle
+                    // Actualizar centros de costo
                     if (!empty($centros_costo) && is_array($centros_costo)) {
-                        // Eliminar centros de costo existentes
                         $sql_eliminar_cc = "DELETE FROM pedido_detalle_centro_costo 
                                           WHERE id_pedido_detalle = $id_detalle_actual";
                         mysqli_query($con, $sql_eliminar_cc);
                         
-                        // Insertar nuevos centros de costo
                         foreach ($centros_costo as $id_centro) {
                             $id_centro = intval($id_centro);
                             if ($id_centro > 0) {
                                 $sql_cc = "INSERT INTO pedido_detalle_centro_costo 
                                           (id_pedido_detalle, id_centro_costo) 
                                           VALUES ($id_detalle_actual, $id_centro)";
+                                mysqli_query($con, $sql_cc);
+                            }
+                        }
+                    }
+                if (!empty($personal_ids) && is_array($personal_ids)) {
+                        // Eliminar personal existente
+                        $sql_eliminar_personal = "DELETE FROM pedido_detalle_personal 
+                                                WHERE id_pedido_detalle = $id_detalle_actual";
+                        mysqli_query($con, $sql_eliminar_personal);
+                        
+                        // Insertar nuevo personal (CON VALIDACIÓN)
+                        foreach ($personal_ids as $id_personal_item) {
+                            $id_personal_item = intval($id_personal_item);
+                            if ($id_personal_item > 0) {
+                                // Validar que el personal existe
+                                $sql_check = "SELECT id_personal FROM {$bd_complemento}.personal 
+                                            WHERE id_personal = $id_personal_item 
+                                            AND act_personal = 1 
+                                            LIMIT 1";
+                                $res_check = mysqli_query($con, $sql_check);
                                 
-                                if (!mysqli_query($con, $sql_cc)) {
-                                    error_log("Error al insertar centro de costo: " . mysqli_error($con));
+                                if ($res_check && mysqli_num_rows($res_check) > 0) {
+                                    $sql_personal = "INSERT INTO pedido_detalle_personal 
+                                                (id_pedido_detalle, id_personal) 
+                                                VALUES ($id_detalle_actual, $id_personal_item)";
+                                    mysqli_query($con, $sql_personal);
                                 }
                             }
                         }
+                    } else {
+                        // Si no hay personal seleccionado, eliminar todas las asignaciones
+                        $sql_eliminar_personal = "DELETE FROM pedido_detalle_personal 
+                                                WHERE id_pedido_detalle = $id_detalle_actual";
+                        mysqli_query($con, $sql_eliminar_personal);
                     }
                 }
             } else {
@@ -553,7 +611,7 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
                 if (mysqli_query($con, $sql_detalle)) {
                     $id_detalle_actual = mysqli_insert_id($con);
 
-                    //Insertar centros de costo para el nuevo detalle
+                    // Insertar centros de costo
                     if (!empty($centros_costo) && is_array($centros_costo)) {
                         foreach ($centros_costo as $id_centro) {
                             $id_centro = intval($id_centro);
@@ -561,9 +619,27 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
                                 $sql_cc = "INSERT INTO pedido_detalle_centro_costo 
                                           (id_pedido_detalle, id_centro_costo) 
                                           VALUES ($id_detalle_actual, $id_centro)";
+                                mysqli_query($con, $sql_cc);
+                            }
+                        }
+                    }
+                    
+                if (!empty($personal_ids) && is_array($personal_ids)) {
+                        foreach ($personal_ids as $id_personal_item) {
+                            $id_personal_item = intval($id_personal_item);
+                            if ($id_personal_item > 0) {
+                                // Validar que el personal existe
+                                $sql_check = "SELECT id_personal FROM {$bd_complemento}.personal 
+                                            WHERE id_personal = $id_personal_item 
+                                            AND act_personal = 1 
+                                            LIMIT 1";
+                                $res_check = mysqli_query($con, $sql_check);
                                 
-                                if (!mysqli_query($con, $sql_cc)) {
-                                    error_log("Error al insertar centro de costo: " . mysqli_error($con));
+                                if ($res_check && mysqli_num_rows($res_check) > 0) {
+                                    $sql_personal = "INSERT INTO pedido_detalle_personal 
+                                                (id_pedido_detalle, id_personal) 
+                                                VALUES ($id_detalle_actual, $id_personal_item)";
+                                    mysqli_query($con, $sql_personal);
                                 }
                             }
                         }
@@ -646,6 +722,11 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
                 $sql_eliminar_cc = "DELETE FROM pedido_detalle_centro_costo 
                                    WHERE id_pedido_detalle IN ($ids_eliminar)";
                 mysqli_query($con, $sql_eliminar_cc);
+                
+                // Eliminar personal asociado
+                $sql_eliminar_personal = "DELETE FROM pedido_detalle_personal 
+                                         WHERE id_pedido_detalle IN ($ids_eliminar)";
+                mysqli_query($con, $sql_eliminar_personal);
                 
                 // Marcar detalles como inactivos
                 $sql_eliminar = "UPDATE pedido_detalle SET est_pedido_detalle = 0 
@@ -2383,4 +2464,91 @@ function AprobarPedidoTecnica($id_pedido, $id_personal)
 
     mysqli_close($con);
     return $res_update;
+}
+/**
+ * Obtener IDs de personal asignado a un detalle de pedido
+*/
+
+
+function ObtenerPersonalDetalle($id_pedido_detalle) {
+    include("../_conexion/conexion.php");
+    
+    $personal_ids = array();
+    $sql = "SELECT id_personal 
+            FROM pedido_detalle_personal 
+            WHERE id_pedido_detalle = " . intval($id_pedido_detalle);
+    
+    $resultado = mysqli_query($con, $sql);
+    
+    while ($fila = mysqli_fetch_assoc($resultado)) {
+        $personal_ids[] = intval($fila['id_personal']);
+    }
+    
+    mysqli_close($con);
+    return $personal_ids;
+}
+
+/**
+ * Guardar personal asignado a un detalle de pedido
+ */
+function GuardarPersonalDetalle($id_pedido_detalle, $personal_ids) {
+    include("../_conexion/conexion.php");
+    
+    $id_pedido_detalle = intval($id_pedido_detalle);
+    
+    // Primero eliminar el personal existente
+    $sql_delete = "DELETE FROM pedido_detalle_personal 
+                   WHERE id_pedido_detalle = $id_pedido_detalle";
+    mysqli_query($con, $sql_delete);
+    
+    // Insertar nuevo personal
+    if (!empty($personal_ids) && is_array($personal_ids)) {
+        foreach ($personal_ids as $id_personal) {
+            $id_personal = intval($id_personal);
+            if ($id_personal > 0) {
+                $sql_insert = "INSERT INTO pedido_detalle_personal 
+                              (id_pedido_detalle, id_personal) 
+                              VALUES ($id_pedido_detalle, $id_personal)";
+                
+                if (!mysqli_query($con, $sql_insert)) {
+                    error_log("Error al insertar personal: " . mysqli_error($con));
+                }
+            }
+        }
+    }
+    
+    mysqli_close($con);
+}
+
+/**
+ * Obtener información detallada del personal asignado
+ */
+function ObtenerPersonalDetalleCompleto($id_pedido_detalle) {
+    include("../_conexion/conexion.php");
+    
+    $personal = array();
+    $sql = "SELECT 
+                p.id_personal,
+                p.nom_personal,
+                p.dni_personal,
+                p.cel_personal,
+                p.email_personal,
+                a.nom_area,
+                c.nom_cargo
+            FROM pedido_detalle_personal pdp
+            INNER JOIN {$bd_complemento}.personal p ON pdp.id_personal = p.id_personal
+            LEFT JOIN {$bd_complemento}.area a ON p.id_area = a.id_area
+            LEFT JOIN {$bd_complemento}.cargo c ON p.id_cargo = c.id_cargo
+            WHERE pdp.id_pedido_detalle = " . intval($id_pedido_detalle) . "
+            AND p.act_personal = 1
+            ORDER BY p.nom_personal ASC";
+    
+    $resultado = mysqli_query($con, $sql);
+    
+    while ($fila = mysqli_fetch_assoc($resultado)) {
+        $personal[] = $fila;
+    }
+    
+    mysqli_close($con);
+    return $personal;
 }

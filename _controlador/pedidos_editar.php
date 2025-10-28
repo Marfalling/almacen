@@ -38,15 +38,16 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
             require_once("../_modelo/m_tipo_producto.php");
             require_once("../_modelo/m_tipo_material.php");
             require_once("../_modelo/m_ubicacion.php");
-            require_once("../_modelo/m_centro_costo.php"); // AGREGADO: Modelo de centro de costo
-            
+            require_once("../_modelo/m_centro_costo.php"); 
+            require_once("../_modelo/m_personal.php"); // AGREGADO: Modelo de personal
+
             // Cargar datos necesarios para el formulario
             $unidades_medida = MostrarUnidadMedidaActiva();
             $producto_tipos = MostrarProductoTipoActivos();
             $material_tipos = MostrarMaterialTipoActivos();
             $ubicaciones = MostrarUbicacionesActivas(); 
-            $centros_costo = MostrarCentrosCostoActivos(); // AGREGADO: Cargar centros de costo
-            
+            $centros_costo = MostrarCentrosCostoActivos(); 
+            $personal_list = MostrarPersonalActivo(); //  AGREGADO - Lista de personal activo
             
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/pedidos/")) {
@@ -101,6 +102,26 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                         });
                         $centros_costo_material = array_unique($centros_costo_material);
                         
+                        $personal_material = array();
+                        
+                        if (isset($_REQUEST['personal_ids']) && is_array($_REQUEST['personal_ids'])) {
+                            if (isset($_REQUEST['personal_ids'][$i])) {
+                                $personal_value = $_REQUEST['personal_ids'][$i];
+                                
+                                if (is_array($personal_value)) {
+                                    $personal_material = $personal_value;
+                                } else if (is_string($personal_value) && !empty($personal_value)) {
+                                    $personal_material = explode(',', $personal_value);
+                                }
+                            }
+                        }
+                        
+                        // Limpiar y validar IDs de personal
+                        $personal_material = array_map('intval', $personal_material);
+                        $personal_material = array_filter($personal_material, function($id) {
+                            return $id > 0;
+                        });
+                        $personal_material = array_unique($personal_material);
 
 
                         $materiales[] = array(
@@ -112,7 +133,8 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                             'sst_descripcion' => $sst_descripcion,
                             'ot_detalle' => $ot_detalle,
                             'id_detalle' => $_REQUEST['id_detalle'][$i],
-                            'centros_costo' => $centros_costo_material  
+                            'centros_costo' => $centros_costo_material,
+                            'personal_ids' => $personal_material 
                         );
                     }
                 }
@@ -165,6 +187,9 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
 
                      // Cargar centros de costo para este detalle
                     $detalle['centros_costo'] = ObtenerCentrosCostoPorDetalle($detalle['id_pedido_detalle']);
+                     // Cargar personal asignado para este detalle                   
+                    $detalle['personal_ids'] = ObtenerPersonalDetalle($detalle['id_pedido_detalle']);
+
                 }
                 unset($detalle);
                 

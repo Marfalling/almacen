@@ -245,7 +245,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                     
                                     <!-- Dentro de cada material-item, después de la sección de observaciones -->
                                     <div class="row mt-2">
-                                        <div class="col-md-12">
+                                        <div class="col-md-6">
                                             <label>Centros de Costo para este Material <span class="text-danger">*</span>:</label>
                                             <select name="centros_costo[<?php echo $contador_material; ?>][]" class="form-control select2-centros-costo-detalle" multiple required>
                                                 <?php 
@@ -266,6 +266,24 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                             <small class="form-text text-muted">
                                                 <i class="fa fa-info-circle"></i> Seleccione uno o más centros de costo específicos para este material.
                                             </small>
+                                        </div>
+
+
+                                        <div class="col-md-6">
+                                            <label>Personal Asignado</label>
+                                            <select name="personal_ids[<?php echo $contador_material; ?>][]" class="form-control select2-personal-detalle" multiple>
+                                                <?php 
+                                                $personal_seleccionados = isset($detalle['personal_ids']) ? $detalle['personal_ids'] : array();
+                                                
+                                                foreach ($personal_list as $persona) { 
+                                                    $selected = in_array($persona['id_personal'], $personal_seleccionados) ? 'selected' : '';
+                                                ?>
+                                                    <option value="<?php echo $persona['id_personal']; ?>" <?php echo $selected; ?>>
+                                                        <?php echo $persona['nom_personal']; ?>
+                                                        <?php if (!empty($persona['nom_cargo'])) echo ' - ' . $persona['nom_cargo']; ?>
+                                                    </option>
+                                                <?php } ?>
+                                            </select>
                                         </div>
                                     </div>
 
@@ -897,9 +915,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const materialOriginal = contenedor.querySelector('.material-item');
             
             if (materialOriginal) {
-                // Guardar los valores de Select2 del material original ANTES de destruir
+
                 const valoresOriginalesSelect2 = {};
-                const selectsOriginales = materialOriginal.querySelectorAll('select[name="unidad[]"], select.select2-centros-costo-detalle');
+                const selectsOriginales = materialOriginal.querySelectorAll(
+                    'select[name="unidad[]"], select.select2-centros-costo-detalle, select.select2-personal-detalle'
+                );
                 
                 selectsOriginales.forEach((select, index) => {
                     if ($(select).data('select2')) {
@@ -917,7 +937,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Clonar el elemento
                 const nuevoMaterial = materialOriginal.cloneNode(true);
                 
-                // Reinicializar los Select2 del material ORIGINAL inmediatamente
                 selectsOriginales.forEach((select, index) => {
                     if (select.name === 'unidad[]') {
                         $(select).select2({
@@ -928,7 +947,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 noResults: function () { return 'No se encontraron resultados'; }
                             }
                         });
-                        // Restaurar valor original
                         if (valoresOriginalesSelect2[index]) {
                             $(select).val(valoresOriginalesSelect2[index]).trigger('change');
                         }
@@ -942,14 +960,27 @@ document.addEventListener('DOMContentLoaded', function() {
                                 noResults: function () { return 'No se encontraron resultados'; }
                             }
                         });
-                        // Restaurar valor original
+                        if (valoresOriginalesSelect2[index]) {
+                            $(select).val(valoresOriginalesSelect2[index]).trigger('change');
+                        }
+                    } else if ($(select).hasClass('select2-personal-detalle')) {
+                        //  Reinicializar select de personal
+                        $(select).select2({
+                            placeholder: 'Seleccionar personal...',
+                            allowClear: true,
+                            width: '100%',
+                            multiple: true,
+                            language: {
+                                noResults: function () { return 'No se encontraron resultados'; }
+                            }
+                        });
                         if (valoresOriginalesSelect2[index]) {
                             $(select).val(valoresOriginalesSelect2[index]).trigger('change');
                         }
                     }
                 });
                 
-                // Limpiar campos del nuevo material
+                // Limpiar campos del nuevo material (código existente sin cambios)
                 const inputDescripcion = nuevoMaterial.querySelector('input[name="descripcion[]"]');
                 if (inputDescripcion) inputDescripcion.value = '';
                 
@@ -964,7 +995,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const inputEspecificaciones = nuevoMaterial.querySelector('textarea[name="especificaciones[]"]');
                 if (inputEspecificaciones) inputEspecificaciones.value = '';
-                
+
                 const inputOtDetalle = nuevoMaterial.querySelector('input[name="ot_detalle[]"]');
                 if (inputOtDetalle) inputOtDetalle.value = '';
 
@@ -984,27 +1015,39 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 }
                 
-                // Limpiar selects múltiples (centros de costo) del NUEVO material
+                //  Limpiar centros de costo del NUEVO material
                 const selectsCentros = nuevoMaterial.querySelectorAll('select.select2-centros-costo-detalle');
                 selectsCentros.forEach(select => {
-                    // Remover clases de Select2
                     $(select).removeClass('select2-hidden-accessible');
                     const select2Container = select.nextElementSibling;
                     if (select2Container && select2Container.classList.contains('select2')) {
                         select2Container.remove();
                     }
                     
-                    // Limpiar todas las opciones seleccionadas
                     Array.from(select.options).forEach(option => {
                         option.selected = false;
                     });
                     select.selectedIndex = -1;
-                    
-                    // Asignar el índice correcto para el nuevo material
                     select.name = `centros_costo[${contadorMateriales}][]`;
                 });
 
-                // Remover sección de archivos existentes
+                //  Limpiar personal del NUEVO material
+                const selectsPersonal = nuevoMaterial.querySelectorAll('select.select2-personal-detalle');
+                selectsPersonal.forEach(select => {
+                    $(select).removeClass('select2-hidden-accessible');
+                    const select2Container = select.nextElementSibling;
+                    if (select2Container && select2Container.classList.contains('select2')) {
+                        select2Container.remove();
+                    }
+                    
+                    Array.from(select.options).forEach(option => {
+                        option.selected = false;
+                    });
+                    select.selectedIndex = -1;
+                    select.name = `personal_ids[${contadorMateriales}][]`;
+                });
+
+                // Remover archivos existentes (código sin cambios)
                 const archivosExistentes = nuevoMaterial.querySelector('.archivos-existentes');
                 if (archivosExistentes) {
                     archivosExistentes.remove();
@@ -1034,7 +1077,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Agregar al contenedor
                 contenedor.appendChild(nuevoMaterial);
                 
-                // Inicializar Select2 en el NUEVO elemento (VACÍOS)
+                //  Inicializar Select2 en el NUEVO elemento (centros de costo Y personal)
                 const selectsNuevos = nuevoMaterial.querySelectorAll('select');
                 selectsNuevos.forEach(select => {
                     if (select.name === 'unidad[]') {
@@ -1057,12 +1100,23 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         });
                         
-                        // SIEMPRE aplicar centro de costo de cabecera si existe
+                        // Aplicar centro de costo de cabecera si existe
                         if (selectCentroCostoCabecera && selectCentroCostoCabecera.value) {
                             setTimeout(() => {
                                 $(select).val([selectCentroCostoCabecera.value]).trigger('change');
                             }, 100);
                         }
+                    } else if ($(select).hasClass('select2-personal-detalle')) {
+                        //  Inicializar Select2 de personal en el nuevo material
+                        $(select).select2({
+                            placeholder: 'Seleccionar personal...',
+                            allowClear: true,
+                            width: '100%',
+                            multiple: true,
+                            language: {
+                                noResults: function () { return 'No se encontraron resultados'; }
+                            }
+                        });
                     }
                 });
                 
@@ -1078,11 +1132,62 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Función para actualizar eventos de eliminar
     function actualizarEventosEliminar() {
-        document.querySelectorAll('.eliminar-material').forEach(btn => {
-            btn.onclick = function() {
-                if (document.querySelectorAll('.material-item').length > 1) {
-                    this.closest('.material-item').remove();
-                    formularioModificado = true;
+        const botonesEliminar = document.querySelectorAll('.eliminar-material');
+        
+        botonesEliminar.forEach(btn => {
+            btn.onclick = function(e) {
+                e.preventDefault();
+                const materialesItems = document.querySelectorAll('.material-item');
+                
+                if (materialesItems.length > 1) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: '¿Eliminar material?',
+                            text: 'Se eliminará este material del pedido',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#d33',
+                            cancelButtonColor: '#3085d6',
+                            confirmButtonText: 'Sí, eliminar',
+                            cancelButtonText: 'Cancelar'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                const itemAEliminar = this.closest('.material-item');
+                                $(itemAEliminar).find('select').each(function() {
+                                    if ($(this).data('select2')) {
+                                        $(this).select2('destroy');
+                                    }
+                                });
+                                itemAEliminar.remove();
+                                // Reindexar después de eliminar
+                                reindexarCentrosCosto();
+                                formularioModificado = true;
+                            }
+                        });
+                    } else {
+                        if (confirm('¿Eliminar este material?')) {
+                            const itemAEliminar = this.closest('.material-item');
+                            $(itemAEliminar).find('select').each(function() {
+                                if ($(this).data('select2')) {
+                                    $(this).select2('destroy');
+                                }
+                            });
+                            itemAEliminar.remove();
+                            // Reindexar después de eliminar
+                            reindexarCentrosCosto();
+                            formularioModificado = true;
+                        }
+                    }
+                } else {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'No se puede eliminar',
+                            text: 'Debe mantener al menos un material en el pedido'
+                        });
+                    } else {
+                        alert('Debe mantener al menos un material en el pedido');
+                    }
                 }
             };
         });

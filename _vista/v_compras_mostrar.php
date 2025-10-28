@@ -702,10 +702,25 @@ function EliminarDocumento(id_doc) {
                                         <input type="date" class="form-control form-control-sm" name="fecha_orden" id="edit_fecha_orden" required>
                                     </div>
                                     <div class="col-md-6">
-                                        <label style="font-size: 11px; font-weight: bold;">Proveedor: <span class="text-danger">*</span></label>
-                                        <select class="form-control form-control-sm" name="proveedor_orden" id="edit_proveedor_orden" required>
-                                            <option value="">Seleccionar...</option>
-                                        </select>
+                                        <label class="mb-1" style="font-size:11px;font-weight:bold;">
+                                            Proveedor: <span class="text-danger">*</span>
+                                        </label>
+
+                                        <div class="d-flex align-items-center">
+                                            <select id="edit_proveedor_orden" name="proveedor_orden"
+                                                    class="form-control form-control-sm flex-grow-1"
+                                                    style="font-size:12px;" required>
+                                                <option value="">Seleccionar proveedor...</option>
+                                            </select>
+
+                                            <button type="button"
+                                                    class="btn btn-info btn-sm ml-1"
+                                                    id="btn-agregar-proveedor-modal-editar"
+                                                    title="Agregar Proveedor"
+                                                    style="padding: 4px 8px;">
+                                                <i class="fa fa-plus"></i>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -838,6 +853,133 @@ function EliminarDocumento(id_doc) {
                 <a id="btn-descargar-pdf-compra" href="#" target="_blank" class="btn btn-primary">
                     <i class="fa fa-file-pdf-o"></i> Descargar PDF
                 </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARA AGREGAR PROVEEDOR (MODAL EDICIÓN) -->
+<div class="modal fade" id="modalNuevoProveedorEditar" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #2a3f54; padding: 15px;">
+                <h5 class="modal-title" style="color: white;">
+                    <i class="fa fa-user-plus"></i> 
+                    Agregar Nuevo Proveedor
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" style="color: white; opacity: 0.8;">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height: 600px; overflow-y: auto; padding: 20px;">
+                <form id="form-nuevo-proveedor-modal-editar" class="form-horizontal form-label-left">
+                    
+                    <!-- Nombre -->
+                    <div class="form-group row">
+                        <label class="control-label col-md-3 col-sm-3">Nombre <span class="text-danger">*</span>:</label>
+                        <div class="col-md-9 col-sm-9">
+                            <input type="text" name="nom_proveedor" class="form-control" placeholder="Nombre del proveedor" required>
+                        </div>
+                    </div>
+
+                    <!-- RUC -->
+                    <div class="form-group row">
+                        <label class="control-label col-md-3 col-sm-3">RUC <span class="text-danger">*</span>:</label>
+                        <div class="col-md-9 col-sm-9">
+                            <input type="text" name="ruc_proveedor" class="form-control" placeholder="RUC del proveedor" maxlength="11" pattern="[0-9]{11}" title="Ingrese exactamente 11 dígitos numéricos" required>
+                        </div>
+                    </div>
+
+                    <!-- Dirección -->
+                    <div class="form-group row">
+                        <label class="control-label col-md-3 col-sm-3">Dirección <span class="text-danger">*</span>:</label>
+                        <div class="col-md-9 col-sm-9">
+                            <textarea name="dir_proveedor" class="form-control" rows="3" placeholder="Dirección del proveedor" required></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Teléfono -->
+                    <div class="form-group row">
+                        <label class="control-label col-md-3 col-sm-3">Teléfono <span class="text-danger">*</span>:</label>
+                        <div class="col-md-9 col-sm-9">
+                            <input type="text" name="tel_proveedor" class="form-control" placeholder="Teléfono del proveedor" required>
+                        </div>
+                    </div>
+
+                    <!-- Contacto -->
+                    <div class="form-group row">
+                        <label class="control-label col-md-3 col-sm-3">Contacto <span class="text-danger">*</span>:</label>
+                        <div class="col-md-9 col-sm-9">
+                            <input type="text" name="cont_proveedor" class="form-control" placeholder="Persona de contacto" required>
+                        </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="form-group row">
+                        <label class="control-label col-md-3 col-sm-3">Email:</label>
+                        <div class="col-md-9 col-sm-9">
+                            <input type="email" name="email_proveedor" class="form-control" placeholder="Correo electrónico">
+                        </div>
+                    </div>
+
+                    <!-- Cuentas Bancarias -->
+                    <div class="x_panel" style="margin-top: 20px;">
+                        <div class="x_title">
+                            <h2 style="font-size: 16px;">Cuentas Bancarias (Opcional)</h2>
+                            <div class="clearfix"></div>
+                        </div>
+                        <div class="x_content">
+                            <table class="table table-bordered" style="font-size: 12px;">
+                                <thead style="background-color: #f8f9fa;">
+                                    <tr>
+                                        <th>Banco</th>
+                                        <th>Moneda</th>
+                                        <th>Cuenta Corriente</th>
+                                        <th>Cuenta Interbancaria</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabla-cuentas-modal-editar">
+                                    <tr>
+                                        <td><input type="text" name="banco[]" class="form-control form-control-sm"></td>
+                                        <td>
+                                            <select name="id_moneda[]" class="form-control form-control-sm">
+                                                <option value="">-- Moneda --</option>
+                                                <option value="1">Soles (S/.)</option>
+                                                <option value="2">Dólares (US$)</option>
+                                            </select>
+                                        </td>
+                                        <td><input type="text" name="cta_corriente[]" class="form-control form-control-sm"></td>
+                                        <td><input type="text" name="cta_interbancaria[]" class="form-control form-control-sm"></td>
+                                        <td><button type="button" class="btn btn-danger btn-sm eliminar-fila-modal-editar">X</button></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn btn-success btn-sm" id="agregarCuentaModalEditar">
+                                <i class="fa fa-plus"></i> Agregar Cuenta
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="ln_solid"></div>
+
+                    <div class="form-group">
+                        <div class="col-md-12 col-sm-12">
+                            <p class="text-muted" style="font-size: 12px;">
+                                <span class="text-danger">*</span> Los campos con (<span class="text-danger">*</span>) son obligatorios.
+                            </p>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer" style="padding: 15px; background-color: #f8f9fa;">
+                <button type="button" class="btn btn-outline-danger" data-dismiss="modal">
+                    <i class="fa fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-success" id="btn-guardar-proveedor-modal-editar">
+                    <i class="fa fa-save"></i> Registrar
+                </button>
             </div>
         </div>
     </div>
@@ -1776,4 +1918,151 @@ document.getElementById('modalEditarOrden').addEventListener('hidden.bs.modal', 
     document.getElementById('edit_total_orden').innerHTML = '';
     esOrdenServicioGlobal = false;
 });
+
+// ============================================================================
+// CONFIGURACIÓN MODAL PROVEEDOR (MODAL EDICIÓN)
+// ============================================================================
+document.addEventListener('DOMContentLoaded', function() {
+    configurarModalProveedorEditar();
+});
+
+function configurarModalProveedorEditar() {
+    const tablaCuentasModalEditar = document.getElementById("tabla-cuentas-modal-editar");
+    const btnAgregarModalEditar = document.getElementById("agregarCuentaModalEditar");
+    
+    if (btnAgregarModalEditar) {
+        btnAgregarModalEditar.addEventListener("click", function() {
+            const nuevaFila = document.createElement("tr");
+            nuevaFila.innerHTML = `
+                <td><input type="text" name="banco[]" class="form-control form-control-sm"></td>
+                <td>
+                    <select name="id_moneda[]" class="form-control form-control-sm">
+                        <option value="">-- Moneda --</option>
+                        <option value="1">Soles (S/.)</option>
+                        <option value="2">Dólares (US$)</option>
+                    </select>
+                </td>
+                <td><input type="text" name="cta_corriente[]" class="form-control form-control-sm"></td>
+                <td><input type="text" name="cta_interbancaria[]" class="form-control form-control-sm"></td>
+                <td><button type="button" class="btn btn-danger btn-sm eliminar-fila-modal-editar">X</button></td>
+            `;
+            tablaCuentasModalEditar.appendChild(nuevaFila);
+        });
+    }
+    
+    if (tablaCuentasModalEditar) {
+        tablaCuentasModalEditar.addEventListener("click", function(e) {
+            if (e.target.classList.contains("eliminar-fila-modal-editar")) {
+                const filas = tablaCuentasModalEditar.querySelectorAll("tr");
+                if (filas.length > 1) {
+                    e.target.closest("tr").remove();
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Advertencia',
+                        text: 'Debe mantener al menos una fila'
+                    });
+                }
+            }
+        });
+    }
+    
+    const btnAgregarProveedorEditar = document.getElementById('btn-agregar-proveedor-modal-editar');
+    if (btnAgregarProveedorEditar) {
+        btnAgregarProveedorEditar.addEventListener('click', () => $('#modalNuevoProveedorEditar').modal('show'));
+    }
+    
+    const btnGuardarProveedorModalEditar = document.getElementById('btn-guardar-proveedor-modal-editar');
+    if (btnGuardarProveedorModalEditar) {
+        btnGuardarProveedorModalEditar.addEventListener('click', guardarProveedorModalEditar);
+    }
+    
+    $('#modalNuevoProveedorEditar').on('hidden.bs.modal', limpiarFormularioProveedorEditar);
+}
+
+function guardarProveedorModalEditar() {
+    const form = document.getElementById('form-nuevo-proveedor-modal-editar');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const rucInput = form.querySelector('input[name="ruc_proveedor"]');
+    const ruc = rucInput.value.trim();
+    
+    if (ruc.length !== 11 || !/^\d+$/.test(ruc)) {
+        Swal.fire({
+            icon: 'error',
+            title: 'RUC inválido',
+            text: 'El RUC debe contener exactamente 11 dígitos numéricos'
+        });
+        rucInput.focus();
+        return;
+    }
+    
+    const formData = new FormData(form);
+    formData.append('registrar_ajax', '1');
+    
+    const btnGuardar = document.getElementById('btn-guardar-proveedor-modal-editar');
+    btnGuardar.disabled = true;
+    btnGuardar.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Guardando...';
+    
+    fetch('proveedor_nuevo_directo.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // ✅ ACTUALIZAR SELECT DE PROVEEDOR EN MODAL EDITAR
+            const selectProveedor = document.getElementById('edit_proveedor_orden');
+            const newOption = new Option(data.nombre_proveedor, data.id_proveedor, true, true);
+            selectProveedor.add(newOption);
+            
+            $('#modalNuevoProveedorEditar').modal('hide');
+            form.reset();
+            
+            Swal.fire({
+                icon: 'success',
+                title: '¡Proveedor agregado!',
+                text: data.message,
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.message
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de conexión',
+            text: 'No se pudo conectar con el servidor.'
+        });
+    })
+    .finally(() => {
+        btnGuardar.disabled = false;
+        btnGuardar.innerHTML = '<i class="fa fa-save"></i> Registrar';
+    });
+}
+
+function limpiarFormularioProveedorEditar() {
+    const form = document.getElementById('form-nuevo-proveedor-modal-editar');
+    if (form) {
+        form.reset();
+        const tablaCuentas = document.getElementById('tabla-cuentas-modal-editar');
+        if (tablaCuentas) {
+            const filas = tablaCuentas.querySelectorAll('tr');
+            for (let i = filas.length - 1; i > 0; i--) {
+                filas[i].remove();
+            }
+        }
+    }
+}
 </script>

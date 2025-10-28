@@ -181,7 +181,7 @@
                                     <!-- NUEVA FILA PARA CENTROS DE COSTO MÚLTIPLES -->
 
                                     <div class="row mt-2">
-                                        <div class="col-md-12">
+                                        <div class="col-md-6">
                                             <label>Centros de Costo para este Material <span class="text-danger">*</span>:</label>
                                             <select name="centros_costo[0][]" class="form-control select2-centros-costo-detalle" multiple required>
                                                 <?php foreach ($centros_costo as $centro) { ?>
@@ -190,8 +190,20 @@
                                                     </option>
                                                 <?php } ?>
                                             </select>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label>Personal Asignado</label>
+                                            <select name="personal_ids[0][]" class="form-control select2-personal-detalle" multiple>
+                                                <?php foreach ($personal_list as $persona) { ?>
+                                                    <option value="<?php echo $persona['id_personal']; ?>">
+                                                        <?php echo $persona['nom_personal']; ?>
+                                                        <?php if (!empty($persona['nom_cargo'])) echo ' - ' . $persona['nom_cargo']; ?>
+                                                    </option>
+                                                <?php } ?>
+                                            </select>
                                             <small class="form-text text-muted">
-                                                <i class="fa fa-info-circle"></i> Seleccione uno o más centros de costo específicos para este material.
+                                                <i class="fa fa-info-circle"></i> Seleccione el personal que trabajará en este servicio.
                                             </small>
                                         </div>
                                     </div>
@@ -959,8 +971,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (materialOriginal) {
                 // Destruir Select2 antes de clonar
-                const selectsOriginales = materialOriginal.querySelectorAll('select[name="unidad[]"], select.select2-centros-costo-detalle');
-                selectsOriginales.forEach(select => {
+                const selectsOriginales = materialOriginal.querySelectorAll('select[name="unidad[]"], select.select2-centros-costo-detalle, select.select2-personal-detalle');                selectsOriginales.forEach(select => {
                     if ($(select).data('select2')) {
                         $(select).select2('destroy');
                     }
@@ -990,6 +1001,16 @@ document.addEventListener('DOMContentLoaded', function() {
                                 noResults: function () { return 'No se encontraron resultados'; }
                             }
                         });
+                    } else if ($(select).hasClass('select2-personal-detalle')) { 
+                        $(select).select2({
+                            placeholder: 'Seleccionar personal...',
+                            allowClear: true,
+                            width: '100%',
+                            multiple: true,
+                            language: {
+                                noResults: function () { return 'No se encontraron resultados'; }
+                            }
+                        });
                     }
                 });
                 
@@ -1009,9 +1030,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Limpiar y configurar selects del clon
                 const selectsClonados = nuevoMaterial.querySelectorAll('select');
                 selectsClonados.forEach(select => {
-                    // Actualizar el name del select de centros de costo con el índice correcto
                     if ($(select).hasClass('select2-centros-costo-detalle')) {
                         select.name = `centros_costo[${contadorMateriales}][]`;
+                    } else if ($(select).hasClass('select2-personal-detalle')) { 
+                        select.name = `personal_ids[${contadorMateriales}][]`;
                     }
                     
                     // Remover clases de Select2
@@ -1053,6 +1075,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Inicializar VACÍO, sin valores preseleccionados
                         $(select).select2({
                             placeholder: 'Seleccionar uno o más centros de costo...',
+                            allowClear: true,
+                            width: '100%',
+                            multiple: true,
+                            language: {
+                                noResults: function () { return 'No se encontraron resultados'; }
+                            }
+                        });
+                    
+                    } else if ($(select).hasClass('select2-personal-detalle')) { 
+                        $(select).select2({
+                            placeholder: 'Seleccionar personal...',
                             allowClear: true,
                             width: '100%',
                             multiple: true,
