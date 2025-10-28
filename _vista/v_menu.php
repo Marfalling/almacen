@@ -232,6 +232,9 @@ require_once("../_conexion/sesion.php");
                                   tieneAccesoModulo('unidad de medida') ||
                                   tieneAccesoModulo('proveedor') ||
                                   tieneAccesoModulo('moneda') ||
+                                  tieneAccesoModulo('banco') ||
+                                  tieneAccesoModulo('tipo de documento') ||
+                                  tieneAccesoModulo('medio de pago') ||
                                   tieneAccesoModulo('ubicacion');
           ?>
           
@@ -326,7 +329,12 @@ require_once("../_conexion/sesion.php");
               <?php endif; ?>
 
               <!-- Compras -->
-              <?php if (tieneAccesoModulo('proveedor') || tieneAccesoModulo('moneda') || tieneAccesoModulo('detraccion')): ?>
+              <?php if (tieneAccesoModulo('proveedor') || 
+                        tieneAccesoModulo('moneda') || 
+                        tieneAccesoModulo('detraccion') ||
+                        tieneAccesoModulo('banco') || 
+                        tieneAccesoModulo('tipo de documento') || 
+                        tieneAccesoModulo('medio de pago')): ?>
               <li>
                 <a>Compras<span class="fa fa-chevron-down"></span></a>
                 <ul class="nav child_menu">
@@ -340,6 +348,18 @@ require_once("../_conexion/sesion.php");
 
                   <?php if (verificarPermisoEspecifico('ver_detraccion')): ?>
                   <li><a href="detraccion_mostrar.php">Detracción</a></li>
+                  <?php endif; ?>
+
+                  <?php  /* if (verificarPermisoEspecifico('ver_banco')): ?>
+                  <li><a href="banco_mostrar.php">Banco</a></li>
+                  <?php endif; */?>
+
+                  <?php /* if (verificarPermisoEspecifico('ver_tipo de documento')): ?>
+                  <li><a href="tipo_documento_mostrar.php">Tipo de Documento</a></li>
+                  <?php endif; */?>
+
+                  <?php if (verificarPermisoEspecifico('ver_medio de pago')): ?>
+                  <li><a href="medio_pago_mostrar.php">Medio de Pago</a></li>
                   <?php endif; ?>
                 </ul>
               </li>

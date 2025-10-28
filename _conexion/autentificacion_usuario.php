@@ -463,6 +463,20 @@ function obtenerPermisosUsuario($id_usuario) {
                 }
                 break;
 
+            case 'medio de pago':
+                if($accion == 'crear') {
+                    $permisos_formateados[0]['crear_medio de pago'] = 1;
+                    $permisos_formateados[0]['reg_medio de pago'] = 1;
+                }
+                if($accion == 'editar') {
+                    $permisos_formateados[0]['editar_medio de pago'] = 1;
+                    $permisos_formateados[0]['edi_medio de pago'] = 1;
+                }
+                if($accion == 'ver') {
+                    $permisos_formateados[0]['ver_medio de pago'] = 1;
+                }
+                break;
+
             case 'auditoria':
                 if($accion == 'ver') {
                     $permisos_formateados[0]['ver_auditoria'] = 1;
