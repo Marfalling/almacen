@@ -350,13 +350,13 @@ require_once("../_conexion/sesion.php");
                   <li><a href="detraccion_mostrar.php">Detracción</a></li>
                   <?php endif; ?>
 
-                  <?php  /* if (verificarPermisoEspecifico('ver_banco')): ?>
+                  <?php if (verificarPermisoEspecifico('ver_banco')): ?>
                   <li><a href="banco_mostrar.php">Banco</a></li>
-                  <?php endif; */?>
+                  <?php endif; ?>
 
-                  <?php /* if (verificarPermisoEspecifico('ver_tipo de documento')): ?>
+                  <?php if (verificarPermisoEspecifico('ver_tipo de documento')): ?>
                   <li><a href="tipo_documento_mostrar.php">Tipo de Documento</a></li>
-                  <?php endif; */?>
+                  <?php endif; ?>
 
                   <?php if (verificarPermisoEspecifico('ver_medio de pago')): ?>
                   <li><a href="medio_pago_mostrar.php">Medio de Pago</a></li>

@@ -462,6 +462,34 @@ function obtenerPermisosUsuario($id_usuario) {
                     $permisos_formateados[0]['ver_moneda'] = 1;
                 }
                 break;
+            
+            case 'banco':
+                if($accion == 'crear') {
+                    $permisos_formateados[0]['crear_banco'] = 1;
+                    $permisos_formateados[0]['reg_banco'] = 1;
+                }
+                if($accion == 'editar') {
+                    $permisos_formateados[0]['editar_banco'] = 1;
+                    $permisos_formateados[0]['edi_banco'] = 1;
+                }
+                if($accion == 'ver') {
+                    $permisos_formateados[0]['ver_banco'] = 1;
+                }
+                break;
+
+            case 'tipo de documento':
+                if($accion == 'crear') {
+                    $permisos_formateados[0]['crear_tipo de pago'] = 1;
+                    $permisos_formateados[0]['reg_tipo de pago'] = 1;
+                }
+                if($accion == 'editar') {
+                    $permisos_formateados[0]['editar_tipo de pago'] = 1;
+                    $permisos_formateados[0]['edi_tipo de pago'] = 1;
+                }
+                if($accion == 'ver') {
+                    $permisos_formateados[0]['ver_tipo de pago'] = 1;
+                }
+                break;
 
             case 'medio de pago':
                 if($accion == 'crear') {
