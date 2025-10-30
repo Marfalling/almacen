@@ -61,8 +61,8 @@
                                                 <th>Almacén</th>
                                                 <th>Obra</th>
                                                 <th>Ubicación</th>
-                                                <th>Stock Físico</th>
-                                                <th>Stock Reservado</th>
+                                                <!-- <th>Stock Físico</th> -->
+                                                <!-- <th>Stock Reservado</th> -->
                                                 <th>Stock Disponible</th>
                                             </tr>
                                         </thead>
@@ -76,8 +76,8 @@
                                             echo "<td>" . htmlspecialchars($almacen['Almacen']) . "</td>";
                                             echo "<td>" . htmlspecialchars($almacen['Obra']) . "</td>";
                                             echo "<td>" . htmlspecialchars($almacen['Ubicacion']) . "</td>";
-                                            echo "<td>" . htmlspecialchars($almacen['Stock_Fisico']) . "</td>";
-                                            echo "<td>" . htmlspecialchars($almacen['Stock_Reservado']) . "</td>";
+                                            //echo "<td>" . htmlspecialchars($almacen['Stock_Fisico']) . "</td>";
+                                            //echo "<td>" . htmlspecialchars($almacen['Stock_Reservado']) . "</td>";
                                             echo "<td>" . htmlspecialchars($almacen['Stock_Disponible']) . "</td>";
                                             echo "</tr>";
                                         }

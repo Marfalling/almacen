@@ -36,8 +36,8 @@
                                                 <th>Tipo de Producto</th>
                                                 <th>Tipo de Material</th>
                                                 <th>Unidad de Medida</th>
-                                                <th>Stock Físico</th>
-                                                <th>Stock Reservado</th>
+                                                <!-- <th>Stock Físico</th> -->
+                                                <!-- <th>Stock Reservado</th> -->
                                                 <th>Stock Disponible</th>
                                             </tr>
                                         </thead>
@@ -51,8 +51,8 @@
                                             echo "<td>" . htmlspecialchars($almacen['Tipo_Producto']) . "</td>";
                                             echo "<td>" . htmlspecialchars($almacen['Tipo_Material']) . "</td>";   
                                             echo "<td>" . htmlspecialchars($almacen['Unidad_Medida']) . "</td>";
-                                            echo "<td>" . htmlspecialchars($almacen['Stock_Fisico']) . "</td>";
-                                            echo "<td>" . htmlspecialchars($almacen['Stock_Reservado']) . "</td>";
+                                            //echo "<td>" . htmlspecialchars($almacen['Stock_Fisico']) . "</td>";
+                                            //echo "<td>" . htmlspecialchars($almacen['Stock_Reservado']) . "</td>";
                                             echo "<td>" . htmlspecialchars($almacen['Stock_Disponible']) . "</td>";
                                             echo "</tr>";
                                         }
