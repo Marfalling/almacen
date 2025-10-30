@@ -91,7 +91,11 @@
                                                                 <tbody>
                                                                     <?php foreach ($cuentas as $cta) { ?>
                                                                         <tr>
-                                                                            <td><?= $cta['banco_proveedor']; ?></td>
+                                                                            <td>
+                                                                                <?= !empty($cta['nom_banco']) 
+                                                                                    ? htmlspecialchars($cta['nom_banco'], ENT_QUOTES, 'UTF-8') 
+                                                                                    : '<span class="text-muted">—</span>'; ?>
+                                                                            </td>
                                                                             <td><?= $cta['nom_moneda']; ?></td>
                                                                             <td><?= $cta['nro_cuenta_corriente']; ?></td>
                                                                             <td><?= $cta['nro_cuenta_interbancaria']; ?></td>

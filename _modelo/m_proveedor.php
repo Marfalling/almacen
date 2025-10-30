@@ -117,16 +117,31 @@ function ActualizarProveedor($id, $nom, $ruc, $dir, $tel, $cont, $est, $email) {
 //-----------------------------------------------------------------------
 function ObtenerCuentasProveedor($id_proveedor) {
     include("../_conexion/conexion.php");
-    $sql = "SELECT pc.*, m.nom_moneda 
-            FROM proveedor_cuenta pc
-            LEFT JOIN moneda m ON pc.id_moneda = m.id_moneda
-            WHERE pc.id_proveedor = $id_proveedor";
-    $resultado = mysqli_query($con, $sql);
 
+    $sql = "
+        SELECT 
+            pc.id_proveedor_cuenta,
+            pc.id_proveedor,
+            b.id_banco,
+            b.cod_banco,
+            b.nom_banco,
+            m.nom_moneda,
+            pc.nro_cuenta_corriente,
+            pc.nro_cuenta_interbancaria,
+            pc.est_proveedor_cuenta
+        FROM proveedor_cuenta pc
+        LEFT JOIN banco b ON pc.id_banco = b.id_banco
+        LEFT JOIN moneda m ON pc.id_moneda = m.id_moneda
+        WHERE pc.id_proveedor = $id_proveedor
+    ";
+
+    $resultado = mysqli_query($con, $sql);
     $cuentas = [];
+
     while ($row = mysqli_fetch_array($resultado, MYSQLI_ASSOC)) {
         $cuentas[] = $row;
     }
+
     mysqli_close($con);
     return $cuentas;
 }
@@ -138,17 +153,18 @@ function EliminarCuentasProveedor($id_proveedor) {
     mysqli_close($con);
 }
 
-function GrabarCuentaProveedor($id_proveedor, $banco, $id_moneda, $cta_corriente, $cta_interbancaria) {
+function GrabarCuentaProveedor($id_proveedor, $id_banco, $id_moneda, $cta_corriente, $cta_interbancaria) {
     include("../_conexion/conexion.php");
 
     // Escapar entradas
-    $banco = mysqli_real_escape_string($con, $banco);
+    $id_banco = intval($id_banco);
+    $id_moneda = intval($id_moneda);
     $cta_corriente = mysqli_real_escape_string($con, $cta_corriente);
     $cta_interbancaria = mysqli_real_escape_string($con, $cta_interbancaria);
 
     $sql = "INSERT INTO proveedor_cuenta 
-            (id_proveedor, banco_proveedor, id_moneda, nro_cuenta_corriente, nro_cuenta_interbancaria) 
-            VALUES ($id_proveedor, '$banco', $id_moneda, '$cta_corriente', '$cta_interbancaria')";
+            (id_proveedor, id_banco, id_moneda, nro_cuenta_corriente, nro_cuenta_interbancaria) 
+            VALUES ($id_proveedor, '$id_banco', $id_moneda, '$cta_corriente', '$cta_interbancaria')";
     mysqli_query($con, $sql);
     mysqli_close($con);
 }
@@ -190,15 +206,18 @@ function CuentaProveedorExiste($id_proveedor, $cta_corriente, $cta_interbancaria
 //-----------------------------------------------------------------------
 function GrabarCuentaProveedorConEstado($id_proveedor, $banco, $id_moneda, $cta_corriente, $cta_interbancaria, $estado) {
     include("../_conexion/conexion.php");
+    include_once("m_banco.php"); 
 
     // Escapar entradas
     $banco = mysqli_real_escape_string($con, $banco);
     $cta_corriente = mysqli_real_escape_string($con, $cta_corriente);
     $cta_interbancaria = mysqli_real_escape_string($con, $cta_interbancaria);
 
+    $id_banco = ObtenerOCrearBancoNormalizado($banco);
+
     $sql = "INSERT INTO proveedor_cuenta 
-            (id_proveedor, banco_proveedor, id_moneda, nro_cuenta_corriente, nro_cuenta_interbancaria, est_proveedor_cuenta) 
-            VALUES ($id_proveedor, '$banco', $id_moneda, '$cta_corriente', '$cta_interbancaria', $estado)";
+            (id_proveedor, id_banco, banco_proveedor, id_moneda, nro_cuenta_corriente, nro_cuenta_interbancaria, est_proveedor_cuenta) 
+            VALUES ($id_proveedor, '$id_banco', $id_moneda, '$cta_corriente', '$cta_interbancaria', $estado)";
     mysqli_query($con, $sql);
     mysqli_close($con);
 }

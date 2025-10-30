@@ -2,6 +2,10 @@
 //=======================================================================
 // VISTA: v_proveedor_nuevo.php
 //=======================================================================
+
+require_once("../_modelo/m_banco.php");
+$bancos = MostrarBanco(); 
+
 ?>
 <!-- page content -->
 <div class="right_col" role="main">
@@ -91,7 +95,18 @@
                                         </thead>
                                         <tbody id="tabla-cuentas">
                                             <tr>
-                                                <td><input type="text" name="banco[]" class="form-control" required></td>
+                                                <td>
+                                                    <select name="id_banco[]" class="form-control select2_banco" required>
+                                                        <option value="">Seleccione un banco</option>
+                                                        <?php foreach ($bancos as $b) { ?>
+                                                            <?php if ($b['est_banco'] == 1) { // Solo bancos activos ?>
+                                                                <option value="<?php echo $b['id_banco']; ?>">
+                                                                    <?php echo $b['cod_banco']; ?>
+                                                                </option>
+                                                            <?php } ?>
+                                                        <?php } ?>
+                                                    </select>
+                                                </td>
                                                 <td>
                                                     <select name="id_moneda[]" class="form-control select2_single" required>
                                                         <option value="">-- Moneda --</option>
@@ -158,7 +173,17 @@ document.addEventListener("DOMContentLoaded", function() {
     btnAgregar.addEventListener("click", function() {
         const nuevaFila = document.createElement("tr");
         nuevaFila.innerHTML = `
-            <td><input type="text" name="banco[]" class="form-control" required></td>
+            <td>
+                <select name="id_banco[]" class="form-control select2_banco" required>
+                    <option value="">-- Banco --</option>
+                    <?php foreach ($bancos as $b) { 
+                        if ($b['est_banco'] == 1) { ?>
+                            <option value="<?php echo $b['id_banco']; ?>">
+                                <?php echo $b['cod_banco']; ?>
+                            </option>
+                    <?php } } ?>
+                </select>
+            </td>
             <td>
                 <select name="id_moneda[]" class="form-control select2_single" required>
                     <option value="">-- Moneda --</option>
@@ -179,6 +204,11 @@ document.addEventListener("DOMContentLoaded", function() {
             allowClear: true,
             width: '100%'
         });
+         $(nuevaFila).find('.select2_banco').select2({
+            placeholder: "Seleccione un banco",
+            allowClear: true,
+            width: '100%'
+        });
     });
 
     // Acción para eliminar fila
@@ -191,6 +221,11 @@ document.addEventListener("DOMContentLoaded", function() {
     // Inicialización inicial de Select2
     $('.select2_single').select2({
         placeholder: "Seleccione una moneda",
+        allowClear: true,
+        width: '100%'
+    });
+    $('.select2_banco').select2({
+        placeholder: "Seleccione un banco",
         allowClear: true,
         width: '100%'
     });

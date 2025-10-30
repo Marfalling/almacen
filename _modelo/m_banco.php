@@ -94,4 +94,66 @@ function EditarBanco($id_banco, $cod, $nom, $est)
         return "ERROR";
     }
 }
+
+//-----------------------------------------------------------------------
+// Obtener o crear un banco de forma normalizada (evita duplicados)
+function ObtenerOCrearBancoNormalizado($nom)
+{
+    include("../_conexion/conexion.php");
+
+    // Normalizar el nombre
+    $nombre = strtoupper(trim($nom));
+
+    // Normalización de nombres comunes
+    if (strpos($nombre, 'BCP') !== false || strpos($nombre, 'CREDITO') !== false) {
+        $nom_normalizado = 'BANCO DE CREDITO DEL PERU';
+        $cod = 'BCP';
+    } elseif (strpos($nombre, 'NACION') !== false || strpos($nombre, 'BANCO NACION') !== false) {
+        $nom_normalizado = 'BANCO DE LA NACION';
+        $cod = 'BANCO DE LA NACION';
+    } elseif (strpos($nombre, 'BBVA') !== false || strpos($nombre, 'CONTINENTAL') !== false) {
+        $nom_normalizado = 'BANCO CONTINENTAL';
+        $cod = 'BBVA';
+    } elseif (strpos($nombre, 'INTERBANK') !== false || strpos($nombre, 'INTER') !== false) {
+        $nom_normalizado = 'INTERBANK';
+        $cod = 'INTERBANK';
+    } elseif (strpos($nombre, 'SCOTIA') !== false) {
+        $nom_normalizado = 'SCOTIABANK';
+        $cod = 'SCOTIABANK';
+    } else {
+        // Si no coincide con ningún patrón conocido
+        $nom_normalizado = $nombre;
+        $cod = $nombre;
+    }
+
+    // Buscar si el banco ya existe
+    $sql_buscar = "SELECT id_banco FROM banco 
+                   WHERE UPPER(TRIM(cod_banco)) = '$cod' 
+                      OR UPPER(TRIM(nom_banco)) = '$nom_normalizado'
+                   LIMIT 1";
+    $res_buscar = mysqli_query($con, $sql_buscar);
+
+    if ($res_buscar && mysqli_num_rows($res_buscar) > 0) {
+        // Ya existe → devolver ID existente
+        $row = mysqli_fetch_assoc($res_buscar);
+        mysqli_close($con);
+        return $row['id_banco'];
+    } else {
+        // Insertar nuevo registro si no existe
+        $sql_insertar = "INSERT INTO banco (cod_banco, nom_banco, est_banco)
+                         VALUES ('$cod', '$nom_normalizado', 1)";
+        $resultado = mysqli_query($con, $sql_insertar);
+
+        if ($resultado) {
+            $nuevoID = mysqli_insert_id($con);
+            mysqli_close($con);
+            return $nuevoID;
+        } else {
+            mysqli_close($con);
+            return null;
+        }
+    }
+}
+
+
 ?>

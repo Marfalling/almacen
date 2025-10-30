@@ -9,9 +9,11 @@ if (!verificarPermisoEspecifico('crear_proveedor')) {
 }
 
 require_once("../_modelo/m_proveedor.php");
+require_once("../_modelo/m_banco.php");
 require_once("../_modelo/m_moneda.php");
 
 $monedas = MostrarMoneda();
+$bancos = MostrarBanco(); 
 
 if (isset($_REQUEST['registrar'])) {
     $nom = strtoupper($_REQUEST['nom']);
@@ -31,11 +33,11 @@ if (isset($_REQUEST['registrar'])) {
         $lista_interbancarias = $_POST['cta_interbancaria'] ?? [];
 
         for ($i = 0; $i < count($lista_bancos); $i++) {
-            $banco = strtoupper($lista_bancos[$i]);
+            $id_banco = intval($lista_bancos[$i]);
             $moneda = intval($lista_monedas[$i]);
             $cta_corriente = $lista_corrientes[$i];
             $cta_interbancaria = $lista_interbancarias[$i];
-            GrabarCuentaProveedor($id_proveedor, $banco, $moneda, $cta_corriente, $cta_interbancaria);
+            GrabarCuentaProveedor($id_proveedor, $id_banco, $moneda, $cta_corriente, $cta_interbancaria);
         }
 
         header("location: proveedor_mostrar.php?registrado=true");
