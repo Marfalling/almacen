@@ -23,50 +23,112 @@
                     </div>
                     <div class="x_content">
                         <form class="form-horizontal form-label-left" action="proveedor_editar.php" method="post">
-                            <!-- Datos principales -->
-                            <input type="text" name="nom" value="<?php echo $nom; ?>" class="form-control" placeholder="Nombre" required><br>
-                            <input type="text" name="ruc" value="<?php echo $ruc; ?>" class="form-control" placeholder="RUC" maxlength="11" required><br>
-                            <textarea name="dir" class="form-control" placeholder="Dirección" required><?php echo $dir; ?></textarea><br>
-                            <input type="text" name="tel" value="<?php echo $tel; ?>" class="form-control" placeholder="Teléfono" required><br>
-                            <input type="text" name="cont" value="<?php echo $cont; ?>" class="form-control" placeholder="Contacto" required><br>
-                            <input type="email" name="email" value="<?php echo $email; ?>" class="form-control" placeholder="Correo"><br>
+                            <!-- Nombre -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Nombre <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" name="nom" value="<?php echo $nom; ?>" class="form-control" placeholder="Nombre del proveedor" required>
+                                </div>
+                            </div>
+                            <!-- RUC -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">RUC <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" name="ruc" value="<?php echo $ruc; ?>" class="form-control" placeholder="RUC del proveedor" maxlength="11" required>
+                                </div>
+                            </div>
+                            <!-- Dirección -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Dirección <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <textarea name="dir" class="form-control" rows="3" placeholder="Dirección del proveedor" required><?php echo $dir; ?></textarea>
+                                </div>
+                            </div>
+                            <!-- Teléfono -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Teléfono <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" name="tel" value="<?php echo $tel; ?>" class="form-control" placeholder="Teléfono del proveedor" required>
+                                </div>
+                            </div>
 
-                            <!-- Cuentas bancarias -->
-                            <h4>Cuentas Bancarias</h4>
-                            <table class="table table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>Banco</th>
-                                        <th>Moneda</th>
-                                        <th>Cuenta Corriente</th>
-                                        <th>Cuenta Interbancaria</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabla-cuentas">
-                                    <?php foreach ($cuentas as $c) { ?>
-                                        <tr>
-                                            <td><input type="text" name="banco[]" value="<?php echo $c['banco_proveedor']; ?>" class="form-control" required></td>
-                                            <td>
-                                                <select name="id_moneda[]" class="form-control select2" required>
-                                                    <option value="">-- Moneda --</option>
-                                                    <?php foreach ($monedas as $m) {
-                                                        $selected = ($m['id_moneda'] == $c['id_moneda']) ? "selected" : "";
-                                                        echo "<option value='{$m['id_moneda']}' {$selected}>{$m['nom_moneda']}</option>";
-                                                    } ?>
-                                                </select>
-                                            </td>
-                                            <td><input type="text" name="cta_corriente[]" value="<?php echo $c['nro_cuenta_corriente']; ?>" class="form-control" required></td>
-                                            <td><input type="text" name="cta_interbancaria[]" value="<?php echo $c['nro_cuenta_interbancaria']; ?>" class="form-control" required></td>
-                                            <td><button type="button" class="btn btn-danger btn-sm eliminar-fila">X</button></td>
-                                        </tr>
-                                    <?php } ?>
-                                </tbody>
-                            </table>
-                            <button type="button" class="btn btn-success btn-sm" id="agregarCuenta">+ Agregar Cuenta</button><br><br>
+                            <!-- Contacto -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Contacto <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" name="cont" value="<?php echo $cont; ?>" class="form-control" placeholder="Persona de contacto" required>
+                                </div>
+                            </div>
+                            <!-- Email -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Email :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="email" name="email" value="<?php echo $email; ?>" class="form-control" placeholder="Correo electrónico">
+                                </div>
+                            </div>
+
+                            <!-- Cuentas Bancarias -->
+                            <div class="x_panel">
+                                <div class="x_title">
+                                    <h2>Cuentas Bancarias</h2>
+                                    <div class="clearfix"></div>
+                                </div>
+                                <div class="x_content">
+                                    <table class="table table-bordered">
+                                        <thead>
+                                            <tr>
+                                                <th>Banco</th>
+                                                <th>Moneda</th>
+                                                <th>Cuenta Corriente</th>
+                                                <th>Cuenta Interbancaria</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tabla-cuentas">
+                                            <?php foreach ($cuentas as $c) { ?>
+                                                <tr>
+                                                    <td>
+                                                        <select name="id_banco[]" class="form-control select2_banco" required>
+                                                            <option value="">Seleccione un banco</option>
+                                                            <?php foreach ($bancos as $b) { 
+                                                                if ($b['est_banco'] == 1) {
+                                                                    $selected = ($b['id_banco'] == $c['id_banco']) ? 'selected' : '';
+                                                                    echo "<option value='{$b['id_banco']}' {$selected}>{$b['cod_banco']}</option>";
+                                                                }
+                                                            } ?>
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <select name="id_moneda[]" class="form-control select2_single" required>
+                                                            <option value="">-- Moneda --</option>
+                                                            <?php foreach ($monedas as $m) {
+                                                                $selected = ($m['id_moneda'] == $c['id_moneda']) ? 'selected' : '';
+                                                                echo "<option value='{$m['id_moneda']}' {$selected}>{$m['nom_moneda']}</option>";
+                                                            } ?>
+                                                        </select>
+                                                    </td>
+                                                    <td><input type="text" name="cta_corriente[]" value="<?php echo $c['nro_cuenta_corriente']; ?>" class="form-control" required></td>
+                                                    <td><input type="text" name="cta_interbancaria[]" value="<?php echo $c['nro_cuenta_interbancaria']; ?>" class="form-control" required></td>
+                                                    <td><button type="button" class="btn btn-danger btn-sm eliminar-fila">X</button></td>
+                                                </tr>
+                                            <?php } ?>
+                                        </tbody>
+                                    </table>
+                                    <button type="button" class="btn btn-success btn-sm" id="agregarCuenta">+ Agregar Cuenta</button>
+                                </div>
+                            </div>                   
 
                             <!-- Estado -->
-                            <label><input type="checkbox" name="est" class="js-switch" <?php echo $est; ?>> Activo</label><br><br>
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Estado :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <label>
+                                        <input type="checkbox" name="est" class="js-switch" <?php echo $est; ?>> Activo
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="ln_solid"></div>
 
                             <!-- Botones -->
                             <div class="form-group">
@@ -76,9 +138,13 @@
                                     </a>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
-                                    <button type="submit" name="registrar" class="btn btn-success btn-block actualizar-btn">
-                                     Actualizar
-                                    </button>
+                                    <button type="submit" name="registrar" class="btn btn-success btn-block">Actualizar</button>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="col-md-12 col-sm-12">
+                                    <p><span class="text-danger">*</span> Los campos con (<span class="text-danger">*</span>) son obligatorios.</p>
                                 </div>
                             </div>
 
@@ -100,23 +166,36 @@
 <!-- Script dinámico para manejar cuentas bancarias -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // Inicializar Select2 en todos los selects con clase .select2
-    $('.select2').select2({
-        placeholder: "Seleccione una opción",
+    const tablaCuentas = document.getElementById("tabla-cuentas");
+    const btnAgregar = document.getElementById("agregarCuenta");
+
+    // Inicialización de los Select2 existentes
+    $('.select2_single').select2({
+        placeholder: "Seleccione una moneda",
+        allowClear: true,
+        width: '100%'
+    });
+    $('.select2_banco').select2({
+        placeholder: "Seleccione un banco",
         allowClear: true,
         width: '100%'
     });
 
-    const tablaCuentas = document.getElementById("tabla-cuentas");
-    const btnAgregar = document.getElementById("agregarCuenta");
-
-    // Acción para agregar nueva fila
+    // Acción para agregar nueva fila dinámica
     btnAgregar.addEventListener("click", function() {
         const nuevaFila = document.createElement("tr");
         nuevaFila.innerHTML = `
-            <td><input type="text" name="banco[]" class="form-control" required></td>
             <td>
-                <select name="id_moneda[]" class="form-control select2" required>
+                <select name="id_banco[]" class="form-control select2_banco" required>
+                    <option value="">Seleccione un banco</option>
+                    <?php foreach ($bancos as $b) { 
+                        if ($b['est_banco'] == 1) { ?>
+                            <option value="<?php echo $b['id_banco']; ?>"><?php echo $b['cod_banco']; ?></option>
+                    <?php } } ?>
+                </select>
+            </td>
+            <td>
+                <select name="id_moneda[]" class="form-control select2_single" required>
                     <option value="">-- Moneda --</option>
                     <?php foreach ($monedas as $m) { ?>
                         <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
@@ -129,15 +208,20 @@ document.addEventListener("DOMContentLoaded", function() {
         `;
         tablaCuentas.appendChild(nuevaFila);
 
-        // Inicializar Select2 en el nuevo select agregado dinámicamente
-        $(nuevaFila).find('.select2').select2({
-            placeholder: "Seleccione una opción",
+        // Activar Select2 en la nueva fila
+        $(nuevaFila).find('.select2_single').select2({
+            placeholder: "Seleccione una moneda",
+            allowClear: true,
+            width: '100%'
+        });
+        $(nuevaFila).find('.select2_banco').select2({
+            placeholder: "Seleccione un banco",
             allowClear: true,
             width: '100%'
         });
     });
 
-    // Acción para eliminar fila
+    // Acción para eliminar filas
     tablaCuentas.addEventListener("click", function(e) {
         if (e.target.classList.contains("eliminar-fila")) {
             e.target.closest("tr").remove();

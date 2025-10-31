@@ -32,10 +32,12 @@ if (!verificarPermisoEspecifico('editar_proveedor')) {
             require_once("../_vista/v_menu_user.php");
 
             require_once("../_modelo/m_proveedor.php");
+            require_once("../_modelo/m_banco.php");
             require_once("../_modelo/m_moneda.php");
-
+            
+            $bancos = MostrarBanco();
             $monedas = MostrarMoneda();
-
+            
             //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
                 $id_proveedor = $_REQUEST['id_proveedor'];
@@ -56,18 +58,18 @@ if (!verificarPermisoEspecifico('editar_proveedor')) {
                     EliminarCuentasProveedor($id_proveedor);
 
                     // Obtener arrays desde el formulario
-                    $lista_bancos = $_POST['banco'] ?? [];
+                    $lista_bancos = $_POST['id_banco'] ?? [];
                     $lista_monedas = $_POST['id_moneda'] ?? [];
                     $lista_corrientes = $_POST['cta_corriente'] ?? [];
                     $lista_interbancarias = $_POST['cta_interbancaria'] ?? [];
 
                     // Insertar cada cuenta
                     for ($i = 0; $i < count($lista_bancos); $i++) {
-                        $banco = strtoupper(trim($lista_bancos[$i]));
+                        $id_banco = strtoupper(trim($lista_bancos[$i]));
                         $moneda = intval($lista_monedas[$i]);
                         $cta_corriente = trim($lista_corrientes[$i]);
                         $cta_interbancaria = trim($lista_interbancarias[$i]);
-                        GrabarCuentaProveedor($id_proveedor, $banco, $moneda, $cta_corriente, $cta_interbancaria);
+                        GrabarCuentaProveedor($id_proveedor, $id_banco, $moneda, $cta_corriente, $cta_interbancaria);
                     }
                     ?>
                         <script Language="JavaScript">

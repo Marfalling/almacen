@@ -1,4 +1,7 @@
 <?php
+//=======================================================================
+// CONTROLADOR: proveedor_nuevo.php
+//=======================================================================
 require_once("../_conexion/sesion.php");
 
 if (!verificarPermisoEspecifico('crear_proveedor')) {
@@ -27,7 +30,7 @@ if (isset($_REQUEST['registrar'])) {
     $id_proveedor = GrabarProveedor($nom, $ruc, $dir, $tel, $cont, $est, $email);
 
     if ($id_proveedor !== "NO" && $id_proveedor !== "ERROR") {
-        $lista_bancos = $_POST['banco'] ?? [];
+        $lista_bancos = $_POST['id_banco'] ?? [];
         $lista_monedas = $_POST['id_moneda'] ?? [];
         $lista_corrientes = $_POST['cta_corriente'] ?? [];
         $lista_interbancarias = $_POST['cta_interbancaria'] ?? [];

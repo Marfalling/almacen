@@ -1,4 +1,7 @@
 <?php
+//=======================================================================
+// CONTROLADOR: proveedor_mostrar.php
+//=======================================================================
 require_once("../_conexion/sesion.php");
 
 if (!verificarPermisoEspecifico('ver_proveedor')) {

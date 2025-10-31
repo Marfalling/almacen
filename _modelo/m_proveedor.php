@@ -24,7 +24,6 @@ function GrabarProveedor($nom, $ruc, $dir, $tel, $cont, $est, $email) {
         mysqli_close($con);
         return "NO";
     }
-
     $sql = "INSERT INTO proveedor 
             (nom_proveedor, ruc_proveedor, dir_proveedor, tel_proveedor, cont_proveedor, est_proveedor, mail_proveedor) 
             VALUES ('$nom', '$ruc', '$dir', '$tel', '$cont', $est, '$email')";
@@ -122,6 +121,7 @@ function ObtenerCuentasProveedor($id_proveedor) {
         SELECT 
             pc.id_proveedor_cuenta,
             pc.id_proveedor,
+            pc.id_moneda,
             b.id_banco,
             b.cod_banco,
             b.nom_banco,
