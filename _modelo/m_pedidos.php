@@ -187,7 +187,7 @@ function MostrarPedidos()
                         SELECT 1 
                         FROM pedido_detalle pd 
                         WHERE pd.id_pedido = p.id_pedido 
-                          AND pd.cant_oc_pedido_detalle IS NOT NULL 
+                          AND (pd.cant_oc_pedido_detalle IS NOT NULL OR pd.cant_os_pedido_detalle IS NOT NULL)
                           AND pd.est_pedido_detalle <> 0
                     ) THEN 1 
                     ELSE 0 
@@ -229,7 +229,7 @@ function MostrarPedidos()
     return $resultado;
 }
 //----------------------------------------------------------------------
-function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
+function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null, $id_personal_filtro = null)
 {
     include("../_conexion/conexion.php");
    
@@ -237,10 +237,17 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
     if ($fecha_inicio && $fecha_fin) {
         $where_fecha = " AND DATE(p.fec_pedido) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
     } else {
-        $where_fecha = " AND DATE(p.fec_pedido) = CURDATE()";
+        $where_fecha = "";
     }
 
-    // Consulta principal con todos los JOINs, incluyendo el área (por personal)
+    // Filtro por personal
+    $where_personal = "";
+    if ($id_personal_filtro !== null && $id_personal_filtro > 0) {
+        $id_personal_filtro = intval($id_personal_filtro);
+        $where_personal = " AND p.id_personal = $id_personal_filtro";
+    }
+
+    // Consulta principal - CORREGIDA
     $sqlc = "SELECT 
                 p.*, 
                 COALESCE(obp.nom_subestacion, oba.nom_subestacion, 'N/A') AS nom_obra,
@@ -257,7 +264,7 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
                         SELECT 1 
                         FROM pedido_detalle pd 
                         WHERE pd.id_pedido = p.id_pedido 
-                          AND pd.cant_oc_pedido_detalle IS NOT NULL 
+                          AND (pd.cant_oc_pedido_detalle IS NOT NULL OR pd.cant_os_pedido_detalle IS NOT NULL)
                           AND pd.est_pedido_detalle <> 0
                     ) THEN 1 
                     ELSE 0 
@@ -283,12 +290,13 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null)
                 ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
             WHERE p.est_pedido IN (0, 1, 2, 3, 4, 5)
             $where_fecha
+            $where_personal
             ORDER BY p.fec_req_pedido DESC";
 
     $resc = mysqli_query($con, $sqlc);
 
     if (!$resc) {
-        error_log("Error en MostrarPedidosFecha(): " . mysqli_error($con));
+        error_log("❌ ERROR SQL: " . mysqli_error($con));
         mysqli_close($con);
         return [];
     }

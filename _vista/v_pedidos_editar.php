@@ -150,6 +150,9 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                     $comentario = $detalle['com_pedido_detalle'];
                                     $unidad_id = '';
                                     $observaciones = '';
+
+                                    $es_servicio = isset($pedido['id_producto_tipo']) && $pedido['id_producto_tipo'] == '2';
+
                                     
                                     if (preg_match('/Unidad ID:\s*(\d+)\s*\|/', $comentario, $matches)) {
                                         $unidad_id = trim($matches[1]);
@@ -210,11 +213,13 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                                 value="<?php echo $detalle['cant_pedido_detalle']; ?>" 
                                                 required
                                                 data-stock="<?php echo isset($detalle['cantidad_disponible_real']) ? $detalle['cantidad_disponible_real'] : 0; ?>">
+                                            <?php if (!$es_servicio) { ?>
                                             <small class="form-text text-muted">
                                                 Stock Disponible/Almacén:
                                                 <?php echo isset($detalle['cantidad_disponible_real']) ? $detalle['cantidad_disponible_real'] : 0; ?> /
                                                 <?php echo isset($detalle['cantidad_disponible_almacen']) ? $detalle['cantidad_disponible_almacen'] : 0; ?>
                                             </small>
+                                            <?php } ?>
                                         </div>
                                     </div>
                                     

@@ -160,7 +160,7 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                 // LLAMADA a GrabarPedido
                 $rpta = GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo,
                                 $nom_pedido, $solicitante, $fecha_necesidad, $num_ot, 
-                                $contacto, $lugar_entrega, $aclaraciones, $id, 
+                                $contacto, $lugar_entrega, $aclaraciones, $id_personal, 
                                 $materiales, $archivos_subidos);
 
                 if ($rpta == "SI") {

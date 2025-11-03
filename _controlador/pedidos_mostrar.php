@@ -8,6 +8,17 @@ if (!verificarPermisoEspecifico('ver_pedidos')) {
     exit;
 }
 
+
+// Validar sesión de personal
+$id_personal_actual = isset($_SESSION['id_personal']) && !empty($_SESSION['id_personal']) 
+    ? intval($_SESSION['id_personal']) 
+    : 0;
+
+if ($id_personal_actual === 0) {
+    header("location: cerrar_sesion.php");
+    exit;
+}
+
 require_once("../_modelo/m_pedidos.php");
 require_once("../_modelo/m_compras.php");
 
@@ -24,8 +35,17 @@ if (isset($_GET['fecha_inicio']) && isset($_GET['fecha_fin'])) {
     $fecha_fin    = date('Y-m-d');  // Fecha actual
 }
 
-// Obtener pedidos con filtro
-$pedidos = MostrarPedidosFecha($fecha_inicio, $fecha_fin);
+// Determinar filtro por rol
+$usuarios_admin = [1]; // IDs de administradores que ven TODOS los pedidos
+
+if (in_array($id_personal_actual, $usuarios_admin)) {
+    $id_personal_filtro = null; // Admin: ve todos
+} else {
+    $id_personal_filtro = $id_personal_actual; // Usuario: solo sus pedidos
+}
+
+// Obtener pedidos
+$pedidos = MostrarPedidosFecha($fecha_inicio, $fecha_fin, $id_personal_filtro);
 $pedidos_rechazados = ObtenerPedidosConComprasAnuladas();
 $alerta = null;
 
