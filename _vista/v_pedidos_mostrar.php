@@ -508,8 +508,8 @@ foreach($pedidos as $pedido) {
                                             </td>
                                             <td>
                                                 <span class="badge badge-primary badge_size"><?php echo $detalle['cant_pedido_detalle']; ?></span>
-                                                <?php if ($detalle['cant_fin_pedido_detalle'] !== null) { ?>
-                                                    <br><small class="text-success">Verificado: <?php echo $detalle['cant_fin_pedido_detalle']; ?></small>
+                                                <?php if ($detalle['cant_oc_pedido_detalle'] !== null) { ?>
+                                                    <br><small class="text-success">Verificado: <?php echo $detalle['cant_oc_pedido_detalle']; ?></small>
                                                 <?php } ?>
                                             </td>
                                             <td>

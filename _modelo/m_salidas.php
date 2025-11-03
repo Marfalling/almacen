@@ -48,7 +48,15 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
             $id_producto = intval($material['id_producto']);
             $descripcion = mysqli_real_escape_string($con, $material['descripcion']);
             $cantidad = floatval($material['cantidad']);
+
+            // 🔹 Obtener id_pedido_detalle si existe, sino NULL
+            $id_pedido_detalle = isset($material['id_pedido_detalle']) && $material['id_pedido_detalle'] > 0 
+                                ? intval($material['id_pedido_detalle']) 
+                                : null;
             
+            // 🔹 Preparar valor SQL (NULL o número)
+            $id_pedido_detalle_sql = ($id_pedido_detalle !== null) ? $id_pedido_detalle : "NULL";
+               
             // Verificar stock una vez más antes de cada inserción (por seguridad)
             $stock_actual = ObtenerStockDisponible($id_producto, $id_almacen_origen, $id_ubicacion_origen, $id_pedido);
             if ($cantidad > $stock_actual) {
@@ -60,10 +68,10 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
             
             // Insertar detalle de salida
             $sql_detalle = "INSERT INTO salida_detalle (
-                                id_salida, id_producto, prod_salida_detalle, 
+                                id_salida, id_pedido_detalle, id_producto, prod_salida_detalle, 
                                 cant_salida_detalle, est_salida_detalle
                             ) VALUES (
-                                $id_salida, $id_producto, '$descripcion', 
+                                $id_salida, $id_pedido_detalle_sql, $id_producto, '$descripcion', 
                                 $cantidad, 1
                             )";
             
@@ -315,15 +323,23 @@ function ActualizarSalida($id_salida, $id_almacen_origen, $id_ubicacion_origen,
             $id_producto = intval($material['id_producto']);
             $descripcion = mysqli_real_escape_string($con, $material['descripcion']);
             $cantidad = floatval($material['cantidad']);
+
+            // 🔹 Obtener id_pedido_detalle si existe, sino NULL
+            $id_pedido_detalle = isset($material['id_pedido_detalle']) && $material['id_pedido_detalle'] > 0 
+                                ? intval($material['id_pedido_detalle']) 
+                                : null;
+            
+            // 🔹 Preparar valor SQL (NULL o número)
+            $id_pedido_detalle_sql = ($id_pedido_detalle !== null) ? $id_pedido_detalle : "NULL";
             
             // Insertar nuevo detalle
             $sql_detalle = "INSERT INTO salida_detalle (
-                                id_salida, id_producto, prod_salida_detalle, 
-                                cant_salida_detalle, est_salida_detalle
-                            ) VALUES (
-                                $id_salida, $id_producto, '$descripcion', 
-                                $cantidad, 1
-                            )";
+                        id_salida, id_pedido_detalle, id_producto, prod_salida_detalle, 
+                        cant_salida_detalle, est_salida_detalle
+                    ) VALUES (
+                        $id_salida, $id_pedido_detalle_sql, $id_producto, '$descripcion', 
+                        $cantidad, 1
+                    )";
             
             if (mysqli_query($con, $sql_detalle)) {
                 // Obtener el ID del personal que registra
@@ -681,4 +697,168 @@ function AnularSalida($id_salida, $id_usuario_anulacion = null)
         mysqli_close($con);
         return "ERROR: " . $e->getMessage();
     }
+}
+
+// ============================================================================
+// OBTENER DATOS DE UNA SALIDA POR ID (para edición)
+// ============================================================================
+function ObtenerSalidaPorId($id_salida) {
+    include("../_conexion/conexion.php");
+    
+    $id_salida = intval($id_salida);
+    
+    $sql = "SELECT s.*, 
+                   ao.nom_almacen as almacen_origen_nombre,
+                   uo.nom_ubicacion as ubicacion_origen_nombre,
+                   ad.nom_almacen as almacen_destino_nombre,
+                   ud.nom_ubicacion as ubicacion_destino_nombre,
+                   CONCAT(per.ape_personal, ' ', per.nom_personal) as personal_nombre
+            FROM salida s
+            LEFT JOIN almacen ao ON s.id_almacen_origen = ao.id_almacen
+            LEFT JOIN ubicacion uo ON s.id_ubicacion_origen = uo.id_ubicacion
+            LEFT JOIN almacen ad ON s.id_almacen_destino = ad.id_almacen
+            LEFT JOIN ubicacion ud ON s.id_ubicacion_destino = ud.id_ubicacion
+            LEFT JOIN personal per ON s.id_personal = per.id_personal
+            WHERE s.id_salida = ?";
+    
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param("i", $id_salida);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $salida_data = null;
+    if ($result->num_rows > 0) {
+        $salida_data = $result->fetch_assoc();
+    }
+    
+    $stmt->close();
+    mysqli_close($con);
+    
+    return $salida_data;
+}
+
+// ============================================================================
+// OBTENER DETALLE DE UNA SALIDA (items/productos)
+// ============================================================================
+function ObtenerDetalleSalida($id_salida) {
+    include("../_conexion/conexion.php");
+    
+    $id_salida = intval($id_salida);
+    
+    $sql = "SELECT sd.*, 
+                   p.nom_producto,
+                   p.unid_producto,
+                   p.cod_producto,
+                   pd.id_pedido_detalle,
+                   pd.cant_pedido_detalle
+            FROM salida_detalle sd
+            INNER JOIN producto p ON sd.id_producto = p.id_producto
+            LEFT JOIN pedido_detalle pd ON sd.id_pedido_detalle = pd.id_pedido_detalle
+            WHERE sd.id_salida = ?
+            ORDER BY sd.id_salida_detalle";
+    
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param("i", $id_salida);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $salida_detalle = [];
+    while ($row = $result->fetch_assoc()) {
+        $salida_detalle[] = $row;
+    }
+    
+    $stmt->close();
+    mysqli_close($con);
+    
+    return $salida_detalle;
+}
+
+// ============================================================================
+// VALIDAR SI UNA SALIDA EXISTE Y ESTÁ ACTIVA
+// ============================================================================
+function ValidarSalidaExiste($id_salida) {
+    include("../_conexion/conexion.php");
+    
+    $id_salida = intval($id_salida);
+    
+    $sql = "SELECT id_salida, est_salida FROM salida WHERE id_salida = ?";
+    
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param("i", $id_salida);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $existe = false;
+    $activa = false;
+    
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $existe = true;
+        $activa = ($row['est_salida'] == 1);
+    }
+    
+    $stmt->close();
+    mysqli_close($con);
+    
+    return [
+        'existe' => $existe,
+        'activa' => $activa
+    ];
+}
+
+// ============================================================================
+// OBTENER ID DEL PEDIDO DE UNA SALIDA
+// ============================================================================
+function ObtenerPedidoDeSalida($id_salida) {
+    include("../_conexion/conexion.php");
+    
+    $id_salida = intval($id_salida);
+    
+    $sql = "SELECT id_pedido FROM salida WHERE id_salida = ?";
+    
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param("i", $id_salida);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    $id_pedido = 0;
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        $id_pedido = intval($row['id_pedido']);
+    }
+    
+    $stmt->close();
+    mysqli_close($con);
+    
+    return $id_pedido;
+}
+
+function ConsultarSalidasPorPedido($id_pedido) {
+    include("../_conexion/conexion.php");
+    
+    $id_pedido = intval($id_pedido);
+    
+    $sql = "SELECT 
+                s.id_salida,
+                s.ndoc_salida,
+                s.fec_salida,
+                s.est_salida,
+                s.obs_salida,
+                CONCAT(ud.nom_ubicacion, ' (', ad.nom_almacen, ')') as nom_ubicacion_destino
+            FROM salida s
+            INNER JOIN almacen ad ON s.id_almacen_destino = ad.id_almacen
+            INNER JOIN ubicacion ud ON s.id_ubicacion_destino = ud.id_ubicacion
+            WHERE s.id_pedido = $id_pedido
+            ORDER BY s.fec_salida DESC, s.id_salida DESC";
+    
+    $resultado = mysqli_query($con, $sql);
+    
+    $salidas = [];
+    while ($row = mysqli_fetch_assoc($resultado)) {
+        $salidas[] = $row;
+    }
+    
+    mysqli_close($con);
+    
+    return $salidas;
 }

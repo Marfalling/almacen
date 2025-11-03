@@ -1,10 +1,17 @@
 <?php 
 //=======================================================================
-// VISTA: v_pedidos_verificar.php -  CON EDICIÓN INTEGRADA
+// VISTA: v_pedidos_verificar.php
 //=======================================================================
 $pedido = $pedido_data[0];
 $pedido_anulado = ($pedido['est_pedido'] == 0);
 $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
+
+// Inicializar variables
+$modo_editar_salida = isset($modo_editar_salida) ? $modo_editar_salida : false;
+$id_salida_editar = isset($id_salida_editar) ? $id_salida_editar : 0;
+$pedido_salidas = isset($pedido_salidas) ? $pedido_salidas : array();
+$almacenes = isset($almacenes) ? $almacenes : array();
+$ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
 ?>
 <!-- page content -->
 <div class="right_col" role="main">
@@ -13,6 +20,7 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
             <div class="title_left">
                 <h3>Verificar Pedido <?php 
                     echo $modo_editar ? '- Editando Orden' : ''; 
+                    echo $modo_editar_salida ? '- Editando Salida' : '';
                     echo $pedido_anulado ? ' - PEDIDO ANULADO' : '';
 
                     if ($pedido['id_producto_tipo'] == 2) {
@@ -22,6 +30,7 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
             </div>
         </div>
         <div class="clearfix"></div>
+        
         <!-- Información básica del pedido -->
         <div class="row mb-3">
             <div class="col-md-12">
@@ -82,110 +91,213 @@ $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
                 </div>
             </div>
         </div>
+
         <div class="row">
+            <!-- COLUMNA IZQUIERDA - Items del Pedido -->
             <div class="col-md-6">
                 <div class="x_panel">
                     <div class="x_title" style="padding: 8px 15px;">
                         <h2 style="margin: 0; font-size: 16px;">Items <small id="contador-pendientes">(<?php echo "Cantidad: " . count($pedido_detalle); ?>)</small></h2>
                         <?php if ($pedido_anulado): ?>
-                                <span class="badge badge-danger ml-2">PEDIDO ANULADO</span>
-                            <?php endif; ?>
-                        </h2>
+                            <span class="badge badge-danger ml-2">PEDIDO ANULADO</span>
+                        <?php endif; ?>
                         <div class="clearfix"></div>
                     </div>
                         
                     <div class="x_content" style="max-height: 650px; overflow-y: auto; padding: 5px;">
                         <div id="contenedor-pendientes">
-<?php 
-$contador_detalle = 1;
-foreach ($pedido_detalle as $detalle) { 
-    // 🔹 CORRECCIÓN: Usar cantidad original (cant_pedido_detalle) para servicios
-    if ($pedido['id_producto_tipo'] == 2) {
-        // ORDEN DE SERVICIO - usar cantidad ORIGINAL del pedido
-        $cantidad_original = floatval($detalle['cant_pedido_detalle']);
-        $detalle['cantidad_ya_ordenada'] = ObtenerCantidadYaOrdenadaServicio($id_pedido, $detalle['id_producto']);
-        $detalle['cantidad_pendiente'] = $cantidad_original - $detalle['cantidad_ya_ordenada'];
-    } else {
-        // ORDEN DE MATERIALES - usar cantidad VERIFICADA
-        $detalle['cantidad_ya_ordenada'] = ObtenerCantidadYaOrdenada($id_pedido, $detalle['id_producto']);
-        $detalle['cantidad_pendiente'] = ObtenerCantidadPendienteOrdenar($id_pedido, $detalle['id_producto']);
-    }
-    
-    $todo_ordenado = ($detalle['cantidad_pendiente'] <= 0);
+                            <?php 
+                            $contador_detalle = 1;
+                            foreach ($pedido_detalle as $detalle) { 
 
+                                // 🔹 Variables base iniciales
+                                $stock_destino = 0;
+                                $stock_otras_ubicaciones = 0;
+                                $cantidad_para_oc = 0;
+                                $cantidad_para_os = 0;
+                                
+                                // 🔹 Obtener datos de stock por ubicaciones
+                                if ($pedido['id_producto_tipo'] == 2) {
+                                    // SERVICIOS
+                                    $cantidad_original = floatval($detalle['cant_pedido_detalle']);
+                                    $detalle['cantidad_ya_ordenada'] = ObtenerCantidadYaOrdenadaServicioPorDetalle($detalle['id_pedido_detalle']); 
+                                    $detalle['cantidad_pendiente'] = $cantidad_original - $detalle['cantidad_ya_ordenada'];
+                                } else {
+                                    // MATERIALES
+                                    //$detalle['cantidad_ya_ordenada'] = ObtenerCantidadYaOrdenadaPorDetalle($detalle['id_pedido_detalle']);
+                                    //$detalle['cantidad_pendiente'] = floatval($detalle['cant_oc_pedido_detalle']) - $detalle['cantidad_ya_ordenada'];
 
-                                    // INICIALIZAR VARIABLES PARA EVITAR WARNINGS
+                                    // Obtener cantidades verificadas
+                                    $cantidad_verificada_total = floatval($detalle['cant_oc_pedido_detalle']) + floatval($detalle['cant_os_pedido_detalle']);
+                                    
+                                    // Obtener cantidades ya ordenadas (separadas por tipo)
+                                    $detalle['cantidad_ya_ordenada_oc'] = ObtenerCantidadYaOrdenadaOCPorDetalle($detalle['id_pedido_detalle']);
+                                    $detalle['cantidad_ya_ordenada_os'] = ObtenerCantidadYaOrdenadaOSPorDetalle($detalle['id_pedido_detalle']);
+                                    $detalle['cantidad_ya_ordenada'] = $detalle['cantidad_ya_ordenada_oc'] + $detalle['cantidad_ya_ordenada_os'];
+                                    
+                                    // Calcular cantidades pendientes (separadas por tipo)
+                                    $detalle['cantidad_pendiente_oc'] = floatval($detalle['cant_oc_pedido_detalle']) - $detalle['cantidad_ya_ordenada_oc'];
+                                    $detalle['cantidad_pendiente_os'] = floatval($detalle['cant_os_pedido_detalle']) - $detalle['cantidad_ya_ordenada_os'];
+                                    //$detalle['cantidad_pendiente'] = $cantidad_verificada_total - $detalle['cantidad_ya_ordenada'];
+
+                                    // NUEVO: Obtener stock por ubicaciones
+                                    $detalle['stock_ubicacion_destino'] = ObtenerStockEnUbicacion(
+                                        $detalle['id_producto'], 
+                                        $pedido['id_almacen'], 
+                                        $pedido['id_ubicacion']
+                                    );
+                                    
+                                    $detalle['otras_ubicaciones_con_stock'] = ObtenerOtrasUbicacionesConStock(
+                                        $detalle['id_producto'],
+                                        $pedido['id_almacen'],
+                                        $pedido['id_ubicacion']
+                                    );
+                                    
+                                    $detalle['stock_total_almacen'] = ObtenerStockTotalAlmacen(
+                                        $detalle['id_producto'],
+                                        $pedido['id_almacen']
+                                    );
+                                }
+                                
+                                //$todo_ordenado = ($detalle['cantidad_pendiente'] <= 0);
+
+                                // Variables de estado
+
+                                // Calcular cantidad_pendiente total
+                                if ($pedido['id_producto_tipo'] == 2) {
+                                    // SERVICIOS: usar cantidad_pendiente original
                                     $cantidad_pendiente = $detalle['cantidad_pendiente'];
-                                    $todo_ordenado = ($cantidad_pendiente <= 0);
-                                    $cantidad_pendiente_editar = $cantidad_pendiente;
-                                    $todo_ordenado_editar = $todo_ordenado;
-                                    $comentario = $detalle['com_pedido_detalle'];
-                                    $unidad = '';
-                                    $observaciones = '';
+                                } else {
+                                    // MATERIALES: sumar pendientes de OC + OS
+                                    $cantidad_pendiente = $detalle['cantidad_pendiente_oc'] + $detalle['cantidad_pendiente_os'];
+                                }
+                                
+                                $todo_ordenado = ($cantidad_pendiente <= 0);
+                                $cantidad_pendiente_editar = $cantidad_pendiente;
+                                $todo_ordenado_editar = $todo_ordenado;
+
+                                $comentario = $detalle['com_pedido_detalle'];
+                                $unidad = '';
+                                $observaciones = '';
                                     
-                                    if (preg_match('/Unidad:\s*([^|]*)\s*\|/', $comentario, $matches)) {
-                                        $unidad = trim($matches[1]);
-                                    }
-                                    if (preg_match('/Obs:\s*(.*)$/', $comentario, $matches)) {
-                                        $observaciones = trim($matches[1]);
-                                    }
+                                if (preg_match('/Unidad:\s*([^|]*)\s*\|/', $comentario, $matches)) {
+                                    $unidad = trim($matches[1]);
+                                }
+                                if (preg_match('/Obs:\s*(.*)$/', $comentario, $matches)) {
+                                    $observaciones = trim($matches[1]);
+                                }
                                     
-                                    // Obtener directamente la descripción SST/MA/CA
-                                    $descripcion_sst_completa = !empty($detalle['req_pedido']) ? $detalle['req_pedido'] : '';
+                                // Obtener directamente la descripción SST/MA/CA
+                                $descripcion_sst_completa = !empty($detalle['req_pedido']) ? $detalle['req_pedido'] : '';
+                                   
+                                // Variables básicas
+                                $cantidad_pedida = floatval($detalle['cant_pedido_detalle']);
+                                $esVerificado = (!is_null($detalle['cant_oc_pedido_detalle']) || !is_null($detalle['cant_os_pedido_detalle']));
+                                $pedidoAnulado = ($pedido['est_pedido'] == 0);
+                                $esAutoOrden = ($pedido['id_producto_tipo'] == 2);
+                                
+                                // Determinar estado según ubicaciones
+                                if ($esAutoOrden) {
+                                    // SERVICIOS 
+                                    $colorFondo = '#e3f2fd';
+                                    $colorBorde = '#2196f3';
+                                    $claseTexto = 'text-primary';
+                                    $icono = 'fa-cog';
+                                    $estadoTexto = 'Auto-Orden';
+                                } else if ($detalle['est_pedido_detalle'] == 2) {
+                                    // Cerrado manualmente
+                                    $colorFondo = '#f8d7da';
+                                    $colorBorde = '#dc3545';
+                                    $claseTexto = 'text-danger';
+                                    $icono = 'fa-times-circle';
+                                    $estadoTexto = 'Cerrado';
+                                } else {
+                                    // 🔹 MATERIALES: Evaluar por ubicaciones
+                                    $stock_destino = floatval($detalle['stock_ubicacion_destino']);
+                                    $stock_otras_ubicaciones = floatval($detalle['stock_total_almacen']) - $stock_destino;
+                                    $falta_total = max(0, $cantidad_pedida - $detalle['stock_total_almacen']);
                                     
-                                    // Usar cantidad_disponible_real
-                                    $esVerificado = !is_null($detalle['cant_fin_pedido_detalle']);
-                                    $stockInsuficiente = $detalle['cantidad_disponible_real'] < $detalle['cant_pedido_detalle'];
-                                    $pedidoAnulado = ($pedido['est_pedido'] == 0);
-                                    $esAutoOrden = ($pedido['id_producto_tipo'] == 2);
+                                    // 🆕 Calcular cantidades para cada tipo de orden
+                                    $cantidad_para_oc = $falta_total;
+                                    $cantidad_para_os = 0;
                                     
-                                    // CORRECCIÓN DE LÓGICA: Determinar correctamente el estado del item
-                                    if ($esAutoOrden) {
-                                        $colorFondo = '#e3f2fd';
-                                        $colorBorde = '#2196f3';
-                                        $claseTexto = 'text-primary';
-                                        $icono = 'fa-cog';
-                                        $estadoTexto = 'Auto-Orden';
-                                    } else if ($detalle['est_pedido_detalle'] == 2) {
-                                        // Item cerrado manualmente
+                                    if ($stock_destino >= $cantidad_pedida) {
+                                        // CASO 1: Stock completo en destino → PEDIDO FINALIZADO
+                                        $colorFondo = '#d1f2eb';
+                                        $colorBorde = '#1abc9c';
+                                        $claseTexto = 'text-success';
+                                        $icono = 'fa-check-circle';
+                                        $estadoTexto = 'Finalizado';
+                                        $cantidad_para_os = 0;
+                                        $cantidad_para_oc = 0;
+                                    } else if ($esVerificado && $stock_otras_ubicaciones > 0) {
+                                        // CASO 2: Hay stock en otras ubicaciones → VERIFICADO OS
+                                        // CASO 2: Item verificado - Leer cantidades de BD
+                                        $cantidad_para_os = floatval($detalle['cant_os_pedido_detalle']);
+                                        $cantidad_para_oc = floatval($detalle['cant_oc_pedido_detalle']);
+                                        
+                                        if ($cantidad_para_os > 0 && $cantidad_para_oc > 0) {
+                                            // Mixto: OS + OC
+                                            $colorFondo = '#fff3cd';
+                                            $colorBorde = '#ffc107';
+                                            $claseTexto = 'text-warning';
+                                            $icono = 'fa-exchange';
+                                            $estadoTexto = 'Verificado OS/OC';
+                                        } else if ($cantidad_para_os > 0) {
+                                            // Solo OS
+                                            $colorFondo = '#d4edda';
+                                            $colorBorde = '#28a745';
+                                            $claseTexto = 'text-success';
+                                            $icono = 'fa-truck';
+                                            $estadoTexto = 'Verificado OS';
+                                        } else if ($cantidad_para_oc > 0) {
+                                            // Solo OC
+                                            $colorFondo = '#f8d7da';
+                                            $colorBorde = '#dc3545';
+                                            $claseTexto = 'text-danger';
+                                            $icono = 'fa-shopping-cart';
+                                            $estadoTexto = 'Verificado OC';
+                                        }
+                                    } else if ($esVerificado && $stock_otras_ubicaciones <= 0) {
+                                        // CASO 3: Verificado pero sin stock → PENDIENTE OC
                                         $colorFondo = '#f8d7da';
                                         $colorBorde = '#dc3545';
                                         $claseTexto = 'text-danger';
-                                        $icono = 'fa-times-circle';
-                                        $estadoTexto = 'Cerrado';
-                                    } else if ($esVerificado && $stockInsuficiente) {
-                                        // Item verificado y con stock insuficiente (listo para orden)
-                                        $colorFondo = '#d4edda';
-                                        $colorBorde = '#28a745';
-                                        $claseTexto = 'text-success';
-                                        $icono = 'fa-check-circle';
-                                        $estadoTexto = 'Verificado';
-                                    } else if (!$esVerificado && $stockInsuficiente) {
-                                        // Item pendiente de verificación (stock insuficiente, no verificado)
+                                        $icono = 'fa-shopping-cart';
+                                        $estadoTexto = 'Pendiente OC';
+                                        $cantidad_para_oc = $cantidad_pedida - $stock_destino;
+                                    } else if (!$esVerificado) {
+                                        // CASO 4: No verificado → PENDIENTE VERIFICAR
                                         $colorFondo = '#fff3cd';
                                         $colorBorde = '#ffc107';
                                         $claseTexto = 'text-warning';
                                         $icono = 'fa-clock-o';
-                                        $estadoTexto = 'Pendiente';
+                                        $estadoTexto = 'Pendiente Verificar';
                                     } else {
-                                        // Item con stock suficiente (completo)
-                                        $colorFondo = '#d4edda';
-                                        $colorBorde = '#28a745';
-                                        $claseTexto = 'text-success';
-                                        $icono = 'fa-check-circle';
-                                        $estadoTexto = 'Completo';
+                                        // Default
+                                        $colorFondo = '#e9ecef';
+                                        $colorBorde = '#6c757d';
+                                        $claseTexto = 'text-secondary';
+                                        $icono = 'fa-info-circle';
+                                        $estadoTexto = 'Sin clasificar';
                                     }
-                                    // Verificar si este item ya está en la orden que estamos editando
-                                    $enOrdenActual = false;
-                                    if ($modo_editar && !empty($orden_detalle)) {
-                                        foreach ($orden_detalle as $item_orden) {
-                                            if ($item_orden['id_producto'] == $detalle['id_producto']) {
-                                                $enOrdenActual = true;
-                                                break;
-                                            }
+                                }
+                                
+                                $descripcion_producto = $detalle['prod_pedido_detalle'];
+                                
+                                $enOrdenActual = false;
+                                if ($modo_editar && !empty($orden_detalle)) {
+                                    foreach ($orden_detalle as $item_orden) {
+                                        if ($item_orden['id_producto'] == $detalle['id_producto']) {
+                                            $enOrdenActual = true;
+                                            break;
                                         }
                                     }
-                                ?>
+                                }
+
+                                // --Verificar si el item tiene stock completo para salida
+                                //$tieneStockCompleto = ($detalle['cantidad_disponible_real'] >= $detalle['cant_pedido_detalle']);
+                            ?>
                                 
                             <div class="item-pendiente border mb-2"
                                     style="background-color: <?php echo $colorFondo; ?>; border-left: 4px solid <?php echo $colorBorde; ?> !important; padding: 8px 12px; border-radius: 4px;"
@@ -193,229 +305,413 @@ foreach ($pedido_detalle as $detalle) {
                                     data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
                                     data-id-producto="<?php echo $detalle['id_producto']; ?>"
                                     data-cant-pedido="<?php echo number_format($detalle['cant_pedido_detalle'], 2, '.', ''); ?>"
-                                    data-cant-disponible="<?php echo number_format($detalle['cantidad_disponible_real'], 2, '.', ''); ?>"
-                                >
+                                    data-cant-disponible="<?php echo number_format($detalle['cantidad_disponible_real'], 2, '.', ''); ?>">
                                 
-                                
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-    <span class="<?php echo $claseTexto; ?>" style="font-weight: 600; font-size: 14px;">
-        <i class="fa <?php echo $icono; ?>"></i> Item <?php echo $contador_detalle; ?> - <?php echo $estadoTexto; ?>
-    </span>
-    
-    <?php 
-    //  SOLO MOSTRAR STOCK SI ES ORDEN DE MATERIALES (NO SERVICIOS)
-    if ($pedido['id_producto_tipo'] != 2): 
-    ?>
-    <span>
-        Stock Disponible/Almacén:
-        <?php echo $detalle['cantidad_disponible_real']; ?> /
-        <?php echo $detalle['cantidad_disponible_almacen']; ?>
-    </span>
-    <?php endif; ?>
-    
-    <?php 
-    // ========================================
-    // ORDEN DE SERVICIO
-    // ========================================
-    if ($esAutoOrden) { 
-    // Asegurar que las variables existan
-    $cantidad_para_ordenar = isset($detalle['cant_pedido_detalle']) ? floatval($detalle['cant_pedido_detalle']) : 0;
-    $cantidad_ya_ordenada_real = isset($detalle['cantidad_ya_ordenada']) ? floatval($detalle['cantidad_ya_ordenada']) : 0;
-    $cantidad_pendiente_real = $cantidad_para_ordenar - $cantidad_ya_ordenada_real;
-    
-    // No está cerrado ni en orden actual y tiene pendientes
-    if ($detalle['est_pedido_detalle'] != 2 && !$modo_editar && !$pedidoAnulado && $cantidad_pendiente_real > 0) { 
-?>
-        <button type="button" 
-                class="btn btn-primary btn-xs btn-agregarOrden" 
-                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
-                data-cantidad-verificada="<?php echo $cantidad_para_ordenar; ?>"
-                data-cantidad-ordenada="<?php echo $cantidad_ya_ordenada_real; ?>"
-                title="Agregar a Orden (Pendiente: <?php echo $cantidad_pendiente_real; ?>)" 
-                style="padding: 2px 8px; font-size: 11px;">
-            <i class="fa fa-check"></i> Agregar a Orden
-        </button>
-<?php 
-    } elseif ($modo_editar && !$enOrdenActual && !$pedidoAnulado && $cantidad_pendiente_real > 0) { 
-?>
-        <button type="button" 
-                class="btn btn-primary btn-xs btn-agregarOrden" 
-                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
-                data-cantidad-verificada="<?php echo $cantidad_para_ordenar; ?>"
-                data-cantidad-ordenada="<?php echo $cantidad_ya_ordenada_real; ?>" 
-                style="padding: 2px 8px; font-size: 11px;">
-            <i class="fa fa-plus"></i> Agregar
-        </button>
-<?php 
-    } elseif ($enOrdenActual) { 
-?>
-        <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px;">
-            <i class="fa fa-check"></i> En Orden
-        </span>
-<?php 
-    } elseif ($cantidad_pendiente_real <= 0) { 
-?>
-        <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">
-            <i class="fa fa-check-circle"></i> Todo Ordenado
-        </span>
-<?php 
-    } else { 
-?>
-        <span class="badge badge-secondary" style="font-size: 10px; padding: 2px 6px;">
-            <i class="fa fa-check"></i> Cerrado
-        </span>
-<?php 
-    }
-    
-    // ========================================
-    // ORDEN DE MATERIALES - Pendiente Verificar
-    // ========================================
-    } elseif (!$esVerificado && $stockInsuficiente && !$pedidoAnulado) { 
-    ?>
-        <button type="button" class="btn btn-success btn-xs verificar-btn"
-                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                data-cantidad-actual="<?php echo $detalle['cant_pedido_detalle']; ?>"
-                data-cantidad-almacen="<?php echo $detalle['cantidad_disponible_almacen']; ?>"
-                data-cantidad-disponible="<?php echo $detalle['cantidad_disponible_real']; ?>"
-                title="Verificar Item" style="padding: 2px 8px; font-size: 11px;">
-            Verificar
-        </button>
-    <?php 
-        // CALCULAR SI HAY CANTIDAD PENDIENTE DE ORDENAR
-        $cantidad_pendiente = ObtenerCantidadPendienteOrdenar($id_pedido, $detalle['id_producto']);
-        $todo_ordenado = ($cantidad_pendiente <= 0);
-    
-    // ========================================
-    // ORDEN DE MATERIALES - Verificado (Modo Normal)
-    // ========================================
-    } elseif ($esVerificado && $stockInsuficiente && $detalle['est_pedido_detalle'] != 2 && !$modo_editar && !$pedidoAnulado && !$todo_ordenado) { 
-    ?>
-        <button type="button" 
-                class="btn btn-primary btn-xs btn-agregarOrden" 
-                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
-                data-cantidad-verificada="<?php echo htmlspecialchars($detalle['cant_fin_pedido_detalle']); ?>"
-                data-cantidad-ordenada="<?php echo $detalle['cantidad_ya_ordenada']; ?>"
-                title="Agregar a Orden" 
-                style="padding: 2px 8px; font-size: 11px;">
-            <i class="fa fa-check"></i> Agregar a Orden
-        </button>
-    <?php 
-        // CALCULAR SI HAY CANTIDAD PENDIENTE (modo editar)
-        $cantidad_pendiente_editar = ObtenerCantidadPendienteOrdenar($id_pedido, $detalle['id_producto']);
-        $todo_ordenado_editar = ($cantidad_pendiente_editar <= 0);
-    
-    // ========================================
-    // ORDEN DE MATERIALES - Verificado (Modo Editar)
-    // ========================================
-    } elseif ($esVerificado && $stockInsuficiente && $detalle['est_pedido_detalle'] != 2 && $modo_editar && !$enOrdenActual && !$pedidoAnulado && !$todo_ordenado_editar) { 
-    ?>
-        <button type="button" 
-                class="btn btn-primary btn-xs btn-agregarOrden" 
-                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
-                data-cantidad-verificada="<?php echo htmlspecialchars($detalle['cant_fin_pedido_detalle']); ?>"
-                data-cantidad-ordenada="<?php echo $detalle['cantidad_ya_ordenada']; ?>" 
-                style="padding: 2px 8px; font-size: 11px;">
-            <i class="fa fa-plus"></i> Agregar
-        </button>
-    <?php 
-    // ========================================
-    // BADGES DE ESTADO
-    // ========================================
-    } elseif ($enOrdenActual) { 
-    ?>
-        <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px;">
-            <i class="fa fa-check"></i> En Orden
-        </span>
-    <?php 
-    } elseif (isset($todo_ordenado) && $todo_ordenado) { 
-    ?>
-        <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">
-            <i class="fa fa-check-circle"></i> Todo Ordenado
-        </span>
-    <?php 
-    } elseif ($esVerificado && !$stockInsuficiente) { 
-    ?>
-        <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">
-            ✓ Completo
-        </span>
-    <?php 
-    } else { 
-    ?>
-        <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px;">
-            ✓ Cerrado
-        </span>
-    <?php 
-    } 
-    ?>
-</div>
-                                
-                                <div style="font-size: 11px; color: #333; line-height: 1.4;">
-    <strong>Descripción:</strong> 
-    <span style="color: #666;"><?php echo strlen($detalle['prod_pedido_detalle']) > 80 ? substr($detalle['prod_pedido_detalle'], 0, 80) . '...' : $detalle['prod_pedido_detalle']; ?></span>
-    
-    <?php if (!empty($detalle['ot_pedido_detalle'])): ?>
-    <span style="margin: 0 8px;">|</span>
-    <strong>OT Material:</strong> <span><?php echo htmlspecialchars($detalle['ot_pedido_detalle']); ?></span>
-    <?php endif; ?>
-    
-    <span style="margin: 0 8px;">|</span>
-    <strong>Cantidad:</strong> <?php echo number_format($detalle['cant_pedido_detalle'], 2); ?>
-    
-    <span style="margin: 0 8px;">|</span>
-    <strong>Unid:</strong> <?php echo $unidad; ?>
-    
-    <?php if (!$esAutoOrden): ?>
-        <span style="margin: 0 8px;">|</span>
-        <strong>SST/MA/CA:</strong> <?php echo $descripcion_sst_completa; ?>
-    <?php endif; ?>
-    
-    <?php 
-    // MOSTRAR INFORMACIÓN DE ORDENAMIENTO
-    if ($esAutoOrden) {
-        // Para SERVICIOS
-        $cant_original_item = floatval($detalle['cant_pedido_detalle']);
-        $cant_ordenada_item = isset($detalle['cantidad_ya_ordenada']) ? floatval($detalle['cantidad_ya_ordenada']) : 0;
-        $cant_pendiente_item = $cant_original_item - $cant_ordenada_item;
-        
-        if ($cant_ordenada_item > 0) { ?>
-            <span style="margin: 0 8px;">|</span>
-            <strong style="color: #28a745;">Ordenado:</strong> <?php echo number_format($cant_ordenada_item, 2); ?>
-        <?php }
-        
-        if ($cant_pendiente_item > 0) { ?>
-            <span style="margin: 0 8px;">|</span>
-            <strong style="color: #ffc107;">Pendiente:</strong> <?php echo number_format($cant_pendiente_item, 2); ?>
-        <?php } else if ($cant_ordenada_item >= $cant_original_item) { ?>
-            <span style="margin: 0 8px;">|</span>
-            <strong style="color: #28a745;">✓ Completado</strong>
-        <?php }
-        
-    } else if ($esVerificado) {
-        // Para MATERIALES verificados
-        ?>
-        <span style="margin: 0 8px;">|</span>
-        <strong>Verificado:</strong> <?php echo number_format($detalle['cant_fin_pedido_detalle'], 2); ?>
-        
-        <?php if (isset($detalle['cantidad_ya_ordenada']) && $detalle['cantidad_ya_ordenada'] > 0) { ?>
-            <span style="margin: 0 8px;">|</span>
-            <strong style="color: #28a745;">Ordenado:</strong> <?php echo number_format($detalle['cantidad_ya_ordenada'], 2); ?>
-        <?php }
-        
-        if (isset($detalle['cantidad_pendiente']) && $detalle['cantidad_pendiente'] > 0) { ?>
-            <span style="margin: 0 8px;">|</span>
-            <strong style="color: #ffc107;">Pendiente:</strong> <?php echo number_format($detalle['cantidad_pendiente'], 2); ?>
-        <?php }
-    }
-    ?>
-</div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="<?php echo $claseTexto; ?>" style="font-weight: 600; font-size: 14px;">
+                                        <i class="fa <?php echo $icono; ?>"></i> Item <?php echo $contador_detalle; ?> - <?php echo $estadoTexto; ?>
+                                    </span>
+
+                                    <!-- a evaluar si se muestra 
+                                    <?php 
+                                    // 🔹 MOSTRAR INFO DE STOCK (solo materiales)
+                                    if ($pedido['id_producto_tipo'] != 2 && isset($stock_destino)): 
+                                    ?>
+                                    <div style="font-size: 10px; text-align: right;">
+                                        <div><strong>Destino:</strong> <?php echo number_format($stock_destino, 2); ?></div>
+                                        <div><strong>Otras ubicaciones:</strong> <?php echo number_format($stock_otras_ubicaciones, 2); ?></div>
+                                    </div>
+                                    <?php endif; ?>
+                                    -->
+                                </div>
+
+                                <!-- ***************** EVALUAR DESDE AQUI LO QUE DEBERIA MOSTRARSE EN LABEL VERIFICADO ORDENADO PENDIENTE *********************-->
+
+                                <?php if (!$esAutoOrden && $esVerificado && isset($detalle['otras_ubicaciones_con_stock'])): ?>
+                                <div class="mt-2 p-2" style="background-color: #f8f9fa; border-radius: 4px; font-size: 11px; border-left: 3px solid <?php echo $colorBorde; ?>;">
+                                    <strong class="d-block mb-2" style="color: <?php echo $colorBorde; ?>;">
+                                        <i class="fa fa-map-marker"></i> Stock por ubicaciones:
+                                    </strong>
+                                    
+                                    <!-- Ubicación destino -->
+                                    <div class="mb-2 p-1" style="background-color: #fff; border-radius: 3px;">
+                                        <span class="badge badge-<?php echo $stock_destino >= $cantidad_pedida ? 'success' : 'warning'; ?>" style="font-size: 10px;">
+                                            🎯 <?php echo htmlspecialchars($pedido['nom_ubicacion']); ?> (Destino)
+                                        </span>
+                                        <strong class="ml-2"><?php echo number_format($stock_destino, 2); ?></strong>
+                                        <span class="text-muted">/ Necesita: <?php echo number_format($cantidad_pedida, 2); ?></span>
+                                    </div>
+                                    
+                                    <!-- Otras ubicaciones -->
+                                    <?php if (!empty($detalle['otras_ubicaciones_con_stock'])): ?>
+                                        <div class="mt-2">
+                                            <small class="text-muted d-block mb-1">
+                                                <i class="fa fa-list"></i> Otras ubicaciones disponibles:
+                                            </small>
+                                            <?php foreach ($detalle['otras_ubicaciones_con_stock'] as $ub): ?>
+                                                <div class="ml-3 mb-1" style="font-size: 10px;">
+                                                    <span class="badge badge-info" style="font-size: 9px;">
+                                                        <?php echo htmlspecialchars($ub['nom_ubicacion']); ?>
+                                                    </span>
+                                                    <strong><?php echo number_format($ub['stock'], 2); ?></strong> unidades
+                                                </div>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    
+                                    <!-- 🆕 Resumen de cantidades -->
+                                    <?php if (isset($cantidad_para_os) && isset($cantidad_para_oc)): ?>
+                                    <!--<div class="mt-2 pt-2" style="border-top: 1px solid #dee2e6;">
+                                        <?php if ($cantidad_para_os > 0): ?>
+                                        <div class="mb-1" style="font-size: 10px;">
+                                            <i class="fa fa-truck text-success"></i>
+                                            <strong>Para OS:</strong> <span class="badge badge-success"><?php echo number_format($cantidad_para_os, 2); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($cantidad_para_oc > 0): ?>
+                                        <div style="font-size: 10px;">
+                                            <i class="fa fa-shopping-cart text-danger"></i>
+                                            <strong>Para OC:</strong> <span class="badge badge-danger"><?php echo number_format($cantidad_para_oc, 2); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>-->
+                                    <?php endif; ?>
+                                </div>
+                                <?php endif; ?>
+
+                                <!-- ********************** HASTA AQUI ******************* -->
+
+                                <!-- BOTONES DE ACCIÓN -->
+                                <div class="mt-2">
+                                    <?php
+                                    if ($esAutoOrden) { 
+                                        // SERVICIOS 
+                                        $cantidad_para_ordenar = isset($detalle['cant_pedido_detalle']) ? floatval($detalle['cant_pedido_detalle']) : 0;
+                                        $cantidad_ya_ordenada_real = isset($detalle['cantidad_ya_ordenada']) ? floatval($detalle['cantidad_ya_ordenada']) : 0;
+                                        $cantidad_pendiente_real = $cantidad_para_ordenar - $cantidad_ya_ordenada_real;
+                                        
+                                        if ($detalle['est_pedido_detalle'] != 2 && !$modo_editar && !$pedidoAnulado && $cantidad_pendiente_real > 0) { 
+                                    ?>
+                                            <button type="button" 
+                                                    class="btn btn-primary btn-xs btn-agregarOrden" 
+                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                    data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                                                    data-cantidad-verificada="<?php echo $cantidad_para_ordenar; ?>"
+                                                    data-cantidad-ordenada="<?php echo $cantidad_ya_ordenada_real; ?>"
+                                                    title="Agregar a Orden (Pendiente: <?php echo $cantidad_pendiente_real; ?>)" 
+                                                    style="padding: 2px 8px; font-size: 11px;">
+                                                <i class="fa fa-check"></i> Agregar a Orden
+                                            </button>
+                                    <?php 
+                                        } elseif ($modo_editar && !$enOrdenActual && !$pedidoAnulado && $cantidad_pendiente_real > 0) { 
+                                    ?>
+                                            <button type="button" 
+                                                    class="btn btn-primary btn-xs btn-agregarOrden" 
+                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                    data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                                                    data-cantidad-verificada="<?php echo $cantidad_para_ordenar; ?>"
+                                                    data-cantidad-ordenada="<?php echo $cantidad_ya_ordenada_real; ?>" 
+                                                    style="padding: 2px 8px; font-size: 11px;">
+                                                <i class="fa fa-plus"></i> Agregar
+                                            </button>
+                                    <?php 
+                                        } elseif ($enOrdenActual) { 
+                                    ?>
+                                            <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px;">
+                                                <i class="fa fa-check"></i> En Orden
+                                            </span>
+                                    <?php 
+                                        } elseif ($cantidad_pendiente_real <= 0) { 
+                                    ?>
+                                            <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">
+                                                <i class="fa fa-check-circle"></i> Todo Ordenado
+                                            </span>
+                                    <?php 
+                                        }
+                                    } else {
+                                        // ========================================
+                                        // MATERIALES - LÓGICA CORREGIDA ✅
+                                        // ========================================
+                                        
+                                        // 🔹 Obtener cantidades verificadas
+                                        $cant_os_verificada = isset($detalle['cant_os_pedido_detalle']) ? floatval($detalle['cant_os_pedido_detalle']) : 0;
+                                        $cant_oc_verificada = isset($detalle['cant_oc_pedido_detalle']) ? floatval($detalle['cant_oc_pedido_detalle']) : 0;
+                                        
+                                        // 🔹 Calcular pendientes
+                                        $pendiente_os = isset($detalle['cantidad_pendiente_os']) ? floatval($detalle['cantidad_pendiente_os']) : 0;
+                                        $pendiente_oc = isset($detalle['cantidad_pendiente_oc']) ? floatval($detalle['cantidad_pendiente_oc']) : 0;
+                                        
+                                        // 🔹 Determinar si están completadas
+                                        $os_completada = ($cant_os_verificada > 0 && $pendiente_os <= 0);
+                                        $oc_completada = ($cant_oc_verificada > 0 && $pendiente_oc <= 0);
+                                        
+                                        // 🔹 Determinar si se verificó algo
+                                        $se_verifico_os = ($cant_os_verificada > 0);
+                                        $se_verifico_oc = ($cant_oc_verificada > 0);
+                                        
+                                        // ========================================
+                                        // CASOS DE USO
+                                        // ========================================
+                                        
+                                        // 🔹 CASO 1: Stock completo en destino → FINALIZADO
+                                        if (isset($stock_destino) && $stock_destino >= $cantidad_pedida) {
+                                    ?>
+                                            <span class="badge badge-success" style="font-size: 11px; padding: 4px 8px;">
+                                                <i class="fa fa-check-circle"></i> Stock disponible - Pedido Completado
+                                            </span>
+                                    <?php
+                                        }
+                                        // 🔹 CASO 2: Ambos completados (OS + OC)
+                                        elseif ($os_completada && $oc_completada) {
+                                    ?>
+                                            <span class="badge badge-success" style="font-size: 11px; padding: 4px 8px;">
+                                                <i class="fa fa-check-double"></i> Pedido Completado (OS + OC)
+                                            </span>
+                                    <?php
+                                        }
+                                        // 🔹 CASO 3: Solo se verificó OC y está pendiente ✅ NUEVO
+                                        elseif ($se_verifico_oc && !$se_verifico_os && $pendiente_oc > 0 && !$pedidoAnulado) {
+                                    ?>
+                                            <button type="button" 
+                                                    class="btn btn-primary btn-sm btn-agregarOrden" 
+                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                    data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
+                                                    data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
+                                                    data-cantidad-ordenada="0"
+                                                    style="padding: 2px 8px; font-size: 11px;">
+                                                <i class="fa fa-shopping-cart"></i> Agregar a OC (<?php echo number_format($pendiente_oc, 2); ?>)
+                                            </button>
+                                    <?php
+                                        }
+                                        // 🔹 CASO 4: Solo se verificó OC y está completada ✅ NUEVO
+                                        elseif ($se_verifico_oc && !$se_verifico_os && $oc_completada) {
+                                    ?>
+                                            <span class="badge badge-success" style="font-size: 11px; padding: 4px 8px;">
+                                                <i class="fa fa-check-circle"></i> OC Completada
+                                            </span>
+                                    <?php
+                                        }
+                                        // 🔹 CASO 5: Solo se verificó OS y está pendiente ✅ NUEVO
+                                        elseif ($se_verifico_os && !$se_verifico_oc && $pendiente_os > 0 && !$pedidoAnulado) {
+                                    ?>
+                                            <button type="button" 
+                                                    class="btn btn-success btn-sm btn-agregarSalida" 
+                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                    data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
+                                                    data-cantidad-disponible="<?php echo $pendiente_os; ?>"
+                                                    data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
+                                                    data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
+                                                    data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
+                                                    style="padding: 2px 8px; font-size: 11px;">
+                                                <i class="fa fa-truck"></i> Agregar a OS (<?php echo number_format($pendiente_os, 2); ?>)
+                                            </button>
+                                    <?php
+                                        }
+                                        // 🔹 CASO 6: Solo se verificó OS y está completada ✅ NUEVO
+                                        elseif ($se_verifico_os && !$se_verifico_oc && $os_completada) {
+                                    ?>
+                                            <span class="badge badge-success" style="font-size: 11px; padding: 4px 8px;">
+                                                <i class="fa fa-check-circle"></i> OS Completada
+                                            </span>
+                                    <?php
+                                        }
+                                        // 🔹 CASO 7: Ambos verificados, solo OS pendiente
+                                        elseif ($se_verifico_os && $se_verifico_oc && $pendiente_os > 0 && $oc_completada && !$pedidoAnulado) {
+                                    ?>
+                                            <button type="button" 
+                                                    class="btn btn-success btn-sm btn-agregarSalida" 
+                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                    data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
+                                                    data-cantidad-disponible="<?php echo $pendiente_os; ?>"
+                                                    data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
+                                                    data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
+                                                    data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
+                                                    style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
+                                                <i class="fa fa-truck"></i> Agregar a OS (<?php echo number_format($pendiente_os, 2); ?>)
+                                            </button>
+                                            <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">
+                                                <i class="fa fa-check-circle"></i> OC Completada
+                                            </span>
+                                    <?php
+                                        }
+                                        // 🔹 CASO 8: Ambos verificados, solo OC pendiente
+                                        elseif ($se_verifico_os && $se_verifico_oc && $pendiente_oc > 0 && $os_completada && !$pedidoAnulado) {
+                                    ?>
+                                            <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px; margin-right: 4px;">
+                                                <i class="fa fa-check-circle"></i> OS Completada
+                                            </span>
+                                            <button type="button" 
+                                                    class="btn btn-primary btn-sm btn-agregarOrden" 
+                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                    data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
+                                                    data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
+                                                    data-cantidad-ordenada="0"
+                                                    style="padding: 2px 8px; font-size: 11px;">
+                                                <i class="fa fa-shopping-cart"></i> Agregar a OC (<?php echo number_format($pendiente_oc, 2); ?>)
+                                            </button>
+                                    <?php
+                                        }
+                                        // 🔹 CASO 9: Ambos verificados y pendientes
+                                        elseif ($se_verifico_os && $se_verifico_oc && $pendiente_os > 0 && $pendiente_oc > 0 && !$pedidoAnulado) {
+                                    ?>
+                                            <button type="button" 
+                                                    class="btn btn-success btn-sm btn-agregarSalida" 
+                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                    data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
+                                                    data-cantidad-disponible="<?php echo $pendiente_os; ?>"
+                                                    data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
+                                                    data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
+                                                    data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
+                                                    style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
+                                                <i class="fa fa-truck"></i> Agregar a OS (<?php echo number_format($pendiente_os, 2); ?>)
+                                            </button>
+                                            
+                                            <button type="button" 
+                                                    class="btn btn-primary btn-sm btn-agregarOrden" 
+                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                    data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
+                                                    data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
+                                                    data-cantidad-ordenada="0"
+                                                    style="padding: 2px 8px; font-size: 11px;">
+                                                <i class="fa fa-shopping-cart"></i> Agregar a OC (<?php echo number_format($pendiente_oc, 2); ?>)
+                                            </button>
+                                    <?php
+                                        }
+                                        // 🔹 CASO 10: Pendiente verificar
+                                        elseif (!$esVerificado && !$pedidoAnulado) {
+                                    ?>
+                                            <button type="button" class="btn btn-warning btn-xs verificar-btn"
+                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                    data-cantidad-pedida="<?php echo $cantidad_pedida; ?>"
+                                                    data-stock-destino="<?php echo isset($stock_destino) ? $stock_destino : 0; ?>"
+                                                    data-stock-otras-ubicaciones="<?php echo isset($stock_otras_ubicaciones) ? $stock_otras_ubicaciones : 0; ?>"
+                                                    data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
+                                                    style="padding: 2px 8px; font-size: 11px;">
+                                                <i class="fa fa-check"></i> Verificar
+                                            </button>
+                                    <?php
+                                        }
+                                    }
+                                    ?>
+                                </div>
+
+                                <!-- Descripción del producto -->
+                                <div style="font-size: 11px; color: #333; line-height: 1.6; margin-top: 8px;">
+                                    <!-- PRIMERA LÍNEA: Descripción y datos básicos -->
+                                    <div style="margin-bottom: 4px;">
+                                        <strong>Descripción:</strong> 
+                                        <span style="color: #666;"><?php echo strlen($detalle['prod_pedido_detalle']) > 80 ? substr($detalle['prod_pedido_detalle'], 0, 80) . '...' : $detalle['prod_pedido_detalle']; ?></span>
+                                        
+                                        <?php if (!empty($detalle['ot_pedido_detalle'])): ?>
+                                        <span style="margin: 0 8px;">|</span>
+                                        <strong>OT Material:</strong> <span><?php echo htmlspecialchars($detalle['ot_pedido_detalle']); ?></span>
+                                        <?php endif; ?>
+                                        
+                                        <span style="margin: 0 8px;">|</span>
+                                        <strong>Cantidad:</strong> <?php echo number_format($detalle['cant_pedido_detalle'], 2); ?>
+                                        
+                                        <span style="margin: 0 8px;">|</span>
+                                        <strong>Unid:</strong> <?php echo $unidad; ?>
+                                        
+                                        <?php if (!$esAutoOrden): ?>
+                                            <span style="margin: 0 8px;">|</span>
+                                            <strong>SST/MA/CA:</strong> <?php echo $descripcion_sst_completa; ?>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <!-- SEGUNDA LÍNEA: Estado de verificación y ordenamiento -->
+                                    <?php 
+                                    // MOSTRAR INFORMACIÓN DE ORDENAMIENTO
+                                    if ($esAutoOrden) {
+                                        // Para SERVICIOS 
+                                        $cant_original_item = floatval($detalle['cant_pedido_detalle']);
+                                        $cant_ordenada_item = isset($detalle['cantidad_ya_ordenada']) ? floatval($detalle['cantidad_ya_ordenada']) : 0;
+                                        $cant_pendiente_item = $cant_original_item - $cant_ordenada_item;
+                                        
+                                        if ($cant_ordenada_item > 0 || $cant_pendiente_item > 0) { ?>
+                                            <div style="padding: 3px 0; border-top: 1px solid #e0e0e0;">
+                                                <?php if ($cant_ordenada_item > 0) { ?>
+                                                    <strong style="color: #333;">Ordenado:</strong> 
+                                                    <span style="color: #333;"><?php echo number_format($cant_ordenada_item, 2); ?></span>
+                                                <?php }
+                                                
+                                                if ($cant_pendiente_item > 0) { ?>
+                                                    <span style="margin: 0 8px;">|</span>
+                                                    <strong style="color: #333;">Pendiente:</strong> 
+                                                    <span style="color: #333;"><?php echo number_format($cant_pendiente_item, 2); ?></span>
+                                                <?php } ?>
+                                            </div>
+                                        <?php }
+                                        
+                                    } else if ($esVerificado) {
+                                        // Para MATERIALES verificados
+                                        $cant_oc_verificada = floatval($detalle['cant_oc_pedido_detalle']);
+                                        $cant_os_verificada = floatval($detalle['cant_os_pedido_detalle']);
+                                        
+                                        if ($cant_os_verificada > 0 || $cant_oc_verificada > 0) { ?>
+                                            <div style="padding: 4px 0; border-top: 1px solid #e0e0e0;">
+                                                
+                                                <?php // ========== SECCIÓN OS (FONDO VERDE) - LÍNEA 1 ==========
+                                                if ($cant_os_verificada > 0): 
+                                                    $ordenado_os = isset($detalle['cantidad_ya_ordenada_os']) ? floatval($detalle['cantidad_ya_ordenada_os']) : 0;
+                                                    $pendiente_os = $cant_os_verificada - $ordenado_os;
+                                                ?>
+                                                    <div style="background: #d4edda; padding: 3px 8px; border-radius: 3px; margin-bottom: 4px; color: #333;">
+                                                        <strong>📦 OS:</strong>
+                                                        <span><strong>Verificado:</strong> <?php echo number_format($cant_os_verificada, 2); ?></span>
+                                                        
+                                                        <?php if ($ordenado_os > 0) { ?>
+                                                            <span style="margin: 0 6px;">•</span>
+                                                            <span><strong>Ordenado:</strong> <?php echo number_format($ordenado_os, 2); ?></span>
+                                                        <?php }
+                                                        
+                                                        if ($pendiente_os > 0) { ?>
+                                                            <span style="margin: 0 6px;">•</span>
+                                                            <span><strong>Pendiente:</strong> <?php echo number_format($pendiente_os, 2); ?></span>
+                                                        <?php } else if ($ordenado_os >= $cant_os_verificada) { ?>
+                                                            <span style="margin: 0 6px;">•</span>
+                                                            <span style="font-weight: bold;">✓ Completada</span>
+                                                        <?php } ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                                
+                                                <?php // ========== SECCIÓN OC (FONDO AZUL) - LÍNEA 2 ==========
+                                                if ($cant_oc_verificada > 0): 
+                                                    $ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
+                                                    $pendiente_oc = $cant_oc_verificada - $ordenado_oc;
+                                                ?>
+                                                    <div style="background: #cfe2ff; padding: 3px 8px; border-radius: 3px; color: #333;">
+                                                        <strong>🛒 OC:</strong>
+                                                        <span><strong>Verificado:</strong> <?php echo number_format($cant_oc_verificada, 2); ?></span>
+                                                        
+                                                        <?php if ($ordenado_oc > 0) { ?>
+                                                            <span style="margin: 0 6px;">•</span>
+                                                            <span><strong>Ordenado:</strong> <?php echo number_format($ordenado_oc, 2); ?></span>
+                                                        <?php }
+                                                        
+                                                        if ($pendiente_oc > 0) { ?>
+                                                            <span style="margin: 0 6px;">•</span>
+                                                            <span><strong>Pendiente:</strong> <?php echo number_format($pendiente_oc, 2); ?></span>
+                                                        <?php } else if ($ordenado_oc >= $cant_oc_verificada) { ?>
+                                                            <span style="margin: 0 6px;">•</span>
+                                                            <span style="font-weight: bold;">✓ Completada</span>
+                                                        <?php } ?>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        <?php }
+                                    }
+                                    ?>
+                                </div>
                             </div>
                             <?php 
                                 $contador_detalle++;
@@ -424,7 +720,7 @@ foreach ($pedido_detalle as $detalle) {
                         </div>
                         
                         <div id="mensaje-sin-pendientes" style="display: none;" class="text-center p-3">
-                            <i class="fa fa-check-circle fa-2x text-success mb-2"></i>
+                            <i class="fa fa-check-circle fa--2x text-success mb-2"></i>
                             <h5 class="text-success">¡Todos verificados!</h5>
                             <p class="text-muted" style="font-size: 12px;">No hay items pendientes.</p>
                         </div>
@@ -432,230 +728,350 @@ foreach ($pedido_detalle as $detalle) {
                 </div>
             </div>
 
+            <!-- COLUMNA DERECHA - Órdenes y Salidas -->
             <div class="col-md-6">
                 <div class="x_panel">
                     <div class="x_title" style="padding: 8px 15px;">
                         <div class="d-flex justify-content-between align-items-center">
                             <h2 style="margin: 0; font-size: 16px;">
-                                <?php echo $modo_editar ? 'Editando Orden' : 'Items Verificados'; ?>
-                                <small id="contador-verificados">(0 items)</small>
-                            </h2>
-                            <?php if (!$modo_editar && !$pedido_anulado): ?>
-                                <?php
-                                // Verificar si hay items disponibles para agregar a orden
-                                $tiene_items_disponibles = false;
-                                foreach ($pedido_detalle as $detalle) {
-                                    $esVerificado = !is_null($detalle['cant_fin_pedido_detalle']);
-                                    $stockInsuficiente = $detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle'];
-                                    $esAutoOrden = ($pedido['id_producto_tipo'] == 2);
-                                    $estaCerrado = ($detalle['est_pedido_detalle'] == 2);
-                                    
-                                    // Si es auto-orden, verificado con stock insuficiente, y no está cerrado
-                                    if (($esAutoOrden || ($esVerificado && $stockInsuficiente)) && !$estaCerrado) {
-                                        $tiene_items_disponibles = true;
-                                        break;
-                                    }
+                                <?php 
+                                if ($modo_editar) {
+                                    echo 'Editando Orden';
+                                } elseif ($modo_editar_salida) {
+                                    echo 'Editando Salida';
+                                } else {
+                                    echo 'Gestión de Pedido';
                                 }
                                 ?>
-                                
-                                <?php if ($tiene_items_disponibles): ?>
-                                    <button type="button" class="btn btn-primary btn-sm" id="btn-nueva-orden" style="padding: 4px 8px; font-size: 12px;">
-                                        <i class="fa fa-plus"></i> Nueva Orden
-                                    </button>
-                                <?php else: ?>
-                                    <button type="button" class="btn btn-secondary btn-sm" disabled title="No hay items disponibles para agregar" style="padding: 4px 8px; font-size: 12px;">
-                                        <i class="fa fa-ban"></i> Nueva Orden
-                                    </button>
+                                <small id="contador-verificados"></small>
+                            </h2>
+                            
+                            <?php if (!$modo_editar && !$modo_editar_salida && !$pedido_anulado): ?>
+                            <div class="btn-group" role="group">
+                                <?php if (!$modo_editar && !$pedido_anulado): ?>
+                                    <?php
+                                    // Verificar si hay items disponibles para agregar a orden
+                                    $tiene_items_disponibles = false;
+                                    foreach ($pedido_detalle as $detalle) {
+                                        $esVerificado = !is_null($detalle['cant_oc_pedido_detalle']);
+                                        $stockInsuficiente = $detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle'];
+                                        $esAutoOrden = ($pedido['id_producto_tipo'] == 2);
+                                        $estaCerrado = ($detalle['est_pedido_detalle'] == 2);
+                                        
+                                        // Si es auto-orden, verificado con stock insuficiente, y no está cerrado
+                                        if (($esAutoOrden || ($esVerificado && $stockInsuficiente)) && !$estaCerrado) {
+                                            $tiene_items_disponibles = true;
+                                            break;
+                                        }
+                                    }
+                                    ?>
+                                    
+                                    <?php if ($tiene_items_disponibles): ?>
+                                        <button type="button" class="btn btn-primary btn-sm" id="btn-nueva-orden" style="padding: 4px 8px; font-size: 12px;">
+                                            <i class="fa fa-plus"></i> Nueva Orden
+                                        </button>
+                                    <?php else: ?>
+                                        <button type="button" class="btn btn-secondary btn-sm" disabled title="No hay items disponibles para agregar" style="padding: 4px 8px; font-size: 12px;">
+                                            <i class="fa fa-ban"></i> Nueva Orden
+                                        </button>
+                                    <?php endif; ?>
                                 <?php endif; ?>
+
+                                <!-- Botón Nueva Salida -->
+                                <button type="button" class="btn btn-success btn-sm" id="btn-nueva-salida" style="padding: 4px 8px; font-size: 12px;">
+                                    <i class="fa fa-truck"></i> Nueva Salida
+                                </button>
+                            </div>
                             <?php endif; ?>
                         </div>
                         <div class="clearfix"></div>
                     </div>
                     
                     <div class="x_content" style="max-height: 650px; overflow-y: auto; padding: 5px;">
-                        <!-- TABLA DE ÓRDENES EXISTENTES -->
-                        <div id="contenedor-tabla-ordenes" <?php echo $modo_editar ? 'style="display: none;"' : ''; ?>>
-                            <div class="table-responsive">
-                                <table class="table table-striped table-bordered" style="font-size: 12px;">
-                                    <thead style="background-color: #f8f9fa;">
-                                        <tr>
-                                            <th style="width: 15%;">N° Orden</th>
-                                            <th style="width: 20%;">Proveedor</th>
-                                            <th style="width: 15%;">Fecha</th>
-                                            <th style="width: 15%;">Estado</th>
-                                            <th style="width: 20%;">Acciones</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="tbody-ordenes">
-                                        <?php if (!empty($pedido_compra)) { ?>
-                                            <?php foreach ($pedido_compra as $compra) {
-                                                $estado_texto = '';
-                                                $estado_clase = '';
-                                                $puede_agregar_pago = false;
+                        <!-- TABS PARA ÓRDENES Y SALIDAS -->
+                        <ul class="nav nav-tabs" id="myTab" role="tablist" <?php echo ($modo_editar || $modo_editar_salida) ? 'style="display: none;"' : 'style="display: flex;"'; ?>>
+                            <li class="nav-item">
+                                <a class="nav-link active" id="ordenes-tab" data-toggle="tab" href="#ordenes" role="tab">
+                                    <i class="fa fa-shopping-cart"></i> Órdenes de Compra
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" id="salidas-tab" data-toggle="tab" href="#salidas" role="tab">
+                                    <i class="fa fa-truck"></i> Salidas
+                                </a>
+                            </li>
+                        </ul>
 
-                                                switch ($compra['est_compra']) {
-                                                    case 0:
-                                                        $estado_texto = 'Anulada';
-                                                        $estado_clase = 'danger';
-                                                        break;
-                                                    case 1:
-                                                        $estado_texto = 'Pendiente';
-                                                        $estado_clase = 'warning';
-                                                        break;
-                                                    case 2:
-                                                        $estado_texto = 'Aprobada';
-                                                        $estado_clase = 'success';
-                                                        $puede_agregar_pago = true; //  Solo puede pagar si está aprobada
-                                                        break;
-                                                    case 3:
-                                                        $estado_texto = 'Cerrada';
-                                                        $estado_clase = 'info';
-                                                        $puede_agregar_pago = true; // También puede pagar si está cerrada
-                                                        break;
-                                                    case 4:  //  AGREGAR ESTE CASO
-                                                        $estado_texto = 'Pagada';
-                                                        $estado_clase = 'primary';
-                                                        $puede_agregar_pago = false;
-                                                        break;
-                                                    default:
-                                                        $estado_texto = 'Desconocido';
-                                                        $estado_clase = 'secondary';
-                                                }
+                        <div class="tab-content" id="myTabContent" <?php echo ($modo_editar || $modo_editar_salida) ? 'style="display: none;"' : 'style="display: block;"'; ?>>
+                            <!-- TAB: ÓRDENES DE COMPRA -->
+                            <div class="tab-pane fade show active" id="ordenes" role="tabpanel">
+                                <div class="table-responsive mt-2">
+                                    <table class="table table-striped table-bordered" style="font-size: 12px;">
+                                        <thead style="background-color: #f8f9fa;">
+                                            <tr>
+                                                <th style="width: 15%;">N° Orden</th>
+                                                <th style="width: 20%;">Proveedor</th>
+                                                <th style="width: 15%;">Fecha</th>
+                                                <th style="width: 15%;">Estado</th>
+                                                <th style="width: 20%;">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbody-ordenes">
+                                            <?php if (!empty($pedido_compra)) { ?>
+                                                <?php foreach ($pedido_compra as $compra) {
+                                                    $estado_texto = '';
+                                                    $estado_clase = '';
+                                                    $puede_agregar_pago = false;
 
-                                                $fecha_formateada = date('d/m/Y', strtotime($compra['fec_compra']));
-                                            ?>
+                                                    switch ($compra['est_compra']) {
+                                                        case 0:
+                                                            $estado_texto = 'Anulada';
+                                                            $estado_clase = 'danger';
+                                                            break;
+                                                        case 1:
+                                                            $estado_texto = 'Pendiente';
+                                                            $estado_clase = 'warning';
+                                                            break;
+                                                        case 2:
+                                                            $estado_texto = 'Aprobada';
+                                                            $estado_clase = 'success';
+                                                            $puede_agregar_pago = true;
+                                                            break;
+                                                        case 3:
+                                                            $estado_texto = 'Cerrada';
+                                                            $estado_clase = 'info';
+                                                            $puede_agregar_pago = true;
+                                                            break;
+                                                        case 4:
+                                                            $estado_texto = 'Pagada';
+                                                            $estado_clase = 'primary';
+                                                            $puede_agregar_pago = false;
+                                                            break;
+                                                        default:
+                                                            $estado_texto = 'Desconocido';
+                                                            $estado_clase = 'secondary';
+                                                    }
+
+                                                    $fecha_formateada = date('d/m/Y', strtotime($compra['fec_compra']));
+                                                ?>
+                                                    <tr>
+                                                        <td><strong>C00<?php echo $compra['id_compra']; ?></strong></td>
+                                                        <td><?php echo htmlspecialchars($compra['nom_proveedor']); ?></td>
+                                                        <td><?php echo $fecha_formateada; ?></td>
+                                                        <td>
+                                                            <span class="badge badge-<?php echo $estado_clase; ?>">
+                                                                <?php echo $estado_texto; ?>
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <!-- Botón Ver Detalles -->
+                                                            <button class="btn btn-info btn-xs btn-ver-detalle"
+                                                                    title="Ver Detalles"
+                                                                    data-id-compra="<?php echo $compra['id_compra']; ?>">
+                                                                <i class="fa fa-eye"></i>
+                                                            </button>
+
+                                                            <?php
+                                                            // Verificar si tiene aprobaciones
+                                                            $tiene_aprobacion_tecnica = !empty($compra['id_personal_aprueba_tecnica']);
+                                                            $tiene_aprobacion_financiera = !empty($compra['id_personal_aprueba_financiera']);
+                                                            $tiene_alguna_aprobacion = $tiene_aprobacion_tecnica || $tiene_aprobacion_financiera;
+
+                                                            // Solo se puede editar si está PENDIENTE y SIN aprobaciones
+                                                            $puede_editar = ($compra['est_compra'] == 1 && !$tiene_alguna_aprobacion);
+
+                                                            if ($puede_editar) { ?>
+                                                                <!-- Botón Editar HABILITADO -->
+                                                                <button class="btn btn-warning btn-xs ml-1 btn-editar-orden"
+                                                                        title="Editar Orden"
+                                                                        data-id-compra="<?php echo $compra['id_compra']; ?>">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </button>
+                                                            <?php } else {
+                                                                if ($compra['est_compra'] == 0) {
+                                                                    $mensaje = "No se puede editar - Orden anulada";
+                                                                } elseif ($compra['est_compra'] == 2) {
+                                                                    $mensaje = "No se puede editar - Orden aprobada completamente";
+                                                                } elseif ($compra['est_compra'] == 3) {
+                                                                    $mensaje = "No se puede editar - Orden cerrada";
+                                                                } elseif ($compra['est_compra'] == 4) {
+                                                                    $mensaje = "No se puede editar - Orden pagada";
+                                                                } elseif ($tiene_alguna_aprobacion) {
+                                                                    $mensaje = "No se puede editar - Orden con aprobación iniciada";
+                                                                } else {
+                                                                    $mensaje = "No se puede editar";
+                                                                }
+                                                            ?>
+                                                                <!-- Botón Editar DESHABILITADO -->
+                                                                <button class="btn btn-outline-secondary btn-xs ml-1"
+                                                                        title="<?php echo $mensaje; ?>"
+                                                                        disabled>
+                                                                    <i class="fa fa-edit"></i>
+                                                                </button>
+                                                            <?php } ?>
+
+                                                            <!-- Botón Registrar Pago -->
+                                                            <?php if ($puede_agregar_pago) { ?>
+                                                                <a href="pago_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
+                                                                class="btn btn-success btn-xs ml-1"
+                                                                title="Registrar Pago">
+                                                                    <i class="fa fa-money"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <button class="btn btn-outline-secondary btn-xs ml-1"
+                                                                        title="No disponible - Orden <?php echo strtolower($estado_texto); ?>"
+                                                                        disabled>
+                                                                    <i class="fa fa-money"></i>
+                                                                </button>
+                                                            <?php } ?>
+
+                                                            <!-- Botón Anular -->
+                                                            <?php
+                                                            $puede_anular = ($compra['est_compra'] != 0 && !$tiene_alguna_aprobacion);
+
+                                                            if ($puede_anular) { ?>
+                                                                <button class="btn btn-danger btn-xs ml-1 btn-anular-orden"
+                                                                        title="Anular Orden"
+                                                                        data-id-compra="<?php echo $compra['id_compra']; ?>"
+                                                                        data-id-pedido="<?php echo $id_pedido; ?>">
+                                                                    <i class="fa fa-times"></i>
+                                                                </button>
+                                                            <?php } else {
+                                                                if ($compra['est_compra'] == 0) {
+                                                                    $mensaje_anular = "Orden anulada";
+                                                                } elseif ($compra['est_compra'] == 2) {
+                                                                    $mensaje_anular = "No se puede anular - Orden aprobada completamente";
+                                                                } elseif ($compra['est_compra'] == 3) {
+                                                                    $mensaje_anular = "No se puede anular - Orden cerrada";
+                                                                } elseif ($compra['est_compra'] == 4) {
+                                                                    $mensaje_anular = "No se puede anular - Orden pagada";
+                                                                } elseif ($tiene_alguna_aprobacion) {
+                                                                    $mensaje_anular = "No se puede anular - Orden con aprobación iniciada";
+                                                                } else {
+                                                                    $mensaje_anular = "No se puede anular";
+                                                                }
+                                                            ?>
+                                                                <button class="btn btn-outline-secondary btn-xs ml-1"
+                                                                        title="<?php echo $mensaje_anular; ?>"
+                                                                        disabled>
+                                                                    <i class="fa fa-times"></i>
+                                                                </button>
+                                                            <?php } ?>
+                                                        </td>
+                                                    </tr>
+                                                <?php } ?>
+                                            <?php } else { ?>
                                                 <tr>
-                                                    <td><strong>C00<?php echo $compra['id_compra']; ?></strong></td>
-                                                    <td><?php echo htmlspecialchars($compra['nom_proveedor']); ?></td>
-                                                    <td><?php echo $fecha_formateada; ?></td>
-                                                    <td>
-                                                        <span class="badge badge-<?php echo $estado_clase; ?>">
-                                                            <?php echo $estado_texto; ?>
-                                                        </span>
+                                                    <td colspan="5" class="text-center p-3">
+                                                        <i class="fa fa-file-text-o fa-2x text-info mb-2"></i>
+                                                        <h5 class="text-info">Sin órdenes de compra</h5>
+                                                        <p class="text-muted" style="font-size: 12px;">
+                                                            Las órdenes de compra aparecerán aquí.
+                                                        </p>
                                                     </td>
-                                                    <td>
-    <!-- Botón Ver Detalles -->
-    <button class="btn btn-info btn-xs btn-ver-detalle" 
-            title="Ver Detalles"
-            data-id-compra="<?php echo $compra['id_compra']; ?>">
-        <i class="fa fa-eye"></i>
-    </button>
-    
-    <?php 
-    // Verificar si tiene aprobaciones (técnica o financiera)
-    $tiene_aprobacion_tecnica = !empty($compra['id_personal_aprueba_tecnica']);
-    $tiene_aprobacion_financiera = !empty($compra['id_personal_aprueba_financiera']);
-    $tiene_alguna_aprobacion = $tiene_aprobacion_tecnica || $tiene_aprobacion_financiera;
-    
-    // Solo se puede editar si está PENDIENTE y SIN aprobaciones
-    $puede_editar = ($compra['est_compra'] == 1 && !$tiene_alguna_aprobacion);
-    
-    if ($puede_editar) { ?>
-        <!-- Botón Editar HABILITADO -->
-        <button class="btn btn-warning btn-xs ml-1 btn-editar-orden" 
-                title="Editar Orden"
-                data-id-compra="<?php echo $compra['id_compra']; ?>">
-            <i class="fa fa-edit"></i>
-        </button>
-    <?php } else { 
-        // Determinar el mensaje según el estado
-        if ($compra['est_compra'] == 0) {
-            $mensaje = "No se puede editar - Orden anulada";
-        } elseif ($compra['est_compra'] == 2) {
-            $mensaje = "No se puede editar - Orden aprobada completamente";
-        } elseif ($compra['est_compra'] == 3) {
-            $mensaje = "No se puede editar - Orden cerrada";
-        } elseif ($compra['est_compra'] == 4) {
-            $mensaje = "No se puede editar - Orden pagada";
-        } elseif ($tiene_alguna_aprobacion) {
-            $mensaje = "No se puede editar - Orden con aprobación iniciada";
-        } else {
-            $mensaje = "No se puede editar";
-        }
-    ?>
-        <!-- Botón Editar DESHABILITADO -->
-        <button class="btn btn-outline-secondary btn-xs ml-1" 
-                title="<?php echo $mensaje; ?>" 
-                disabled>
-            <i class="fa fa-edit"></i>
-        </button>
-    <?php } ?>
-
-    <!-- Botón Registrar Pago -->
-    <?php if ($puede_agregar_pago): ?>
-        <a href="pago_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>" 
-           class="btn btn-success btn-xs ml-1" 
-           title="Registrar Pago">
-            <i class="fa fa-money"></i>
-        </a>
-    <?php else: ?>
-        <button class="btn btn-outline-secondary btn-xs ml-1" 
-                title="No disponible - Orden <?php echo strtolower($estado_texto); ?>" 
-                disabled>
-            <i class="fa fa-money"></i>
-        </button>
-    <?php endif; ?>
-
-    <!-- Botón Anular -->
-    <?php 
-    // Solo se puede anular si NO está anulada Y NO tiene aprobaciones
-    $puede_anular = ($compra['est_compra'] != 0 && !$tiene_alguna_aprobacion);
-    
-    if ($puede_anular) { ?>
-        <!-- Botón anular HABILITADO -->
-        <button class="btn btn-danger btn-xs ml-1 btn-anular-orden" 
-                title="Anular Orden"
-                data-id-compra="<?php echo $compra['id_compra']; ?>"
-                data-id-pedido="<?php echo $id_pedido; ?>">
-            <i class="fa fa-times"></i>
-        </button>
-    <?php } else { 
-        // Determinar el mensaje según el estado
-        if ($compra['est_compra'] == 0) {
-            $mensaje_anular = "Orden anulada";
-        } elseif ($compra['est_compra'] == 2) {
-            $mensaje_anular = "No se puede anular - Orden aprobada completamente";
-        } elseif ($compra['est_compra'] == 3) {
-            $mensaje_anular = "No se puede anular - Orden cerrada";
-        } elseif ($compra['est_compra'] == 4) {
-            $mensaje_anular = "No se puede anular - Orden pagada";
-        } elseif ($tiene_alguna_aprobacion) {
-            $mensaje_anular = "No se puede anular - Orden con aprobación iniciada";
-        } else {
-            $mensaje_anular = "No se puede anular";
-        }
-    ?>
-        <!-- Botón anular DESHABILITADO -->
-        <button class="btn btn-outline-secondary btn-xs ml-1" 
-                title="<?php echo $mensaje_anular; ?>" 
-                disabled>
-            <i class="fa fa-times"></i>
-        </button>
-    <?php } ?>
-</td>
                                                 </tr>
                                             <?php } ?>
-                                        <?php } else { ?>
-                                            <tr>
-                                                <td colspan="5" class="text-center p-3">
-                                                    <i class="fa fa-file-text-o fa-2x text-info mb-2"></i>
-                                                    <h5 class="text-info">Sin órdenes de compra</h5>
-                                                    <p class="text-muted" style="font-size: 12px;">Las órdenes de compra aparecerán aquí.</p>
-                                                </td>
-                                            </tr>
-                                        <?php } ?>
-                                    </tbody>
-                                </table>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                            
-                            <div id="mensaje-sin-ordenes" class="text-center p-3" style="display: none;">
-                                <i class="fa fa-file-text-o fa-2x text-info mb-2"></i>
-                                <h5 class="text-info">Sin órdenes de compra</h5>
-                                <p class="text-muted" style="font-size: 12px;">Las órdenes de compra aparecerán aquí.</p>
+
+                            <!-- TAB: SALIDAS -->
+                            <div class="tab-pane fade" id="salidas" role="tabpanel">
+                                <div class="table-responsive mt-2">
+                                    <table class="table table-striped table-bordered" style="font-size: 12px;">
+                                        <thead style="background-color: #f0f8ff;">
+                                            <tr>
+                                                <th style="width: 15%;">N° Salida</th>
+                                                <th style="width: 20%;">Destino</th>
+                                                <th style="width: 15%;">Fecha</th>
+                                                <th style="width: 15%;">Estado</th>
+                                                <th style="width: 20%;">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tbody-salidas">
+                                            <?php if (!empty($pedido_salidas)) { ?>
+                                                <?php foreach ($pedido_salidas as $salida) {
+                                                    $estado_salida_texto = '';
+                                                    $estado_salida_clase = '';
+
+                                                    switch ($salida['est_salida']) {
+                                                        case 0:
+                                                            $estado_salida_texto = 'Anulada';
+                                                            $estado_salida_clase = 'danger';
+                                                            break;
+                                                        case 1:
+                                                            $estado_salida_texto = 'Pendiente';
+                                                            $estado_salida_clase = 'warning';
+                                                            break;
+                                                        case 2:
+                                                            $estado_salida_texto = 'En Tránsito';
+                                                            $estado_salida_clase = 'info';
+                                                            break;
+                                                        case 3:
+                                                            $estado_salida_texto = 'Completada';
+                                                            $estado_salida_clase = 'success';
+                                                            break;
+                                                        default:
+                                                            $estado_salida_texto = 'Desconocido';
+                                                            $estado_salida_clase = 'secondary';
+                                                    }
+
+                                                    $fecha_salida = date('d/m/Y', strtotime($salida['fec_salida']));
+                                                ?>
+                                                    <tr>
+                                                        <td><strong>S00<?php echo $salida['id_salida']; ?></strong></td>
+                                                        <td><?php echo htmlspecialchars($salida['nom_ubicacion_destino']); ?></td>
+                                                        <td><?php echo $fecha_salida; ?></td>
+                                                        <td>
+                                                            <span class="badge badge-<?php echo $estado_salida_clase; ?>">
+                                                                <?php echo $estado_salida_texto; ?>
+                                                            </span>
+                                                        </td>
+                                                        <td>
+                                                            <!-- Botón Ver Detalles -->
+                                                            <button class="btn btn-info btn-xs btn-ver-salida"
+                                                                    title="Ver Detalles"
+                                                                    data-id-salida="<?php echo $salida['id_salida']; ?>">
+                                                                <i class="fa fa-eye"></i>
+                                                            </button>
+
+                                                            <?php if ($salida['est_salida'] == 1) { ?>
+                                                                <!-- Botón Editar -->
+                                                                <button class="btn btn-warning btn-xs ml-1 btn-editar-salida"
+                                                                        title="Editar Salida"
+                                                                        data-id-salida="<?php echo $salida['id_salida']; ?>">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </button>
+
+                                                                <!-- Botón Anular -->
+                                                                <button class="btn btn-danger btn-xs ml-1 btn-anular-salida"
+                                                                        title="Anular Salida"
+                                                                        data-id-salida="<?php echo $salida['id_salida']; ?>">
+                                                                    <i class="fa fa-times"></i>
+                                                                </button>
+                                                            <?php } ?>
+                                                        </td>
+                                                    </tr>
+                                                <?php } ?>
+                                            <?php } else { ?>
+                                                <tr>
+                                                    <td colspan="5" class="text-center p-3">
+                                                        <i class="fa fa-truck fa-2x text-success mb-2"></i>
+                                                        <h5 class="text-success">Sin salidas registradas</h5>
+                                                        <p class="text-muted" style="font-size: 12px;">
+                                                            Las salidas de almacén aparecerán aquí.
+                                                        </p>
+                                                    </td>
+                                                </tr>
+                                            <?php } ?>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- FORMULARIO PARA CREAR/EDITAR ORDEN -->
+                        <!-- FORMULARIO PARA CREAR/EDITAR ORDEN DE COMPRA  -->
                         <div id="contenedor-nueva-orden" <?php echo $modo_editar ? 'style="display: block;"' : 'style="display: none;"'; ?>>
                             <form id="form-nueva-orden" method="POST" action="" enctype="multipart/form-data">
                                 <?php if ($modo_editar): ?>
@@ -776,123 +1192,135 @@ foreach ($pedido_detalle as $detalle) {
                                         <div class="row mb-2">
                                             <div class="col-md-12">
                                                 <div class="card" style="border: 1px solid #dee2e6;">
-                                                    <div class="card-header" style="background-color: #f8f9fa; padding: 8px 12px;">
-                                                        <h6 class="mb-0" style="font-size: 13px;">
-                                                            <i class="fa fa-percent text-info"></i> Detracción, Retención y Percepción (Opcional)
-                                                        </h6>
+                                                    <div class="card-header" style="background-color: #f8f9fa; padding: 8px 12px; cursor: pointer;" 
+                                                        data-toggle="collapse" 
+                                                        data-target="#afectacionesCollapse"
+                                                        aria-expanded="false"
+                                                        aria-controls="afectacionesCollapse">
+                                                        <div class="d-flex justify-content-between align-items-center">
+                                                            <h6 class="mb-0" style="font-size: 13px;">
+                                                                <i class="fa fa-percent text-info"></i> 
+                                                                Detracción, Retención y Percepción
+                                                            </h6>
+                                                            <i class="fa fa-chevron-down" id="icon-toggle-afectaciones"></i>
+                                                        </div>
                                                     </div>
-                                                    <div class="card-body" style="padding: 12px;">
-                                                        
-                                                        <!-- DETRACCIÓN -->
-                                                        <div class="mb-3">
-                                                            <label style="font-size: 11px; font-weight: bold;">Detracción:</label>
-                                                            <div id="contenedor-detracciones" style="padding: 8px; background-color: #fff3cd; border-radius: 4px; border: 1px solid #ffc107;">
-                                                                <?php
-                                                                $detracciones = ObtenerDetraccionesPorTipo('DETRACCION');
-                                                                $detraccion_seleccionada = ($modo_editar && isset($orden_data['id_detraccion'])) ? $orden_data['id_detraccion'] : null;
-                                                                
-                                                                if (!empty($detracciones)) {
-                                                                    foreach ($detracciones as $detraccion) {
-                                                                        $checked = ($detraccion_seleccionada == $detraccion['id_detraccion']) ? 'checked' : '';
-                                                                        ?>
-                                                                        <div class="form-check" style="margin-bottom: 5px;">
-                                                                            <input class="form-check-input detraccion-checkbox" 
-                                                                                type="checkbox" 
-                                                                                name="id_detraccion" 
-                                                                                value="<?php echo $detraccion['id_detraccion']; ?>" 
-                                                                                data-porcentaje="<?php echo $detraccion['porcentaje']; ?>" 
-                                                                                data-nombre="<?php echo htmlspecialchars($detraccion['nombre_detraccion']); ?>"
-                                                                                id="detraccion_<?php echo $detraccion['id_detraccion']; ?>" 
-                                                                                <?php echo $checked; ?>>
-                                                                            <label class="form-check-label" 
-                                                                                for="detraccion_<?php echo $detraccion['id_detraccion']; ?>" 
-                                                                                style="font-size: 12px; cursor: pointer;">
-                                                                                <?php echo htmlspecialchars($detraccion['nombre_detraccion']); ?> 
-                                                                                <strong>(<?php echo $detraccion['porcentaje']; ?>%)</strong>
-                                                                            </label>
-                                                                        </div>
-                                                                        <?php
+                                                    
+                                                    <div class="collapse" id="afectacionesCollapse">
+                                                        <div class="card-body" style="padding: 12px;">
+                                                            <!-- DETRACCIÓN -->
+                                                            <div class="mb-3">
+                                                                <label style="font-size: 11px; font-weight: bold;">Detracción:</label>
+                                                                <div id="contenedor-detracciones" style="padding: 8px; background-color: #fff3cd; border-radius: 4px; border: 1px solid #ffc107;">
+                                                                    <?php
+                                                                    $detracciones = ObtenerDetraccionesPorTipo('DETRACCION');
+                                                                    $detraccion_seleccionada = ($modo_editar && isset($orden_data['id_detraccion'])) ? $orden_data['id_detraccion'] : null;
+                                                                    
+                                                                    if (!empty($detracciones)) {
+                                                                        foreach ($detracciones as $detraccion) {
+                                                                            $checked = ($detraccion_seleccionada == $detraccion['id_detraccion']) ? 'checked' : '';
+                                                                            ?>
+                                                                            <div class="form-check" style="margin-bottom: 5px;">
+                                                                                <input class="form-check-input detraccion-checkbox" 
+                                                                                    type="checkbox" 
+                                                                                    name="id_detraccion" 
+                                                                                    value="<?php echo $detraccion['id_detraccion']; ?>" 
+                                                                                    data-porcentaje="<?php echo $detraccion['porcentaje']; ?>" 
+                                                                                    data-nombre="<?php echo htmlspecialchars($detraccion['nombre_detraccion']); ?>"
+                                                                                    id="detraccion_<?php echo $detraccion['id_detraccion']; ?>" 
+                                                                                    <?php echo $checked; ?>>
+                                                                                <label class="form-check-label" 
+                                                                                    for="detraccion_<?php echo $detraccion['id_detraccion']; ?>" 
+                                                                                    style="font-size: 12px; cursor: pointer;">
+                                                                                    <?php echo htmlspecialchars($detraccion['nombre_detraccion']); ?> 
+                                                                                    <strong>(<?php echo $detraccion['porcentaje']; ?>%)</strong>
+                                                                                </label>
+                                                                            </div>
+                                                                            <?php
+                                                                        }
+                                                                    } else {
+                                                                        echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay detracciones configuradas</p>';
                                                                     }
-                                                                } else {
-                                                                    echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay detracciones configuradas</p>';
-                                                                }
-                                                                ?>
+                                                                    ?>
+                                                                </div>
+                                                                <small class="form-text text-muted">Se aplica sobre el subtotal antes de IGV</small>
                                                             </div>
-                                                            <small class="form-text text-muted">Se aplica sobre el subtotal antes de IGV</small>
-                                                        </div>
-                                                        <!-- RETENCIÓN -->
-                                                        <div class="mb-3">
-                                                            <label style="font-size: 11px; font-weight: bold;">Retención:</label>
-                                                            <div id="contenedor-retenciones" style="padding: 8px; background-color: #e7f3ff; border-radius: 4px; border: 1px solid #2196f3;">
-                                                                <?php
-                                                                $retenciones = ObtenerDetraccionesPorTipo('RETENCION'); // ← CAMBIO AQUÍ
-                                                                $retencion_seleccionada = ($modo_editar && isset($orden_data['id_retencion'])) ? $orden_data['id_retencion'] : null;
-                                                                
-                                                                if (!empty($retenciones)) {
-                                                                    foreach ($retenciones as $retencion) {
-                                                                        $checked = ($retencion_seleccionada == $retencion['id_detraccion']) ? 'checked' : '';
-                                                                        ?>
-                                                                        <div class="form-check" style="margin-bottom: 5px;">
-                                                                            <input class="form-check-input retencion-checkbox" 
-                                                                                type="checkbox" 
-                                                                                name="id_retencion" 
-                                                                                value="<?php echo $retencion['id_detraccion']; ?>" 
-                                                                                data-porcentaje="<?php echo $retencion['porcentaje']; ?>" 
-                                                                                data-nombre="<?php echo htmlspecialchars($retencion['nombre_detraccion']); ?>"
-                                                                                id="retencion_<?php echo $retencion['id_detraccion']; ?>" 
-                                                                                <?php echo $checked; ?>>
-                                                                            <label class="form-check-label" 
-                                                                                for="retencion_<?php echo $retencion['id_detraccion']; ?>" 
-                                                                                style="font-size: 12px; cursor: pointer;">
-                                                                                <?php echo htmlspecialchars($retencion['nombre_detraccion']); ?> 
-                                                                                <strong>(<?php echo $retencion['porcentaje']; ?>%)</strong>
-                                                                            </label>
-                                                                        </div>
-                                                                        <?php
+
+                                                            <!-- RETENCIÓN -->
+                                                            <div class="mb-3">
+                                                                <label style="font-size: 11px; font-weight: bold;">Retención:</label>
+                                                                <div id="contenedor-retenciones" style="padding: 8px; background-color: #e7f3ff; border-radius: 4px; border: 1px solid #2196f3;">
+                                                                    <?php
+                                                                    $retenciones = ObtenerDetraccionesPorTipo('RETENCION');
+                                                                    $retencion_seleccionada = ($modo_editar && isset($orden_data['id_retencion'])) ? $orden_data['id_retencion'] : null;
+                                                                    
+                                                                    if (!empty($retenciones)) {
+                                                                        foreach ($retenciones as $retencion) {
+                                                                            $checked = ($retencion_seleccionada == $retencion['id_detraccion']) ? 'checked' : '';
+                                                                            ?>
+                                                                            <div class="form-check" style="margin-bottom: 5px;">
+                                                                                <input class="form-check-input retencion-checkbox" 
+                                                                                    type="checkbox" 
+                                                                                    name="id_retencion" 
+                                                                                    value="<?php echo $retencion['id_detraccion']; ?>" 
+                                                                                    data-porcentaje="<?php echo $retencion['porcentaje']; ?>" 
+                                                                                    data-nombre="<?php echo htmlspecialchars($retencion['nombre_detraccion']); ?>"
+                                                                                    id="retencion_<?php echo $retencion['id_detraccion']; ?>" 
+                                                                                    <?php echo $checked; ?>>
+                                                                                <label class="form-check-label" 
+                                                                                    for="retencion_<?php echo $retencion['id_detraccion']; ?>" 
+                                                                                    style="font-size: 12px; cursor: pointer;">
+                                                                                    <?php echo htmlspecialchars($retencion['nombre_detraccion']); ?> 
+                                                                                    <strong>(<?php echo $retencion['porcentaje']; ?>%)</strong>
+                                                                                </label>
+                                                                            </div>
+                                                                            <?php
+                                                                        }
+                                                                    } else {
+                                                                        echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay retenciones configuradas</p>';
                                                                     }
-                                                                } else {
-                                                                    echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay retenciones configuradas</p>';
-                                                                }
-                                                                ?>
+                                                                    ?>
+                                                                </div>
+                                                                <small class="form-text text-muted">Se aplica sobre el total después de IGV</small>
                                                             </div>
-                                                            <small class="form-text text-muted">Se aplica sobre el total después de IGV</small>
-                                                        </div>
-                                                        <!-- PERCEPCIÓN -->
-                                                        <div class="mb-2">
-                                                            <label style="font-size: 11px; font-weight: bold;">Percepción:</label>
-                                                            <div id="contenedor-percepciones" style="padding: 8px; background-color: #e8f5e9; border-radius: 4px; border: 1px solid #4caf50;">
-                                                                <?php
-                                                                $percepciones = ObtenerDetraccionesPorTipo('PERCEPCION'); // ← CAMBIO AQUÍ
-                                                                $percepcion_seleccionada = ($modo_editar && isset($orden_data['id_percepcion'])) ? $orden_data['id_percepcion'] : null;
-                                                                
-                                                                if (!empty($percepciones)) {
-                                                                    foreach ($percepciones as $percepcion) {
-                                                                        $checked = ($percepcion_seleccionada == $percepcion['id_detraccion']) ? 'checked' : '';
-                                                                        ?>
-                                                                        <div class="form-check" style="margin-bottom: 5px;">
-                                                                            <input class="form-check-input percepcion-checkbox" 
-                                                                                type="checkbox" 
-                                                                                name="id_percepcion" 
-                                                                                value="<?php echo $percepcion['id_detraccion']; ?>" 
-                                                                                data-porcentaje="<?php echo $percepcion['porcentaje']; ?>" 
-                                                                                data-nombre="<?php echo htmlspecialchars($percepcion['nombre_detraccion']); ?>"
-                                                                                id="percepcion_<?php echo $percepcion['id_detraccion']; ?>" 
-                                                                                <?php echo $checked; ?>>
-                                                                            <label class="form-check-label" 
-                                                                                for="percepcion_<?php echo $percepcion['id_detraccion']; ?>" 
-                                                                                style="font-size: 12px; cursor: pointer;">
-                                                                                <?php echo htmlspecialchars($percepcion['nombre_detraccion']); ?> 
-                                                                                <strong>(<?php echo $percepcion['porcentaje']; ?>%)</strong>
-                                                                            </label>
-                                                                        </div>
-                                                                        <?php
+
+                                                            <!-- PERCEPCIÓN -->
+                                                            <div class="mb-2">
+                                                                <label style="font-size: 11px; font-weight: bold;">Percepción:</label>
+                                                                <div id="contenedor-percepciones" style="padding: 8px; background-color: #e8f5e9; border-radius: 4px; border: 1px solid #4caf50;">
+                                                                    <?php
+                                                                    $percepciones = ObtenerDetraccionesPorTipo('PERCEPCION');
+                                                                    $percepcion_seleccionada = ($modo_editar && isset($orden_data['id_percepcion'])) ? $orden_data['id_percepcion'] : null;
+                                                                    
+                                                                    if (!empty($percepciones)) {
+                                                                        foreach ($percepciones as $percepcion) {
+                                                                            $checked = ($percepcion_seleccionada == $percepcion['id_detraccion']) ? 'checked' : '';
+                                                                            ?>
+                                                                            <div class="form-check" style="margin-bottom: 5px;">
+                                                                                <input class="form-check-input percepcion-checkbox" 
+                                                                                    type="checkbox" 
+                                                                                    name="id_percepcion" 
+                                                                                    value="<?php echo $percepcion['id_detraccion']; ?>" 
+                                                                                    data-porcentaje="<?php echo $percepcion['porcentaje']; ?>" 
+                                                                                    data-nombre="<?php echo htmlspecialchars($percepcion['nombre_detraccion']); ?>"
+                                                                                    id="percepcion_<?php echo $percepcion['id_detraccion']; ?>" 
+                                                                                    <?php echo $checked; ?>>
+                                                                                <label class="form-check-label" 
+                                                                                    for="percepcion_<?php echo $percepcion['id_detraccion']; ?>" 
+                                                                                    style="font-size: 12px; cursor: pointer;">
+                                                                                    <?php echo htmlspecialchars($percepcion['nombre_detraccion']); ?> 
+                                                                                    <strong>(<?php echo $percepcion['porcentaje']; ?>%)</strong>
+                                                                                </label>
+                                                                            </div>
+                                                                            <?php
+                                                                        }
+                                                                    } else {
+                                                                        echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay percepciones configuradas</p>';
                                                                     }
-                                                                } else {
-                                                                    echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay percepciones configuradas</p>';
-                                                                }
-                                                                ?>
+                                                                    ?>
+                                                                </div>
+                                                                <small class="form-text text-muted">Se aplica sobre el total después de IGV</small>
                                                             </div>
-                                                            <small class="form-text text-muted">Se aplica sobre el total después de IGV</small>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -904,24 +1332,29 @@ foreach ($pedido_detalle as $detalle) {
                                 <div id="contenedor-items-orden" class="mb-3">
                                     <?php if ($modo_editar && !empty($orden_detalle)): ?>
                                         <?php foreach ($orden_detalle as $item): 
-                                            //  OBTENER DATOS DE VALIDACIÓN PARA ESTE PRODUCTO
+                                            // 🔹 CORRECCIÓN: Obtener id_pedido_detalle del item
+                                            $id_pedido_detalle = isset($item['id_pedido_detalle']) ? $item['id_pedido_detalle'] : 0;
+                                            
+                                            // OBTENER DATOS DE VALIDACIÓN PARA ESTE DETALLE ESPECÍFICO
                                             $cantidad_verificada_item = 0;
                                             $cantidad_ordenada_item = 0;
                                             
+                                            // 🔹 Buscar por id_pedido_detalle
                                             foreach ($pedido_detalle as $detalle) {
-                                                if ($detalle['id_producto'] == $item['id_producto']) {
-                                                    $cantidad_verificada_item = isset($detalle['cant_fin_pedido_detalle']) ? $detalle['cant_fin_pedido_detalle'] : 0;
+                                                if ($detalle['id_pedido_detalle'] == $id_pedido_detalle) {
+                                                    $cantidad_verificada_item = isset($detalle['cant_oc_pedido_detalle']) ? $detalle['cant_oc_pedido_detalle'] : 0;
                                                     $cantidad_ordenada_item = isset($detalle['cantidad_ya_ordenada']) ? $detalle['cantidad_ya_ordenada'] : 0;
                                                     break;
                                                 }
                                             }
                                         ?>
                                         <div class="alert alert-light p-2 mb-2" id="item-orden-<?php echo $item['id_compra_detalle']; ?>">
-                                            <!-- Inputs hidden -->
+                                            <!-- 🔹 CRÍTICO: Guardar id_pedido_detalle -->
                                             <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_compra_detalle]" value="<?php echo $item['id_compra_detalle']; ?>">
+                                            <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_pedido_detalle]" value="<?php echo $id_pedido_detalle; ?>">
                                             <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_producto]" value="<?php echo $item['id_producto']; ?>">
                                             <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][es_nuevo]" value="0">
-                                            
+            
                                             <!-- Descripción del producto -->
                                             <div class="row align-items-center mb-2">
                                                 <div class="col-md-11">
@@ -1055,10 +1488,257 @@ foreach ($pedido_detalle as $detalle) {
                                 </div>
                             </form>
                         </div>
+
+                        <!-- FORMULARIO PARA CREAR/EDITAR SALIDA -->
+                        <div id="contenedor-nueva-salida" <?php echo $modo_editar_salida ? 'style="display: block;"' : 'style="display: none;"'; ?>>
+                            <form id="form-nueva-salida" method="POST" action="" enctype="multipart/form-data">
+                                <?php if ($modo_editar_salida): ?>
+                                <input type="hidden" name="actualizar_salida" value="1">
+                                <input type="hidden" name="id_salida" value="<?php echo $id_salida_editar; ?>">
+                                <?php else: ?>
+                                <input type="hidden" name="crear_salida" value="1">
+                                <?php endif; ?>
+                                <input type="hidden" name="id_pedido" value="<?php echo $id_pedido; ?>">
+                                
+                                <div class="card">
+                                    <div class="card-header" style="padding: 8px 12px; background-color: <?php echo $modo_editar_salida ? '#fff3cd' : '#d4edda'; ?>;">
+                                        <h6 class="mb-0">
+                                            <i class="fa <?php echo $modo_editar_salida ? 'fa-edit text-warning' : 'fa-truck text-success'; ?>"></i>
+                                            <?php echo $modo_editar_salida ? 'Editar Salida S00' . $id_salida_editar : 'Nueva Salida'; ?>
+                                        </h6>
+                                    </div>
+                                    <div class="card-body" style="padding: 12px;">
+                                        <!-- Fecha de la salida -->
+                                        <div class="row mb-2">
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">Fecha Requerida de Salida: <span class="text-danger">*</span></label>
+                                                <input type="date" class="form-control form-control-sm" id="fecha_salida" name="fecha_salida" 
+                                                    value="<?php 
+                                                        if ($modo_editar_salida && isset($salida_data)) {
+                                                            echo date('Y-m-d', strtotime($salida_data['fec_salida']));
+                                                        } else {
+                                                            //echo date('Y-m-d', strtotime($pedido['fec_req_pedido']));
+                                                            echo date('Y-m-d');
+                                                        }
+                                                    ?>" 
+                                                    style="font-size: 12px;" required>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">N° Documento de Salida:</label>
+                                                <input type="text" class="form-control form-control-sm" name="ndoc_salida" 
+                                                    value="<?php echo ($modo_editar_salida && isset($salida_data)) ? htmlspecialchars($salida_data['ndoc_salida']) : ''; ?>"
+                                                    placeholder="" style="font-size: 12px;">
+                                            </div>
+                                        </div>
+
+                                        <!-- ALMACÉN Y UBICACIÓN ORIGEN -->
+                                        <div class="row mb-2">
+                                            <!-- Almacén Origen -->
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">Almacén Origen: <span class="text-danger">*</span></label>
+                                                <select class="form-control form-control-sm" 
+                                                        id="almacen_origen_salida" 
+                                                        name="almacen_origen_salida" 
+                                                        style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
+                                                        required>
+                                                    <option value="">Seleccionar almacén...</option>
+                                                    <?php foreach ($almacenes as $alm) { 
+                                                        $selected_origen = '';
+                                                        if ($modo_editar_salida && isset($salida_data) && $salida_data['id_almacen_origen'] == $alm['id_almacen']) {
+                                                            $selected_origen = 'selected';
+                                                        } elseif (!$modo_editar_salida && $alm['id_almacen'] == $pedido['id_almacen']) {
+                                                            $selected_origen = 'selected';
+                                                        }
+                                                    ?>
+                                                        <option value="<?php echo $alm['id_almacen']; ?>" <?php echo $selected_origen; ?>>
+                                                            <?php echo htmlspecialchars($alm['nom_almacen']); ?>
+                                                        </option>
+                                                    <?php } ?>
+                                                </select>
+                                                <small class="text-info" style="font-size: 10px;">
+                                                    <i class="fa fa-lock"></i> Este campo no se puede modificar
+                                                </small>
+                                            </div>
+
+                                            <!-- Ubicación Origen -->
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">Ubicación Origen: <span class="text-danger">*</span></label>
+                                                <select class="form-control form-control-sm" 
+                                                        id="ubicacion_origen_salida" 
+                                                        name="ubicacion_origen_salida" 
+                                                        style="font-size: 12px;" 
+                                                        required>
+                                                    <option value="">Seleccionar ubicación...</option>
+                                                    <?php 
+                                                    // 🔹 DETERMINAR QUÉ UBICACIÓN PRE-SELECCIONAR
+                                                    $id_ubicacion_origen_preseleccionada = null;
+                                                    
+                                                    if ($modo_editar_salida && isset($salida_data)) {
+                                                        // MODO EDICIÓN: Usar la ubicación guardada
+                                                        $id_ubicacion_origen_preseleccionada = $salida_data['id_ubicacion_origen'];
+                                                    } else {
+                                                        // MODO CREACIÓN: Buscar la primera ubicación con stock
+                                                        // Necesitamos obtener las ubicaciones con stock del primer item del pedido
+                                                        if (!empty($pedido_detalle)) {
+                                                            $primer_detalle = $pedido_detalle[0];
+                                                            $otras_ubicaciones_stock = ObtenerOtrasUbicacionesConStock(
+                                                                $primer_detalle['id_producto'],
+                                                                $pedido['id_almacen'],
+                                                                $pedido['id_ubicacion']
+                                                            );
+                                                            
+                                                            if (!empty($otras_ubicaciones_stock)) {
+                                                                // Usar la primera ubicación con stock
+                                                                $id_ubicacion_origen_preseleccionada = $otras_ubicaciones_stock[0]['id_ubicacion'];
+                                                            }
+                                                        }
+                                                    }
+                                                    
+                                                    foreach ($ubicaciones as $ubi) { 
+                                                        $selected_ubi_origen = '';
+                                                        if ($id_ubicacion_origen_preseleccionada && $id_ubicacion_origen_preseleccionada == $ubi['id_ubicacion']) {
+                                                            $selected_ubi_origen = 'selected';
+                                                        }
+                                                    ?>
+                                                        <option value="<?php echo $ubi['id_ubicacion']; ?>" <?php echo $selected_ubi_origen; ?>>
+                                                            <?php echo htmlspecialchars($ubi['nom_ubicacion']); ?>
+                                                        </option>
+                                                    <?php } ?>
+                                                </select>
+                                                <small class="text-muted" style="font-size: 10px;">
+                                                    <i class="fa fa-info-circle"></i> Ubicación de donde saldrá el material
+                                                </small>
+                                            </div>
+                                        </div>
+
+                                        <!-- ALMACÉN Y UBICACIÓN DESTINO -->
+                                        <div class="row mb-2">
+                                            <!-- Almacén Destino -->
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">Almacén Destino: <span class="text-danger">*</span></label>
+                                                <select class="form-control form-control-sm" 
+                                                        id="almacen_destino_salida" 
+                                                        name="almacen_destino_salida" 
+                                                        style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
+                                                        required>
+                                                    <option value="">Seleccionar almacén...</option>
+                                                    <?php foreach ($almacenes as $alm) { 
+                                                        $selected_destino = '';
+                                                        if ($modo_editar_salida && isset($salida_data) && $salida_data['id_almacen_destino'] == $alm['id_almacen']) {
+                                                            $selected_destino = 'selected';
+                                                        } elseif (!$modo_editar_salida && $alm['id_almacen'] == $pedido['id_almacen']) {
+                                                            $selected_destino = 'selected';
+                                                        }
+                                                    ?>
+                                                        <option value="<?php echo $alm['id_almacen']; ?>" <?php echo $selected_destino; ?>>
+                                                            <?php echo htmlspecialchars($alm['nom_almacen']); ?>
+                                                        </option>
+                                                    <?php } ?>
+                                                </select>
+                                                <small class="text-info" style="font-size: 10px;">
+                                                    <i class="fa fa-lock"></i> Este campo no se puede modificar
+                                                </small>
+                                            </div>
+
+                                            <!-- Ubicación Destino -->
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">Ubicación Destino: <span class="text-danger">*</span></label>
+                                                <select class="form-control form-control-sm" 
+                                                        id="ubicacion_destino_salida" 
+                                                        name="ubicacion_destino_salida" 
+                                                        style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
+                                                        required>
+                                                    <option value="">Seleccionar ubicación...</option>
+                                                    <?php foreach ($ubicaciones as $ubi) { 
+                                                        $selected_ubi_destino = '';
+                                                        if ($modo_editar_salida && isset($salida_data) && $salida_data['id_ubicacion_destino'] == $ubi['id_ubicacion']) {
+                                                            $selected_ubi_destino = 'selected';
+                                                        } elseif (!$modo_editar_salida && $ubi['id_ubicacion'] == $pedido['id_ubicacion']) {
+                                                            // ← AQUÍ: Toma la ubicación del pedido
+                                                            $selected_ubi_destino = 'selected';
+                                                        }
+                                                    ?>
+                                                        <option value="<?php echo $ubi['id_ubicacion']; ?>" <?php echo $selected_ubi_destino; ?>>
+                                                            <?php echo htmlspecialchars($ubi['nom_ubicacion']); ?>
+                                                        </option>
+                                                    <?php } ?>
+                                                </select>
+                                                <small class="text-info" style="font-size: 10px;">
+                                                    <i class="fa fa-lock"></i> Este campo no se puede modificar
+                                                </small>
+                                            </div>
+                                        </div>
+
+                                        <!-- Observaciones -->
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <label style="font-size: 11px; font-weight: bold;">Observaciones:</label>
+                                                <textarea class="form-control form-control-sm" id="observaciones_salida" name="observaciones_salida"
+                                                        rows="2" placeholder="Observaciones adicionales..." 
+                                                        style="font-size: 12px; resize: none;"><?php echo ($modo_editar_salida && isset($salida_data)) ? htmlspecialchars($salida_data['obs_salida']) : ''; ?></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Contenedor de items de salida -->
+                                <div id="contenedor-items-salida" class="mb-3">
+                                    <?php if ($modo_editar_salida && !empty($salida_detalle)): ?>
+                                        <?php foreach ($salida_detalle as $item): ?>
+                                        <div class="alert alert-light p-2 mb-2" id="item-salida-<?php echo $item['id_salida_detalle']; ?>">
+                                            <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_salida_detalle]" value="<?php echo $item['id_salida_detalle']; ?>">
+                                            <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_pedido_detalle]" value="<?php echo $id_pedido_detalle; ?>">
+                                            <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_producto]" value="<?php echo $item['id_producto']; ?>">
+                                            <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][es_nuevo]" value="0">
+                                            
+                                            <div class="row align-items-center mb-2">
+                                                <div class="col-md-11">
+                                                    <div style="font-size: 12px;">
+                                                        <strong>Descripción:</strong> <?php echo htmlspecialchars($item['nom_producto']); ?>
+                                                        <span class="badge badge-warning badge-sm ml-1">EDITANDO</span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-1 text-right">
+                                                    <button type="button" class="btn btn-danger btn-sm btn-remover-item-salida" 
+                                                            data-id-detalle="<?php echo $item['id_salida_detalle']; ?>">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="row">
+                                                <div class="col-md-4">
+                                                    <label style="font-size: 11px; font-weight: bold;">Cantidad:</label>
+                                                    <input type="number" class="form-control form-control-sm cantidad-salida" 
+                                                        name="items_salida[<?php echo $item['id_salida_detalle']; ?>][cantidad]"
+                                                        value="<?php echo $item['cant_salida_detalle']; ?>" 
+                                                        min="0.01" 
+                                                        step="0.01"
+                                                        style="font-size: 12px;" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
+                                
+                                <!-- Botones de acción -->
+                                <div class="text-center mt-2" style="padding: 8px;">
+                                    <a href="pedido_verificar.php?id=<?php echo $id_pedido; ?>" class="btn btn-secondary btn-sm mr-2">
+                                        <i class="fa fa-times"></i> Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-<?php echo $modo_editar_salida ? 'warning' : 'success'; ?> btn-sm">
+                                        <i class="fa fa-save"></i> <?php echo $modo_editar_salida ? 'Actualizar Salida' : 'Guardar Salida'; ?>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Botón Volver -->
         <div class="row">
             <div class="col-md-12">
                 <div class="x_panel">
@@ -1069,17 +1749,11 @@ foreach ($pedido_detalle as $detalle) {
                                     <i class="fa fa-arrow-left"></i> Volver
                                 </a>
                             </div>
-                            <div class="col-md-3">
-                                <!-- <button type="button" class="btn btn-success btn-sm btn-block" id="btn-finalizar-verificacion" disabled>
-                                    <i class="fa fa-check-circle"></i> Finalizar Verificación
-                                </button>
-                                 -->
-                            </div>
                         </div>
                         <div class="col-md-12 mt-2">
                             <p class="text-muted" style="font-size: 12px;">
                                 <i class="fa fa-info-circle"></i> 
-                                Recuerda verificar todos los items
+                                Recuerda verificar todos los items antes de generar órdenes o salidas
                             </p>
                         </div>
                     </div>
@@ -1089,31 +1763,122 @@ foreach ($pedido_detalle as $detalle) {
     </div>
 </div>
 
-<!-- MODAL DE VERIFICACIÓN -->
-<div class="modal fade" id="verificarModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<!-- ============================================ -->
+<!-- MODALES -->
+<!-- ============================================ -->
+
+<!-- MODAL DE VERIFICACIÓN SIMPLIFICADO -->
+<div class="modal fade" id="verificarModal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <form id="verificarForm" action="pedido_verificar.php" method="POST">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Verificar Cantidad</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">
+                        <i class="fa fa-check-circle"></i> Verificar Item
+                    </h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="id" value="<?php echo $id_pedido; ?>">
                     <input type="hidden" name="verificar_item" value="true">
                     <input type="hidden" id="id_pedido_detalle_input" name="id_pedido_detalle">
+                    <input type="hidden" id="cantidad_pedida_hidden" value="0">
+                    
+                    <!-- Cantidad para OS -->
                     <div class="form-group">
-                        <label for="fin_cant_pedido_detalle">Cantidad Verificada:</label>
-                        <input type="number" class="form-control" id="fin_cant_pedido_detalle" name="fin_cant_pedido_detalle" required>
+                        <label class="font-weight-bold">
+                            <i class="fa fa-truck text-success"></i> 
+                            Cantidad para OS:
+                        </label>
+                        <input type="number" 
+                               class="form-control" 
+                               id="cantidad_para_os" 
+                               name="cantidad_para_os"
+                               step="0.01" 
+                               min="0"
+                               value="0">
+                        <small id="detalle-ubicaciones-os" class="text-muted"></small>
+                    </div>
+                    
+                    <!-- Cantidad para OC -->
+                    <div class="form-group">
+                        <label class="font-weight-bold">
+                            <i class="fa fa-shopping-cart text-danger"></i> 
+                            Cantidad para OC:
+                        </label>
+                        <input type="number" 
+                               class="form-control" 
+                               id="fin_cant_pedido_detalle" 
+                               name="fin_cant_pedido_detalle"
+                               step="0.01" 
+                               min="0"
+                               value="0">
+                        <small class="text-muted">Cantidad a comprar</small>
+                    </div>
+                    
+                    <!-- Total verificado -->
+                    <div class="alert alert-info mb-0">
+                        <div class="d-flex justify-content-between">
+                            <span><strong>Cantidad Pedida:</strong></span>
+                            <span id="cantidad-pedida-display">0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span><strong>Total Verificado:</strong></span>
+                            <span id="total-verificado" class="font-weight-bold">0.00</span>
+                        </div>
+                    </div>
+                    <div id="alerta-exceso" class="alert alert-danger mt-2" style="display: none;">
+                        ⚠️ El total verificado supera la cantidad pedida
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary">Guardar</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fa fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success" id="btn-verificar">
+                        <i class="fa fa-check"></i> Verificar
+                    </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver detalles de SALIDA -->
+<div class="modal fade" id="modalDetalleSalida" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #d4edda; padding: 15px;">
+                <h5 class="modal-title">
+                    <i class="fa fa-truck text-success"></i> 
+                    Detalles de Salida
+                </h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
+                <div id="loading-spinner-salida" class="text-center" style="padding: 40px;">
+                    <i class="fa fa-spinner fa-spin fa-3x text-success"></i>
+                    <p class="mt-2">Cargando detalles...</p>
+                </div>
+                
+                <div id="contenido-detalle-salida" style="display: none;">
+                    <!-- Contenido se carga dinámicamente -->
+                </div>
+                
+                <div id="error-detalle-salida" style="display: none;" class="text-center">
+                    <i class="fa fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h5 class="text-warning">Error al cargar detalles</h5>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fa fa-times"></i> Cerrar
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -1284,20 +2049,120 @@ foreach ($pedido_detalle as $detalle) {
     </div>
 </div>
 
+<!-- ============================================ -->
+<!-- JAVASCRIPT -->
+<!-- ============================================ -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const urlActual = window.location.pathname;
     const esVistaVerificar = urlActual.includes('pedido_verificar.php');
     
     if (!esVistaVerificar) {
-        console.log('Script de verificación omitido - no estamos en pedido_verificar.php');
+        console.log('Script de verificación omitido');
         return;
     }
     
+    // Variables globales
     const esOrdenServicio = <?php echo ($pedido['id_producto_tipo'] == 2) ? 'true' : 'false'; ?>;
     const pedidoAnulado = <?php echo ($pedido['est_pedido'] == 0) ? 'true' : 'false'; ?>;
     const modoEditar = <?php echo $modo_editar ? 'true' : 'false'; ?>;
+    const modoEditarSalida = <?php echo isset($modo_editar_salida) && $modo_editar_salida ? 'true' : 'false'; ?>;
     let itemsAgregadosOrden = new Set();
+    let btnNuevaSalida = null;
+
+    
+
+    // ============================================
+    // 🆕 MODAL DE VERIFICACIÓN MEJORADO
+    // ============================================
+    
+    // Handler para botones de verificar - VERSIÓN SIMPLIFICADA
+    document.querySelectorAll('.verificar-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const idDetalle = this.getAttribute('data-id-detalle');
+            const cantidadPedida = parseFloat(this.getAttribute('data-cantidad-pedida')) || 0;
+            const stockDestino = parseFloat(this.getAttribute('data-stock-destino')) || 0;
+            const stockOtrasUbicaciones = parseFloat(this.getAttribute('data-stock-otras-ubicaciones')) || 0;
+            const otrasUbicaciones = JSON.parse(this.getAttribute('data-otras-ubicaciones') || '[]');
+            
+            // Llenar campos ocultos
+            document.getElementById('id_pedido_detalle_input').value = idDetalle;
+            document.getElementById('cantidad_pedida_hidden').value = cantidadPedida;
+            document.getElementById('cantidad-pedida-display').textContent = cantidadPedida.toFixed(2);
+            
+            // Calcular cantidades iniciales
+            const stockTotalDisponible = stockDestino + stockOtrasUbicaciones;
+            const faltante = Math.max(0, cantidadPedida - stockDestino);
+            const cantidadInicialOS = Math.min(stockOtrasUbicaciones, faltante);
+            const cantidadInicialOC = Math.max(0, faltante - cantidadInicialOS);
+            
+            // Llenar campo OS
+            const inputOS = document.getElementById('cantidad_para_os');
+            inputOS.value = cantidadInicialOS.toFixed(2);
+            
+            // Mostrar detalle de ubicaciones para OS
+            const detalleOS = document.getElementById('detalle-ubicaciones-os');
+            if (stockOtrasUbicaciones > 0) {
+                let htmlUbicaciones = '<strong>Disponible en:</strong> ';
+                otrasUbicaciones.forEach((ub, idx) => {
+                    if (idx > 0) htmlUbicaciones += ', ';
+                    htmlUbicaciones += `<span class="badge badge-info">${ub.nom_ubicacion}</span> (${parseFloat(ub.stock).toFixed(2)})`;
+                });
+                detalleOS.innerHTML = htmlUbicaciones;
+            } else {
+                detalleOS.innerHTML = '<em>Sin stock en otras ubicaciones</em>';
+            }
+            
+            // Llenar campo OC
+            const inputOC = document.getElementById('fin_cant_pedido_detalle');
+            inputOC.value = cantidadInicialOC.toFixed(2);
+            
+            // Actualizar total verificado
+            const total = cantidadInicialOS + cantidadInicialOC;
+            document.getElementById('total-verificado').textContent = total.toFixed(2);
+            
+            // Mostrar modal
+            $('#verificarModal').modal('show');
+        });
+    });
+
+    // Validación en tiempo real
+    $('#cantidad_para_os, #fin_cant_pedido_detalle').on('input', function() {
+        let cantOS = parseFloat($('#cantidad_para_os').val()) || 0;
+        let cantOC = parseFloat($('#fin_cant_pedido_detalle').val()) || 0;
+        let cantPedida = parseFloat($('#cantidad_pedida_hidden').val()) || 0;
+        
+        let total = cantOS + cantOC;
+        $('#total-verificado').text(total.toFixed(2));
+        
+        // Validar que no supere la cantidad pedida
+        if (total > cantPedida) {
+            $('#alerta-exceso').show();
+            $('#btn-verificar').prop('disabled', true);
+            $('#total-verificado').addClass('text-danger');
+        } else {
+            $('#alerta-exceso').hide();
+            $('#btn-verificar').prop('disabled', false);
+            $('#total-verificado').removeClass('text-danger');
+        }
+        
+        // Validar que al menos una cantidad sea mayor a 0
+        if (cantOS <= 0 && cantOC <= 0) {
+            $('#btn-verificar').prop('disabled', true);
+        }
+    });
+
+    // Función para actualizar total verificado
+    function actualizarTotalVerificado() {
+        const cantidadOS = parseFloat(document.getElementById('cantidad_para_os').value) || 0;
+        const cantidadOC = parseFloat(document.getElementById('fin_cant_pedido_detalle').value) || 0;
+        const total = cantidadOS + cantidadOC;
+        
+        document.getElementById('total-verificado').textContent = total.toFixed(2);
+    }
+
+    // Escuchar cambios en cantidad OC
+    document.getElementById('fin_cant_pedido_detalle').addEventListener('input', actualizarTotalVerificado);
     
     // ============================================
     // INICIALIZACIÓN
@@ -1309,10 +2174,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (modoEditar) {
         configurarEventosEdicion();
     }
+
+    // Cargar salida si está en edición
+    if (modoEditarSalida) {
+        setTimeout(cargarSalidaEdicion, 300);
+    }
     
     configurarEventListeners();
     configurarModalProveedor();
     configurarValidacionTiempoReal();
+    configurarValidacionTiempoRealSalidas();
     configurarExclusividadCheckboxes();
     
     // ============================================
@@ -1321,7 +2192,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function recalcularEstadoItems() {
         const itemsPendientes = document.querySelectorAll('.item-pendiente');
         let tieneItemsDisponibles = false;
-        
         itemsPendientes.forEach(function(item) {
             const estaCerrado = item.querySelector('.badge-danger') !== null && 
                             item.querySelector('.badge-danger').textContent.includes('Cerrado');
@@ -1334,15 +2204,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 tieneItemsDisponibles = true;
             }
         });
-        
+                
+        // ============================================
+        // 🔹 BOTÓN NUEVA ORDEN (ACTUALIZADO)
+        // ============================================
         const btnNuevaOrden = document.getElementById('btn-nueva-orden');
-        if (btnNuevaOrden && !modoEditar) {
+        if (btnNuevaOrden) {
             if (tieneItemsDisponibles) {
                 btnNuevaOrden.disabled = false;
                 btnNuevaOrden.classList.remove('btn-secondary');
                 btnNuevaOrden.classList.add('btn-primary');
                 btnNuevaOrden.title = '';
-                btnNuevaOrden.innerHTML = '<i class="fa fa-plus"></i> Nueva Orden';
+                btnNuevaOrden.innerHTML = '<i class="fa fa-shopping-cart"></i> Nueva Orden';
             } else {
                 btnNuevaOrden.disabled = true;
                 btnNuevaOrden.classList.remove('btn-primary');
@@ -1358,9 +2231,466 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ============================================
-    // FUNCIONES DE VERIFICACIÓN DE SALIDA (solo para materiales)
+    // FUNCIONES DE SALIDA - DECLARAR PRIMERO
     // ============================================
-    function verificarSiGenerarSalida() {
+    function validarItemsDisponiblesParaSalida() {
+        const itemsPendientes = document.querySelectorAll('.item-pendiente');
+        let hayDisponibles = false;
+        
+        itemsPendientes.forEach(function(item) {
+            const cantPedido = parseFloat(item.getAttribute('data-cant-pedido')) || 0;
+            const cantDisponible = parseFloat(item.getAttribute('data-cant-disponible')) || 0;
+            
+            if (cantDisponible >= cantPedido) {
+                hayDisponibles = true;
+            }
+        });
+        
+        return hayDisponibles;
+    }
+    
+    function mostrarFormularioNuevaSalida() {
+        const myTab = document.getElementById('myTab');
+        const myTabContent = document.getElementById('myTabContent');
+        const contenedorNuevaSalida = document.getElementById('contenedor-nueva-salida');
+        
+        if (myTab) myTab.style.display = 'none';
+        if (myTabContent) myTabContent.style.display = 'none';
+        if (contenedorNuevaSalida) contenedorNuevaSalida.style.display = 'block';
+        
+        btnNuevaSalida = document.getElementById('btn-nueva-salida');
+        if (btnNuevaSalida) {
+            btnNuevaSalida.innerHTML = '<i class="fa fa-list"></i> Ver Salidas';
+            btnNuevaSalida.classList.remove('btn-success');
+            btnNuevaSalida.classList.add('btn-secondary');
+        }
+        
+        validarUbicacionesSalida();
+    }
+    
+    function mostrarListaSalidas() {
+        const myTab = document.getElementById('myTab');
+        const myTabContent = document.getElementById('myTabContent');
+        const contenedorNuevaSalida = document.getElementById('contenedor-nueva-salida');
+        
+        if (myTab) myTab.style.display = 'flex';
+        if (myTabContent) myTabContent.style.display = 'block';
+        if (contenedorNuevaSalida) contenedorNuevaSalida.style.display = 'none';
+        
+        btnNuevaSalida = document.getElementById('btn-nueva-salida');
+        if (btnNuevaSalida) {
+            btnNuevaSalida.innerHTML = '<i class="fa fa-truck"></i> Nueva Salida';
+            btnNuevaSalida.classList.remove('btn-secondary');
+            btnNuevaSalida.classList.add('btn-success');
+        }
+        
+        const salidasTab = document.getElementById('salidas-tab');
+        if (salidasTab) {
+            $('#salidas-tab').tab('show');
+        }
+    }
+    
+    function agregarItemASalida(item) {
+        console.log('🚚 agregarItemASalida INICIADO');
+        console.log('📋 Item recibido:', item);
+        
+        // ✅ Validar cantidad disponible
+        const cantidadDisponible = parseFloat(item.cantidadDisponible) || 0;
+        
+        if (cantidadDisponible <= 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Sin Stock Disponible',
+                text: 'No hay cantidad disponible para generar salida de este item.',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
+        
+        // ✅ Validar ubicaciones con stock
+        let otrasUbicaciones = [];
+        try {
+            otrasUbicaciones = item.otrasUbicaciones ? JSON.parse(item.otrasUbicaciones) : [];
+        } catch (e) {
+            console.error('Error parseando otras_ubicaciones:', e);
+            otrasUbicaciones = [];
+        }
+        
+        if (otrasUbicaciones.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Sin Ubicaciones Disponibles',
+                text: 'No hay ubicaciones con stock para generar la salida.',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
+        
+        const itemId = 'salida-' + Date.now();
+        console.log('🆔 ID generado:', itemId);
+
+        // 🔹 CRÍTICO: Capturar id_pedido_detalle
+        const idPedidoDetalle = parseInt(item.idDetalle) || 0;
+        console.log('🔑 id_pedido_detalle capturado:', idPedidoDetalle);
+        
+        const itemElement = document.createElement('div');
+        itemElement.id = `item-salida-${itemId}`;
+        itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
+        
+        // ✅ Construir HTML con información de ubicaciones
+        let htmlUbicaciones = '<div class="mt-2" style="font-size: 11px; background-color: #e8f5e9; padding: 8px; border-radius: 4px;">';
+        htmlUbicaciones += '<strong class="text-success"><i class="fa fa-map-marker"></i> Stock disponible en:</strong><br>';
+        
+        otrasUbicaciones.forEach((ub, index) => {
+            htmlUbicaciones += `<div class="ml-2 mt-1">
+                <span class="badge badge-info" style="font-size: 10px;">${ub.nom_ubicacion}</span>
+                <strong>${parseFloat(ub.stock).toFixed(2)}</strong> unidades
+            </div>`;
+        });
+        htmlUbicaciones += '</div>';
+        
+        itemElement.innerHTML = `
+            <input type="hidden" name="items_salida[${itemId}][id_detalle]" value="${item.idDetalle}">
+            <input type="hidden" name="items_salida[${itemId}][id_producto]" value="${item.idProducto}">
+            <input type="hidden" name="items_salida[${itemId}][id_pedido_detalle]" value="${idPedidoDetalle}">
+            <input type="hidden" name="items_salida[${itemId}][almacen_destino]" value="${item.almacenDestino || ''}">
+            <input type="hidden" name="items_salida[${itemId}][ubicacion_destino]" value="${item.ubicacionDestino || ''}">
+            
+            <div class="row align-items-center mb-2">
+                <div class="col-md-11">
+                    <div style="font-size: 12px;">
+                        <strong>Descripción:</strong> ${item.descripcion}
+                        <span class="badge badge-success badge-sm ml-1">SALIDA</span>
+                    </div>
+                    <small class="text-muted" style="font-size: 11px;">
+                        <i class="fa fa-info-circle"></i> Cantidad pendiente OS: <strong>${cantidadDisponible.toFixed(2)}</strong>
+                    </small>
+                </div>
+                <div class="col-md-1 text-right">
+                    <button type="button" class="btn btn-danger btn-sm btn-remover-item-salida" data-id-detalle="${itemId}">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            ${htmlUbicaciones}
+            
+            <div class="row mt-2">
+                <div class="col-md-4">
+                    <label style="font-size: 11px; font-weight: bold;">Cantidad a Trasladar:</label>
+                    <input type="number" class="form-control form-control-sm cantidad-salida" 
+                        name="items_salida[${itemId}][cantidad]"
+                        value="${cantidadDisponible.toFixed(2)}" 
+                        min="0.01" 
+                        max="${cantidadDisponible.toFixed(2)}" 
+                        step="0.01"
+                        style="font-size: 12px;" required>
+                    <small class="text-info" style="font-size: 10px;">Máx: ${cantidadDisponible.toFixed(2)}</small>
+                </div>
+            </div>
+        `;
+        
+        const contenedorItemsSalida = document.getElementById('contenedor-items-salida');
+        contenedorItemsSalida.appendChild(itemElement);
+        console.log('✅ Item agregado al DOM');
+        
+        // Deshabilitar botón original
+        if (item.botonOriginal) {
+            item.botonOriginal.disabled = true;
+            item.botonOriginal.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
+            item.botonOriginal.classList.remove('btn-success');
+            item.botonOriginal.classList.add('btn-secondary');
+            console.log('🔒 Botón original deshabilitado');
+        }
+        
+        // Event listener para remover
+        const btnRemover = itemElement.querySelector('.btn-remover-item-salida');
+        btnRemover.addEventListener('click', function() {
+            removerItemDeSalida(itemId, item.botonOriginal);
+        });
+        
+        console.log('✅ agregarItemASalida COMPLETADO');
+    }
+    
+    function removerItemDeSalida(idDetalle, botonOriginal) {
+        const itemElement = document.getElementById(`item-salida-${idDetalle}`);
+        if (itemElement) {
+            itemElement.remove();
+        }
+        
+        if (botonOriginal) {
+            botonOriginal.disabled = false;
+            botonOriginal.innerHTML = '<i class="fa fa-truck"></i> Agregar a Salida';
+            botonOriginal.classList.remove('btn-secondary');
+            botonOriginal.classList.add('btn-success');
+        }
+    }
+    
+    function validarUbicacionesSalida() {
+        const almacenOrigen = document.getElementById('almacen_origen_salida');
+        const ubicacionOrigen = document.getElementById('ubicacion_origen_salida');
+        const almacenDestino = document.getElementById('almacen_destino_salida');
+        const ubicacionDestino = document.getElementById('ubicacion_destino_salida');
+        
+        // 🔹 Filtrar ubicaciones según almacén origen
+        almacenOrigen.addEventListener('change', function() {
+            const idAlmacenOrigen = this.value;
+            const opcionesUbicacionOrigen = ubicacionOrigen.querySelectorAll('option');
+            
+            opcionesUbicacionOrigen.forEach(option => {
+                if (option.value === '') {
+                    option.style.display = 'block';
+                    return;
+                }
+                
+                const almacenOption = option.getAttribute('data-almacen');
+                if (almacenOption === idAlmacenOrigen) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+            
+            ubicacionOrigen.value = '';
+        });
+        
+        // 🔹 Filtrar ubicaciones según almacén destino
+        almacenDestino.addEventListener('change', function() {
+            const idAlmacenDestino = this.value;
+            const opcionesUbicacionDestino = ubicacionDestino.querySelectorAll('option');
+            
+            opcionesUbicacionDestino.forEach(option => {
+                if (option.value === '') {
+                    option.style.display = 'block';
+                    return;
+                }
+                
+                const almacenOption = option.getAttribute('data-almacen');
+                if (almacenOption === idAlmacenDestino) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+            
+            ubicacionDestino.value = '';
+        });
+        
+        // 🔹 Validar que origen y destino sean diferentes
+        [ubicacionOrigen, ubicacionDestino].forEach(elemento => {
+            elemento.addEventListener('change', function() {
+                if (almacenOrigen.value && ubicacionOrigen.value && 
+                    almacenDestino.value && ubicacionDestino.value) {
+                    
+                    if (almacenOrigen.value === almacenDestino.value && 
+                        ubicacionOrigen.value === ubicacionDestino.value) {
+                        
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Ubicaciones idénticas',
+                            text: 'El origen y destino no pueden ser la misma ubicación.',
+                            confirmButtonText: 'Entendido'
+                        });
+                        
+                        ubicacionDestino.value = '';
+                    }
+                }
+            });
+        });
+    }
+    
+    function mostrarDetalleSalida(idSalida) {
+        $('#modalDetalleSalida').modal('show');
+        
+        document.getElementById('loading-spinner-salida').style.display = 'block';
+        document.getElementById('contenido-detalle-salida').style.display = 'none';
+        document.getElementById('error-detalle-salida').style.display = 'none';
+        
+        fetch('salida_detalles.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `accion=obtener_detalle&id_salida=${idSalida}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('loading-spinner-salida').style.display = 'none';
+            if (data.success) {
+                mostrarContenidoDetalleSalida(data.salida, data.detalles);
+            } else {
+                document.getElementById('error-detalle-salida').style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('loading-spinner-salida').style.display = 'none';
+            document.getElementById('error-detalle-salida').style.display = 'block';
+        });
+    }
+    
+    function mostrarContenidoDetalleSalida(salida, detalles) {
+        const contenido = document.getElementById('contenido-detalle-salida');
+        
+        // Determinar clase de estado
+        let estadoClase = 'secondary';
+        switch(parseInt(salida.est_salida)) {
+            case 0: estadoClase = 'danger'; break;
+            case 1: estadoClase = 'warning'; break;
+            case 2: estadoClase = 'info'; break;
+            case 3: estadoClase = 'success'; break;
+        }
+        
+        // Formatear fecha
+        const fechaFormateada = salida.fec_salida ? 
+            new Date(salida.fec_salida).toLocaleDateString('es-PE') : 
+            'No especificada';
+        
+        let html = `
+            <div class="card mb-3">
+                <div class="card-header" style="background-color: #d4edda; padding: 10px 15px;">
+                    <h6 class="mb-0">
+                        <i class="fa fa-info-circle text-success"></i> 
+                        Información de Salida - S00${salida.id_salida}
+                    </h6>
+                </div>
+                <div class="card-body" style="padding: 15px;">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p style="margin: 5px 0; font-size: 13px;">
+                                <strong>N° Salida:</strong> S00${salida.id_salida}
+                            </p>
+                            <p style="margin: 5px 0; font-size: 13px;">
+                                <strong>Fecha:</strong> ${fechaFormateada}
+                            </p>
+                            <p style="margin: 5px 0; font-size: 13px;">
+                                <strong>Documento:</strong> ${salida.ndoc_salida || 'Sin documento'}
+                            </p>
+                            <p style="margin: 5px 0; font-size: 13px;">
+                                <strong>Estado:</strong> 
+                                <span class="badge badge-${estadoClase}">${salida.estado_texto}</span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p style="margin: 5px 0; font-size: 13px;">
+                                <strong>Origen:</strong><br>
+                                <span class="text-muted">${salida.nom_almacen_origen} - ${salida.nom_ubicacion_origen}</span>
+                            </p>
+                            <p style="margin: 5px 0; font-size: 13px;">
+                                <strong>Destino:</strong><br>
+                                <span class="text-muted">${salida.nom_almacen_destino} - ${salida.nom_ubicacion_destino}</span>
+                            </p>
+                            <p style="margin: 5px 0; font-size: 13px;">
+                                <strong>Responsable:</strong> ${salida.nom_personal || 'No especificado'}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    ${salida.obs_salida ? `
+                    <div class="row mt-2">
+                        <div class="col-md-12">
+                            <div class="border-top pt-2">
+                                <p style="margin: 5px 0; font-size: 13px;">
+                                    <strong>Observaciones:</strong><br>
+                                    <span class="text-muted">${salida.obs_salida}</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header" style="background-color: #e8f5e8; padding: 10px 15px;">
+                    <h6 class="mb-0">
+                        <i class="fa fa-list-alt text-success"></i> 
+                        Productos (${detalles.length})
+                    </h6>
+                </div>
+                <div class="card-body" style="padding: 15px;">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm" style="font-size: 12px;">
+                            <thead style="background-color: #f8f9fa;">
+                                <tr>
+                                    <th style="width: 10%;">#</th>
+                                    <th style="width: 15%;">Código</th>
+                                    <th style="width: 55%;">Producto</th>
+                                    <th style="width: 20%; text-align: center;">Cantidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+        
+        if (detalles && detalles.length > 0) {
+            detalles.forEach((detalle, index) => {
+                const cantidad = parseFloat(detalle.cant_salida_detalle).toFixed(2);
+                html += `
+                    <tr>
+                        <td style="font-weight: bold;">${index + 1}</td>
+                        <td>${detalle.cod_material || 'N/A'}</td>
+                        <td>${detalle.nom_producto}</td>
+                        <td style="text-align: center; font-weight: bold;">
+                            <span class="badge badge-success">${cantidad}</span>
+                        </td>
+                    </tr>`;
+            });
+        } else {
+            html += `
+                <tr>
+                    <td colspan="4" class="text-center text-muted" style="padding: 20px;">
+                        <i class="fa fa-inbox fa-2x mb-2"></i>
+                        <p>No hay productos en esta salida</p>
+                    </td>
+                </tr>`;
+        }
+        
+        html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>`;
+        
+        contenido.innerHTML = html;
+        contenido.style.display = 'block';
+    }
+    
+    function anularSalida(idSalida) {
+        Swal.fire({
+            title: '¿Anular Salida?',
+            text: "Esta acción no se puede deshacer",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, anular',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('salidas_anular.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `id_salida=${idSalida}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('¡Anulada!', data.mensaje, 'success').then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire('Error', data.mensaje, 'error');
+                    }
+                })
+                .catch(error => {
+                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+                });
+            }
+        });
+    }
+    
+    // ============================================
+    // FUNCIONES DE VERIFICACIÓN
+    // ============================================
+        function verificarSiGenerarSalida() {
         const itemsPendientes = document.querySelectorAll('.item-pendiente');
         let tieneItems = false;
         let todosConStockCompleto = true;
@@ -1383,7 +2713,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        if (tieneItems && todosConStockCompleto) {
+        /*if (tieneItems && todosConStockCompleto) {
             if (estadoPedido === 5) {
                 mostrarAlertaPedidoFinalizado();
             } else if (estadoPedido === 3 || estadoPedido === 4) {
@@ -1393,9 +2723,9 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (estadoPedido === 1) {
                 completarPedidoAutomaticamente();
             }
-        }
+        }*/
     }
-
+    
     function mostrarAlertaPedidoFinalizado() {
         Swal.fire({
             title: '¡Pedido Finalizado!',
@@ -1518,138 +2848,188 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    document.addEventListener('click', function(event) {
+        const btnSalida = event.target.closest('.btn-generar-salida-interna');
+        if (!btnSalida) return;
+        
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const idPedido = btnSalida.dataset.idPedido;
+        const idProducto = btnSalida.dataset.idProducto;
+        const descripcion = btnSalida.dataset.descripcion;
+        const cantidadFaltante = parseFloat(btnSalida.dataset.cantidadFaltante);
+        const ubicacionDestinoId = btnSalida.dataset.ubicacionDestino;
+        const ubicacionDestinoNombre = btnSalida.dataset.ubicacionDestinoNombre;
+        const almacenId = btnSalida.dataset.almacen;
+        const almacenNombre = btnSalida.dataset.almacenNombre;
+        
+        Swal.fire({
+            title: '🔄 Generar Orden de Salida',
+            html: `
+                <div style="text-align: left; padding: 10px;">
+                    <p><strong>Producto:</strong><br>${descripcion}</p>
+                    <p><strong>Cantidad a trasladar:</strong> <span class="badge badge-warning">${cantidadFaltante.toFixed(2)}</span> unidades</p>
+                    <p><strong>Desde:</strong> Otras ubicaciones de <em>${almacenNombre}</em></p>
+                    <p><strong>Hacia:</strong> <em>${ubicacionDestinoNombre}</em></p>
+                    <hr>
+                    <p class="text-info"><i class="fa fa-info-circle"></i> Se generará una salida</p>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#ffc107',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fa fa-exchange"></i> Sí, generar salida',
+            cancelButtonText: '<i class="fa fa-times"></i> Cancelar',
+            allowOutsideClick: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Redirigir a orden de salida
+
+                //window.location.href = `salidas_nuevo.php?id_pedido=${idPedido}&id_producto=${idProducto}&cantidad=${cantidadFaltante}&id_ubicacion_destino=${ubicacionDestinoId}`;
+                window.location.href = `salidas_nuevo.php?desde_pedido=<?php echo $pedido['id_pedido']; ?>`;
+            }
+        });
+    });
+    
     // ============================================
     // VALIDACIÓN DE FORMULARIO
     // ============================================
+    
     function validarFormularioOrden(e) {
-    e.preventDefault();
+        e.preventDefault();
 
-    const fecha = document.getElementById('fecha_orden').value;
-    const proveedor = document.getElementById('proveedor_orden').value;
-    const moneda = document.getElementById('moneda_orden').value;
-    
-    if (!fecha || !proveedor || !moneda) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Campos Obligatorios',
-            text: 'Por favor complete los campos obligatorios (Fecha, Proveedor y Moneda).',
-            confirmButtonColor: '#3085d6',
-            confirmButtonText: 'Entendido'
-        });
-        return false;
-    }
-    
-    const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-    const itemsOrden = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
-    
-    if (itemsOrden.length === 0) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Sin Items',
-            text: 'Debe agregar al menos un ítem a la orden antes de guardar.',
-            confirmButtonColor: '#3085d6',
-            confirmButtonText: 'Entendido'
-        });
-        return false;
-    }
-
-    //  VALIDAR CANTIDADES SEGÚN TIPO
-    let erroresValidacion = [];
-    
-    if (esOrdenServicio) {
-        // Validar servicios
-        erroresValidacion = validarCantidadesServicio(itemsOrden);
-    } else {
-        // Validar materiales
-        erroresValidacion = validarCantidadesCliente(itemsOrden);
-    }
-    
-    if (erroresValidacion.length > 0) {
-        const tipoOrden = esOrdenServicio ? 'servicio' : 'material';
+        const fecha = document.getElementById('fecha_orden').value;
+        const proveedor = document.getElementById('proveedor_orden').value;
+        const moneda = document.getElementById('moneda_orden').value;
         
-        let mensajeHTML = '<div style="text-align: left; padding: 10px;">' +
-                        `<p style="margin-bottom: 10px;"><strong>No se puede guardar la orden de ${tipoOrden}:</strong></p>` +
-                        '<ul style="color: #dc3545; font-size: 13px; margin-left: 20px;">';
+        if (!fecha || !proveedor || !moneda) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campos Obligatorios',
+                text: 'Por favor complete los campos obligatorios (Fecha, Proveedor y Moneda).',
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'Entendido'
+            });
+            return false;
+        }
         
-        erroresValidacion.forEach(error => {
-            mensajeHTML += `<li style="margin-bottom: 8px;">${error}</li>`;
-        });
+        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
+        const itemsOrden = contenedorItemsOrden.querySelectorAll('[id^="item-orden-"]');
         
-        mensajeHTML += '</ul></div>';
+        if (itemsOrden.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Sin Items',
+                text: 'Debe agregar al menos un ítem a la orden antes de guardar.',
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'Entendido'
+            });
+            return false;
+        }
+
+        let erroresValidacion = [];
         
-        Swal.fire({
-            icon: 'error',
-            title: 'Cantidad No Permitida',
-            html: mensajeHTML,
-            confirmButtonColor: '#d33',
-            confirmButtonText: '<i class="fa fa-times"></i> Entendido',
-            allowOutsideClick: false
-        });
+        if (esOrdenServicio) {
+            erroresValidacion = validarCantidadesServicio(itemsOrden);
+        } else {
+            erroresValidacion = validarCantidadesCliente(itemsOrden);
+        }
         
-        return false;
-    }
-
-    // Si pasa la validación frontend, enviar el formulario via AJAX
-    const form = document.getElementById('form-nueva-orden');
-    const formData = new FormData(form);
-
-    // Mostrar loading
-    Swal.fire({
-        title: 'Guardando...',
-        text: 'Por favor espere',
-        allowOutsideClick: false,
-        showConfirmButton: false,
-        didOpen: () => Swal.showLoading()
-    });
-
-    fetch(form.action, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.text())
-    .then(data => {
-        // Cerrar loading
-        Swal.close();
-
-        // Verificar si la respuesta es un error
-        if (data.startsWith('ERROR:')) {
+        if (erroresValidacion.length > 0) {
+            const tipoOrden = esOrdenServicio ? 'servicio' : 'material';
+            
+            let mensajeHTML = '<div style="text-align: left; padding: 10px;">' +
+                            `<p style="margin-bottom: 10px;"><strong>No se puede guardar la orden de ${tipoOrden}:</strong></p>` +
+                            '<ul style="color: #dc3545; font-size: 13px; margin-left: 20px;">';
+            
+            erroresValidacion.forEach(error => {
+                mensajeHTML += `<li style="margin-bottom: 8px;">${error}</li>`;
+            });
+            
+            mensajeHTML += '</ul></div>';
+            
             Swal.fire({
                 icon: 'error',
-                title: 'Error al Guardar',
-                html: `<div style="text-align: left;">${data.replace('ERROR:', '')}</div>`,
+                title: 'Cantidad No Permitida',
+                html: mensajeHTML,
+                confirmButtonColor: '#d33',
+                confirmButtonText: '<i class="fa fa-times"></i> Entendido',
+                allowOutsideClick: false
+            });
+            
+            return false;
+        }
+
+        const form = document.getElementById('form-nueva-orden');
+        const formData = new FormData(form);
+
+        Swal.fire({
+            title: 'Guardando...',
+            text: 'Por favor espere',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.text())
+        .then(data => {
+            Swal.close();
+
+            if (data.startsWith('ERROR:')) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error al Guardar',
+                    html: `<div style="text-align: left;">${data.replace('ERROR:', '')}</div>`,
+                    confirmButtonColor: '#d33',
+                    confirmButtonText: 'Entendido'
+                });
+            } else {
+                const tipo = esOrdenServicio ? 'servicio' : 'compra';
+                const successParam = `success=${modoEditar ? 'actualizado' : 'creado'}&tipo=${tipo}`;
+                window.location.href = `pedido_verificar.php?id=<?php echo $id_pedido; ?>&${successParam}`;
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de Conexión',
+                text: 'No se pudo conectar con el servidor. Intente nuevamente.',
                 confirmButtonColor: '#d33',
                 confirmButtonText: 'Entendido'
             });
-        } else {
-            // Éxito: redirigir según el tipo de orden
-            const tipo = esOrdenServicio ? 'servicio' : 'compra';
-            const successParam = `success=${modoEditar ? 'actualizado' : 'creado'}&tipo=${tipo}`;
-            window.location.href = `pedido_verificar.php?id=<?php echo $id_pedido; ?>&${successParam}`;
-        }
-    })
-    .catch(error => {
-        Swal.fire({
-            icon: 'error',
-            title: 'Error de Conexión',
-            text: 'No se pudo conectar con el servidor. Intente nuevamente.',
-            confirmButtonColor: '#d33',
-            confirmButtonText: 'Entendido'
         });
-    });
-}
+    }
 
-    // 🔹 VALIDACIÓN DE CANTIDADES (solo para materiales)
     function validarCantidadesCliente(itemsOrden) {
-        const errores = [];
+    const errores = [];
         const inputIdCompra = document.querySelector('input[name="id_compra"]');
         const idCompraActual = inputIdCompra ? parseInt(inputIdCompra.value) : null;
+        
+        console.log('🔍 validarCantidadesCliente - ID Compra actual:', idCompraActual);
         
         itemsOrden.forEach(itemElement => {
             const idProductoInput = itemElement.querySelector('input[name*="[id_producto]"]');
             const cantidadInput = itemElement.querySelector('.cantidad-item');
             const esNuevoInput = itemElement.querySelector('input[name*="[es_nuevo]"]');
-            
-            if (!idProductoInput || !cantidadInput) return;
+            const idDetalleInput = itemElement.querySelector('input[name*="[id_pedido_detalle]"]');
+            const idDetalleActual = idDetalleInput ? parseInt(idDetalleInput.value) : null;
+
+            console.log('📦 Validando item:', {
+                id_pedido_detalle: idDetalleActual,
+                id_producto: idProductoInput ? idProductoInput.value : 'N/A',
+                cantidad: cantidadInput ? cantidadInput.value : 'N/A'
+            });
+
+            if (!idProductoInput || !cantidadInput) {
+                console.warn('⚠️ Faltan inputs necesarios');
+                return;
+            }
             
             const idProducto = parseInt(idProductoInput.value);
             const cantidadNueva = parseFloat(cantidadInput.value) || 0;
@@ -1670,13 +3050,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         descripcionProducto = descripcionElement.nextSibling.textContent.trim();
                     }
                 }
-            } else {
-                const botonesAgregar = document.querySelectorAll('.btn-agregarOrden');
-                botonesAgregar.forEach(btn => {
-                    if (parseInt(btn.dataset.idProducto) === idProducto) {
-                        cantidadVerificada = parseFloat(btn.dataset.cantidadVerificada) || 0;
-                        cantidadOrdenada = parseFloat(btn.dataset.cantidadOrdenada) || 0;
-                        descripcionProducto = btn.dataset.descripcion || `Producto ID ${idProducto}`;
+            } else if (idDetalleActual) {
+                // Buscar el item-pendiente con este id_detalle
+                const itemsPendientes = document.querySelectorAll('.item-pendiente');
+                itemsPendientes.forEach(item => {
+                    const idDetalleItem = parseInt(item.getAttribute('data-id-detalle'));
+                    if (idDetalleItem === idDetalleActual) {
+                        const btnAgregar = item.querySelector('.btn-agregarOrden');
+                        if (btnAgregar) {
+                            cantidadVerificada = parseFloat(btnAgregar.dataset.cantidadVerificada) || 0;
+                            cantidadOrdenada = parseFloat(btnAgregar.dataset.cantidadOrdenada) || 0;
+                            descripcionProducto = btnAgregar.dataset.descripcion || `Detalle ID ${idDetalleActual}`;
+                        }
                     }
                 });
             }
@@ -1710,207 +3095,504 @@ document.addEventListener('DOMContentLoaded', function() {
         return errores;
     }
 
-function obtenerCantidadActualEnOrden(idProducto, idCompraActual) {
-    let cantidadActual = 0;
-    
-    // Buscar en los items actuales de la orden
-    const itemsOrden = document.querySelectorAll('[id^="item-orden-"]');
-    itemsOrden.forEach(item => {
-        const idProductoItem = item.querySelector('input[name*="[id_producto]"]');
-        if (idProductoItem && parseInt(idProductoItem.value) === idProducto) {
-            const cantidadInput = item.querySelector('.cantidad-item');
-            if (cantidadInput) {
-                cantidadActual = parseFloat(cantidadInput.value) || 0;
-            }
-        }
-    });
-    
-    console.log(` Cantidad actual en orden ${idCompraActual} para producto ${idProducto}: ${cantidadActual}`);
-    return cantidadActual;
-}
-
-
-    // 🔹 VALIDACIÓN DE SERVICIOS CON SWEETALERT (CORREGIDA)
-function validarCantidadesServicio(itemsOrden) {
-    const errores = [];
-    const inputIdCompra = document.querySelector('input[name="id_compra"]');
-    const idCompraActual = inputIdCompra ? parseInt(inputIdCompra.value) : null;
-    
-    console.log(' Validando servicios - ID Compra Actual:', idCompraActual);
-    
-    itemsOrden.forEach(itemElement => {
-        const idProductoInput = itemElement.querySelector('input[name*="[id_producto]"]');
-        const cantidadInput = itemElement.querySelector('.cantidad-item');
-        const esNuevoInput = itemElement.querySelector('input[name*="[es_nuevo]"]');
+    function obtenerCantidadActualEnOrden(idProducto, idCompraActual) {
+        let cantidadActual = 0;
         
-        if (!idProductoInput || !cantidadInput) return;
-        
-        const idProducto = parseInt(idProductoInput.value);
-        const cantidadNueva = parseFloat(cantidadInput.value) || 0;
-        const esNuevo = esNuevoInput && esNuevoInput.value === '1';
-        
-        let cantidadOriginal = 0;
-        let cantidadOrdenada = 0;
-        let descripcionProducto = '';
-        
-        // Obtener datos del input
-        if (cantidadInput.hasAttribute('data-cantidad-verificada') && cantidadInput.hasAttribute('data-cantidad-ordenada')) {
-            cantidadOriginal = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
-            cantidadOrdenada = parseFloat(cantidadInput.getAttribute('data-cantidad-ordenada')) || 0;
-            
-            const rowElement = cantidadInput.closest('[id^="item-orden-"]');
-            if (rowElement) {
-                const descripcionElement = rowElement.querySelector('strong');
-                if (descripcionElement && descripcionElement.nextSibling) {
-                    descripcionProducto = descripcionElement.nextSibling.textContent.trim();
+        const itemsOrden = document.querySelectorAll('[id^="item-orden-"]');
+        itemsOrden.forEach(item => {
+            const idProductoItem = item.querySelector('input[name*="[id_producto]"]');
+            if (idProductoItem && parseInt(idProductoItem.value) === idProducto) {
+                const cantidadInput = item.querySelector('.cantidad-item');
+                if (cantidadInput) {
+                    cantidadActual = parseFloat(cantidadInput.value) || 0;
                 }
             }
-        } else {
-            const botonesAgregar = document.querySelectorAll('.btn-agregarOrden');
-            botonesAgregar.forEach(btn => {
-                if (parseInt(btn.dataset.idProducto) === idProducto) {
-                    cantidadOriginal = parseFloat(btn.dataset.cantidadVerificada) || 0;
-                    cantidadOrdenada = parseFloat(btn.dataset.cantidadOrdenada) || 0;
-                    descripcionProducto = btn.dataset.descripcion || `Producto ID ${idProducto}`;
-                }
-            });
-        }
-        
-        // 🔹 CÁLCULO CORRECTO DE DISPONIBILIDAD
-        let cantidadDisponible = 0;
-
-        if (esNuevo) {
-            cantidadDisponible = cantidadOriginal - cantidadOrdenada;
-        } else if (modoEditar && idCompraActual) {
-            // 🔹 CORRECCIÓN: Al editar, el disponible es (original - ordenado en otras) + actual en esta orden
-            const cantidadActualEnOrden = obtenerCantidadActualEnOrden(idProducto, idCompraActual);
-            cantidadDisponible = (cantidadOriginal - cantidadOrdenada) + cantidadActualEnOrden;
-        } else {
-            cantidadDisponible = cantidadOriginal;
-        }
-        
-        console.log(` Producto ${idProducto}:`, {
-            esNuevo,
-            cantidadNueva,
-            cantidadOriginal,
-            cantidadOrdenada,
-            cantidadDisponible,
-            modoEditar
         });
         
-        if (cantidadNueva > cantidadDisponible) {
-            const descripcionCorta = descripcionProducto.length > 50 
-                ? descripcionProducto.substring(0, 50) + '...' 
-                : descripcionProducto;
-            
-            const tipoItem = esNuevo ? '[NUEVO]' : '[EDITANDO]';
-            
-            const error = `<strong>${tipoItem} ${descripcionCorta}:</strong><br>` +
-                `Cantidad ingresada: <strong>${cantidadNueva}</strong><br>` +
-                `Original: ${cantidadOriginal.toFixed(2)} | ` +
-                `Ya ordenado (otras órdenes): ${cantidadOrdenada.toFixed(2)} | ` +
-                `<strong style="color: #28a745;">Disponible: ${cantidadDisponible.toFixed(2)}</strong>`;
-            
-            errores.push(error);
-        }
-    });
-    
-    return errores;
-}
+        return cantidadActual;
+    }
 
-    function configurarValidacionTiempoReal() {
-    // 🔹 AHORA validar en tiempo real para servicios también
-    document.addEventListener('input', function(event) {
-        if (event.target.classList.contains('cantidad-item')) {
-            const cantidadInput = event.target;
-            const itemElement = cantidadInput.closest('[id^="item-orden-"]');
-            
-            if (!itemElement) return;
-            
+    function validarCantidadesServicio(itemsOrden) {
+        const errores = [];
+        const inputIdCompra = document.querySelector('input[name="id_compra"]');
+        const idCompraActual = inputIdCompra ? parseInt(inputIdCompra.value) : null;
+        
+        itemsOrden.forEach(itemElement => {
             const idProductoInput = itemElement.querySelector('input[name*="[id_producto]"]');
+            const cantidadInput = itemElement.querySelector('.cantidad-item');
             const esNuevoInput = itemElement.querySelector('input[name*="[es_nuevo]"]');
             
-            if (!idProductoInput) return;
+            if (!idProductoInput || !cantidadInput) return;
             
             const idProducto = parseInt(idProductoInput.value);
-            const cantidadIngresada = parseFloat(cantidadInput.value) || 0;
+            const cantidadNueva = parseFloat(cantidadInput.value) || 0;
             const esNuevo = esNuevoInput && esNuevoInput.value === '1';
             
-            const inputIdCompra = document.querySelector('input[name="id_compra"]');
-            const idCompraActual = inputIdCompra ? parseInt(inputIdCompra.value) : null;
-            
-            let cantidadVerificada = 0;
-            let cantidadOrdenada = 0;
+            //  OBTENER id_pedido_detalle
+            const idDetalleInput = itemElement.querySelector('input[name*="[id_pedido_detalle]"]');
+            const idDetalleActual = idDetalleInput ? parseInt(idDetalleInput.value) : null;
+
             let cantidadOriginal = 0;
+            let cantidadOrdenada = 0;
+            let descripcionProducto = '';
             
+            //  Usar data-attributes que tienen el id_pedido_detalle correcto
             if (cantidadInput.hasAttribute('data-cantidad-verificada') && cantidadInput.hasAttribute('data-cantidad-ordenada')) {
-                if (esOrdenServicio) {
-                    // Para SERVICIOS: usar cantidad original
-                    cantidadOriginal = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
-                    cantidadOrdenada = parseFloat(cantidadInput.getAttribute('data-cantidad-ordenada')) || 0;
-                } else {
-                    // Para MATERIALES: usar cantidad verificada
-                    cantidadVerificada = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
-                    cantidadOrdenada = parseFloat(cantidadInput.getAttribute('data-cantidad-ordenada')) || 0;
-                }
-            }
-            
-            let cantidadMaxima = 0;
-            
-            if (esOrdenServicio) {
-                // 🔹 LÓGICA PARA SERVICIOS
-                if (esNuevo) {
-                    cantidadMaxima = cantidadOriginal - cantidadOrdenada;
-                } else if (modoEditar && idCompraActual) {
-                    const cantidadActualEnOrden = obtenerCantidadActualEnOrden(idProducto, idCompraActual);
-                    cantidadMaxima = (cantidadOriginal - cantidadOrdenada) + cantidadActualEnOrden;
-                } else {
-                    cantidadMaxima = cantidadOriginal;
-                }
-            } else {
-                // 🔹 LÓGICA PARA MATERIALES
-                if (esNuevo) {
-                    cantidadMaxima = cantidadVerificada - cantidadOrdenada;
-                } else if (modoEditar && idCompraActual) {
-                    cantidadMaxima = cantidadVerificada;
-                } else {
-                    cantidadMaxima = cantidadVerificada;
-                }
-            }
-            
-            if (cantidadIngresada > cantidadMaxima) {
-                cantidadInput.style.borderColor = '#dc3545';
-                cantidadInput.style.backgroundColor = '#f8d7da';
+                cantidadOriginal = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
+                cantidadOrdenada = parseFloat(cantidadInput.getAttribute('data-cantidad-ordenada')) || 0;
                 
-                let tooltip = itemElement.querySelector('.tooltip-error-cantidad');
-                if (!tooltip) {
-                    tooltip = document.createElement('small');
-                    tooltip.className = 'tooltip-error-cantidad text-danger';
-                    tooltip.style.display = 'block';
-                    tooltip.style.fontSize = '11px';
-                    tooltip.style.marginTop = '2px';
-                    
-                    if (cantidadInput.parentElement.classList.contains('input-group')) {
-                        cantidadInput.parentElement.parentElement.appendChild(tooltip);
-                    } else {
-                        cantidadInput.parentElement.appendChild(tooltip);
+                const rowElement = cantidadInput.closest('[id^="item-orden-"]');
+                if (rowElement) {
+                    const descripcionElement = rowElement.querySelector('strong');
+                    if (descripcionElement && descripcionElement.nextSibling) {
+                        descripcionProducto = descripcionElement.nextSibling.textContent.trim();
                     }
                 }
-                tooltip.textContent = ` Excede máximo: ${cantidadMaxima.toFixed(2)}`;
-            } else {
-                cantidadInput.style.borderColor = '#28a745';
-                cantidadInput.style.backgroundColor = '#d4edda';
-                
-                const tooltip = itemElement.querySelector('.tooltip-error-cantidad');
-                if (tooltip) tooltip.remove();
+            } else if (idDetalleActual) {
+                //  Buscar en items pendientes por id_pedido_detalle
+                const itemsPendientes = document.querySelectorAll('.item-pendiente');
+                itemsPendientes.forEach(item => {
+                    const idDetalleItem = parseInt(item.getAttribute('data-id-detalle'));
+                    if (idDetalleItem === idDetalleActual) {
+                        const btnAgregar = item.querySelector('.btn-agregarOrden');
+                        if (btnAgregar) {
+                            cantidadOriginal = parseFloat(btnAgregar.dataset.cantidadVerificada) || 0;
+                            cantidadOrdenada = parseFloat(btnAgregar.dataset.cantidadOrdenada) || 0;
+                            descripcionProducto = btnAgregar.dataset.descripcion || `Detalle ID ${idDetalleActual}`;
+                        }
+                    }
+                });
             }
+            
+            let cantidadDisponible = 0;
+
+            if (esNuevo) {
+                cantidadDisponible = cantidadOriginal - cantidadOrdenada;
+            } else if (modoEditar && idCompraActual) {
+                const cantidadActualEnOrden = obtenerCantidadActualEnOrden(idProducto, idCompraActual);
+                cantidadDisponible = (cantidadOriginal - cantidadOrdenada) + cantidadActualEnOrden;
+            } else {
+                cantidadDisponible = cantidadOriginal;
+            }
+            
+            if (cantidadNueva > cantidadDisponible) {
+                const descripcionCorta = descripcionProducto.length > 50 
+                    ? descripcionProducto.substring(0, 50) + '...' 
+                    : descripcionProducto;
+                
+                const tipoItem = esNuevo ? '[NUEVO]' : '[EDITANDO]';
+                
+                const error = `<strong>${tipoItem} ${descripcionCorta}:</strong><br>` +
+                    `Cantidad ingresada: <strong>${cantidadNueva}</strong><br>` +
+                    `Original: ${cantidadOriginal.toFixed(2)} | ` +
+                    `Ya ordenado (otras órdenes): ${cantidadOrdenada.toFixed(2)} | ` +
+                    `<strong style="color: #28a745;">Disponible: ${cantidadDisponible.toFixed(2)}</strong>`;
+                
+                errores.push(error);
+            }
+        });
+        
+        return errores;
+    }
+
+    function configurarValidacionTiempoReal() {
+        document.addEventListener('input', function(event) {
+            if (event.target.classList.contains('cantidad-item')) {
+                const cantidadInput = event.target;
+                const itemElement = cantidadInput.closest('[id^="item-orden-"]');
+                
+                if (!itemElement) return;
+                
+                const idProductoInput = itemElement.querySelector('input[name*="[id_producto]"]');
+                const esNuevoInput = itemElement.querySelector('input[name*="[es_nuevo]"]');
+                
+                if (!idProductoInput) return;
+                
+                const idProducto = parseInt(idProductoInput.value);
+                const cantidadIngresada = parseFloat(cantidadInput.value) || 0;
+                const esNuevo = esNuevoInput && esNuevoInput.value === '1';
+                
+                const inputIdCompra = document.querySelector('input[name="id_compra"]');
+                const idCompraActual = inputIdCompra ? parseInt(inputIdCompra.value) : null;
+                
+                let cantidadVerificada = 0;
+                let cantidadOrdenada = 0;
+                let cantidadOriginal = 0;
+                
+                if (cantidadInput.hasAttribute('data-cantidad-verificada') && cantidadInput.hasAttribute('data-cantidad-ordenada')) {
+                    if (esOrdenServicio) {
+                        cantidadOriginal = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
+                        cantidadOrdenada = parseFloat(cantidadInput.getAttribute('data-cantidad-ordenada')) || 0;
+                    } else {
+                        cantidadVerificada = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
+                        cantidadOrdenada = parseFloat(cantidadInput.getAttribute('data-cantidad-ordenada')) || 0;
+                    }
+                }
+                
+                let cantidadMaxima = 0;
+                
+                if (esOrdenServicio) {
+                    if (esNuevo) {
+                        cantidadMaxima = cantidadOriginal - cantidadOrdenada;
+                    } else if (modoEditar && idCompraActual) {
+                        const cantidadActualEnOrden = obtenerCantidadActualEnOrden(idProducto, idCompraActual);
+                        cantidadMaxima = (cantidadOriginal - cantidadOrdenada) + cantidadActualEnOrden;
+                    } else {
+                        cantidadMaxima = cantidadOriginal;
+                    }
+                } else {
+                    if (esNuevo) {
+                        cantidadMaxima = cantidadVerificada - cantidadOrdenada;
+                    } else if (modoEditar && idCompraActual) {
+                        cantidadMaxima = cantidadVerificada;
+                    } else {
+                        cantidadMaxima = cantidadVerificada;
+                    }
+                }
+                
+                if (cantidadIngresada > cantidadMaxima) {
+                    cantidadInput.style.borderColor = '#dc3545';
+                    cantidadInput.style.backgroundColor = '#f8d7da';
+                    
+                    let tooltip = itemElement.querySelector('.tooltip-error-cantidad');
+                    if (!tooltip) {
+                        tooltip = document.createElement('small');
+                        tooltip.className = 'tooltip-error-cantidad text-danger';
+                        tooltip.style.display = 'block';
+                        tooltip.style.fontSize = '11px';
+                        tooltip.style.marginTop = '2px';
+                        
+                        if (cantidadInput.parentElement.classList.contains('input-group')) {
+                            cantidadInput.parentElement.parentElement.appendChild(tooltip);
+                        } else {
+                            cantidadInput.parentElement.appendChild(tooltip);
+                        }
+                    }
+                    tooltip.textContent = `⚠ Excede máximo: ${cantidadMaxima.toFixed(2)}`;
+                } else {
+                    cantidadInput.style.borderColor = '#28a745';
+                    cantidadInput.style.backgroundColor = '#d4edda';
+                    
+                    const tooltip = itemElement.querySelector('.tooltip-error-cantidad');
+                    if (tooltip) tooltip.remove();
+                }
+            }
+        });
+    }
+
+    function configurarValidacionTiempoRealSalidas() {
+        document.addEventListener('input', function(event) {
+            if (event.target.classList.contains('cantidad-salida')) {
+                const cantidadInput = event.target;
+                const itemElement = cantidadInput.closest('[id^="item-salida-"]');
+                
+                if (!itemElement) return;
+                
+                const cantidadIngresada = parseFloat(cantidadInput.value) || 0;
+                const cantidadMaxima = parseFloat(cantidadInput.getAttribute('max')) || 0;
+                
+                if (cantidadIngresada > cantidadMaxima) {
+                    cantidadInput.style.borderColor = '#dc3545';
+                    cantidadInput.style.backgroundColor = '#f8d7da';
+                    
+                    let tooltip = itemElement.querySelector('.tooltip-error-cantidad-salida');
+                    if (!tooltip) {
+                        tooltip = document.createElement('small');
+                        tooltip.className = 'tooltip-error-cantidad-salida text-danger';
+                        tooltip.style.display = 'block';
+                        tooltip.style.fontSize = '11px';
+                        tooltip.style.marginTop = '2px';
+                        cantidadInput.parentElement.appendChild(tooltip);
+                    }
+                    tooltip.textContent = `⚠ Excede máximo: ${cantidadMaxima.toFixed(2)}`;
+                } else if (cantidadIngresada <= 0) {
+                    cantidadInput.style.borderColor = '#dc3545';
+                    cantidadInput.style.backgroundColor = '#f8d7da';
+                    
+                    let tooltip = itemElement.querySelector('.tooltip-error-cantidad-salida');
+                    if (!tooltip) {
+                        tooltip = document.createElement('small');
+                        tooltip.className = 'tooltip-error-cantidad-salida text-danger';
+                        tooltip.style.display = 'block';
+                        tooltip.style.fontSize = '11px';
+                        tooltip.style.marginTop = '2px';
+                        cantidadInput.parentElement.appendChild(tooltip);
+                    }
+                    tooltip.textContent = `⚠ La cantidad debe ser mayor a 0`;
+                } else {
+                    cantidadInput.style.borderColor = '#28a745';
+                    cantidadInput.style.backgroundColor = '#d4edda';
+                    
+                    const tooltip = itemElement.querySelector('.tooltip-error-cantidad-salida');
+                    if (tooltip) tooltip.remove();
+                }
+            }
+        });
+    }
+
+    // ============================================
+    // VALIDACIÓN DE FORMULARIO SALIDA (CORREGIDO)
+    // ============================================
+
+    function validarFormularioSalida(e) {
+        e.preventDefault(); // ✅ Prevenir envío normal del formulario
+        
+        console.log('🚚 Validando formulario de salida...');
+        
+        const form = document.getElementById('form-nueva-salida'); // ✅ NOMBRE CORRECTO
+        
+        // Determinar si es creación o edición
+        const modoEditarSalida = document.querySelector('input[name="actualizar_salida"]') !== null;
+        
+        // Validar campos obligatorios
+        const ndoc = document.querySelector('input[name="ndoc_salida"]').value.trim();
+        const fec = document.getElementById('fecha_salida').value;
+        const almOrigen = document.getElementById('almacen_origen_salida').value;
+        const ubicOrigen = document.getElementById('ubicacion_origen_salida').value;
+        const almDestino = document.getElementById('almacen_destino_salida').value;
+        const ubicDestino = document.getElementById('ubicacion_destino_salida').value;
+        
+        console.log('📋 Datos capturados:', {
+            ndoc, fec, almOrigen, ubicOrigen, almDestino, ubicDestino
+        });
+        
+        if (!ndoc) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campo Requerido',
+                text: 'Debe ingresar el número de documento',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
         }
-    });
-}
+        
+        if (!fec) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campo Requerido',
+                text: 'Debe seleccionar la fecha de salida',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
+        
+        if (!almOrigen || almOrigen == '0') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campo Requerido',
+                text: 'Debe seleccionar el almacén de origen',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
+        
+        if (!ubicOrigen || ubicOrigen == '0') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campo Requerido',
+                text: 'Debe seleccionar la ubicación de origen',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
+        
+        if (!almDestino || almDestino == '0') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campo Requerido',
+                text: 'Debe seleccionar el almacén de destino',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
+        
+        if (!ubicDestino || ubicDestino == '0') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Campo Requerido',
+                text: 'Debe seleccionar la ubicación de destino',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
+        
+        // ✅ RECOLECTAR ITEMS DE SALIDA
+        const contenedorItems = document.getElementById('contenedor-items-salida');
+        const itemsElements = contenedorItems.querySelectorAll('.alert');
+        
+        console.log('📦 Items encontrados:', itemsElements.length);
+        
+        if (itemsElements.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Sin Items',
+                text: 'Debe agregar al menos un material a la salida',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
+        
+        // ✅ CONSTRUIR ARRAY DE ITEMS
+        const itemsSalida = [];
+        let errorCantidad = false;
+        let mensajeError = '';
+        
+        itemsElements.forEach((item, index) => {
+            const idProductoInput = item.querySelector('input[name*="[id_producto]"]');
+            const idPedidoDetalleInput = item.querySelector('input[name*="[id_pedido_detalle]"]');
+            const cantidadInput = item.querySelector('input[name*="[cantidad]"]');
+            const descripcionElement = item.querySelector('strong');
+            
+            if (!idProductoInput || !cantidadInput) {
+                console.warn(`⚠️ Item ${index} sin inputs necesarios`);
+                return;
+            }
+            
+            const idProducto = parseInt(idProductoInput.value);
+            const idPedidoDetalle = idPedidoDetalleInput ? parseInt(idPedidoDetalleInput.value) : 0;
+            const cantidad = parseFloat(cantidadInput.value) || 0;
+            const descripcion = descripcionElement ? descripcionElement.textContent : `Producto ${idProducto}`;
+            const cantidadMaxima = parseFloat(cantidadInput.getAttribute('max')) || 0;
+            
+            console.log(`📦 Item ${index}:`, {
+                idProducto,
+                idPedidoDetalle,
+                cantidad,
+                max: cantidadMaxima
+            });
+            
+            // Validar cantidad
+            if (cantidad <= 0) {
+                errorCantidad = true;
+                mensajeError = `La cantidad para "${descripcion}" debe ser mayor a 0`;
+                return;
+            }
+            
+            if (cantidadMaxima > 0 && cantidad > cantidadMaxima) {
+                errorCantidad = true;
+                mensajeError = `La cantidad para "${descripcion}" (${cantidad}) excede el máximo disponible (${cantidadMaxima})`;
+                return;
+            }
+            
+            itemsSalida.push({
+                id_producto: idProducto,
+                id_pedido_detalle: idPedidoDetalle,
+                cantidad: cantidad,
+                descripcion: descripcion
+            });
+        });
+        
+        if (errorCantidad) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Cantidad Inválida',
+                text: mensajeError,
+                confirmButtonColor: '#d33'
+            });
+            return;
+        }
+        
+        if (itemsSalida.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Sin Items Válidos',
+                text: 'No se encontraron items válidos para la salida',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
+        
+        console.log('✅ Items válidos:', itemsSalida);
+        
+        // ✅ CONSTRUIR FORMDATA
+        const formData = new FormData(form);
+        
+        // Agregar flag de acción
+        formData.append('grabar_salida', '1');
+        
+        // ✅ ENVIAR ITEMS COMO JSON STRING
+        formData.append('items_salida', JSON.stringify(itemsSalida));
+        
+        console.log('📤 Enviando datos al servidor...');
+        
+        // Confirmar acción
+        const textoConfirmacion = modoEditarSalida 
+            ? '¿Está seguro de actualizar esta salida?' 
+            : '¿Está seguro de generar esta salida?';
+        
+        const textoBoton = modoEditarSalida ? 'Sí, actualizar' : 'Sí, generar';
+        
+        Swal.fire({
+            title: textoConfirmacion,
+            text: "Esta acción afectará el inventario",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: textoBoton,
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Mostrar loading
+                Swal.fire({
+                    title: modoEditarSalida ? 'Actualizando...' : 'Generando...',
+                    text: 'Por favor espere',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Enviar formulario
+                fetch('pedido_verificar.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    Swal.close();
+                    
+                    console.log('📥 Respuesta del servidor:', data);
+                    
+                    if (data.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Salida Generada!',
+                            text: data.message,
+                            confirmButtonColor: '#28a745'
+                        }).then(() => {
+                            const idPedido = document.querySelector('input[name="id_pedido"]').value;
+                            window.location.href = `pedido_verificar.php?id=${idPedido}&success=salida_creada`;
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message,
+                            confirmButtonColor: '#d33'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error de Conexión',
+                        text: 'No se pudo conectar con el servidor.',
+                        confirmButtonColor: '#d33'
+                    });
+                });
+            }
+        });
+    }
+
+
+        
+    // ============================================
+    // CONFIGURACIÓN DE EVENTOS EDICIÓN
+    // ============================================
     
-    // ============================================
-    // CONFIGURACIÓN DE EVENTOS
-    // ============================================
     function configurarEventosEdicion() {
         document.querySelectorAll('[id^="item-orden-"]').forEach(function(item) {
             const cantidadInput = item.querySelector('.cantidad-item');
@@ -1952,8 +3634,313 @@ function validarCantidadesServicio(itemsOrden) {
             actualizarTotalGeneral();
         }, 100);
     }
+
+    function cargarSalidaEdicion() {
+        if (!modoEditarSalida) return;
+        
+        // Llenar campos
+        document.getElementById('ndoc_salida').value = salidaEditar.ndoc;
+        document.getElementById('fecha_salida').value = salidaEditar.fecha;
+        document.getElementById('observaciones_salida').value = salidaEditar.obs;
+        document.getElementById('almacen_origen_salida').value = salidaEditar.almacen_origen;
+        document.getElementById('almacen_destino_salida').value = salidaEditar.almacen_destino;
+        
+        // Esperar y seleccionar ubicaciones
+        setTimeout(() => {
+            document.getElementById('ubicacion_origen_salida').value = salidaEditar.ubicacion_origen;
+            document.getElementById('ubicacion_destino_salida').value = salidaEditar.ubicacion_destino;
+        }, 200);
+        
+        // Cargar items
+        const contenedor = document.getElementById('contenedor-items-salida');
+        itemsSalidaEditar.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'alert alert-light p-2 mb-2';
+            div.id = `item-salida-${item.id_salida_detalle}`;
+            div.innerHTML = `
+                <input type="hidden" name="items_salida[${item.id_salida_detalle}][id_producto]" value="${item.id_producto}">
+                <input type="hidden" name="items_salida[${item.id_salida_detalle}][id_salida_detalle]" value="${item.id_salida_detalle}">
+                <div class="row">
+                    <div class="col-md-11">
+                        <strong>${item.nom_producto}</strong>
+                        <span class="badge badge-warning ml-1">EDITANDO</span>
+                    </div>
+                    <div class="col-md-1">
+                        <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.parentElement.parentElement.remove()">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-4">
+                        <label style="font-size: 11px;">Cantidad:</label>
+                        <input type="number" class="form-control form-control-sm" 
+                            name="items_salida[${item.id_salida_detalle}][cantidad]"
+                            value="${item.cant_salida_detalle}" min="0.01" step="0.01" required>
+                    </div>
+                </div>
+            `;
+            contenedor.appendChild(div);
+        });
+    }
+
+    
+    // ============================================
+    // CONFIGURACIÓN DE EVENT LISTENERS
+    // ============================================
     
     function configurarEventListeners() {
+        // ============================================
+        // 🔹 1. BOTÓN NUEVA SALIDA
+        // ============================================
+        const btnNuevaSalidaElement = document.getElementById('btn-nueva-salida');
+        if (btnNuevaSalidaElement) {
+            btnNuevaSalidaElement.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const contenedorNuevaSalida = document.getElementById('contenedor-nueva-salida');
+                if (contenedorNuevaSalida && contenedorNuevaSalida.style.display !== 'none') {
+                    mostrarListaSalidas();
+                    return;
+                }
+                
+                const hayItemsDisponibles = validarItemsDisponiblesParaSalida();
+                
+                if (!hayItemsDisponibles) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Sin items disponibles',
+                        text: 'No hay items con stock completo disponibles para generar una salida.',
+                        confirmButtonColor: '#3085d6'
+                    });
+                    return;
+                }
+                
+                mostrarFormularioNuevaSalida();
+            });
+        }
+        
+        // ============================================
+        // 🔹 2. BOTÓN NUEVA ORDEN
+        // ============================================
+        const btnNuevaOrden = document.getElementById('btn-nueva-orden');
+        if (btnNuevaOrden) {
+            btnNuevaOrden.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('🔘 Botón Nueva Orden clickeado');
+                
+                const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
+                const myTab = document.getElementById('myTab');
+                const myTabContent = document.getElementById('myTabContent');
+                
+                console.log('📋 Estado actual:', {
+                    displayNuevaOrden: contenedorNuevaOrden ? contenedorNuevaOrden.style.display : 'N/A',
+                    displayTabs: myTab ? myTab.style.display : 'N/A'
+                });
+                
+                // ✅ TOGGLE: Si el formulario está visible, volver a los tabs
+                if (contenedorNuevaOrden && contenedorNuevaOrden.style.display === 'block') {
+                    console.log('🔙 Ocultando formulario, mostrando tabs');
+                    
+                    // Ocultar formulario
+                    contenedorNuevaOrden.style.display = 'none';
+                    
+                    // Mostrar tabs
+                    if (myTab) myTab.style.display = 'flex';
+                    if (myTabContent) myTabContent.style.display = 'block';
+                    
+                    // Cambiar botón a estado "Nueva Orden"
+                    this.innerHTML = '<i class="fa fa-shopping-cart"></i> Nueva Orden';
+                    this.classList.remove('btn-secondary');
+                    this.classList.add('btn-primary');
+                    
+                    // Activar tab de órdenes
+                    const ordenesTab = document.getElementById('ordenes-tab');
+                    if (ordenesTab) {
+                        $('#ordenes-tab').tab('show');
+                    }
+                    
+                    console.log('✅ Tabs mostrados correctamente');
+                } else {
+                    // ✅ Mostrar formulario, ocultar tabs
+                    console.log('➡️ Mostrando formulario, ocultando tabs');
+                    
+                    // Ocultar tabs
+                    if (myTab) myTab.style.display = 'none';
+                    if (myTabContent) myTabContent.style.display = 'none';
+                    
+                    // Mostrar formulario
+                    if (contenedorNuevaOrden) {
+                        contenedorNuevaOrden.style.display = 'block';
+                    }
+                    
+                    // Cambiar botón a estado "Ver Órdenes"
+                    this.innerHTML = '<i class="fa fa-table"></i> Ver Órdenes';
+                    this.classList.remove('btn-primary');
+                    this.classList.add('btn-secondary');
+                    
+                    // Establecer fecha actual
+                    const fechaOrden = document.getElementById('fecha_orden');
+                    if (fechaOrden) {
+                        fechaOrden.value = new Date().toISOString().split('T')[0];
+                    }
+                    
+                    console.log('✅ Formulario mostrado correctamente');
+                }
+            });
+        }
+        
+        // ============================================
+        // 🔹 3. AGREGAR ITEM A ORDEN (ÚNICO LISTENER)
+        // ============================================
+        document.addEventListener('click', function(event) {
+            const btnAgregar = event.target.closest('.btn-agregarOrden');
+            if (btnAgregar) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                console.log('🔵 Botón Agregar clickeado:', {
+                    idProducto: btnAgregar.dataset.idProducto,
+                    descripcion: btnAgregar.dataset.descripcion
+                });
+                
+                const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
+                const myTab = document.getElementById('myTab');
+                const myTabContent = document.getElementById('myTabContent');
+                
+                console.log('🔍 Estado ANTES de mostrar formulario:', {
+                    modoEditar: modoEditar,
+                    contenedorNuevaOrden: contenedorNuevaOrden ? 'existe' : 'NO EXISTE',
+                    displayNuevaOrden: contenedorNuevaOrden ? contenedorNuevaOrden.style.display : 'N/A',
+                    myTab: myTab ? 'existe' : 'NO EXISTE',
+                    myTabContent: myTabContent ? 'existe' : 'NO EXISTE'
+                });
+                
+                if (modoEditar) {
+                    console.log('🟢 MODO EDITAR - Mostrando contenedor-nueva-orden');
+                    if (contenedorNuevaOrden && contenedorNuevaOrden.style.display === 'none') {
+                        contenedorNuevaOrden.style.display = 'block';
+                        console.log('✅ contenedor-nueva-orden ahora es visible');
+                    }
+                } else {
+                    console.log('🟢 MODO NORMAL - Mostrando formulario nueva orden');
+                    if (myTab) myTab.style.display = 'none';
+                    if (myTabContent) myTabContent.style.display = 'none';
+                    if (contenedorNuevaOrden) {
+                        contenedorNuevaOrden.style.display = 'block';
+                        console.log('✅ Formulario de nueva orden mostrado');
+                    }
+                    
+                    const btnNuevaOrden = document.getElementById('btn-nueva-orden');
+                    if (btnNuevaOrden) {
+                        btnNuevaOrden.innerHTML = '<i class="fa fa-table"></i> Ver Órdenes';
+                        btnNuevaOrden.classList.remove('btn-primary');
+                        btnNuevaOrden.classList.add('btn-secondary');
+                    }
+                    
+                    const fechaOrden = document.getElementById('fecha_orden');
+                    if (fechaOrden) {
+                        fechaOrden.value = new Date().toISOString().split('T')[0];
+                    }
+                }
+                
+                console.log('🔍 Estado DESPUÉS de mostrar formulario:', {
+                    displayNuevaOrden: contenedorNuevaOrden ? contenedorNuevaOrden.style.display : 'N/A'
+                });
+                
+                const cantidadVerificada = parseFloat(btnAgregar.dataset.cantidadVerificada) || 0;
+                const cantidadOrdenada = parseFloat(btnAgregar.dataset.cantidadOrdenada) || 0;
+                
+                console.log('📦 Datos para agregar:', {
+                    verificada: cantidadVerificada,
+                    ordenada: cantidadOrdenada,
+                    pendiente: (cantidadVerificada - cantidadOrdenada).toFixed(2)
+                });
+                
+                agregarItemAOrden({
+                    idDetalle: btnAgregar.dataset.idDetalle,
+                    idProducto: btnAgregar.dataset.idProducto,
+                    descripcion: btnAgregar.dataset.descripcion,
+                    cantidadVerificada: cantidadVerificada,
+                    cantidadOrdenada: cantidadOrdenada,
+                    botonOriginal: btnAgregar
+                });
+            }
+        });
+        
+        // ============================================
+        // 🔹 4. AGREGAR ITEM A SALIDA
+        // ============================================
+        document.addEventListener('click', function(event) {
+            const btnAgregarSalida = event.target.closest('.btn-agregarSalida');
+            if (btnAgregarSalida) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                console.log('🚚 Botón Agregar a Salida clickeado');
+                
+                const contenedorNuevaSalida = document.getElementById('contenedor-nueva-salida');
+                if (contenedorNuevaSalida.style.display === 'none') {
+                    mostrarFormularioNuevaSalida();
+                }
+                
+                // ✅ Parsear otras ubicaciones
+                let otrasUbicaciones = [];
+                try {
+                    const otrasUbicacionesStr = btnAgregarSalida.dataset.otrasUbicaciones;
+                    otrasUbicaciones = otrasUbicacionesStr ? JSON.parse(otrasUbicacionesStr) : [];
+                } catch (e) {
+                    console.error('Error parseando otras_ubicaciones:', e);
+                }
+                
+                console.log('📍 Otras ubicaciones:', otrasUbicaciones);
+                
+                agregarItemASalida({
+                    idDetalle: btnAgregarSalida.dataset.idDetalle,
+                    idProducto: btnAgregarSalida.dataset.idProducto,
+                    descripcion: btnAgregarSalida.dataset.descripcion,
+                    cantidadDisponible: btnAgregarSalida.dataset.cantidadDisponible,
+                    almacenDestino: btnAgregarSalida.dataset.almacenDestino,
+                    ubicacionDestino: btnAgregarSalida.dataset.ubicacionDestino,
+                    otrasUbicaciones: btnAgregarSalida.dataset.otrasUbicaciones,
+                    botonOriginal: btnAgregarSalida
+                });
+            }
+        });
+        
+        // Ver detalle de salida
+        document.addEventListener('click', function(event) {
+            const btnVerSalida = event.target.closest('.btn-ver-salida');
+            if (btnVerSalida) {
+                event.preventDefault();
+                const idSalida = btnVerSalida.getAttribute('data-id-salida');
+                mostrarDetalleSalida(idSalida);
+            }
+        });
+        
+        // Editar salida
+        document.addEventListener('click', function(event) {
+            const btnEditarSalida = event.target.closest('.btn-editar-salida');
+            if (btnEditarSalida) {
+                event.preventDefault();
+                const idSalida = btnEditarSalida.getAttribute('data-id-salida');
+                window.location.href = `pedido_verificar.php?id=<?php echo $id_pedido; ?>&id_salida=${idSalida}`;
+            }
+        });
+        
+        // Anular salida
+        document.addEventListener('click', function(event) {
+            const btnAnularSalida = event.target.closest('.btn-anular-salida');
+            if (btnAnularSalida) {
+                event.preventDefault();
+                const idSalida = btnAnularSalida.getAttribute('data-id-salida');
+                anularSalida(idSalida);
+            }
+        });
+        
         // Anular orden
         document.addEventListener('click', function(event) {
             const btnAnular = event.target.closest('.btn-anular-orden');
@@ -1965,12 +3952,6 @@ function validarCantidadesServicio(itemsOrden) {
                 AnularCompra(idCompra, idPedido);
             }
         });
-        
-        // Nueva orden
-        const btnNuevaOrden = document.getElementById('btn-nueva-orden');
-        if (btnNuevaOrden) {
-            btnNuevaOrden.addEventListener('click', toggleFormularioOrden);
-        }
         
         // Editar orden
         document.addEventListener('click', function(event) {
@@ -1990,63 +3971,20 @@ function validarCantidadesServicio(itemsOrden) {
             });
         }
         
-        // Agregar a orden
-document.addEventListener('click', function(event) {
-    const btnAgregar = event.target.closest('.btn-agregarOrden');
-    if (btnAgregar) {
-        event.preventDefault();
-        event.stopPropagation();
-        
-        if (modoEditar) {
-            const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
-            if (contenedorNuevaOrden.style.display === 'none') {
-                contenedorNuevaOrden.style.display = 'block';
-            }
-        } else {
-            const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
-            if (contenedorTabla.style.display !== 'none') {
-                mostrarFormularioNuevaOrden();
-            }
-        }
-        
-        // Obtener valores del botón
-        const cantidadVerificada = parseFloat(btnAgregar.dataset.cantidadVerificada) || 0;
-        const cantidadOrdenada = parseFloat(btnAgregar.dataset.cantidadOrdenada) || 0;
-        
-        console.log('🔵 Agregar a orden:', {
-            producto: btnAgregar.dataset.idProducto,
-            esServicio: esOrdenServicio,
-            verificada: cantidadVerificada,
-            ordenada: cantidadOrdenada,
-            pendiente: (cantidadVerificada - cantidadOrdenada).toFixed(2)
-        });
-        
-        agregarItemAOrden({
-            idDetalle: btnAgregar.dataset.idDetalle,
-            idProducto: btnAgregar.dataset.idProducto,
-            descripcion: btnAgregar.dataset.descripcion,
-            cantidadVerificada: cantidadVerificada,
-            cantidadOrdenada: cantidadOrdenada,
-            botonOriginal: btnAgregar
-        });
-    }
-});
-        
         // Verificar modal
-        document.querySelectorAll('.verificar-btn').forEach(btn => {
+        /*document.querySelectorAll('.verificar-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const idDetalle = this.getAttribute('data-id-detalle');
                 const cantidadActual = this.getAttribute('data-cantidad-actual');
-                //const cantidadAlmacen = parseFloat(this.getAttribute('data-cantidad-almacen'));
                 const cantidadDisponible = parseFloat(this.getAttribute('data-cantidad-disponible'));
                 const diferencia = cantidadActual - cantidadDisponible;
                 document.getElementById('id_pedido_detalle_input').value = idDetalle;
                 document.getElementById('fin_cant_pedido_detalle').value = diferencia;
                 $('#verificarModal').modal('show');
             }); 
-        });
+        });*/
         
-        // Ver detalle
+        // Ver detalle orden
         document.addEventListener('click', function(event) {
             const btnVerDetalle = event.target.closest('.btn-ver-detalle');
             if (btnVerDetalle) {
@@ -2057,11 +3995,78 @@ document.addEventListener('click', function(event) {
             }
         });
         
-        // Validar formulario
+        // Validar formulario orden
         const formNuevaOrden = document.getElementById('form-nueva-orden');
         if (formNuevaOrden) {
             formNuevaOrden.addEventListener('submit', validarFormularioOrden);
         }
+
+        // Validar formulario salida
+        const formNuevaSalida = document.getElementById('form-nueva-salida');
+        if (formNuevaSalida) {
+            formNuevaSalida.addEventListener('submit', validarFormularioSalida);
+        }
+        
+        // Remover item de orden
+        document.addEventListener('click', function(event) {
+            const btnRemover = event.target.closest('.btn-remover-item');
+            if (btnRemover) {
+                const idDetalle = btnRemover.getAttribute('data-id-detalle');
+                const itemElement = document.getElementById(`item-orden-${idDetalle}`);
+                
+                if (itemElement) {
+                    const idProductoInput = itemElement.querySelector('input[name*="[id_producto]"]');
+                    if (idProductoInput) {
+                        const idProducto = idProductoInput.value;
+                        
+                        const botonesAgregar = document.querySelectorAll('.btn-agregarOrden');
+                        botonesAgregar.forEach(btn => {
+                            if (btn.dataset.idProducto === idProducto) {
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="fa fa-plus"></i> Agregar';
+                                btn.classList.remove('btn-success');
+                                btn.classList.add('btn-primary');
+                            }
+                        });
+                    }
+                    
+                    itemElement.remove();
+                    itemsAgregadosOrden.delete(idDetalle);
+                    actualizarTotalGeneral();
+                }
+            }
+        });
+
+        // Remover item de salida (SIMPLIFICADO - IGUAL QUE ORDEN)
+        document.addEventListener('click', function(event) {
+            const btnRemoverSalida = event.target.closest('.btn-remover-item-salida');
+            if (btnRemoverSalida) {
+                const idDetalle = btnRemoverSalida.getAttribute('data-id-detalle');
+                const itemElement = document.getElementById(`item-salida-${idDetalle}`);
+                
+                if (itemElement) {
+                    // Buscar el botón original para habilitarlo nuevamente
+                    const idProductoInput = itemElement.querySelector('input[name*="[id_producto]"]');
+                    if (idProductoInput) {
+                        const idProducto = idProductoInput.value;
+                        
+                        const botonesAgregarSalida = document.querySelectorAll('.btn-agregarSalida');
+                        botonesAgregarSalida.forEach(btn => {
+                            if (btn.dataset.idProducto === idProducto) {
+                                btn.disabled = false;
+                                btn.innerHTML = '<i class="fa fa-truck"></i> Agregar a Salida';
+                                btn.classList.remove('btn-secondary');
+                                btn.classList.add('btn-success');
+                            }
+                        });
+                    }
+                    
+                    // Eliminar el item directamente
+                    itemElement.remove();
+                }
+            }
+        });
+
     }
     
     function configurarExclusividadCheckboxes() {
@@ -2104,6 +4109,7 @@ document.addEventListener('click', function(event) {
     // ============================================
     // CONFIGURACIÓN MODAL PROVEEDOR
     // ============================================
+    
     function configurarModalProveedor() {
         const tablaCuentasModal = document.getElementById("tabla-cuentas-modal");
         const btnAgregarModal = document.getElementById("agregarCuentaModal");
@@ -2244,219 +4250,238 @@ document.addEventListener('click', function(event) {
         }
     }
     
-    // ============================================
-    // FUNCIONES DE ORDEN
-    // ============================================
-    function toggleFormularioOrden() {
-        const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
-        if (contenedorTabla.style.display === 'none') {
-            mostrarTablaOrdenes();
-        } else {
-            mostrarFormularioNuevaOrden();
-        }
-    }
-    
-    function mostrarFormularioNuevaOrden() {
-        document.getElementById('contenedor-tabla-ordenes').style.display = 'none';
-        document.getElementById('contenedor-nueva-orden').style.display = 'block';
-        
-        const btnNuevaOrden = document.getElementById('btn-nueva-orden');
-        if (btnNuevaOrden) {
-            btnNuevaOrden.innerHTML = '<i class="fa fa-table"></i> Ver Órdenes';
-            btnNuevaOrden.classList.remove('btn-primary');
-            btnNuevaOrden.classList.add('btn-secondary');
-        }
-        
-        document.getElementById('fecha_orden').value = new Date().toISOString().split('T')[0];
-    }
-    
-    function mostrarTablaOrdenes() {
-        document.getElementById('contenedor-tabla-ordenes').style.display = 'block';
-        document.getElementById('contenedor-nueva-orden').style.display = 'none';
-        
-        const btnNuevaOrden = document.getElementById('btn-nueva-orden');
-        if (btnNuevaOrden) {
-            btnNuevaOrden.innerHTML = '<i class="fa fa-plus"></i> Nueva Orden';
-            btnNuevaOrden.classList.remove('btn-secondary');
-            btnNuevaOrden.classList.add('btn-primary');
-        }
-    }
-    
     function agregarItemAOrden(item) {
-    const idMonedaSeleccionada = document.getElementById('moneda_orden').value;
-    const simboloMoneda = idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
-    
-    const itemId = 'nuevo-' + Date.now();
-    const cantidadVerificada = parseFloat(item.cantidadVerificada) || 0;
-    const cantidadOrdenada = parseFloat(item.cantidadOrdenada) || 0;
-    const cantidadPendiente = cantidadVerificada - cantidadOrdenada;
-    
-    console.log('📦 Agregando item:', {
-        idProducto: item.idProducto,
-        esServicio: esOrdenServicio,
-        cantidadVerificada: cantidadVerificada,
-        cantidadOrdenada: cantidadOrdenada,
-        cantidadPendiente: cantidadPendiente
-    });
-    
-    const itemElement = document.createElement('div');
-    itemElement.id = `item-orden-${itemId}`;
-    itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
-    
-    const badgeTipo = esOrdenServicio 
-        ? '<span class="badge badge-primary badge-sm ml-1">SERVICIO</span>'
-        : (modoEditar ? '<span class="badge badge-info badge-sm ml-1">NUEVO</span>' : '');
-    
-    const etiquetaCantidad = esOrdenServicio ? 'Cantidad Original' : 'Cantidad Verificada';
-    
-    itemElement.innerHTML = `
-    <input type="hidden" name="items_orden[${itemId}][id_detalle]" value="${item.idDetalle}">
-    <input type="hidden" name="items_orden[${itemId}][id_pedido_detalle]" value="${item.idDetalle}">
-    <input type="hidden" name="items_orden[${itemId}][id_producto]" value="${item.idProducto}">
-    <input type="hidden" name="items_orden[${itemId}][es_nuevo]" value="1">
-    
-    <div class="row align-items-center mb-2">
-        <div class="col-md-11">
-            <div style="font-size: 12px;">
-                <strong>Descripción:</strong> ${item.descripcion}
-                ${badgeTipo}
-            </div>
-            <small class="text-muted" style="font-size: 11px;">
-                ${etiquetaCantidad}: ${cantidadVerificada.toFixed(2)} | 
-                Ya ordenado: ${cantidadOrdenada.toFixed(2)} | 
-                <strong class="text-warning">Pendiente: ${cantidadPendiente.toFixed(2)}</strong>
-            </small>
-        </div>
-        <div class="col-md-1 text-right">
-            <button type="button" class="btn btn-danger btn-sm btn-remover-item" data-id-detalle="${itemId}">
-                <i class="fa fa-trash"></i>
-            </button>
-        </div>
-    </div>
-    
-    <div class="row">
-        <div class="col-md-2">
-            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Cantidad:</label>
-            <input type="number" class="form-control form-control-sm cantidad-item" 
-                name="items_orden[${itemId}][cantidad]" data-id-detalle="${itemId}"
-                data-id-producto="${item.idProducto}"
-                data-cantidad-verificada="${cantidadVerificada}"
-                data-cantidad-ordenada="${cantidadOrdenada}"
-                value="${cantidadPendiente.toFixed(2)}" 
-                min="0.01" 
-                max="${cantidadPendiente.toFixed(2)}" 
-                step="0.01"
-                style="font-size: 12px;" required>
-            <small class="text-info" style="font-size: 10px;">Máx: ${cantidadPendiente.toFixed(2)}</small>
-        </div>
+        console.log('🎯 agregarItemAOrden INICIADO');
+        console.log('📋 Item recibido:', item);
         
-        <div class="col-md-2">
-            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Precio Unit.:</label>
-            <div class="input-group input-group-sm">
-                <div class="input-group-prepend">
-                    <span class="input-group-text" style="font-size: 11px; background-color: #f8f9fa; border: 1px solid #ced4da;">${simboloMoneda}</span>
+        try {
+            const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
+            console.log('📦 Contenedor encontrado:', contenedorItemsOrden ? 'SÍ ✅' : 'NO ❌');
+            
+            if (!contenedorItemsOrden) {
+                console.error('❌ CRÍTICO: No existe el elemento con id="contenedor-items-orden"');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error del Sistema',
+                    text: 'No se encontró el contenedor de items. Recarga la página.',
+                });
+                return;
+            }
+            
+            const selectMoneda = document.getElementById('moneda_orden');
+            let idMonedaSeleccionada = selectMoneda ? selectMoneda.value : '1';
+            let simboloMoneda = 'S/.';
+
+            if (selectMoneda && selectMoneda.value) {
+                idMonedaSeleccionada = selectMoneda.value;
+                simboloMoneda = idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
+                console.log('💰 Moneda seleccionada:', simboloMoneda);
+            } else {
+                console.log('💰 Usando moneda por defecto:', simboloMoneda);
+            }
+            
+            const itemId = 'nuevo-' + Date.now();
+            console.log('🆔 ID generado:', itemId);
+            
+            const cantidadVerificada = parseFloat(item.cantidadVerificada) || 0;
+            const cantidadOrdenada = parseFloat(item.cantidadOrdenada) || 0;
+            const cantidadPendiente = cantidadVerificada - cantidadOrdenada;
+            
+            console.log('🔢 Cantidades:', {
+                verificada: cantidadVerificada,
+                ordenada: cantidadOrdenada,
+                pendiente: cantidadPendiente
+            });
+            
+            if (cantidadPendiente <= 0) {
+                console.warn('⚠️ No hay cantidad pendiente');
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Sin cantidad disponible',
+                    text: 'Este item ya fue completamente ordenado.',
+                });
+                return;
+            }
+            
+            const itemElement = document.createElement('div');
+            itemElement.id = `item-orden-${itemId}`;
+            itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
+            console.log('🏗️ Elemento creado:', itemElement.id);
+            
+            const badgeTipo = esOrdenServicio 
+                ? '<span class="badge badge-primary badge-sm ml-1">SERVICIO</span>'
+                : (modoEditar ? '<span class="badge badge-info badge-sm ml-1">NUEVO</span>' : '');
+            
+            const etiquetaCantidad = esOrdenServicio ? 'Cantidad Original' : 'Cantidad Verificada';
+            
+            // 🔹 CRÍTICO: Incluir id_pedido_detalle en los inputs hidden
+            itemElement.innerHTML = `
+                <input type="hidden" name="items_orden[${itemId}][id_detalle]" value="${item.idDetalle}">
+                <input type="hidden" name="items_orden[${itemId}][id_pedido_detalle]" value="${item.idDetalle}">
+                <input type="hidden" name="items_orden[${itemId}][id_producto]" value="${item.idProducto}">
+                <input type="hidden" name="items_orden[${itemId}][es_nuevo]" value="1">
+                
+                <div class="row align-items-center mb-2">
+                    <div class="col-md-11">
+                        <div style="font-size: 12px;">
+                            <strong>Descripción:</strong> ${item.descripcion}
+                            ${badgeTipo}
+                        </div>
+                        <small class="text-muted" style="font-size: 11px;">
+                            ${etiquetaCantidad}: ${cantidadVerificada.toFixed(2)} | 
+                            Ya ordenado: ${cantidadOrdenada.toFixed(2)} | 
+                            <strong class="text-warning">Pendiente: ${cantidadPendiente.toFixed(2)}</strong>
+                        </small>
+                    </div>
+                    <div class="col-md-1 text-right">
+                        <button type="button" class="btn btn-danger btn-sm btn-remover-item" data-id-detalle="${itemId}">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
-                <input type="number" class="form-control form-control-sm precio-item" 
-                    name="items_orden[${itemId}][precio_unitario]" data-id-detalle="${itemId}"
-                    step="0.01" min="0" placeholder="0.00" style="font-size: 11px;" required>
-            </div>
-        </div>
-        
-        <div class="col-md-2">
-            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">IGV (%):</label>
-            <input type="number" class="form-control form-control-sm igv-item" 
-                name="items_orden[${itemId}][igv]" data-id-detalle="${itemId}"
-                value="18" min="0" max="100" step="0.01" style="font-size: 12px;" required>
-        </div>
-        
-        <div class="col-md-3">
-            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Homologación:</label>
-            <input type="file" class="form-control-file" name="homologacion[${item.idDetalle}]"
-                accept=".pdf,.jpg,.jpeg,.png" style="font-size: 11px; padding-top: 4px;">
-            <small class="text-muted" style="font-size: 10px;">PDF, JPG, PNG</small>
-        </div>
-        
-        <div class="col-md-3 text-right">
-            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block; visibility: hidden;">-</label>
-            <div class="calculo-item" id="calculo-${itemId}" style="font-size: 11px; line-height: 1.4;">
-                <div class="subtotal-text">Subtotal: ${simboloMoneda} 0.00</div>
-                <div class="igv-text">IGV: ${simboloMoneda} 0.00</div>
-                <div class="total-text" style="font-weight: bold; color: #28a745;">Total: ${simboloMoneda} 0.00</div>
-            </div>
-        </div>
-    </div>
-`;
-    
-    const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-    const totalElement = document.getElementById('total-orden');
-    if (totalElement) {
-        contenedorItemsOrden.insertBefore(itemElement, totalElement);
-    } else {
-        contenedorItemsOrden.appendChild(itemElement);
-    }
-    
-    itemsAgregadosOrden.add(itemId);
-    
-    if (item.botonOriginal) {
-        item.botonOriginal.disabled = true;
-        item.botonOriginal.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
-        item.botonOriginal.classList.remove('btn-primary');
-        item.botonOriginal.classList.add('btn-success');
-    }
-    
-    const cantidadInput = itemElement.querySelector('.cantidad-item');
-    const precioInput = itemElement.querySelector('.precio-item');
-    const igvInput = itemElement.querySelector('.igv-item');
-    
-    function calcularTotalesItem() {
-        const cantidad = parseFloat(cantidadInput.value) || 0;
-        const precio = parseFloat(precioInput.value) || 0;
-        const igvPorcentaje = parseFloat(igvInput.value) || 0;
-        
-        const subtotal = cantidad * precio;
-        const montoIgv = subtotal * (igvPorcentaje / 100);
-        const total = subtotal + montoIgv;
-        
-        const simboloMoneda = obtenerSimboloMoneda();
-        const calculoDiv = document.getElementById(`calculo-${itemId}`);
-        if (calculoDiv) {
-            calculoDiv.querySelector('.subtotal-text').textContent = `Subtotal: ${simboloMoneda} ${subtotal.toFixed(2)}`;
-            calculoDiv.querySelector('.igv-text').textContent = `IGV: ${simboloMoneda} ${montoIgv.toFixed(2)}`;
-            calculoDiv.querySelector('.total-text').textContent = `Total: ${simboloMoneda} ${total.toFixed(2)}`;
+                
+                <div class="row">
+                    <div class="col-md-2">
+                        <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Cantidad:</label>
+                        <input type="number" class="form-control form-control-sm cantidad-item" 
+                            name="items_orden[${itemId}][cantidad]" 
+                            data-id-detalle="${itemId}"
+                            data-id-producto="${item.idProducto}"
+                            data-cantidad-verificada="${cantidadVerificada}"
+                            data-cantidad-ordenada="${cantidadOrdenada}"
+                            value="${cantidadPendiente.toFixed(2)}" 
+                            min="0.01" 
+                            max="${cantidadPendiente.toFixed(2)}" 
+                            step="0.01"
+                            style="font-size: 12px;" required>
+                        <small class="text-info" style="font-size: 10px;">Máx: ${cantidadPendiente.toFixed(2)}</small>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Precio Unit.:</label>
+                        <div class="input-group input-group-sm">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text" style="font-size: 11px; background-color: #f8f9fa; border: 1px solid #ced4da;">${simboloMoneda}</span>
+                            </div>
+                            <input type="number" class="form-control form-control-sm precio-item" 
+                                name="items_orden[${itemId}][precio_unitario]" 
+                                data-id-detalle="${itemId}"
+                                step="0.01" min="0" placeholder="0.00" style="font-size: 11px;" required>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">IGV (%):</label>
+                        <input type="number" class="form-control form-control-sm igv-item" 
+                            name="items_orden[${itemId}][igv]" 
+                            data-id-detalle="${itemId}"
+                            value="18" min="0" max="100" step="0.01" style="font-size: 12px;" required>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Homologación:</label>
+                        <input type="file" class="form-control-file" name="homologacion[${item.idDetalle}]"
+                            accept=".pdf,.jpg,.jpeg,.png" style="font-size: 11px; padding-top: 4px;">
+                        <small class="text-muted" style="font-size: 10px;">PDF, JPG, PNG</small>
+                    </div>
+                    
+                    <div class="col-md-3 text-right">
+                        <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block; visibility: hidden;">-</label>
+                        <div class="calculo-item" id="calculo-${itemId}" style="font-size: 11px; line-height: 1.4;">
+                            <div class="subtotal-text">Subtotal: ${simboloMoneda} 0.00</div>
+                            <div class="igv-text">IGV: ${simboloMoneda} 0.00</div>
+                            <div class="total-text" style="font-weight: bold; color: #28a745;">Total: ${simboloMoneda} 0.00</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const resumenElement = document.getElementById('resumen-total-orden');
+            if (resumenElement) {
+                // Insertar ANTES del resumen de totales
+                contenedorItemsOrden.insertBefore(itemElement, resumenElement);
+            } else {
+                // Si no existe resumen, agregar al final (solo sucede cuando no hay items)
+                contenedorItemsOrden.appendChild(itemElement);
+            }
+
+            console.log('✅ Item agregado al DOM correctamente');
+            
+            itemsAgregadosOrden.add(itemId);
+            console.log('📝 Items agregados:', itemsAgregadosOrden.size);
+            
+            if (item.botonOriginal) {
+                item.botonOriginal.disabled = true;
+                item.botonOriginal.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
+                item.botonOriginal.classList.remove('btn-primary');
+                item.botonOriginal.classList.add('btn-success');
+                console.log('🔒 Botón original deshabilitado');
+            }
+            
+            const cantidadInput = itemElement.querySelector('.cantidad-item');
+            const precioInput = itemElement.querySelector('.precio-item');
+            const igvInput = itemElement.querySelector('.igv-item');
+            
+            function calcularTotalesItem() {
+                const cantidad = parseFloat(cantidadInput.value) || 0;
+                const precio = parseFloat(precioInput.value) || 0;
+                const igvPorcentaje = parseFloat(igvInput.value) || 0;
+                
+                const subtotal = cantidad * precio;
+                const montoIgv = subtotal * (igvPorcentaje / 100);
+                const total = subtotal + montoIgv;
+                
+                const simboloMoneda = obtenerSimboloMoneda();
+                const calculoDiv = document.getElementById(`calculo-${itemId}`);
+                if (calculoDiv) {
+                    calculoDiv.querySelector('.subtotal-text').textContent = `Subtotal: ${simboloMoneda} ${subtotal.toFixed(2)}`;
+                    calculoDiv.querySelector('.igv-text').textContent = `IGV: ${simboloMoneda} ${montoIgv.toFixed(2)}`;
+                    calculoDiv.querySelector('.total-text').textContent = `Total: ${simboloMoneda} ${total.toFixed(2)}`;
+                }
+                actualizarTotalGeneral();
+            }
+            
+            cantidadInput.addEventListener('input', calcularTotalesItem);
+            precioInput.addEventListener('input', calcularTotalesItem);
+            igvInput.addEventListener('input', calcularTotalesItem);
+            console.log('🎧 Event listeners configurados');
+            
+            console.log('✅ agregarItemAOrden COMPLETADO EXITOSAMENTE');
+            
+        } catch (error) {
+            console.error('❌ ERROR EN agregarItemAOrden:', error);
+            console.error('Stack trace:', error.stack);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error al Agregar Item',
+                text: 'Ocurrió un error: ' + error.message,
+            });
         }
-        actualizarTotalGeneral();
     }
-    
-    cantidadInput.addEventListener('input', calcularTotalesItem);
-    precioInput.addEventListener('input', calcularTotalesItem);
-    igvInput.addEventListener('input', calcularTotalesItem);
-    
-    const btnRemover = itemElement.querySelector('.btn-remover-item');
-    btnRemover.addEventListener('click', function() {
-        removerItemDeOrden(itemId, item.botonOriginal);
-    });
-}
     
     function removerItemDeOrden(idDetalle, botonOriginal) {
+        console.log('🗑️ Removiendo item:', idDetalle);
         const itemElement = document.getElementById(`item-orden-${idDetalle}`);
+        
         if (itemElement) {
             itemElement.remove();
+            itemsAgregadosOrden.delete(idDetalle);
+            
+            if (botonOriginal) {
+                botonOriginal.disabled = false;
+                botonOriginal.innerHTML = '<i class="fa fa-plus"></i> Agregar';
+                botonOriginal.classList.remove('btn-success');
+                botonOriginal.classList.add('btn-primary');
+            }
+            
+            actualizarTotalGeneral();
         }
-        itemsAgregadosOrden.delete(idDetalle);
-        
-        if (botonOriginal) {
-            botonOriginal.disabled = false;
-            botonOriginal.innerHTML = '<i class="fa fa-check"></i> Agregar a Orden';
-            botonOriginal.classList.remove('btn-success');
-            botonOriginal.classList.add('btn-primary');
-        }
-        
-        actualizarTotalGeneral();
     }
     
     // ============================================
     // FUNCIONES DE CÁLCULO
     // ============================================
+    
     function actualizarTotalGeneral() {
         const items = document.querySelectorAll('[id^="item-orden-"]');
         let subtotalGeneral = 0;
@@ -2612,6 +4637,7 @@ document.addEventListener('click', function(event) {
     // ============================================
     // FUNCIÓN ANULAR COMPRA
     // ============================================
+    
     function AnularCompra(id_compra, id_pedido) {
         Swal.fire({
             title: '¿Qué deseas anular?',
@@ -2671,6 +4697,7 @@ document.addEventListener('click', function(event) {
     // ============================================
     // MODAL DETALLE COMPRA
     // ============================================
+    
     function mostrarDetalleCompra(idCompra) {
         $('#modalDetalleCompra').modal('show');
         
@@ -2922,12 +4949,251 @@ document.addEventListener('click', function(event) {
     }
     
     // ============================================
-    // CALCULAR TOTALES AL CARGAR EN MODO EDICIÓN
+    // INICIALIZACIÓN FINAL
     // ============================================
+    
+    // ============================================
+    // HANDLERS PARA BOTONES DE OPCIONES
+    // ============================================
+    
+    // Handler: Opción Salida Directa
+    /* 1****************************************************************************** */
+
+    // ============================================
+    // 🆕 HANDLERS PARA BOTONES DE OPCIONES DE STOCK
+    // ============================================
+    
+    // Handler: Opción Salida Directa (Stock suficiente en destino)
+    document.addEventListener('click', function(event) {
+        const btnSalida = event.target.closest('.btn-opcion-salida');
+        if (!btnSalida) return;
+        
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const idPedido = btnSalida.dataset.idPedido;
+        const idProducto = btnSalida.dataset.idProducto;
+        const descripcion = btnSalida.dataset.descripcion;
+        const cantidad = parseFloat(btnSalida.dataset.cantidad);
+        
+        Swal.fire({
+            title: '✅ Stock Disponible',
+            html: `
+                <div style="text-align: left; padding: 10px;">
+                    <p><strong>Producto:</strong><br>${descripcion}</p>
+                    <hr>
+                    <p class="text-success"><i class="fa fa-check-circle"></i> Hay stock suficiente en la ubicación destino</p>
+                    <p><strong>Cantidad a generar salida:</strong> <span class="badge badge-success">${cantidad.toFixed(2)}</span> unidades</p>
+                </div>
+            `,
+            icon: 'success',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fa fa-truck"></i> Sí, generar salida',
+            cancelButtonText: '<i class="fa fa-times"></i> Cancelar',
+            allowOutsideClick: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Redirigir a salidas_nuevo.php con el pedido
+                window.location.href = `salidas_nuevo.php?desde_pedido=${idPedido}`;
+            }
+        });
+    });
+    
+    // Handler: Opción Traslado (Stock en otras ubicaciones)
+    document.addEventListener('click', function(event) {
+        const btnTraslado = event.target.closest('.btn-opcion-traslado');
+        if (!btnTraslado) return;
+        
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const idPedido = btnTraslado.dataset.idPedido;
+        const idProducto = btnTraslado.dataset.idProducto;
+        const descripcion = btnTraslado.dataset.descripcion;
+        const cantidad = parseFloat(btnTraslado.dataset.cantidad);
+        
+        Swal.fire({
+            title: '⚠️ Traslado Interno',
+            html: `
+                <div style="text-align: left; padding: 10px;">
+                    <p><strong>Producto:</strong><br>${descripcion}</p>
+                    <hr>
+                    <p class="text-warning"><i class="fa fa-exclamation-triangle"></i> Stock disponible en otras ubicaciones del mismo almacén</p>
+                    <p><strong>Cantidad a trasladar:</strong> <span class="badge badge-warning">${cantidad.toFixed(2)}</span> unidades</p>
+                    <p class="text-muted">Se generará una salida interna desde otras ubicaciones</p>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ffc107',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fa fa-exchange-alt"></i> Sí, generar traslado',
+            cancelButtonText: '<i class="fa fa-times"></i> Cancelar',
+            allowOutsideClick: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Redirigir a salidas_nuevo.php con el pedido
+                window.location.href = `salidas_nuevo.php?desde_pedido=${idPedido}`;
+            }
+        });
+    });
+    
+    // Handler: Opción Compra (Sin stock)
+    document.addEventListener('click', function(event) {
+        const btnOC = event.target.closest('.btn-opcion-compra');
+        if (!btnOC) return;
+        
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const idPedido = btnOC.dataset.idPedido;
+        const idProducto = btnOC.dataset.idProducto;
+        const descripcion = btnOC.dataset.descripcion;
+        const cantidad = parseFloat(btnOC.dataset.cantidad);
+        
+        Swal.fire({
+            title: '❌ Sin Stock',
+            html: `
+                <div style="text-align: left; padding: 10px;">
+                    <p><strong>Producto:</strong><br>${descripcion}</p>
+                    <hr>
+                    <p class="text-warning"><i class="fa fa-exclamation-triangle"></i> No hay suficiente stock en el almacén</p>
+                    <p><strong>Cantidad necesaria:</strong> <span class="badge badge-danger">${cantidad.toFixed(2)}</span> unidades</p>
+                    <p class="text-muted">Se agregará a una nueva orden de compra</p>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fa fa-shopping-cart"></i> Sí, generar OC',
+            cancelButtonText: '<i class="fa fa-times"></i> Cancelar',
+            allowOutsideClick: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // 🔹 BUSCAR EL BOTÓN ORIGINAL "Agregar a Orden"
+                const itemsPendientes = document.querySelectorAll('.item-pendiente');
+                let btnAgregarOrden = null;
+                
+                itemsPendientes.forEach(item => {
+                    const itemIdProducto = item.getAttribute('data-id-producto');
+                    if (itemIdProducto === idProducto) {
+                        btnAgregarOrden = item.querySelector('.btn-agregarOrden');
+                    }
+                });
+                
+                if (btnAgregarOrden) {
+                    // Mostrar formulario de nueva orden
+                    const contenedorTabla = document.getElementById('contenedor-tabla-ordenes');
+                    const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
+                    
+                    if (contenedorTabla) contenedorTabla.style.display = 'none';
+                    if (contenedorNuevaOrden) contenedorNuevaOrden.style.display = 'block';
+                    
+                    const btnNuevaOrden = document.getElementById('btn-nueva-orden');
+                    if (btnNuevaOrden) {
+                        btnNuevaOrden.innerHTML = '<i class="fa fa-table"></i> Ver Órdenes';
+                        btnNuevaOrden.classList.remove('btn-primary');
+                        btnNuevaOrden.classList.add('btn-secondary');
+                    }
+                    
+                    // Establecer fecha actual
+                    const fechaOrden = document.getElementById('fecha_orden');
+                    if (fechaOrden) {
+                        fechaOrden.value = new Date().toISOString().split('T')[0];
+                    }
+                    
+                    // ✅ SIMULAR CLIC EN EL BOTÓN "Agregar a Orden"
+                    setTimeout(() => {
+                        btnAgregarOrden.click();
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: '✅ Item Agregado',
+                            text: 'El producto se agregó a la nueva orden de compra',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    }, 300);
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'No se encontró el botón para agregar a orden',
+                        confirmButtonText: 'Entendido'
+                    });
+                }
+            }
+        });
+    });
+    
+    // Handler: Opción Mixta (Traslado + Compra)
+    document.addEventListener('click', function(event) {
+        const btnMixto = event.target.closest('.btn-opcion-mixta');
+        if (!btnMixto) return;
+        
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const idPedido = btnMixto.dataset.idPedido;
+        const idProducto = btnMixto.dataset.idProducto;
+        const descripcion = btnMixto.dataset.descripcion;
+        const cantidadTraslado = parseFloat(btnMixto.dataset.cantidadTraslado);
+        const cantidadCompra = parseFloat(btnMixto.dataset.cantidadCompra);
+        
+        Swal.fire({
+            title: '🔀 Opción Mixta',
+            html: `
+                <div style="text-align: left; padding: 10px;">
+                    <p><strong>Producto:</strong><br>${descripcion}</p>
+                    <hr>
+                    <div class="mb-3">
+                        <p><strong>1️⃣ Traslado Interno:</strong></p>
+                        <p class="ml-3">
+                            <span class="badge badge-warning">${cantidadTraslado.toFixed(2)}</span> unidades
+                            <br><small class="text-muted">Desde otras ubicaciones del almacén</small>
+                        </p>
+                    </div>
+                    <div class="mb-3">
+                        <p><strong>2️⃣ Orden de Compra:</strong></p>
+                        <p class="ml-3">
+                            <span class="badge badge-danger">${cantidadCompra.toFixed(2)}</span> unidades
+                            <br><small class="text-muted">Lo que falta después del traslado</small>
+                        </p>
+                    </div>
+                    <hr>
+                    <p class="text-info"><i class="fa fa-info-circle"></i> Primero se generará el traslado, luego la orden de compra</p>
+                </div>
+            `,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonColor: '#17a2b8',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fa fa-random"></i> Sí, proceder con ambas',
+            cancelButtonText: '<i class="fa fa-times"></i> Cancelar',
+            allowOutsideClick: false
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Paso 1: Ir a generar salida (traslado)
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Paso 1: Generar Traslado',
+                    html: `<p>Se redirigirá para generar la salida interna de <strong>${cantidadTraslado.toFixed(2)}</strong> unidades</p>`,
+                    confirmButtonText: 'Continuar',
+                    allowOutsideClick: false
+                }).then(() => {
+                    // Redirigir a salidas para el traslado
+                    window.location.href = `salidas_nuevo.php?desde_pedido=${idPedido}&mixto=1&cantidad_compra=${cantidadCompra}&id_producto=${idProducto}`;
+                });
+            }
+        });
+    });
+    
+    // ============================================    
     if (modoEditar) {
         setTimeout(function() {
-            console.log(' Recalculando totales en modo edición...');
-            
             document.querySelectorAll('[id^="item-orden-"]').forEach(function(item) {
                 const cantidadInput = item.querySelector('.cantidad-item');
                 const precioInput = item.querySelector('.precio-item');
@@ -2939,10 +5205,23 @@ document.addEventListener('click', function(event) {
             });
             
             actualizarTotalGeneral();
-            
-            console.log(' Totales recalculados correctamente');
         }, 300);
     }
+
+    // Datos para edición de salida
+    <?php if ($modo_editar_salida && $salida_data): ?>
+    const salidaEditar = {
+        id: <?php echo $salida_data['id_salida']; ?>,
+        ndoc: '<?php echo $salida_data['ndoc_salida']; ?>',
+        fecha: '<?php echo $salida_data['fec_salida']; ?>',
+        almacen_origen: <?php echo $salida_data['id_almacen_origen']; ?>,
+        ubicacion_origen: <?php echo $salida_data['id_ubicacion_origen']; ?>,
+        almacen_destino: <?php echo $salida_data['id_almacen_destino']; ?>,
+        ubicacion_destino: <?php echo $salida_data['id_ubicacion_destino']; ?>,
+        obs: '<?php echo $salida_data['obs_salida']; ?>'
+    };
+    const itemsSalidaEditar = <?php echo json_encode($salida_detalle); ?>;
+    <?php endif; ?>
     
 });
 </script>

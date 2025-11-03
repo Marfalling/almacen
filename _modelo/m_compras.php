@@ -87,7 +87,7 @@ function CompraEsEditable($id_compra)
     $sql_verificados = "SELECT COUNT(*) as total_verificados 
                         FROM pedido_detalle 
                         WHERE id_pedido = $id_pedido 
-                        AND cant_fin_pedido_detalle IS NOT NULL 
+                        AND cant_oc_pedido_detalle IS NOT NULL 
                         AND est_pedido_detalle <> 0";
     
     $resultado_verificados = mysqli_query($con, $sql_verificados);
@@ -400,10 +400,19 @@ function ConsultarCompraDetalle($id_compra)
 {
     include("../_conexion/conexion.php");
     
-    $id_compra = intval($id_compra); // Sanitizar entrada
+    $id_compra = intval($id_compra);
     
+    // JOIN directo por id_pedido_detalle 
     $sql = "SELECT 
-                cd.*,
+                cd.id_compra_detalle,
+                cd.id_compra,
+                cd.id_producto,
+                cd.id_pedido_detalle,
+                cd.cant_compra_detalle,
+                cd.prec_compra_detalle,
+                cd.igv_compra_detalle,
+                cd.hom_compra_detalle,
+                cd.est_compra_detalle,
                 pd.prod_pedido_detalle,
                 pd.com_pedido_detalle,
                 pd.req_pedido,
@@ -411,14 +420,12 @@ function ConsultarCompraDetalle($id_compra)
                 pr.cod_material,
                 um.nom_unidad_medida
             FROM compra_detalle cd
-            LEFT JOIN compra c ON cd.id_compra = c.id_compra
-            LEFT JOIN pedido_detalle pd ON cd.id_producto = pd.id_producto 
-                AND pd.id_pedido = c.id_pedido
+            LEFT JOIN pedido_detalle pd ON cd.id_pedido_detalle = pd.id_pedido_detalle
             LEFT JOIN producto pr ON cd.id_producto = pr.id_producto
             LEFT JOIN unidad_medida um ON pr.id_unidad_medida = um.id_unidad_medida
             WHERE cd.id_compra = $id_compra
             AND cd.est_compra_detalle = 1
-            ORDER BY cd.id_compra_detalle";
+            ORDER BY cd.id_compra_detalle ASC";
     
     $resc = mysqli_query($con, $sql);
     

@@ -15,11 +15,18 @@ require_once("../_modelo/m_proveedor.php");
 require_once("../_modelo/m_moneda.php");
 require_once("../_modelo/m_compras.php");
 require_once("../_modelo/m_detraccion.php");
-require_once("../_modelo/m_movimientos.php"); // 🔹 nuevo: para registrar movimientos
+require_once("../_modelo/m_movimientos.php"); 
+require_once("../_modelo/m_almacen.php");
+require_once("../_modelo/m_ubicacion.php");
+require_once("../_modelo/m_salidas.php");        
 
 $id_pedido = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : 0;
 $id_compra_editar = isset($_REQUEST['id_compra']) ? intval($_REQUEST['id_compra']) : 0;
 $modo_editar = ($id_compra_editar > 0);
+
+// PARA SALIDAS
+$id_salida_editar = isset($_REQUEST['id_salida']) ? intval($_REQUEST['id_salida']) : 0;
+$modo_editar_salida = ($id_salida_editar > 0);
 
 $alerta = null;
 
@@ -30,11 +37,12 @@ $alerta = null;
 // VERIFICAR ITEM (con validación de estado del pedido)
 if (isset($_REQUEST['verificar_item'])) {
     $id_pedido_detalle = intval($_REQUEST['id_pedido_detalle']);
-    $new_cant_fin = floatval($_REQUEST['fin_cant_pedido_detalle']);
+    $cant_os = floatval($_REQUEST['cantidad_para_os']);
+    $cant_oc = floatval($_REQUEST['fin_cant_pedido_detalle']);
     $id_personal = $_SESSION['id_personal'] ?? 0;
 
     //  VALIDACIÓN: La cantidad debe ser mayor a 0
-    if ($new_cant_fin <= 0) {
+    if ($cant_os <= 0 && $cant_oc <= 0) {
         $alerta = [
             "icon" => "error",
             "title" => "Cantidad inválida",
@@ -82,7 +90,7 @@ if (isset($_REQUEST['verificar_item'])) {
                     ];
                 } else {
                     // 3) Proceder con la verificación (estados 1 o 2)
-                    $rpta = verificarItem($id_pedido_detalle, $new_cant_fin);
+                    $rpta = verificarItem($id_pedido_detalle, $cant_oc, $cant_os);
 
                     if ($rpta == "SI") {
                         // ===============================================================
@@ -91,7 +99,7 @@ if (isset($_REQUEST['verificar_item'])) {
                         $id_producto   = intval($detalle['id_producto']);
                         $id_almacen    = intval($pedido_row['id_almacen']);
                         $id_ubicacion  = intval($pedido_row['id_ubicacion']);
-                        $cantidad_pedida = floatval($new_cant_fin);
+                        //$cantidad_pedida = floatval($new_cant_fin);
 
                         //  Obtener stock actual (físico y disponible)
                         $stock = ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion);
@@ -210,13 +218,13 @@ if (isset($_REQUEST['crear_orden'])) {
 }
 
 // ============================================================================
-// ACTUALIZAR ORDEN (Detectar si es Material o Servicio)
+// ACTUALIZAR ORDEN (CORREGIDO)
 // ============================================================================
 if (isset($_REQUEST['actualizar_orden'])) {
-    $id_compra = $_REQUEST['id_compra'];
-    $id_pedido = $_REQUEST['id'];
+    $id_compra = intval($_REQUEST['id_compra']);
+    $id_pedido = intval($_REQUEST['id']);
     
-    //  DETECTAR TIPO DE PEDIDO
+    // DETECTAR TIPO DE PEDIDO
     $pedido_info = ConsultarPedido($id_pedido);
     $es_orden_servicio = ($pedido_info[0]['id_producto_tipo'] == 2);
     
@@ -238,7 +246,7 @@ if (isset($_REQUEST['actualizar_orden'])) {
         $archivos_homologacion = $_FILES['homologacion'];
     }
     
-    //  VALIDACIONES BÁSICAS
+    // VALIDACIONES BÁSICAS
     if (empty($proveedor_sel) || empty($moneda_sel) || empty($fecha_orden)) {
         echo "ERROR: Complete todos los campos obligatorios (Proveedor, Moneda y Fecha)";
         exit;
@@ -247,7 +255,9 @@ if (isset($_REQUEST['actualizar_orden'])) {
         exit;
     }
     
-    //  SEPARAR ITEMS EXISTENTES Y NUEVOS
+    // ========================================================================
+    // 🔹 CORRECCIÓN: SEPARAR ITEMS CON id_pedido_detalle CORRECTO
+    // ========================================================================
     include("../_conexion/conexion.php");
     
     $items_existentes = [];
@@ -256,20 +266,65 @@ if (isset($_REQUEST['actualizar_orden'])) {
     foreach ($items as $key => $item) {
         $es_nuevo = isset($item['es_nuevo']) && $item['es_nuevo'] == '1';
         
+        // 🔹 CRÍTICO: Asegurar que SIEMPRE tenga id_pedido_detalle
+        $id_pedido_detalle = 0;
+        
+        if (isset($item['id_pedido_detalle']) && !empty($item['id_pedido_detalle'])) {
+            $id_pedido_detalle = intval($item['id_pedido_detalle']);
+        } elseif (isset($item['id_detalle']) && !empty($item['id_detalle'])) {
+            $id_pedido_detalle = intval($item['id_detalle']);
+        } else {
+            // Si no tiene, buscar en compra_detalle
+            if (!$es_nuevo && is_numeric($key)) {
+                $id_compra_detalle = intval($key);
+                $sql_buscar = "SELECT id_pedido_detalle FROM compra_detalle WHERE id_compra_detalle = ?";
+                $stmt = $con->prepare($sql_buscar);
+                $stmt->bind_param("i", $id_compra_detalle);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                if ($row = $result->fetch_assoc()) {
+                    $id_pedido_detalle = intval($row['id_pedido_detalle']);
+                }
+                $stmt->close();
+            }
+        }
+        
+        // 🔹 ASEGURAR QUE TODOS LOS ITEMS TENGAN id_detalle PARA LA VALIDACIÓN
+        $item['id_detalle'] = $id_pedido_detalle;
+        $item['id_pedido_detalle'] = $id_pedido_detalle;
+        
         if ($es_nuevo) {
             $items_nuevos[] = [
-                'id_pedido_detalle' => intval($item['id_pedido_detalle']),
+                'id_pedido_detalle' => $id_pedido_detalle,
                 'id_producto' => intval($item['id_producto']),
                 'cantidad' => floatval($item['cantidad']),
                 'precio_unitario' => floatval($item['precio_unitario']),
                 'igv' => floatval($item['igv'])
             ];
         } else {
+            // 🔹 GUARDAR CON id_detalle E id_pedido_detalle
             $items_existentes[$key] = $item;
         }
     }
     
-    //  ACTUALIZAR SEGÚN TIPO
+    // ========================================================================
+    // 🔹 LOGS DE DEBUG
+    // ========================================================================
+    error_log("📋 ACTUALIZAR ORDEN - ID Compra: $id_compra");
+    error_log("📦 Items Existentes: " . count($items_existentes));
+    error_log("🆕 Items Nuevos: " . count($items_nuevos));
+    
+    foreach ($items_existentes as $k => $it) {
+        error_log("   [Existente $k] id_detalle: " . ($it['id_detalle'] ?? 'NO TIENE') . " | id_pedido_detalle: " . ($it['id_pedido_detalle'] ?? 'NO TIENE'));
+    }
+    
+    foreach ($items_nuevos as $idx => $nuevo) {
+        error_log("   [Nuevo $idx] id_pedido_detalle: {$nuevo['id_pedido_detalle']} | cantidad: {$nuevo['cantidad']}");
+    }
+    
+    // ========================================================================
+    // ACTUALIZAR ITEMS EXISTENTES SEGÚN TIPO
+    // ========================================================================
     if ($es_orden_servicio) {
         $rpta = ActualizarOrdenServicio(
             $id_compra, $proveedor_sel, $moneda_sel,
@@ -288,10 +343,13 @@ if (isset($_REQUEST['actualizar_orden'])) {
     
     if ($rpta != "SI") {
         echo $rpta;
+        mysqli_close($con);
         exit;
     }
     
-   
+    // ========================================================================
+    // INSERTAR ITEMS NUEVOS (CON VALIDACIÓN)
+    // ========================================================================
     foreach ($items_nuevos as $nuevo_item) {
         $id_producto = $nuevo_item['id_producto'];
         $cantidad = $nuevo_item['cantidad'];
@@ -299,6 +357,33 @@ if (isset($_REQUEST['actualizar_orden'])) {
         $igv = $nuevo_item['igv'];
         $id_pedido_detalle = $nuevo_item['id_pedido_detalle'];
         
+        // 🔹 VALIDAR ANTES DE INSERTAR
+        $item_validar = [
+            'nuevo-temp' => [
+                'id_detalle' => $id_pedido_detalle,
+                'id_pedido_detalle' => $id_pedido_detalle,
+                'id_producto' => $id_producto,
+                'cantidad' => $cantidad,
+                'precio_unitario' => $precio,
+                'igv' => $igv,
+                'es_nuevo' => 1
+            ]
+        ];
+        
+        // 🔹 VALIDAR (pasando id_compra actual para excluirlo)
+        if ($es_orden_servicio) {
+            $errores_nuevo = ValidarCantidadesOrdenServicio($id_pedido, $item_validar, $id_compra);
+        } else {
+            $errores_nuevo = ValidarCantidadesOrden($id_pedido, $item_validar, $id_compra);
+        }
+        
+        if (!empty($errores_nuevo)) {
+            echo "ERROR: " . implode(". ", $errores_nuevo);
+            mysqli_close($con);
+            exit;
+        }
+        
+        // 🔹 INSERTAR SI PASA LA VALIDACIÓN
         $nombre_archivo_hom = null;
         if (isset($archivos_homologacion[$id_pedido_detalle]) && !empty($archivos_homologacion[$id_pedido_detalle]['name'])) {
             $archivo = $archivos_homologacion[$id_pedido_detalle];
@@ -316,27 +401,54 @@ if (isset($_REQUEST['actualizar_orden'])) {
         $hom_sql = $nombre_archivo_hom ? "'" . mysqli_real_escape_string($con, $nombre_archivo_hom) . "'" : "NULL";
         
         $sql_insert = "INSERT INTO compra_detalle (
-                          id_compra, id_producto, cant_compra_detalle, prec_compra_detalle, igv_compra_detalle, hom_compra_detalle, est_compra_detalle
-                       ) VALUES (?, ?, ?, ?, ?, $hom_sql, 1)";
+                          id_compra, id_pedido_detalle, id_producto, 
+                          cant_compra_detalle, prec_compra_detalle, 
+                          igv_compra_detalle, hom_compra_detalle, est_compra_detalle
+                       ) VALUES (?, ?, ?, ?, ?, ?, $hom_sql, 1)";
         $stmt = $con->prepare($sql_insert);
-        $stmt->bind_param("iiddd", $id_compra, $id_producto, $cantidad, $precio, $igv);
-        $stmt->execute();
+        $stmt->bind_param("iiiddd", $id_compra, $id_pedido_detalle, $id_producto, $cantidad, $precio, $igv);
+        
+        if (!$stmt->execute()) {
+            error_log("❌ ERROR al insertar item nuevo: " . $stmt->error);
+            echo "ERROR: No se pudo insertar el item nuevo";
+            $stmt->close();
+            mysqli_close($con);
+            exit;
+        }
         $stmt->close();
         
-        // Cerrar item del pedido
-        $sql_cerrar = "UPDATE pedido_detalle 
-                      SET est_pedido_detalle = 2 
-                      WHERE id_pedido_detalle = ?";
-        $stmt_cerrar = $con->prepare($sql_cerrar);
-        $stmt_cerrar->bind_param("i", $id_pedido_detalle);
-        $stmt_cerrar->execute();
-        $stmt_cerrar->close();
+        error_log("✅ Item nuevo insertado - Detalle: $id_pedido_detalle | Cantidad: $cantidad");
+        
+        // 🔹 VERIFICAR CIERRE DEL DETALLE
+        if ($es_orden_servicio) {
+            $cant_ordenada_para_este_detalle = ObtenerCantidadYaOrdenadaServicioPorDetalle($id_pedido_detalle);
+            
+            $sql_get_original = "SELECT cant_pedido_detalle FROM pedido_detalle WHERE id_pedido_detalle = ?";
+            $stmt_orig = $con->prepare($sql_get_original);
+            $stmt_orig->bind_param("i", $id_pedido_detalle);
+            $stmt_orig->execute();
+            $res_original = $stmt_orig->get_result();
+            $row_original = $res_original->fetch_assoc();
+            $cant_original = $row_original ? floatval($row_original['cant_pedido_detalle']) : 0;
+            $stmt_orig->close();
+            
+            if ($cant_ordenada_para_este_detalle >= $cant_original) {
+                $sql_cerrar = "UPDATE pedido_detalle SET est_pedido_detalle = 2 WHERE id_pedido_detalle = ?";
+                $stmt_cerrar = $con->prepare($sql_cerrar);
+                $stmt_cerrar->bind_param("i", $id_pedido_detalle);
+                $stmt_cerrar->execute();
+                $stmt_cerrar->close();
+                
+                error_log("✅ Item servicio cerrado - ID: $id_pedido_detalle");
+            }
+        } else {
+            VerificarEstadoItemPorDetalle($id_pedido_detalle);
+        }
     }
     
     mysqli_close($con);
     
-    $mensaje_tipo = $es_orden_servicio ? "servicio" : "compra";
-    echo "SI"; // El frontend se encargará de redirigir
+    echo "SI";
     exit;
 }
 
@@ -356,6 +468,323 @@ if (isset($_REQUEST['finalizar_verificacion'])) {
             "text" => $resultado['mensaje']
         ];
     }
+}
+
+// ============================================================================
+// GRABAR SALIDA
+// ============================================================================
+if (isset($_REQUEST['grabar_salida'])) {
+
+    include("../_conexion/conexion.php");
+    
+    ob_clean();
+    header('Content-Type: application/json');
+    
+    try {
+        // Capturar datos del formulario
+        $id_pedido = intval($_REQUEST['id_pedido']);
+        $id_personal = $_SESSION['id_personal'] ?? 0;
+        $ndoc_salida = mysqli_real_escape_string($con, trim($_REQUEST['ndoc_salida']));
+        $fec_salida = mysqli_real_escape_string($con, $_REQUEST['fecha_salida']);
+        $id_almacen_origen = intval($_REQUEST['almacen_origen_salida']);
+        $id_ubicacion_origen = intval($_REQUEST['ubicacion_origen_salida']);
+        $id_almacen_destino = intval($_REQUEST['almacen_destino_salida']);
+        $id_ubicacion_destino = intval($_REQUEST['ubicacion_destino_salida']);
+        $obs_salida = mysqli_real_escape_string($con, trim($_REQUEST['observaciones_salida']));
+        
+        // VALIDACIONES BÁSICAS
+        if (empty($ndoc_salida)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'El número de documento es obligatorio'
+            ]);
+            exit;
+        }
+        
+        if (empty($fec_salida)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'La fecha de salida es obligatoria'
+            ]);
+            exit;
+        }
+        
+        if ($id_almacen_origen <= 0 || $id_ubicacion_origen <= 0) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Debe seleccionar almacén y ubicación de origen'
+            ]);
+            exit;
+        }
+        
+        if ($id_almacen_destino <= 0 || $id_ubicacion_destino <= 0) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Debe seleccionar almacén y ubicación de destino'
+            ]);
+            exit;
+        }
+        
+        // DECODIFICAR JSON DE MATERIALES
+        $materiales = [];
+        
+        if (isset($_REQUEST['items_salida'])) {
+            if (is_string($_REQUEST['items_salida'])) {
+                $items_array = json_decode($_REQUEST['items_salida'], true);
+                
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Error al decodificar items: ' . json_last_error_msg()
+                    ]);
+                    exit;
+                }
+            } else {
+                $items_array = $_REQUEST['items_salida'];
+            }
+            
+            if (is_array($items_array)) {
+                foreach ($items_array as $item) {
+                    if (empty($item['id_producto']) || empty($item['cantidad'])) {
+                        continue;
+                    }
+                    
+                    $id_producto = intval($item['id_producto']);
+                    $cantidad = floatval($item['cantidad']);
+                    $descripcion = isset($item['descripcion']) ? trim($item['descripcion']) : '';
+                    $id_pedido_detalle = isset($item['id_pedido_detalle']) && $item['id_pedido_detalle'] > 0
+                                        ? intval($item['id_pedido_detalle']) 
+                                        : 0;
+                    
+                    if ($cantidad <= 0) {
+                        echo json_encode([
+                            'success' => false,
+                            'message' => "La cantidad para '{$descripcion}' debe ser mayor a 0"
+                        ]);
+                        exit;
+                    }
+                    
+                    $materiales[] = [
+                        'id_producto' => $id_producto,
+                        'id_pedido_detalle' => $id_pedido_detalle,
+                        'descripcion' => $descripcion,
+                        'cantidad' => $cantidad
+                    ];
+                }
+            }
+        }
+        
+        if (empty($materiales)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Debe agregar al menos un material a la salida'
+            ]);
+            exit;
+        }
+        
+        // LLAMAR A LA FUNCIÓN GRABAR SALIDA
+        $resultado = GrabarSalida(
+            2,
+            $id_almacen_origen,
+            $id_ubicacion_origen,
+            $id_almacen_destino,
+            $id_ubicacion_destino,
+            $ndoc_salida,
+            $fec_salida,
+            $obs_salida,
+            $id_personal,
+            $id_personal,
+            $id_personal,
+            $materiales,
+            $id_pedido
+        );
+        
+        // PROCESAR RESULTADO
+        if (is_array($resultado)) {
+            if (isset($resultado['success']) && $resultado['success'] === true) {
+                $id_salida = isset($resultado['id_salida']) ? intval($resultado['id_salida']) : 0;
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Salida generada correctamente',
+                    'id_salida' => $id_salida
+                ]);
+            } else {
+                $mensaje_error = isset($resultado['message']) ? $resultado['message'] : 'Error desconocido al crear la salida';
+                
+                echo json_encode([
+                    'success' => false,
+                    'message' => $mensaje_error
+                ]);
+            }
+        } elseif (is_string($resultado)) {
+            $mensaje_error = str_replace(['ERROR: ', 'ERROR DE VALIDACIÓN: '], '', $resultado);
+            
+            echo json_encode([
+                'success' => false,
+                'message' => $mensaje_error
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error: Respuesta inesperada del sistema'
+            ]);
+        }
+        
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Error del sistema: ' . $e->getMessage()
+        ]);
+    }
+    
+    exit;
+}
+
+// ============================================================================
+// ACTUALIZAR SALIDA
+// ============================================================================
+if (isset($_REQUEST['actualizar_salida'])) {
+
+    include("../_conexion/conexion.php");
+    
+    $id_salida = intval($_REQUEST['id_salida']);
+    $id_pedido = intval($_REQUEST['id_pedido']);
+    $ndoc_salida = mysqli_real_escape_string($con, trim($_REQUEST['ndoc_salida']));
+    $fec_salida = mysqli_real_escape_string($con, $_REQUEST['fec_salida']);
+    $id_almacen_origen = intval($_REQUEST['id_almacen_origen']);
+    $id_ubicacion_origen = intval($_REQUEST['id_ubicacion_origen']);
+    $id_almacen_destino = intval($_REQUEST['id_almacen_destino']);
+    $id_ubicacion_destino = intval($_REQUEST['id_ubicacion_destino']);
+    $obs_salida = mysqli_real_escape_string($con, trim($_REQUEST['obs_salida']));
+    
+    // Validaciones básicas
+    if (empty($ndoc_salida) || empty($fec_salida)) {
+        echo "ERROR: Complete todos los campos obligatorios";
+        exit;
+    }
+    
+    if ($id_almacen_origen <= 0 || $id_ubicacion_origen <= 0 || 
+        $id_almacen_destino <= 0 || $id_ubicacion_destino <= 0) {
+        echo "ERROR: Debe seleccionar almacenes y ubicaciones válidas";
+        exit;
+    }
+    
+    // Construir array de materiales
+    $materiales = [];
+    
+    if (isset($_REQUEST['items_salida']) && is_array($_REQUEST['items_salida'])) {
+        foreach ($_REQUEST['items_salida'] as $key => $item) {
+            
+            if (empty($item['id_producto']) || empty($item['cantidad'])) {
+                continue;
+            }
+            
+            $id_producto = intval($item['id_producto']);
+            $cantidad = floatval($item['cantidad']);
+            $id_salida_detalle = isset($item['id_salida_detalle']) ? intval($item['id_salida_detalle']) : 0;
+            $id_pedido_detalle = isset($item['id_pedido_detalle']) ? intval($item['id_pedido_detalle']) : 0;
+            
+            if ($cantidad <= 0) {
+                echo "ERROR: Todas las cantidades deben ser mayores a 0";
+                exit;
+            }
+            
+            $materiales[] = [
+                'id_salida_detalle' => $id_salida_detalle,
+                'id_producto' => $id_producto,
+                'id_pedido_detalle' => $id_pedido_detalle,
+                'cantidad' => $cantidad
+            ];
+        }
+    }
+    
+    if (empty($materiales)) {
+        echo "ERROR: Debe agregar al menos un material";
+        exit;
+    }
+    
+    // Llamar función del modelo
+    $resultado = ActualizarSalida(
+        $id_salida,
+        $id_pedido,
+        $ndoc_salida,
+        $fec_salida,
+        $id_almacen_origen,
+        $id_ubicacion_origen,
+        $id_almacen_destino,
+        $id_ubicacion_destino,
+        $obs_salida,
+        $materiales
+    );
+    
+    // Procesar resultado
+    if (strpos($resultado, 'OK') === 0) {
+        echo "SI";
+    } else {
+        echo $resultado;
+    }
+    
+    exit;
+}
+
+// ============================================================================
+// OBTENER STOCK ACTUALIZADO (cuando cambia ubicación origen)
+// ============================================================================
+if (isset($_REQUEST['obtener_stock_actualizado'])) {
+    
+    $id_ubicacion_origen = intval($_REQUEST['id_ubicacion_origen']);
+    $id_almacen_origen = intval($_REQUEST['id_almacen_origen']);
+    $id_pedido = intval($_REQUEST['id_pedido']);
+    
+    // Obtener todos los productos del pedido con su stock en la nueva ubicación
+    $sql_productos = "SELECT pd.id_pedido_detalle,
+                             pd.id_producto,
+                             pd.cant_pedido_detalle,
+                             p.nom_producto,
+                             p.unid_producto,
+                             COALESCE(SUM(sd.cant_salida_detalle), 0) as cantidad_enviada
+                      FROM pedido_detalle pd
+                      INNER JOIN producto p ON pd.id_producto = p.id_producto
+                      LEFT JOIN salida_detalle sd ON pd.id_pedido_detalle = sd.id_pedido_detalle
+                      LEFT JOIN salida s ON sd.id_salida = s.id_salida AND s.est_salida = 1
+                      WHERE pd.id_pedido = $id_pedido
+                        AND pd.est_pedido_detalle = 1
+                      GROUP BY pd.id_pedido_detalle";
+    
+    $res = mysqli_query($con, $sql_productos);
+    $productos_stock = [];
+    
+    while ($row = mysqli_fetch_assoc($res)) {
+        $id_producto = $row['id_producto'];
+        
+        // Obtener stock en la ubicación seleccionada
+        $stock = ObtenerStockProducto($id_producto, $id_almacen_origen, $id_ubicacion_origen, $id_pedido);
+        
+        $cantidad_pedida = floatval($row['cant_pedido_detalle']);
+        $cantidad_enviada = floatval($row['cantidad_enviada']);
+        $cantidad_pendiente = $cantidad_pedida - $cantidad_enviada;
+        
+        $productos_stock[] = [
+            'id_producto' => $id_producto,
+            'id_pedido_detalle' => $row['id_pedido_detalle'],
+            'nom_producto' => $row['nom_producto'],
+            'unid_producto' => $row['unid_producto'],
+            'cantidad_pedida' => $cantidad_pedida,
+            'cantidad_enviada' => $cantidad_enviada,
+            'cantidad_pendiente' => $cantidad_pendiente,
+            'stock_fisico' => floatval($stock['stock_fisico']),
+            'stock_disponible' => floatval($stock['stock_disponible'])
+        ];
+    }
+    
+    echo json_encode([
+        'success' => true,
+        'productos' => $productos_stock
+    ]);
+    
+    mysqli_close($con);
+    exit;
 }
 
 // MOSTRAR ALERTAS DE SUCCESS (después del redirect)
@@ -385,6 +814,33 @@ if (isset($_GET['success'])) {
                 "timer" => 2000
             ];
             break;
+        // ============================================
+        // ALERTAS DE SALIDAS
+        // ============================================
+        case 'salida_creada':
+            $alerta = [
+                "icon" => "success",
+                "title" => "¡Salida Generada!",
+                "text" => "La salida de materiales se ha registrado correctamente",
+                "timer" => 2000
+            ];
+            break;
+        case 'salida_actualizada':
+            $alerta = [
+                "icon" => "success",
+                "title" => "¡Salida Actualizada!",
+                "text" => "Los datos de la salida se han actualizado correctamente",
+                "timer" => 2000
+            ];
+            break;
+        case 'salida_anulada':
+            $alerta = [
+                "icon" => "success",
+                "title" => "¡Salida Anulada!",
+                "text" => "La salida ha sido anulada correctamente",
+                "timer" => 2000
+            ];
+            break;
     }
 }
 
@@ -404,23 +860,58 @@ if ($id_pedido > 0) {
     if (!empty($pedido_data)) {
         $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
         $pedido_compra = ConsultarCompra($id_pedido);
+        $pedido_salidas = ConsultarSalidasPorPedido($id_pedido); //nuevoo 
         $proveedor = MostrarProveedores();
         $moneda = MostrarMoneda();
         $obras = MostrarObras();
-
-        // NUEVO: Verificar si ya tiene salida activa
-        require_once("../_modelo/m_salidas.php");
+        
+        $almacenes = MostrarAlmacenesActivos();
+        $ubicaciones = MostrarUbicacionesActivas();
+        
         $tiene_salida_activa = TieneSalidaActivaPedido($id_pedido);
 
-        //  CARGAR DATOS DE LA ORDEN SI ESTÁ EN MODO EDICIÓN
+        // ✅ CARGAR DATOS DE ORDEN SI ESTÁ EN MODO EDICIÓN
         $orden_data = null;
         $orden_detalle = null;
         if ($modo_editar) {
             $orden_data = ObtenerOrdenPorId($id_compra_editar);
             $orden_detalle = ObtenerDetalleOrden($id_compra_editar);
+        }
+
+        // ✅ CARGAR DATOS DE SALIDA SI ESTÁ EN MODO EDICIÓN
+        $salida_data = null;
+        $salida_detalle = null;
+        if ($modo_editar_salida) {
+            // Validar que la salida existe
+            $validacion = ValidarSalidaExiste($id_salida_editar);
             
-            //  DEBUG: Verificar qué trae la consulta
-            error_log("ORDEN DATA: " . print_r($orden_data, true));
+            if (!$validacion['existe']) {
+                header("Location: pedido_verificar.php?id=$id_pedido&error=salida_no_encontrada");
+                exit;
+            }
+            
+            if (!$validacion['activa']) {
+                header("Location: pedido_verificar.php?id=$id_pedido&error=salida_anulada");
+                exit;
+            }
+            
+            // Verificar que la salida pertenece al pedido actual
+            $id_pedido_salida = ObtenerPedidoDeSalida($id_salida_editar);
+            if ($id_pedido_salida != $id_pedido) {
+                header("Location: pedido_verificar.php?id=$id_pedido&error=salida_no_pertenece");
+                exit;
+            }
+            
+            // Obtener datos de la salida
+            $salida_data = ObtenerSalidaPorId($id_salida_editar);
+            
+            if (!$salida_data) {
+                header("Location: pedido_verificar.php?id=$id_pedido&error=salida_no_encontrada");
+                exit;
+            }
+            
+            // Obtener detalle de la salida
+            $salida_detalle = ObtenerDetalleSalida($id_salida_editar);
         }
 
         $pedido = $pedido_data[0];
@@ -432,7 +923,6 @@ if ($id_pedido > 0) {
     header("Location: pedidos_mostrar.php?error=id_invalido");
     exit;
 }
-
 
 ?>
 <!DOCTYPE html>

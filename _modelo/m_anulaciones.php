@@ -1,7 +1,7 @@
 <?php
 // _modelo/m_anulaciones.php
 
-// 🔹 IMPORTANTE: Incluir m_pedidos.php al inicio del archivo
+//  IMPORTANTE: Incluir m_pedidos.php al inicio del archivo
 require_once("m_pedidos.php");
 
 /**
@@ -11,71 +11,124 @@ function AnularCompra($id_compra, $id_personal)
 {
     include("../_conexion/conexion.php");
 
-    // Verificar estado actual Y obtener tipo de pedido
+    $id_compra = intval($id_compra);
+    
+    if ($id_compra <= 0) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'ID de compra inválido'
+        ];
+    }
+
     $sql_check = "SELECT c.est_compra, c.id_pedido,
-                         c.id_personal_aprueba_tecnica,
+                         c.id_personal_aprueba,
                          c.id_personal_aprueba_financiera,
                          p.id_producto_tipo
                   FROM compra c
                   INNER JOIN pedido p ON c.id_pedido = p.id_pedido
-                  WHERE c.id_compra = '$id_compra'";
+                  WHERE c.id_compra = $id_compra";
+    
     $res_check = mysqli_query($con, $sql_check);
+    
+    if (!$res_check) {
+        $error = mysqli_error($con);
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'Error en consulta: ' . $error
+        ];
+    }
+    
     $row_check = mysqli_fetch_assoc($res_check);
 
     if (!$row_check) {
         mysqli_close($con);
-        return false;
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'No se encontró la orden de compra con ID: ' . $id_compra
+        ];
     }
 
-    // NO PERMITIR ANULAR SI YA ESTÁ ANULADA
     if ($row_check['est_compra'] == 0) {
         mysqli_close($con);
-        return false;
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'warning',
+            'mensaje' => 'Esta orden ya está anulada'
+        ];
     }
 
-    // NO PERMITIR ANULAR SI TIENE APROBACIONES
-    if (!empty($row_check['id_personal_aprueba_tecnica']) || 
+    if (!empty($row_check['id_personal_aprueba']) || 
         !empty($row_check['id_personal_aprueba_financiera'])) {
         mysqli_close($con);
-        return false;
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'No se puede anular una orden que tiene aprobaciones'
+        ];
     }
 
     $id_pedido = $row_check['id_pedido'];
     $es_servicio = ($row_check['id_producto_tipo'] == 2);
 
-    // OBTENER PRODUCTOS DE ESTA ORDEN
-    $sql_productos = "SELECT cd.id_producto 
-                      FROM compra_detalle cd
-                      WHERE cd.id_compra = '$id_compra' 
-                      AND cd.est_compra_detalle = 1";
-    $res_productos = mysqli_query($con, $sql_productos);
+    // 🔹 NUEVO: Obtener los id_pedido_detalle de esta orden ANTES de anularla
+    $sql_detalles = "SELECT id_pedido_detalle 
+                      FROM compra_detalle 
+                      WHERE id_compra = $id_compra 
+                      AND est_compra_detalle = 1";
     
-    $productos_en_compra = array();
-    while ($row_prod = mysqli_fetch_assoc($res_productos)) {
-        $productos_en_compra[] = intval($row_prod['id_producto']);
+    $res_detalles = mysqli_query($con, $sql_detalles);
+    
+    if (!$res_detalles) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'Error al obtener detalles: ' . mysqli_error($con)
+        ];
+    }
+    
+    $detalles_afectados = array();
+    while ($row_det = mysqli_fetch_assoc($res_detalles)) {
+        $detalles_afectados[] = intval($row_det['id_pedido_detalle']);
     }
 
     // Anular la orden
     $sql_update = "UPDATE compra 
                    SET est_compra = 0
-                   WHERE id_compra = '$id_compra'";
+                   WHERE id_compra = $id_compra";
+    
     $res_update = mysqli_query($con, $sql_update);
 
-    if ($res_update) {
-        // 🔹 VERIFICAR CADA PRODUCTO PARA REABRIRLO SEGÚN TIPO
-        foreach ($productos_en_compra as $id_producto) {
-            if ($es_servicio) {
-                // Para SERVICIOS: usar función específica
-                VerificarReaperturaItemServicio($id_pedido, $id_producto);
-            } else {
-                // Para MATERIALES: usar función estándar
-                VerificarReaperturaItem($id_pedido, $id_producto);
-            }
+    if (!$res_update) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'Error al anular la orden: ' . mysqli_error($con)
+        ];
+    }
+
+    // 🔹 CORRECCIÓN CRÍTICA: Verificar reapertura por cada detalle específico
+    foreach ($detalles_afectados as $id_pedido_detalle) {
+        if ($es_servicio) {
+            VerificarReaperturaItemServicioPorDetalle($id_pedido_detalle);
+        } else {
+            VerificarReaperturaItemPorDetalle($id_pedido_detalle);
         }
     }
 
     mysqli_close($con);
-    return $res_update;
+    
+    return [
+        'success' => true,
+        'tipo_mensaje' => 'success',
+        'mensaje' => 'Orden de compra anulada exitosamente'
+    ];
 }
 
 /**
@@ -85,33 +138,81 @@ function AnularPedido($id_pedido, $id_personal)
 {
     include("../_conexion/conexion.php");
 
-    $sql_check = "SELECT est_pedido FROM pedido WHERE id_pedido = '$id_pedido'";
-    $res_check = mysqli_query($con, $sql_check);
-    $row_check = mysqli_fetch_array($res_check, MYSQLI_ASSOC);
-
-    if ($row_check && $row_check['est_pedido'] == 0) {
+    $id_pedido = intval($id_pedido);
+    
+    if ($id_pedido <= 0) {
         mysqli_close($con);
-        return false;
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'ID de pedido inválido'
+        ];
+    }
+
+    $sql_check = "SELECT est_pedido FROM pedido WHERE id_pedido = $id_pedido";
+    $res_check = mysqli_query($con, $sql_check);
+    
+    if (!$res_check) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'Error al verificar pedido: ' . mysqli_error($con)
+        ];
+    }
+    
+    $row_check = mysqli_fetch_assoc($res_check);
+
+    if (!$row_check) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'No se encontró el pedido'
+        ];
+    }
+
+    if ($row_check['est_pedido'] == 0) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'warning',
+            'mensaje' => 'El pedido ya está anulado'
+        ];
     }
 
     // Anular pedido
     $sql_update = "UPDATE pedido 
                    SET est_pedido = 0 
-                   WHERE id_pedido = '$id_pedido'";
+                   WHERE id_pedido = $id_pedido";
+    
     $res_update = mysqli_query($con, $sql_update);
 
-    if ($res_update) {
-        // Liberar stock comprometido
-        $sql_mov = "UPDATE movimiento 
-                    SET est_movimiento = 0
-                    WHERE id_orden = '$id_pedido' 
-                      AND tipo_orden = 5 
-                      AND est_movimiento = 1";
-        mysqli_query($con, $sql_mov);
+    if (!$res_update) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'Error al anular pedido: ' . mysqli_error($con)
+        ];
     }
 
+    // Liberar stock comprometido
+    $sql_mov = "UPDATE movimiento 
+                SET est_movimiento = 0
+                WHERE id_orden = $id_pedido 
+                  AND tipo_orden = 5 
+                  AND est_movimiento = 1";
+    
+    mysqli_query($con, $sql_mov);
+
     mysqli_close($con);
-    return $res_update;
+    
+    return [
+        'success' => true,
+        'tipo_mensaje' => 'success',
+        'mensaje' => 'Pedido anulado exitosamente'
+    ];
 }
 
 /**
@@ -121,27 +222,68 @@ function AnularCompraPedido($id_compra, $id_pedido, $id_personal)
 {
     include("../_conexion/conexion.php");
     
-    // VALIDAR: No anular si la orden tiene aprobaciones
-    $sql_check = "SELECT id_personal_aprueba_tecnica, id_personal_aprueba_financiera
+    $id_compra = intval($id_compra);
+    $id_pedido = intval($id_pedido);
+    
+    if ($id_compra <= 0 || $id_pedido <= 0) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'IDs inválidos'
+        ];
+    }
+    
+    //  No anular si la orden tiene aprobaciones
+    $sql_check = "SELECT id_personal_aprueba, id_personal_aprueba_financiera
                   FROM compra 
                   WHERE id_compra = $id_compra";
+    
     $res = mysqli_query($con, $sql_check);
+    
+    if (!$res) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'Error al verificar orden: ' . mysqli_error($con)
+        ];
+    }
+    
     $row = mysqli_fetch_assoc($res);
     
-    if ($row && (!empty($row['id_personal_aprueba_tecnica']) || 
+    if ($row && (!empty($row['id_personal_aprueba']) || 
                  !empty($row['id_personal_aprueba_financiera']))) {
         mysqli_close($con);
-        return false;
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'No se puede anular: la orden tiene aprobaciones'
+        ];
     }
     
     // VALIDAR: Anular TODAS las órdenes del pedido
     $sql_ordenes = "SELECT id_compra FROM compra WHERE id_pedido = $id_pedido AND est_compra != 0";
     $res_ordenes = mysqli_query($con, $sql_ordenes);
     
+    if (!$res_ordenes) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'Error al obtener órdenes: ' . mysqli_error($con)
+        ];
+    }
+    
     $todas_anuladas = true;
+    $errores = [];
+    
     while ($row_orden = mysqli_fetch_assoc($res_ordenes)) {
-        if (!AnularCompra($row_orden['id_compra'], $id_personal)) {
+        $resultado = AnularCompra($row_orden['id_compra'], $id_personal);
+        
+        if (!$resultado['success']) {
             $todas_anuladas = false;
+            $errores[] = "Orden " . $row_orden['id_compra'] . ": " . $resultado['mensaje'];
         }
     }
     
@@ -149,9 +291,24 @@ function AnularCompraPedido($id_compra, $id_pedido, $id_personal)
     if ($todas_anuladas) {
         $res_pedido = AnularPedido($id_pedido, $id_personal);
         mysqli_close($con);
-        return $res_pedido;
+        
+        if ($res_pedido['success']) {
+            return [
+                'success' => true,
+                'tipo_mensaje' => 'success',
+                'mensaje' => 'Orden de compra y pedido anulados exitosamente'
+            ];
+        } else {
+            return $res_pedido;
+        }
     }
     
     mysqli_close($con);
-    return false;
+    
+    return [
+        'success' => false,
+        'tipo_mensaje' => 'error',
+        'mensaje' => 'No se pudieron anular todas las órdenes: ' . implode(', ', $errores)
+    ];
 }
+?>
