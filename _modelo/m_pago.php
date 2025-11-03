@@ -320,7 +320,7 @@ function ConsultarCompraPago($id_compra) {
     $res_detalle = mysqli_query($con, $sql_detalle);
     
     if (!$res_detalle) {
-        error_log("❌ ERROR SQL detalle: " . mysqli_error($con));
+        error_log("ERROR SQL detalle: " . mysqli_error($con));
         mysqli_close($con);
         return false;
     }
@@ -331,7 +331,7 @@ function ConsultarCompraPago($id_compra) {
     $total_igv = floatval($fila_detalle['total_igv']);
     $total_con_igv = $subtotal + $total_igv;
 
-    // 🔹 CALCULAR AFECTACIONES
+    //CALCULAR AFECTACIONES
     $monto_detraccion = 0;
     $monto_retencion = 0;
     $monto_percepcion = 0;

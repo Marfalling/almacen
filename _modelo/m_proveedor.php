@@ -125,6 +125,7 @@ function ObtenerCuentasProveedor($id_proveedor) {
             b.id_banco,
             b.cod_banco,
             b.nom_banco,
+            COALESCE(b.nom_banco, pc.banco_proveedor) AS banco_proveedor,
             m.nom_moneda,
             pc.nro_cuenta_corriente,
             pc.nro_cuenta_interbancaria,
@@ -133,6 +134,8 @@ function ObtenerCuentasProveedor($id_proveedor) {
         LEFT JOIN banco b ON pc.id_banco = b.id_banco
         LEFT JOIN moneda m ON pc.id_moneda = m.id_moneda
         WHERE pc.id_proveedor = $id_proveedor
+          AND pc.est_proveedor_cuenta = 1
+        ORDER BY COALESCE(b.nom_banco, pc.banco_proveedor) ASC
     ";
 
     $resultado = mysqli_query($con, $sql);
@@ -216,8 +219,39 @@ function GrabarCuentaProveedorConEstado($id_proveedor, $banco, $id_moneda, $cta_
     $id_banco = ObtenerOCrearBancoNormalizado($banco);
 
     $sql = "INSERT INTO proveedor_cuenta 
-            (id_proveedor, id_banco, banco_proveedor, id_moneda, nro_cuenta_corriente, nro_cuenta_interbancaria, est_proveedor_cuenta) 
-            VALUES ($id_proveedor, '$id_banco', $id_moneda, '$cta_corriente', '$cta_interbancaria', $estado)";
+        (id_proveedor, id_banco, banco_proveedor, id_moneda, nro_cuenta_corriente, nro_cuenta_interbancaria, est_proveedor_cuenta) 
+        VALUES ($id_proveedor, '$id_banco', '$banco', $id_moneda, '$cta_corriente', '$cta_interbancaria', $estado)";
+
     mysqli_query($con, $sql);
     mysqli_close($con);
 }
+
+//-----------------------------------------------------------------------
+// Mostrar solo las cuentas activas de un proveedor 
+//-----------------------------------------------------------------------
+function MostrarCuentasActivasPorProveedor($id_proveedor) {
+    include("../_conexion/conexion.php");
+
+    $sql = "SELECT 
+                pc.id_proveedor_cuenta,
+                b.nom_banco,
+                pc.nro_cuenta_corriente,
+                pc.nro_cuenta_interbancaria
+            FROM proveedor_cuenta pc
+            LEFT JOIN banco b ON pc.id_banco = b.id_banco
+            WHERE pc.id_proveedor = $id_proveedor
+              AND pc.est_proveedor_cuenta = 1
+            ORDER BY b.nom_banco ASC";
+
+    $res = mysqli_query($con, $sql);
+    $cuentas = [];
+
+    while ($row = mysqli_fetch_assoc($res)) {
+        $cuentas[] = $row;
+    }
+
+    mysqli_close($con);
+    return $cuentas;
+}
+
+?>

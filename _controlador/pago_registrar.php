@@ -30,7 +30,7 @@ $id_compra = isset($_REQUEST['id_compra']) ? intval($_REQUEST['id_compra']) : 0;
 $oc = ConsultarCompraPago($id_compra);                // Info de la OC
 
 if (!$oc) {
-    die("❌ Error: La compra con ID $id_compra no existe.");
+    die("Error: La compra con ID $id_compra no existe.");
 }
 
 // Ahora sí puedes usar el id_proveedor

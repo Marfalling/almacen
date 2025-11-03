@@ -267,7 +267,9 @@ function AnularPago(id_pago) {
                         <option value="">Seleccionar cuenta</option>
                         <?php foreach($cuentas as $cta) { ?>
                             <option value="<?php echo $cta['id_proveedor_cuenta']; ?>">
-                                <?php echo $cta['banco_proveedor'].' - '.$cta['nro_cuenta_corriente'].' ('.$cta['nom_moneda'].')'; ?>
+                                <?php echo $cta['banco_proveedor']; ?> - 
+                                <?php echo $cta['nro_cuenta_corriente']; ?>
+                                (<?php echo $cta['nom_moneda']; ?>)
                             </option>
                         <?php } ?>
                     </select>
