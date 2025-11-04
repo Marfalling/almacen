@@ -68,7 +68,7 @@
                                                     data-target="#modalCuentas<?= $id_proveedor; ?>">
                                                 Ver cuentas
                                             </button>
-                                            <!-- Modal cuentas (se mantiene igual) -->
+                                            <!-- Modal cuentas -->
                                             <div class="modal fade" id="modalCuentas<?= $id_proveedor; ?>" tabindex="-1" role="dialog" aria-hidden="true">
                                                 <div class="modal-dialog modal-lg" role="document">
                                                     <div class="modal-content">
@@ -157,8 +157,8 @@
           <p class="text-muted">Formato esperado: Nombre, RUC, Dirección, Teléfono, Contacto, Estado, Email, Banco, Moneda, Cuenta, CCI, EstadoCuenta</p>
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-success">Subir e Importar</button>
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-outline-danger" data-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-success">Subir e Importar</button>
         </div>
       </form>
     </div>

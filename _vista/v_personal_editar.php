@@ -121,7 +121,7 @@
                                     <!-- Botones -->
                                     <div class="form-group">
                                         <div class="col-md-2 col-sm-2 offset-md-8">
-                                            <a href="personal_mostrar.php" class="btn btn-outline-secondary btn-block">Cancelar</a>
+                                            <a href="personal_mostrar.php" class="btn btn-outline-danger btn-block">Cancelar</a>
                                         </div>
                                         <div class="col-md-2 col-sm-2">
                                             <button type="submit" name="registrar" class="btn btn-success btn-block">

@@ -123,7 +123,9 @@ $cargos = MostrarCargosActivos();
                             <!-- BOTONES -->
                             <div class="form-group">
                                 <div class="col-md-2 col-sm-2 offset-md-8">
-                                    <button type="reset" class="btn btn-outline-danger btn-block">Limpiar</button>
+                                    <a href="personal_mostrar.php" class="btn btn-outline-danger btn-block">
+                                        Cancelar
+                                    </a>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
                                     <button type="submit" name="registrar" id="btn_registrar"
@@ -133,7 +135,7 @@ $cargos = MostrarCargosActivos();
 
                             <div class="form-group">
                                 <div class="col-md-12 col-sm-12">
-                                    <p><span class="text-danger">*</span> Los campos con este símbolo son obligatorios.</p>
+                                    <p><span class="text-danger">*</span> Los campos con (<span class="text-danger">*</span>) son obligatorios.</p>
                                 </div>
                             </div>
 

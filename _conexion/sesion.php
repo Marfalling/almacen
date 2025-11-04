@@ -172,6 +172,7 @@ function verificarAccesoControlador($nombre_controlador) {
         'proveedor_mostrar' => 'ver_proveedor',
         'proveedor_nuevo' => 'crear_proveedor',
         'proveedor_editar' => 'editar_proveedor',
+        'proveedor_importar' => 'importar_proveedor',
         
         // ==================== MONEDA ====================
         'moneda_mostrar' => 'ver_moneda',
