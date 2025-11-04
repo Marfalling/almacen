@@ -400,6 +400,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                                     data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
                                                     data-cantidad-verificada="<?php echo $cantidad_para_ordenar; ?>"
                                                     data-cantidad-ordenada="<?php echo $cantidad_ya_ordenada_real; ?>"
+                                                    data-cantidad-pendiente="<?php echo $cantidad_pendiente_real; ?>"
                                                     title="Agregar a Orden (Pendiente: <?php echo $cantidad_pendiente_real; ?>)" 
                                                     style="padding: 2px 8px; font-size: 11px;">
                                                 <i class="fa fa-check"></i> Agregar a Orden
@@ -413,7 +414,8 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                                     data-id-producto="<?php echo $detalle['id_producto']; ?>"
                                                     data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
                                                     data-cantidad-verificada="<?php echo $cantidad_para_ordenar; ?>"
-                                                    data-cantidad-ordenada="<?php echo $cantidad_ya_ordenada_real; ?>" 
+                                                    data-cantidad-ordenada="<?php echo $cantidad_ya_ordenada_real; ?>"
+                                                    data-cantidad-pendiente="<?php echo $cantidad_pendiente_real; ?>"
                                                     style="padding: 2px 8px; font-size: 11px;">
                                                 <i class="fa fa-plus"></i> Agregar
                                             </button>
@@ -473,20 +475,23 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                     <?php
                                         }
                                         // 🔹 CASO 3: Solo se verificó OC y está pendiente ✅ NUEVO
-                                        elseif ($se_verifico_oc && !$se_verifico_os && $pendiente_oc > 0 && !$pedidoAnulado) {
+                                    elseif ($se_verifico_oc && !$se_verifico_os && $pendiente_oc > 0 && !$pedidoAnulado) {
+                                        // 🔹 CALCULAR CANTIDAD YA ORDENADA
+                                        $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                     ?>
-                                            <button type="button" 
-                                                    class="btn btn-primary btn-sm btn-agregarOrden" 
-                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                    data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
-                                                    data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
-                                                    data-cantidad-ordenada="0"
-                                                    style="padding: 2px 8px; font-size: 11px;">
-                                                <i class="fa fa-shopping-cart"></i> Agregar a OC (<?php echo number_format($pendiente_oc, 2); ?>)
-                                            </button>
+                                        <button type="button" 
+                                                class="btn btn-primary btn-sm btn-agregarOrden" 
+                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
+                                                data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
+                                                data-cantidad-ordenada="<?php echo $ya_ordenado_oc; ?>"
+                                                data-cantidad-pendiente="<?php echo $pendiente_oc; ?>"
+                                                style="padding: 2px 8px; font-size: 11px;">
+                                            <i class="fa fa-shopping-cart"></i> Agregar a OC (<?php echo number_format($pendiente_oc, 2); ?>)
+                                        </button>
                                     <?php
-                                        }
+                                    }
                                         // 🔹 CASO 4: Solo se verificó OC y está completada ✅ NUEVO
                                         elseif ($se_verifico_oc && !$se_verifico_os && $oc_completada) {
                                     ?>
@@ -542,50 +547,56 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                         }
                                         // 🔹 CASO 8: Ambos verificados, solo OC pendiente
                                         elseif ($se_verifico_os && $se_verifico_oc && $pendiente_oc > 0 && $os_completada && !$pedidoAnulado) {
+                                        // 🔹 CALCULAR CANTIDAD YA ORDENADA
+                                        $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                     ?>
-                                            <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px; margin-right: 4px;">
-                                                <i class="fa fa-check-circle"></i> OS Completada
-                                            </span>
-                                            <button type="button" 
-                                                    class="btn btn-primary btn-sm btn-agregarOrden" 
-                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                    data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
-                                                    data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
-                                                    data-cantidad-ordenada="0"
-                                                    style="padding: 2px 8px; font-size: 11px;">
-                                                <i class="fa fa-shopping-cart"></i> Agregar a OC (<?php echo number_format($pendiente_oc, 2); ?>)
-                                            </button>
+                                        <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px; margin-right: 4px;">
+                                            <i class="fa fa-check-circle"></i> OS Completada
+                                        </span>
+                                        <button type="button" 
+                                                class="btn btn-primary btn-sm btn-agregarOrden" 
+                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
+                                                data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
+                                                data-cantidad-ordenada="<?php echo $ya_ordenado_oc; ?>"
+                                                data-cantidad-pendiente="<?php echo $pendiente_oc; ?>"
+                                                style="padding: 2px 8px; font-size: 11px;">
+                                            <i class="fa fa-shopping-cart"></i> Agregar a OC (<?php echo number_format($pendiente_oc, 2); ?>)
+                                        </button>
                                     <?php
-                                        }
+                                    }
                                         // 🔹 CASO 9: Ambos verificados y pendientes
                                         elseif ($se_verifico_os && $se_verifico_oc && $pendiente_os > 0 && $pendiente_oc > 0 && !$pedidoAnulado) {
+                                        // 🔹 CALCULAR CANTIDAD YA ORDENADA
+                                        $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                     ?>
-                                            <button type="button" 
-                                                    class="btn btn-success btn-sm btn-agregarSalida" 
-                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                    data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
-                                                    data-cantidad-disponible="<?php echo $pendiente_os; ?>"
-                                                    data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
-                                                    data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
-                                                    data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
-                                                    style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
-                                                <i class="fa fa-truck"></i> Agregar a OS (<?php echo number_format($pendiente_os, 2); ?>)
-                                            </button>
-                                            
-                                            <button type="button" 
-                                                    class="btn btn-primary btn-sm btn-agregarOrden" 
-                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                    data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
-                                                    data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
-                                                    data-cantidad-ordenada="0"
-                                                    style="padding: 2px 8px; font-size: 11px;">
-                                                <i class="fa fa-shopping-cart"></i> Agregar a OC (<?php echo number_format($pendiente_oc, 2); ?>)
-                                            </button>
+                                        <button type="button" 
+                                                class="btn btn-success btn-sm btn-agregarSalida" 
+                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
+                                                data-cantidad-disponible="<?php echo $pendiente_os; ?>"
+                                                data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
+                                                data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
+                                                data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
+                                                style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
+                                            <i class="fa fa-truck"></i> Agregar a OS (<?php echo number_format($pendiente_os, 2); ?>)
+                                        </button>
+                                        
+                                        <button type="button" 
+                                                class="btn btn-primary btn-sm btn-agregarOrden" 
+                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
+                                                data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
+                                                data-cantidad-ordenada="<?php echo $ya_ordenado_oc; ?>"
+                                                data-cantidad-pendiente="<?php echo $pendiente_oc; ?>"
+                                                style="padding: 2px 8px; font-size: 11px;">
+                                            <i class="fa fa-shopping-cart"></i> Agregar a OC (<?php echo number_format($pendiente_oc, 2); ?>)
+                                        </button>
                                     <?php
-                                        }
+                                    }
                                         // 🔹 CASO 10: Pendiente verificar
                                         elseif (!$esVerificado && !$pedidoAnulado) {
                                     ?>
@@ -2069,6 +2080,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const modoEditarSalida = <?php echo isset($modo_editar_salida) && $modo_editar_salida ? 'true' : 'false'; ?>;
     let itemsAgregadosOrden = new Set();
     let btnNuevaSalida = null;
+    let itemsEliminadosOrden = []; // Array para trackear IDs eliminados
 
     
 
@@ -2962,8 +2974,14 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
 
+        // Si pasa la validación frontend, enviar el formulario via AJAX
         const form = document.getElementById('form-nueva-orden');
         const formData = new FormData(form);
+
+        // AGREGAR ITEMS ELIMINADOS AL FORMDATA
+        if (modoEditar && itemsEliminadosOrden.length > 0) {
+            formData.append('items_eliminados', JSON.stringify(itemsEliminadosOrden));
+        }
 
         Swal.fire({
             title: 'Guardando...',
@@ -3008,92 +3026,75 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function validarCantidadesCliente(itemsOrden) {
     const errores = [];
-        const inputIdCompra = document.querySelector('input[name="id_compra"]');
-        const idCompraActual = inputIdCompra ? parseInt(inputIdCompra.value) : null;
-        
-        console.log('🔍 validarCantidadesCliente - ID Compra actual:', idCompraActual);
-        
-        itemsOrden.forEach(itemElement => {
-            const idProductoInput = itemElement.querySelector('input[name*="[id_producto]"]');
-            const cantidadInput = itemElement.querySelector('.cantidad-item');
-            const esNuevoInput = itemElement.querySelector('input[name*="[es_nuevo]"]');
-            const idDetalleInput = itemElement.querySelector('input[name*="[id_pedido_detalle]"]');
-            const idDetalleActual = idDetalleInput ? parseInt(idDetalleInput.value) : null;
+    const inputIdCompra = document.querySelector('input[name="id_compra"]');
+    const idCompraActual = inputIdCompra ? parseInt(inputIdCompra.value) : null;
+    
+    console.log('🔍 validarCantidadesCliente - ID Compra actual:', idCompraActual);
+    
+    itemsOrden.forEach(itemElement => {
+        const idProductoInput = itemElement.querySelector('input[name*="[id_producto]"]');
+        const cantidadInput = itemElement.querySelector('.cantidad-item');
+        const esNuevoInput = itemElement.querySelector('input[name*="[es_nuevo]"]');
+        const idDetalleInput = itemElement.querySelector('input[name*="[id_pedido_detalle]"]');
+        const idDetalleActual = idDetalleInput ? parseInt(idDetalleInput.value) : null;
 
-            console.log('📦 Validando item:', {
-                id_pedido_detalle: idDetalleActual,
-                id_producto: idProductoInput ? idProductoInput.value : 'N/A',
-                cantidad: cantidadInput ? cantidadInput.value : 'N/A'
-            });
+        console.log('📦 Validando item:', {
+            id_pedido_detalle: idDetalleActual,
+            id_producto: idProductoInput ? idProductoInput.value : 'N/A',
+            cantidad: cantidadInput ? cantidadInput.value : 'N/A'
+        });
 
-            if (!idProductoInput || !cantidadInput) {
-                console.warn('⚠️ Faltan inputs necesarios');
-                return;
+        if (!idProductoInput || !cantidadInput) {
+            console.warn('⚠️ Faltan inputs necesarios');
+            return;
+        }
+        
+        const idProducto = parseInt(idProductoInput.value);
+        const cantidadNueva = parseFloat(cantidadInput.value) || 0;
+        const esNuevo = esNuevoInput && esNuevoInput.value === '1';
+        
+        // 🔹 CORRECCIÓN: Usar los data-attributes del input cantidad
+        let cantidadVerificada = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
+        let cantidadOrdenada = parseFloat(cantidadInput.getAttribute('data-cantidad-ordenada')) || 0;
+        
+        let descripcionProducto = '';
+        const rowElement = cantidadInput.closest('[id^="item-orden-"]');
+        if (rowElement) {
+            const descripcionElement = rowElement.querySelector('strong');
+            if (descripcionElement && descripcionElement.nextSibling) {
+                descripcionProducto = descripcionElement.nextSibling.textContent.trim();
             }
-            
-            const idProducto = parseInt(idProductoInput.value);
-            const cantidadNueva = parseFloat(cantidadInput.value) || 0;
-            const esNuevo = esNuevoInput && esNuevoInput.value === '1';
-            
-            let cantidadVerificada = 0;
-            let cantidadOrdenada = 0;
-            let descripcionProducto = '';
-            
-            if (cantidadInput.hasAttribute('data-cantidad-verificada') && cantidadInput.hasAttribute('data-cantidad-ordenada')) {
-                cantidadVerificada = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
-                cantidadOrdenada = parseFloat(cantidadInput.getAttribute('data-cantidad-ordenada')) || 0;
-                
-                const rowElement = cantidadInput.closest('[id^="item-orden-"]');
-                if (rowElement) {
-                    const descripcionElement = rowElement.querySelector('strong');
-                    if (descripcionElement && descripcionElement.nextSibling) {
-                        descripcionProducto = descripcionElement.nextSibling.textContent.trim();
-                    }
-                }
-            } else if (idDetalleActual) {
-                // Buscar el item-pendiente con este id_detalle
-                const itemsPendientes = document.querySelectorAll('.item-pendiente');
-                itemsPendientes.forEach(item => {
-                    const idDetalleItem = parseInt(item.getAttribute('data-id-detalle'));
-                    if (idDetalleItem === idDetalleActual) {
-                        const btnAgregar = item.querySelector('.btn-agregarOrden');
-                        if (btnAgregar) {
-                            cantidadVerificada = parseFloat(btnAgregar.dataset.cantidadVerificada) || 0;
-                            cantidadOrdenada = parseFloat(btnAgregar.dataset.cantidadOrdenada) || 0;
-                            descripcionProducto = btnAgregar.dataset.descripcion || `Detalle ID ${idDetalleActual}`;
-                        }
-                    }
-                });
-            }
-            
-            let cantidadDisponible = 0;
-            
-            if (esNuevo) {
-                cantidadDisponible = cantidadVerificada - cantidadOrdenada;
-            } else if (modoEditar && idCompraActual) {
-                cantidadDisponible = cantidadVerificada;
-            } else {
-                cantidadDisponible = cantidadVerificada;
-            }
-            
-            if (cantidadNueva > cantidadDisponible) {
-                const descripcionCorta = descripcionProducto.length > 50 
-                    ? descripcionProducto.substring(0, 50) + '...' 
-                    : descripcionProducto;
-                
-                const tipoItem = esNuevo ? '[NUEVO]' : '[EDITANDO]';
-                
-                const error = `<strong>${tipoItem} ${descripcionCorta}:</strong><br>` +
-                    `Cantidad ingresada: <strong>${cantidadNueva}</strong><br>` +
-                    `Verificado: ${cantidadVerificada} | ` +
-                    `<strong style="color: #28a745;">Disponible: ${cantidadDisponible.toFixed(2)}</strong>`;
-                
-                errores.push(error);
-            }
+        }
+        
+        // Calcular disponible correctamente
+        let cantidadDisponible = cantidadVerificada - cantidadOrdenada;
+        
+        console.log('🔢 Cálculo:', {
+            verificada: cantidadVerificada,
+            ordenada: cantidadOrdenada,
+            disponible: cantidadDisponible,
+            intentaOrdenar: cantidadNueva
         });
         
-        return errores;
-    }
+        //  Validar que no exceda lo disponible
+        if (cantidadNueva > cantidadDisponible) {
+            const descripcionCorta = descripcionProducto.length > 50 
+                ? descripcionProducto.substring(0, 50) + '...' 
+                : descripcionProducto;
+            
+            const tipoItem = esNuevo ? '[NUEVO]' : '[EDITANDO]';
+            
+            const error = `<strong>${tipoItem} ${descripcionCorta}:</strong><br>` +
+                `Cantidad ingresada: <strong>${cantidadNueva}</strong><br>` +
+                `Verificado: ${cantidadVerificada} | Ya ordenado: ${cantidadOrdenada} | ` +
+                `<strong style="color: #28a745;">Disponible: ${cantidadDisponible.toFixed(2)}</strong>`;
+            
+            errores.push(error);
+        }
+    });
+    
+    return errores;
+}
 
     function obtenerCantidadActualEnOrden(idProducto, idCompraActual) {
         let cantidadActual = 0;
@@ -3804,7 +3805,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 console.log('🔵 Botón Agregar clickeado:', {
                     idProducto: btnAgregar.dataset.idProducto,
-                    descripcion: btnAgregar.dataset.descripcion
+                    descripcion: btnAgregar.dataset.descripcion,
+                    verificada: btnAgregar.dataset.cantidadVerificada,
+                    ordenada: btnAgregar.dataset.cantidadOrdenada,
+                    pendiente: btnAgregar.dataset.cantidadPendiente
                 });
                 
                 const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
@@ -3864,8 +3868,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     idDetalle: btnAgregar.dataset.idDetalle,
                     idProducto: btnAgregar.dataset.idProducto,
                     descripcion: btnAgregar.dataset.descripcion,
-                    cantidadVerificada: cantidadVerificada,
-                    cantidadOrdenada: cantidadOrdenada,
+                    cantidadVerificada: parseFloat(btnAgregar.dataset.cantidadVerificada) || 0,
+                    cantidadOrdenada: parseFloat(btnAgregar.dataset.cantidadOrdenada) || 0,
+                    cantidadPendiente: parseFloat(btnAgregar.dataset.cantidadPendiente) || 0,  // 🔹 NUEVO
                     botonOriginal: btnAgregar
                 });
             }
@@ -4007,14 +4012,21 @@ document.addEventListener('DOMContentLoaded', function() {
             formNuevaSalida.addEventListener('submit', validarFormularioSalida);
         }
         
-        // Remover item de orden
+        // 🔹 LISTENER PARA REMOVER ITEMS (CON TRACKING DE ELIMINADOS)
         document.addEventListener('click', function(event) {
             const btnRemover = event.target.closest('.btn-remover-item');
             if (btnRemover) {
                 const idDetalle = btnRemover.getAttribute('data-id-detalle');
+                const idCompraDetalle = btnRemover.getAttribute('data-id-compra-detalle');
                 const itemElement = document.getElementById(`item-orden-${idDetalle}`);
                 
                 if (itemElement) {
+                    // Si es un item existente en modo editar, agregarlo a eliminados
+                    if (modoEditar && idCompraDetalle && parseInt(idCompraDetalle) > 0) {
+                        itemsEliminadosOrden.push(parseInt(idCompraDetalle));
+                    }
+                    
+                    // Buscar el producto para reactivar el botón
                     const idProductoInput = itemElement.querySelector('input[name*="[id_producto]"]');
                     if (idProductoInput) {
                         const idProducto = idProductoInput.value;
@@ -4023,13 +4035,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         botonesAgregar.forEach(btn => {
                             if (btn.dataset.idProducto === idProducto) {
                                 btn.disabled = false;
-                                btn.innerHTML = '<i class="fa fa-plus"></i> Agregar';
+                                btn.innerHTML = '<i class="fa fa-check"></i> Agregar a Orden';
                                 btn.classList.remove('btn-success');
                                 btn.classList.add('btn-primary');
                             }
                         });
                     }
                     
+                    // Remover del DOM
                     itemElement.remove();
                     itemsAgregadosOrden.delete(idDetalle);
                     actualizarTotalGeneral();
@@ -4250,13 +4263,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function agregarItemAOrden(item) {
+        function agregarItemAOrden(item) {
         console.log('🎯 agregarItemAOrden INICIADO');
         console.log('📋 Item recibido:', item);
         
         try {
             const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-            console.log('📦 Contenedor encontrado:', contenedorItemsOrden ? 'SÍ ✅' : 'NO ❌');
             
             if (!contenedorItemsOrden) {
                 console.error('❌ CRÍTICO: No existe el elemento con id="contenedor-items-orden"');
@@ -4269,25 +4281,27 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             const selectMoneda = document.getElementById('moneda_orden');
-            let idMonedaSeleccionada = selectMoneda ? selectMoneda.value : '1';
             let simboloMoneda = 'S/.';
-
+            
             if (selectMoneda && selectMoneda.value) {
-                idMonedaSeleccionada = selectMoneda.value;
+                const idMonedaSeleccionada = selectMoneda.value;
                 simboloMoneda = idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
-                console.log('💰 Moneda seleccionada:', simboloMoneda);
-            } else {
-                console.log('💰 Usando moneda por defecto:', simboloMoneda);
             }
             
             const itemId = 'nuevo-' + Date.now();
-            console.log('🆔 ID generado:', itemId);
             
-            const cantidadVerificada = parseFloat(item.cantidadVerificada) || 0;
-            const cantidadOrdenada = parseFloat(item.cantidadOrdenada) || 0;
-            const cantidadPendiente = cantidadVerificada - cantidadOrdenada;
+            // 🔹 USAR cantidadPendiente DIRECTAMENTE
+            let cantidadVerificada = parseFloat(item.cantidadVerificada) || 0;
+            let cantidadOrdenada = parseFloat(item.cantidadOrdenada) || 0;
+            let cantidadPendiente = 0;
             
-            console.log('🔢 Cantidades:', {
+            if (item.cantidadPendiente !== undefined && item.cantidadPendiente !== null) {
+                cantidadPendiente = parseFloat(item.cantidadPendiente) || 0;
+            } else {
+                cantidadPendiente = cantidadVerificada - cantidadOrdenada;
+            }
+            
+            console.log(' Cantidades FINALES:', {
                 verificada: cantidadVerificada,
                 ordenada: cantidadOrdenada,
                 pendiente: cantidadPendiente
@@ -4306,7 +4320,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const itemElement = document.createElement('div');
             itemElement.id = `item-orden-${itemId}`;
             itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
-            console.log('🏗️ Elemento creado:', itemElement.id);
             
             const badgeTipo = esOrdenServicio 
                 ? '<span class="badge badge-primary badge-sm ml-1">SERVICIO</span>'
@@ -4314,7 +4327,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const etiquetaCantidad = esOrdenServicio ? 'Cantidad Original' : 'Cantidad Verificada';
             
-            // 🔹 CRÍTICO: Incluir id_pedido_detalle en los inputs hidden
+            // 🔹 CRÍTICO: value="${cantidadPendiente.toFixed(2)}"
             itemElement.innerHTML = `
                 <input type="hidden" name="items_orden[${itemId}][id_detalle]" value="${item.idDetalle}">
                 <input type="hidden" name="items_orden[${itemId}][id_pedido_detalle]" value="${item.idDetalle}">
@@ -4398,24 +4411,20 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const resumenElement = document.getElementById('resumen-total-orden');
             if (resumenElement) {
-                // Insertar ANTES del resumen de totales
                 contenedorItemsOrden.insertBefore(itemElement, resumenElement);
             } else {
-                // Si no existe resumen, agregar al final (solo sucede cuando no hay items)
                 contenedorItemsOrden.appendChild(itemElement);
             }
 
-            console.log('✅ Item agregado al DOM correctamente');
+            console.log('✅ Item agregado al DOM correctamente con cantidad pendiente:', cantidadPendiente);
             
             itemsAgregadosOrden.add(itemId);
-            console.log('📝 Items agregados:', itemsAgregadosOrden.size);
             
             if (item.botonOriginal) {
                 item.botonOriginal.disabled = true;
                 item.botonOriginal.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
                 item.botonOriginal.classList.remove('btn-primary');
                 item.botonOriginal.classList.add('btn-success');
-                console.log('🔒 Botón original deshabilitado');
             }
             
             const cantidadInput = itemElement.querySelector('.cantidad-item');
@@ -4444,7 +4453,6 @@ document.addEventListener('DOMContentLoaded', function() {
             cantidadInput.addEventListener('input', calcularTotalesItem);
             precioInput.addEventListener('input', calcularTotalesItem);
             igvInput.addEventListener('input', calcularTotalesItem);
-            console.log('🎧 Event listeners configurados');
             
             console.log('✅ agregarItemAOrden COMPLETADO EXITOSAMENTE');
             

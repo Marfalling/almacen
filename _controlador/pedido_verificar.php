@@ -255,18 +255,75 @@ if (isset($_REQUEST['actualizar_orden'])) {
         exit;
     }
     
-    // ========================================================================
-    // 🔹 CORRECCIÓN: SEPARAR ITEMS CON id_pedido_detalle CORRECTO
-    // ========================================================================
     include("../_conexion/conexion.php");
     
+    // ========================================================================
+    // 🔹 PASO 1: ELIMINAR FÍSICAMENTE LOS ITEMS MARCADOS
+    // ========================================================================
+    $items_eliminados = [];
+    if (isset($_REQUEST['items_eliminados']) && !empty($_REQUEST['items_eliminados'])) {
+        $items_eliminados = json_decode($_REQUEST['items_eliminados'], true);
+        if (!is_array($items_eliminados)) {
+            $items_eliminados = [];
+        }
+    }
+    
+    if (!empty($items_eliminados)) {
+        error_log("🗑️ Items marcados para eliminar: " . print_r($items_eliminados, true));
+        
+        foreach ($items_eliminados as $id_compra_detalle_eliminar) {
+            $id_compra_detalle_eliminar = intval($id_compra_detalle_eliminar);
+            
+            if ($id_compra_detalle_eliminar <= 0) continue;
+            
+            error_log("🗑️ Eliminando físicamente compra_detalle ID: $id_compra_detalle_eliminar");
+            
+            // Obtener id_pedido_detalle ANTES de eliminar
+            $sql_get_detalle = "SELECT id_pedido_detalle, id_producto FROM compra_detalle 
+                                WHERE id_compra_detalle = ?";
+            $stmt = $con->prepare($sql_get_detalle);
+            $stmt->bind_param("i", $id_compra_detalle_eliminar);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            
+            if ($row = $result->fetch_assoc()) {
+                $id_pedido_detalle_afectado = intval($row['id_pedido_detalle']);
+                
+                // ELIMINAR FÍSICAMENTE
+                $sql_eliminar = "DELETE FROM compra_detalle WHERE id_compra_detalle = ?";
+                $stmt_eliminar = $con->prepare($sql_eliminar);
+                $stmt_eliminar->bind_param("i", $id_compra_detalle_eliminar);
+                
+                if ($stmt_eliminar->execute()) {
+                    error_log("✅ Item eliminado físicamente de la BD");
+                    
+                    // VERIFICAR REAPERTURA DEL DETALLE
+                    if ($es_orden_servicio) {
+                        VerificarReaperturaItemServicioPorDetalle($id_pedido_detalle_afectado);
+                    } else {
+                        VerificarEstadoItemPorDetalle($id_pedido_detalle_afectado);
+                    }
+                } else {
+                    error_log("❌ Error al eliminar item: " . $stmt_eliminar->error);
+                }
+                
+                $stmt_eliminar->close();
+            }
+            
+            $stmt->close();
+        }
+    }
+    
+    // ========================================================================
+    // 🔹 PASO 2: SEPARAR Y CORREGIR IDs DE ITEMS RESTANTES
+    // ========================================================================
     $items_existentes = [];
     $items_nuevos = [];
     
     foreach ($items as $key => $item) {
         $es_nuevo = isset($item['es_nuevo']) && $item['es_nuevo'] == '1';
         
-        // 🔹 CRÍTICO: Asegurar que SIEMPRE tenga id_pedido_detalle
+        // 🔹 ASEGURAR QUE TODOS TENGAN id_pedido_detalle
         $id_pedido_detalle = 0;
         
         if (isset($item['id_pedido_detalle']) && !empty($item['id_pedido_detalle'])) {
@@ -289,7 +346,7 @@ if (isset($_REQUEST['actualizar_orden'])) {
             }
         }
         
-        // 🔹 ASEGURAR QUE TODOS LOS ITEMS TENGAN id_detalle PARA LA VALIDACIÓN
+        // 🔹 ASEGURAR QUE TENGA AMBOS CAMPOS
         $item['id_detalle'] = $id_pedido_detalle;
         $item['id_pedido_detalle'] = $id_pedido_detalle;
         
@@ -302,7 +359,6 @@ if (isset($_REQUEST['actualizar_orden'])) {
                 'igv' => floatval($item['igv'])
             ];
         } else {
-            // 🔹 GUARDAR CON id_detalle E id_pedido_detalle
             $items_existentes[$key] = $item;
         }
     }
@@ -323,7 +379,7 @@ if (isset($_REQUEST['actualizar_orden'])) {
     }
     
     // ========================================================================
-    // ACTUALIZAR ITEMS EXISTENTES SEGÚN TIPO
+    // 🔹 PASO 3: ACTUALIZAR SEGÚN TIPO
     // ========================================================================
     if ($es_orden_servicio) {
         $rpta = ActualizarOrdenServicio(
