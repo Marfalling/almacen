@@ -199,9 +199,20 @@ $total_alertas_productos = count($productos_por_vencer);
                             }
                             
                             $fecha_venc_formato = date('d/m/Y', strtotime($compra['fecha_vencimiento']));
+                            
+                            // Determinar el enlace según el estado de la orden
+                            $estado_compra = intval($compra['est_compra']);
+                            
+                            if ($estado_compra == 1) {
+                                // Estado PENDIENTE → Abrir modal de edición
+                                $href_alerta = "compras_mostrar.php?abrir_modal=" . $compra['id_compra'];
+                            } else {
+                                // Estados APROBADA (2), COMPLETADA (3) o PAGADA (4) → Página de pagos
+                                $href_alerta = "pago_registrar.php?id_compra=" . $compra['id_compra'];
+                            }
                         ?>
                         <li class="nav-item alerta-item">
-                            <a class="dropdown-item" href="compras_mostrar.php?abrir_modal=<?php echo $compra['id_compra']; ?>">
+                            <a class="dropdown-item" href="<?php echo $href_alerta; ?>">
                                 <div class="alerta-card <?php echo $clase_urgencia; ?>">
                                     <div class="alerta-badge">
                                         <i class="fa <?php echo $icono; ?>"></i>
@@ -219,6 +230,10 @@ $total_alertas_productos = count($productos_por_vencer);
                                         <div class="alerta-fecha">
                                             <i class="fa fa-calendar"></i> 
                                             Fecha límite: <strong><?php echo $fecha_venc_formato; ?></strong>
+                                        </div>
+                                        <div class="alerta-saldo" style="margin-top: 8px; padding: 6px 10px; background-color: #fff3cd; border-radius: 4px; border-left: 3px solid #ffc107;">
+                                            <i class="fa fa-money"></i> 
+                                            Saldo pendiente: <strong>S/. <?php echo number_format($compra['saldo'], 2); ?></strong>
                                         </div>
                                     </div>
                                 </div>
@@ -425,7 +440,8 @@ $total_alertas_productos = count($productos_por_vencer);
 .alerta-proveedor,
 .alerta-codigo,
 .alerta-tipo,
-.alerta-fecha {
+.alerta-fecha,
+.alerta-saldo {
     font-size: 12px;
     color: #7f8c8d;
     margin: 5px 0;
@@ -436,6 +452,15 @@ $total_alertas_productos = count($productos_por_vencer);
 
 .alerta-fecha strong {
     color: #e74c3c;
+}
+
+.alerta-saldo {
+    color: #856404;
+}
+
+.alerta-saldo strong {
+    color: #856404;
+    font-size: 13px;
 }
 
 /* ============================================

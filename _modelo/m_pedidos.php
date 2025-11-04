@@ -1576,7 +1576,7 @@ function ObtenerDetalleOrden($id_compra) {
 function VerificarEstadoItemPorDetalle($id_pedido_detalle) {
     include("../_conexion/conexion.php");
     
-    error_log("🔍 VerificarEstadoItemPorDetalle - ID: $id_pedido_detalle");
+    error_log(" VerificarEstadoItemPorDetalle - ID: $id_pedido_detalle");
     
     // Obtener cantidad verificada
     $sql_verificada = "SELECT cant_oc_pedido_detalle, cant_os_pedido_detalle, id_producto
@@ -1586,7 +1586,7 @@ function VerificarEstadoItemPorDetalle($id_pedido_detalle) {
     $row = mysqli_fetch_assoc($res);
     
     if (!$row) {
-        error_log("   ❌ No se encontró el detalle");
+        error_log("   No se encontró el detalle");
         mysqli_close($con);
         return;
     }
@@ -1595,28 +1595,29 @@ function VerificarEstadoItemPorDetalle($id_pedido_detalle) {
     $cant_verificada_os = floatval($row['cant_os_pedido_detalle']);
     $id_producto = intval($row['id_producto']);
     
-    error_log("   📊 Cantidad verificada OC: $cant_verificada_oc | OS: $cant_verificada_os | Producto: $id_producto");
+    error_log("  Cantidad verificada OC: $cant_verificada_oc | OS: $cant_verificada_os | Producto: $id_producto");
     
     // OBTENER CANTIDADES ORDENADAS EN OC Y OS
     $total_ordenado_oc = ObtenerCantidadYaOrdenadaOCPorDetalle($id_pedido_detalle);
     $total_ordenado_os = ObtenerCantidadYaOrdenadaOSPorDetalle($id_pedido_detalle);
     
-    error_log("   📈 Total ordenado - OC: $total_ordenado_oc/$cant_verificada_oc | OS: $total_ordenado_os/$cant_verificada_os");
+    error_log("   Total ordenado - OC: $total_ordenado_oc/$cant_verificada_oc | OS: $total_ordenado_os/$cant_verificada_os");
     
     // 🔹 LÓGICA CORREGIDA:
     // - Si total_ordenado >= cant_verificada → CERRAR (estado 2)
     // - Si total_ordenado < cant_verificada → ABRIR (estado 1)
 
-    //cerrar si ambos oc y os estan completos
+    // INICIALIZAR LAS VARIABLES ANTES DE USARLAS
+    $oc_completo = ($total_ordenado_oc >= $cant_verificada_oc);
+    $os_completo = ($total_ordenado_os >= $cant_verificada_os);
 
+    // Cerrar si ambos oc y os están completos
     if ($oc_completo && $os_completo) {
-        error_log("   🔒 CERRANDO item (AMBOS completos)");
         $sql_cerrar = "UPDATE pedido_detalle 
                         SET est_pedido_detalle = 2 
                         WHERE id_pedido_detalle = $id_pedido_detalle";
         mysqli_query($con, $sql_cerrar);
     } else {
-        error_log("   🔓 ABRIENDO item (falta completar OC o OS)");
         $sql_abrir = "UPDATE pedido_detalle 
                        SET est_pedido_detalle = 1 
                        WHERE id_pedido_detalle = $id_pedido_detalle";
