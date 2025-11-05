@@ -529,7 +529,7 @@ if (isset($_REQUEST['finalizar_verificacion'])) {
 // ============================================================================
 // GRABAR SALIDA
 // ============================================================================
-if (isset($_REQUEST['grabar_salida'])) {
+if (isset($_REQUEST['crear_salida'])) {
 
     include("../_conexion/conexion.php");
     
@@ -658,33 +658,35 @@ if (isset($_REQUEST['grabar_salida'])) {
         // PROCESAR RESULTADO
         if (is_array($resultado)) {
             if (isset($resultado['success']) && $resultado['success'] === true) {
-                $id_salida = isset($resultado['id_salida']) ? intval($resultado['id_salida']) : 0;
-                
-                echo json_encode([
-                    'success' => true,
-                    'message' => 'Salida generada correctamente',
-                    'id_salida' => $id_salida
-                ]);
+                error_log("✅ Salida creada correctamente - ID: " . ($resultado['id_salida'] ?? 'N/A'));
+                mysqli_close($con);
+                echo "SI";
+                exit;
             } else {
                 $mensaje_error = isset($resultado['message']) ? $resultado['message'] : 'Error desconocido al crear la salida';
-                
-                echo json_encode([
-                    'success' => false,
-                    'message' => $mensaje_error
-                ]);
+                error_log("❌ Error al crear salida: $mensaje_error");
+                mysqli_close($con);
+                echo "ERROR: " . $mensaje_error;
+                exit;
             }
         } elseif (is_string($resultado)) {
-            $mensaje_error = str_replace(['ERROR: ', 'ERROR DE VALIDACIÓN: '], '', $resultado);
-            
-            echo json_encode([
-                'success' => false,
-                'message' => $mensaje_error
-            ]);
+            if (strpos($resultado, 'OK') === 0 || strpos($resultado, 'SI') === 0) {
+                error_log("✅ Salida creada correctamente");
+                mysqli_close($con);
+                echo "SI";
+                exit;
+            } else {
+                $mensaje_error = str_replace(['ERROR: ', 'ERROR DE VALIDACIÓN: '], '', $resultado);
+                error_log("❌ Error al crear salida: $mensaje_error");
+                mysqli_close($con);
+                echo "ERROR: " . $mensaje_error;
+                exit;
+            }
         } else {
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error: Respuesta inesperada del sistema'
-            ]);
+            error_log("❌ Error: Respuesta inesperada del sistema");
+            mysqli_close($con);
+            echo "ERROR: Respuesta inesperada del sistema";
+            exit;
         }
         
     } catch (Exception $e) {
@@ -698,84 +700,181 @@ if (isset($_REQUEST['grabar_salida'])) {
 }
 
 // ============================================================================
-// ACTUALIZAR SALIDA
+// ACTUALIZAR SALIDA (CORREGIDO - DECODIFICAR JSON)
 // ============================================================================
 if (isset($_REQUEST['actualizar_salida'])) {
-
     include("../_conexion/conexion.php");
     
     $id_salida = intval($_REQUEST['id_salida']);
     $id_pedido = intval($_REQUEST['id_pedido']);
     $ndoc_salida = mysqli_real_escape_string($con, trim($_REQUEST['ndoc_salida']));
-    $fec_salida = mysqli_real_escape_string($con, $_REQUEST['fec_salida']);
-    $id_almacen_origen = intval($_REQUEST['id_almacen_origen']);
-    $id_ubicacion_origen = intval($_REQUEST['id_ubicacion_origen']);
-    $id_almacen_destino = intval($_REQUEST['id_almacen_destino']);
-    $id_ubicacion_destino = intval($_REQUEST['id_ubicacion_destino']);
-    $obs_salida = mysqli_real_escape_string($con, trim($_REQUEST['obs_salida']));
+    $fec_salida = mysqli_real_escape_string($con, $_REQUEST['fecha_salida']);
+    $id_almacen_origen = intval($_REQUEST['almacen_origen_salida']);
+    $id_ubicacion_origen = intval($_REQUEST['ubicacion_origen_salida']);
+    $id_almacen_destino = intval($_REQUEST['almacen_destino_salida']);
+    $id_ubicacion_destino = intval($_REQUEST['ubicacion_destino_salida']);
+    $obs_salida = mysqli_real_escape_string($con, trim($_REQUEST['observaciones_salida']));
+    $id_personal = $_SESSION['id_personal'] ?? 0;
     
-    // Validaciones básicas
+    // VALIDACIONES BÁSICAS
     if (empty($ndoc_salida) || empty($fec_salida)) {
         echo "ERROR: Complete todos los campos obligatorios";
+        mysqli_close($con);
         exit;
     }
     
     if ($id_almacen_origen <= 0 || $id_ubicacion_origen <= 0 || 
         $id_almacen_destino <= 0 || $id_ubicacion_destino <= 0) {
         echo "ERROR: Debe seleccionar almacenes y ubicaciones válidas";
+        mysqli_close($con);
         exit;
     }
     
-    // Construir array de materiales
+    // 🔹 CONSTRUIR ARRAY DE MATERIALES (CORREGIDO)
     $materiales = [];
     
-    if (isset($_REQUEST['items_salida']) && is_array($_REQUEST['items_salida'])) {
-        foreach ($_REQUEST['items_salida'] as $key => $item) {
+    // 🔹 MÉTODO 1: Si viene como JSON string (desde el nuevo código JS)
+    if (isset($_REQUEST['items_salida']) && is_string($_REQUEST['items_salida'])) {
+        error_log("📦 Items recibidos como JSON string");
+        
+        $items_json = json_decode($_REQUEST['items_salida'], true);
+        
+        if (json_last_error() === JSON_ERROR_NONE && is_array($items_json)) {
+            error_log("✅ JSON decodificado correctamente: " . count($items_json) . " items");
             
+            foreach ($items_json as $item) {
+                if (empty($item['id_producto']) || empty($item['cantidad'])) {
+                    continue;
+                }
+                
+                // 🔥 CRÍTICO: Buscar id_salida_detalle en la BD
+                $id_producto = intval($item['id_producto']);
+                $id_pedido_detalle = isset($item['id_pedido_detalle']) && $item['id_pedido_detalle'] > 0
+                                    ? intval($item['id_pedido_detalle']) 
+                                    : 0;
+                
+                // 🔹 BUSCAR id_salida_detalle EXISTENTE
+                $sql_buscar = "SELECT id_salida_detalle FROM salida_detalle 
+                              WHERE id_salida = ? AND id_producto = ?";
+                
+                if ($id_pedido_detalle > 0) {
+                    $sql_buscar .= " AND id_pedido_detalle = ?";
+                }
+                
+                $stmt = $con->prepare($sql_buscar);
+                
+                if ($id_pedido_detalle > 0) {
+                    $stmt->bind_param("iii", $id_salida, $id_producto, $id_pedido_detalle);
+                } else {
+                    $stmt->bind_param("ii", $id_salida, $id_producto);
+                }
+                
+                $stmt->execute();
+                $result = $stmt->get_result();
+                
+                $id_salida_detalle = 0;
+                if ($row = $result->fetch_assoc()) {
+                    $id_salida_detalle = intval($row['id_salida_detalle']);
+                }
+                $stmt->close();
+                
+                $materiales[] = [
+                    'id_salida_detalle' => $id_salida_detalle,
+                    'id_producto' => $id_producto,
+                    'descripcion' => isset($item['descripcion']) ? trim($item['descripcion']) : '',
+                    'id_pedido_detalle' => $id_pedido_detalle,
+                    'cantidad' => floatval($item['cantidad']),
+                    'es_nuevo' => ($id_salida_detalle > 0) ? '0' : '1'
+                ];
+                
+                error_log("   ✅ Item procesado: id_salida_detalle={$id_salida_detalle}, Producto={$id_producto}, Cantidad={$item['cantidad']}");
+            }
+        } else {
+            error_log("❌ Error al decodificar JSON: " . json_last_error_msg());
+        }
+    }
+    // 🔹 MÉTODO 2: Si viene como array (desde el código PHP antiguo)
+    elseif (isset($_REQUEST['items_salida']) && is_array($_REQUEST['items_salida'])) {
+        error_log("📦 Items recibidos como array PHP");
+        
+        foreach ($_REQUEST['items_salida'] as $key => $item) {
+            // 🔥 CRÍTICO: Obtener id_salida_detalle del input hidden
+            $id_salida_detalle = 0;
+            
+            if (isset($item['id_salida_detalle']) && intval($item['id_salida_detalle']) > 0) {
+                $id_salida_detalle = intval($item['id_salida_detalle']);
+            } elseif (is_numeric($key)) {
+                $id_salida_detalle = intval($key);
+            }
+            
+            // Verificar si es nuevo
+            $es_nuevo = isset($item['es_nuevo']) && $item['es_nuevo'] == '1';
+            
+            // Validar datos mínimos
             if (empty($item['id_producto']) || empty($item['cantidad'])) {
                 continue;
             }
             
             $id_producto = intval($item['id_producto']);
             $cantidad = floatval($item['cantidad']);
-            $id_salida_detalle = isset($item['id_salida_detalle']) ? intval($item['id_salida_detalle']) : 0;
-            $id_pedido_detalle = isset($item['id_pedido_detalle']) ? intval($item['id_pedido_detalle']) : 0;
+            $descripcion = isset($item['descripcion']) ? trim($item['descripcion']) : '';
+            $id_pedido_detalle = isset($item['id_pedido_detalle']) && $item['id_pedido_detalle'] > 0 
+                                ? intval($item['id_pedido_detalle']) 
+                                : 0;
             
+            // Validar cantidad
             if ($cantidad <= 0) {
                 echo "ERROR: Todas las cantidades deben ser mayores a 0";
+                mysqli_close($con);
                 exit;
             }
             
+            // ✅ AGREGAR AL ARRAY
             $materiales[] = [
                 'id_salida_detalle' => $id_salida_detalle,
                 'id_producto' => $id_producto,
+                'descripcion' => $descripcion,
                 'id_pedido_detalle' => $id_pedido_detalle,
-                'cantidad' => $cantidad
+                'cantidad' => $cantidad,
+                'es_nuevo' => $es_nuevo ? '1' : '0'
             ];
+            
+            error_log("✅ Material procesado - ID Detalle: $id_salida_detalle | Cantidad: $cantidad | Es nuevo: " . ($es_nuevo ? 'SÍ' : 'NO'));
         }
     }
     
+    // VALIDAR QUE HAYA AL MENOS UN MATERIAL
     if (empty($materiales)) {
-        echo "ERROR: Debe agregar al menos un material";
+        error_log("❌ Array de materiales está vacío");
+        echo "ERROR: Debe agregar al menos un material a la salida";
+        mysqli_close($con);
         exit;
     }
     
-    // Llamar función del modelo
+    // LOG DE DEBUG
+    error_log("📦 Actualizando salida ID: $id_salida");
+    error_log("📋 Materiales a actualizar: " . count($materiales));
+    error_log("📄 Materiales: " . print_r($materiales, true));
+    
+    // LLAMAR FUNCIÓN DEL MODELO
     $resultado = ActualizarSalida(
         $id_salida,
-        $id_pedido,
-        $ndoc_salida,
-        $fec_salida,
         $id_almacen_origen,
         $id_ubicacion_origen,
         $id_almacen_destino,
         $id_ubicacion_destino,
+        $ndoc_salida,
+        $fec_salida,
         $obs_salida,
+        $id_personal,
+        $id_personal,
         $materiales
     );
     
-    // Procesar resultado
-    if (strpos($resultado, 'OK') === 0) {
+    // PROCESAR RESULTADO
+    mysqli_close($con);
+    
+    if (strpos($resultado, 'OK') === 0 || strpos($resultado, 'SI') === 0) {
         echo "SI";
     } else {
         echo $resultado;
@@ -783,6 +882,9 @@ if (isset($_REQUEST['actualizar_salida'])) {
     
     exit;
 }
+
+
+
 
 // ============================================================================
 // OBTENER STOCK ACTUALIZADO (cuando cambia ubicación origen)

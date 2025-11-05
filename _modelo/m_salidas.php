@@ -288,6 +288,8 @@ function ActualizarSalida($id_salida, $id_almacen_origen, $id_ubicacion_origen,
 {
     include("../_conexion/conexion.php");
 
+    error_log("🔧 ActualizarSalida - ID Salida: $id_salida");
+    error_log("🔍 Materiales recibidos: " . print_r($materiales, true));
 
     $ndoc_salida = mysqli_real_escape_string($con, $ndoc_salida);
     $fec_req_salida = mysqli_real_escape_string($con, $fec_req_salida);
@@ -308,81 +310,190 @@ function ActualizarSalida($id_salida, $id_almacen_origen, $id_ubicacion_origen,
 
     if (mysqli_query($con, $sql)) {
         
-        // Eliminar movimientos anteriores relacionados con esta salida
-        $sql_del_mov = "UPDATE movimiento SET est_movimiento = 0 
-                        WHERE id_orden = $id_salida AND tipo_orden = 2";
-        mysqli_query($con, $sql_del_mov);
+        // Obtener el ID del personal que registra
+        $sql_personal = "SELECT id_personal FROM salida WHERE id_salida = $id_salida";
+        $res_personal = mysqli_query($con, $sql_personal);
+        $row_personal = mysqli_fetch_assoc($res_personal);
+        $id_personal = $row_personal['id_personal'];
         
-        // Eliminar detalles anteriores
-        $sql_del_det = "UPDATE salida_detalle SET est_salida_detalle = 0 
-                        WHERE id_salida = $id_salida";
-        mysqli_query($con, $sql_del_det);
+        error_log("👤 ID Personal: $id_personal");
         
-        // Insertar nuevos detalles y movimientos
-        foreach ($materiales as $material) {
+        // 🔹 RASTREAR DETALLES AFECTADOS (para regenerar movimientos)
+        $detalles_afectados = array();
+
+        error_log("📦 Materiales recibidos para procesar: " . count($materiales));
+
+        // 🔹 PROCESAR CADA MATERIAL
+        foreach ($materiales as $key => $material) {
+            
+            error_log("🔍 Procesando material key: $key");
+            error_log("   Datos: " . print_r($material, true));
+            
+            // 🔹 VERIFICAR SI ES NUEVO O EXISTENTE
+            $es_nuevo = isset($material['es_nuevo']) && $material['es_nuevo'] == '1';
+            
+            error_log("   ¿Es nuevo?: " . ($es_nuevo ? 'SÍ' : 'NO'));
+            
             $id_producto = intval($material['id_producto']);
             $descripcion = mysqli_real_escape_string($con, $material['descripcion']);
             $cantidad = floatval($material['cantidad']);
-
-            // 🔹 Obtener id_pedido_detalle si existe, sino NULL
-            $id_pedido_detalle = isset($material['id_pedido_detalle']) && $material['id_pedido_detalle'] > 0 
-                                ? intval($material['id_pedido_detalle']) 
-                                : null;
             
-            // 🔹 Preparar valor SQL (NULL o número)
+            // 🔹 MANEJO DE id_pedido_detalle
+            $id_pedido_detalle = null;
+            if (isset($material['id_pedido_detalle']) && !empty($material['id_pedido_detalle']) && $material['id_pedido_detalle'] > 0) {
+                $id_pedido_detalle = intval($material['id_pedido_detalle']);
+            }
+            
             $id_pedido_detalle_sql = ($id_pedido_detalle !== null) ? $id_pedido_detalle : "NULL";
             
-            // Insertar nuevo detalle
-            $sql_detalle = "INSERT INTO salida_detalle (
-                        id_salida, id_pedido_detalle, id_producto, prod_salida_detalle, 
-                        cant_salida_detalle, est_salida_detalle
-                    ) VALUES (
-                        $id_salida, $id_pedido_detalle_sql, $id_producto, '$descripcion', 
-                        $cantidad, 1
-                    )";
-            
-            if (mysqli_query($con, $sql_detalle)) {
-                // Obtener el ID del personal que registra
-                $sql_personal = "SELECT id_personal FROM salida WHERE id_salida = $id_salida";
-                $res_personal = mysqli_query($con, $sql_personal);
-                $row_personal = mysqli_fetch_assoc($res_personal);
-                $id_personal = $row_personal['id_personal'];
+            if ($es_nuevo) {
+                // ============================================================
+                // ✅ INSERTAR NUEVO DETALLE
+                // ============================================================
+                error_log("   🆕 Insertando nuevo detalle - Producto: $id_producto | Cantidad: $cantidad");
                 
-                // Generar nuevos movimientos
+                $sql_detalle = "INSERT INTO salida_detalle (
+                            id_salida, id_pedido_detalle, id_producto, prod_salida_detalle, 
+                            cant_salida_detalle, est_salida_detalle
+                        ) VALUES (
+                            $id_salida, $id_pedido_detalle_sql, $id_producto, '$descripcion', 
+                            $cantidad, 1
+                        )";
                 
-                // 1. Movimiento de SALIDA en almacén origen (resta stock)
-                $sql_mov_salida = "INSERT INTO movimiento (
-                                    id_personal, id_orden, id_producto, id_almacen, 
-                                    id_ubicacion, tipo_orden, tipo_movimiento, 
-                                    cant_movimiento, fec_movimiento, est_movimiento
-                                  ) VALUES (
-                                    $id_personal, $id_salida, $id_producto, $id_almacen_origen, 
-                                    $id_ubicacion_origen, 2, 2, 
-                                    $cantidad, NOW(), 1
-                                  )";
-                mysqli_query($con, $sql_mov_salida);
+                if (!mysqli_query($con, $sql_detalle)) {
+                    $error = mysqli_error($con);
+                    error_log("❌ ERROR al insertar detalle: $error");
+                    mysqli_close($con);
+                    return "ERROR en detalle: " . $error;
+                }
                 
-                // 2. Movimiento de INGRESO en almacén destino (suma stock)
-                $sql_mov_ingreso = "INSERT INTO movimiento (
-                                     id_personal, id_orden, id_producto, id_almacen, 
-                                     id_ubicacion, tipo_orden, tipo_movimiento, 
-                                     cant_movimiento, fec_movimiento, est_movimiento
-                                   ) VALUES (
-                                     $id_personal, $id_salida, $id_producto, $id_almacen_destino, 
-                                     $id_ubicacion_destino, 2, 1, 
-                                     $cantidad, NOW(), 1
-                                   )";
-                mysqli_query($con, $sql_mov_ingreso);
+                error_log("   ✅ Detalle insertado correctamente");
+                
+            } else {
+                // ============================================================
+                // ✅ ACTUALIZAR DETALLE EXISTENTE
+                // ============================================================
+                
+                // 🔥 CAMBIO CRÍTICO: Obtener el ID desde $material, NO desde $key
+                if (!isset($material['id_salida_detalle']) || empty($material['id_salida_detalle'])) {
+                    error_log("⚠️ Material sin id_salida_detalle: " . print_r($material, true));
+                    continue;
+                }
+                
+                $id_salida_detalle = intval($material['id_salida_detalle']); // ← AQUÍ ESTÁ EL CAMBIO
+                
+                error_log("   🔄 Actualizando salida_detalle ID: $id_salida_detalle | Nueva cantidad: $cantidad");
+                
+                // 🔹 VERIFICAR QUE EXISTE
+                $sql_detalle_info = "SELECT id_producto FROM salida_detalle 
+                                    WHERE id_salida_detalle = $id_salida_detalle 
+                                    AND id_salida = $id_salida";
+                $res_detalle_info = mysqli_query($con, $sql_detalle_info);
+                
+                if (!$res_detalle_info || mysqli_num_rows($res_detalle_info) == 0) {
+                    error_log("⚠️ No se encontró salida_detalle con ID: $id_salida_detalle para salida: $id_salida");
+                    continue;
+                }
+                
+                // 🔹 ACTUALIZAR DETALLE
+                $sql_detalle = "UPDATE salida_detalle SET 
+                                    id_pedido_detalle = $id_pedido_detalle_sql,
+                                    id_producto = $id_producto,
+                                    prod_salida_detalle = '$descripcion',
+                                    cant_salida_detalle = $cantidad
+                                WHERE id_salida_detalle = $id_salida_detalle 
+                                AND id_salida = $id_salida";
+                
+                if (!mysqli_query($con, $sql_detalle)) {
+                    $error = mysqli_error($con);
+                    error_log("❌ ERROR al actualizar detalle: $error");
+                    error_log("   SQL: $sql_detalle");
+                    mysqli_close($con);
+                    return "ERROR en detalle: " . $error;
+                }
+                
+                $filas_afectadas = mysqli_affected_rows($con);
+                error_log("   ✅ Detalle actualizado correctamente (Filas afectadas: $filas_afectadas)");
+                
+                if ($filas_afectadas == 0) {
+                    error_log("   ⚠️ ADVERTENCIA: No se actualizó ninguna fila. Verificar condiciones WHERE.");
+                }
             }
         }
+
+        error_log("📊 Total de detalles afectados para regenerar movimientos: " . count($detalles_afectados));
         
+        // ============================================================
+        // 🔹 REGENERAR MOVIMIENTOS DIRECTAMENTE DESDE $materiales
+        // ============================================================
+        error_log("🔄 Regenerando movimientos...");
+
+        // 1. Desactivar TODOS los movimientos anteriores de esta salida
+        $sql_del_mov = "UPDATE movimiento SET est_movimiento = 0 
+                        WHERE id_orden = $id_salida AND tipo_orden = 2";
+        mysqli_query($con, $sql_del_mov);
+
+        error_log("   🗑️ Movimientos anteriores desactivados");
+
+        // 2. Crear nuevos movimientos directamente desde $materiales
+        $contador = 0;
+        foreach ($materiales as $key => $material) {
+            
+            $id_producto = intval($material['id_producto']);
+            $cantidad = floatval($material['cantidad']);
+            
+            error_log("   📦 Generando movimientos para producto: $id_producto | Cantidad: $cantidad");
+            
+            // Movimiento de SALIDA en almacén origen (resta stock)
+            $sql_mov_salida = "INSERT INTO movimiento (
+                                id_personal, id_orden, id_producto, id_almacen, 
+                                id_ubicacion, tipo_orden, tipo_movimiento, 
+                                cant_movimiento, fec_movimiento, est_movimiento
+                            ) VALUES (
+                                $id_personal, $id_salida, $id_producto, $id_almacen_origen, 
+                                $id_ubicacion_origen, 2, 2, 
+                                $cantidad, NOW(), 1
+                            )";
+            
+            if (mysqli_query($con, $sql_mov_salida)) {
+                error_log("      ✅ Movimiento SALIDA creado (Almacén: $id_almacen_origen)");
+            } else {
+                error_log("      ❌ ERROR movimiento SALIDA: " . mysqli_error($con));
+            }
+            
+            // Movimiento de INGRESO en almacén destino (suma stock)
+            $sql_mov_ingreso = "INSERT INTO movimiento (
+                                id_personal, id_orden, id_producto, id_almacen, 
+                                id_ubicacion, tipo_orden, tipo_movimiento, 
+                                cant_movimiento, fec_movimiento, est_movimiento
+                            ) VALUES (
+                                $id_personal, $id_salida, $id_producto, $id_almacen_destino, 
+                                $id_ubicacion_destino, 2, 1, 
+                                $cantidad, NOW(), 1
+                            )";
+            
+            if (mysqli_query($con, $sql_mov_ingreso)) {
+                error_log("      ✅ Movimiento INGRESO creado (Almacén: $id_almacen_destino)");
+                $contador++;
+            } else {
+                error_log("      ❌ ERROR movimiento INGRESO: " . mysqli_error($con));
+            }
+        }
+
+        error_log("✅ Total de productos procesados: $contador");
+
         mysqli_close($con);
+        error_log("✅ ActualizarSalida completado exitosamente");
         return "SI";
+        
     } else {
+        $error = mysqli_error($con);
+        error_log("❌ ERROR al actualizar salida principal: $error");
         mysqli_close($con);
-        return "ERROR: " . mysqli_error($con);
+        return "ERROR: " . $error;
     }
 }
+
 
 //-----------------------------------------------------------------------
 function ObtenerStockDisponible($id_producto, $id_almacen, $id_ubicacion, $id_pedido = null)
@@ -746,16 +857,16 @@ function ObtenerDetalleSalida($id_salida) {
     $id_salida = intval($id_salida);
     
     $sql = "SELECT sd.*, 
-                   p.nom_producto,
-                   p.unid_producto,
-                   p.cod_producto,
-                   pd.id_pedido_detalle,
-                   pd.cant_pedido_detalle
-            FROM salida_detalle sd
-            INNER JOIN producto p ON sd.id_producto = p.id_producto
-            LEFT JOIN pedido_detalle pd ON sd.id_pedido_detalle = pd.id_pedido_detalle
-            WHERE sd.id_salida = ?
-            ORDER BY sd.id_salida_detalle";
+               p.nom_producto,
+               um.nom_unidad_medida,
+               pd.id_pedido_detalle,
+               pd.cant_pedido_detalle
+        FROM salida_detalle sd
+        INNER JOIN producto p ON sd.id_producto = p.id_producto
+        LEFT JOIN pedido_detalle pd ON sd.id_pedido_detalle = pd.id_pedido_detalle
+        INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+        WHERE sd.id_salida = ?
+        ORDER BY sd.id_salida_detalle";
     
     $stmt = $con->prepare($sql);
     $stmt->bind_param("i", $id_salida);
@@ -841,7 +952,7 @@ function ConsultarSalidasPorPedido($id_pedido) {
     $sql = "SELECT 
                 s.id_salida,
                 s.ndoc_salida,
-                s.fec_salida,
+                s.fec_req_salida,
                 s.est_salida,
                 s.obs_salida,
                 CONCAT(ud.nom_ubicacion, ' (', ad.nom_almacen, ')') as nom_ubicacion_destino
@@ -849,7 +960,7 @@ function ConsultarSalidasPorPedido($id_pedido) {
             INNER JOIN almacen ad ON s.id_almacen_destino = ad.id_almacen
             INNER JOIN ubicacion ud ON s.id_ubicacion_destino = ud.id_ubicacion
             WHERE s.id_pedido = $id_pedido
-            ORDER BY s.fec_salida DESC, s.id_salida DESC";
+            ORDER BY s.fec_req_salida ASC, s.id_salida DESC";
     
     $resultado = mysqli_query($con, $sql);
     

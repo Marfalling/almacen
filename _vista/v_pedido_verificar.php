@@ -995,7 +995,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                             <tr>
                                                 <th style="width: 15%;">N° Salida</th>
                                                 <th style="width: 20%;">Destino</th>
-                                                <th style="width: 15%;">Fecha</th>
+                                                <th style="width: 15%;">Fecha Requerida</th>
                                                 <th style="width: 15%;">Estado</th>
                                                 <th style="width: 20%;">Acciones</th>
                                             </tr>
@@ -1028,7 +1028,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                                             $estado_salida_clase = 'secondary';
                                                     }
 
-                                                    $fecha_salida = date('d/m/Y', strtotime($salida['fec_salida']));
+                                                    $fecha_salida = date('d/m/Y', strtotime($salida['fec_req_salida']));
                                                 ?>
                                                     <tr>
                                                         <td><strong>S00<?php echo $salida['id_salida']; ?></strong></td>
@@ -1526,7 +1526,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                                 <input type="date" class="form-control form-control-sm" id="fecha_salida" name="fecha_salida" 
                                                     value="<?php 
                                                         if ($modo_editar_salida && isset($salida_data)) {
-                                                            echo date('Y-m-d', strtotime($salida_data['fec_salida']));
+                                                            echo date('Y-m-d', strtotime($salida_data['fec_req_salida']));
                                                         } else {
                                                             //echo date('Y-m-d', strtotime($pedido['fec_req_pedido']));
                                                             echo date('Y-m-d');
@@ -1695,12 +1695,19 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                 <!-- Contenedor de items de salida -->
                                 <div id="contenedor-items-salida" class="mb-3">
                                     <?php if ($modo_editar_salida && !empty($salida_detalle)): ?>
-                                        <?php foreach ($salida_detalle as $item): ?>
+                                        <?php foreach ($salida_detalle as $item): 
+                                            // 🔹 CRÍTICO: Obtener id_pedido_detalle del item
+                                            $id_pedido_detalle_item = isset($item['id_pedido_detalle']) && $item['id_pedido_detalle'] > 0 
+                                                                    ? intval($item['id_pedido_detalle']) 
+                                                                    : 0;
+                                        ?>
                                         <div class="alert alert-light p-2 mb-2" id="item-salida-<?php echo $item['id_salida_detalle']; ?>">
+                                            <!-- 🔹 USAR id_salida_detalle COMO CLAVE DEL ARRAY -->
                                             <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_salida_detalle]" value="<?php echo $item['id_salida_detalle']; ?>">
-                                            <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_pedido_detalle]" value="<?php echo $id_pedido_detalle; ?>">
+                                            <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_pedido_detalle]" value="<?php echo $id_pedido_detalle_item; ?>">
                                             <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_producto]" value="<?php echo $item['id_producto']; ?>">
                                             <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][es_nuevo]" value="0">
+                                            <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][descripcion]" value="<?php echo htmlspecialchars($item['nom_producto']); ?>">
                                             
                                             <div class="row align-items-center mb-2">
                                                 <div class="col-md-11">
@@ -2552,8 +2559,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Formatear fecha
-        const fechaFormateada = salida.fec_salida ? 
-            new Date(salida.fec_salida).toLocaleDateString('es-PE') : 
+        const fechaFormateada = salida.fec_req_salida ? 
+            (() => {
+                const fecha = salida.fec_req_salida.split(' ')[0]; // Obtiene solo "2025-11-09"
+                const [anio, mes, dia] = fecha.split('-');
+                return `${dia}/${mes}/${anio}`;
+            })() : 
             'No especificada';
         
         let html = `
@@ -2680,7 +2691,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 fetch('salidas_anular.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `id_salida=${idSalida}`
+                    body: `id=${idSalida}`
                 })
                 .then(response => response.json())
                 .then(data => {
@@ -3340,10 +3351,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log('🚚 Validando formulario de salida...');
         
-        const form = document.getElementById('form-nueva-salida'); // ✅ NOMBRE CORRECTO
+        const form = document.getElementById('form-nueva-salida');
         
         // Determinar si es creación o edición
         const modoEditarSalida = document.querySelector('input[name="actualizar_salida"]') !== null;
+        
+        console.log('📋 Modo:', modoEditarSalida ? 'EDICIÓN' : 'CREACIÓN');
         
         // Validar campos obligatorios
         const ndoc = document.querySelector('input[name="ndoc_salida"]').value.trim();
@@ -3417,11 +3430,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // ✅ RECOLECTAR ITEMS DE SALIDA
+        // ✅ RECOLECTAR ITEMS DE SALIDA (CORREGIDO)
         const contenedorItems = document.getElementById('contenedor-items-salida');
-        const itemsElements = contenedorItems.querySelectorAll('.alert');
         
-        console.log('📦 Items encontrados:', itemsElements.length);
+        // 🔹 BUSCAR TODOS LOS DIVS QUE CONTENGAN INPUTS DE ITEMS
+        const itemsElements = contenedorItems.querySelectorAll('div[id^="item-salida-"]');
+        
+        console.log('📦 Items encontrados en DOM:', itemsElements.length);
         
         if (itemsElements.length === 0) {
             Swal.fire({
@@ -3439,10 +3454,20 @@ document.addEventListener('DOMContentLoaded', function() {
         let mensajeError = '';
         
         itemsElements.forEach((item, index) => {
+            console.log(`🔍 Procesando item ${index}:`, item.id);
+            
+            // 🔹 BUSCAR INPUTS DENTRO DEL ITEM
             const idProductoInput = item.querySelector('input[name*="[id_producto]"]');
             const idPedidoDetalleInput = item.querySelector('input[name*="[id_pedido_detalle]"]');
             const cantidadInput = item.querySelector('input[name*="[cantidad]"]');
-            const descripcionElement = item.querySelector('strong');
+            const descripcionInput = item.querySelector('input[name*="[descripcion]"]');
+            
+            console.log(`   Inputs encontrados:`, {
+                idProducto: idProductoInput ? 'SÍ' : 'NO',
+                idPedidoDetalle: idPedidoDetalleInput ? 'SÍ' : 'NO',
+                cantidad: cantidadInput ? 'SÍ' : 'NO',
+                descripcion: descripcionInput ? 'SÍ' : 'NO'
+            });
             
             if (!idProductoInput || !cantidadInput) {
                 console.warn(`⚠️ Item ${index} sin inputs necesarios`);
@@ -3452,13 +3477,37 @@ document.addEventListener('DOMContentLoaded', function() {
             const idProducto = parseInt(idProductoInput.value);
             const idPedidoDetalle = idPedidoDetalleInput ? parseInt(idPedidoDetalleInput.value) : 0;
             const cantidad = parseFloat(cantidadInput.value) || 0;
-            const descripcion = descripcionElement ? descripcionElement.textContent : `Producto ${idProducto}`;
+            
+            // 🔹 OBTENER DESCRIPCIÓN
+            let descripcion = '';
+            
+            if (descripcionInput) {
+                descripcion = descripcionInput.value;
+                // Limpiar si viene con "Descripción:"
+                if (descripcion.startsWith('Descripción:')) {
+                    descripcion = descripcion.replace('Descripción:', '').trim();
+                }
+            }
+            
+            // Si no hay input hidden, buscar en el DOM
+            if (!descripcion) {
+                const descripcionDiv = item.querySelector('div[style*="font-size: 12px"]');
+                if (descripcionDiv) {
+                    const textoCompleto = descripcionDiv.textContent || '';
+                    const match = textoCompleto.match(/Descripción:\s*(.+?)(?:\s*EDITANDO|\s*SALIDA|$)/);
+                    descripcion = match ? match[1].trim() : `Producto ${idProducto}`;
+                } else {
+                    descripcion = `Producto ${idProducto}`;
+                }
+            }
+            
             const cantidadMaxima = parseFloat(cantidadInput.getAttribute('max')) || 0;
             
-            console.log(`📦 Item ${index}:`, {
+            console.log(`📦 Item ${index} procesado:`, {
                 idProducto,
                 idPedidoDetalle,
                 cantidad,
+                descripcion: descripcion.substring(0, 50),
                 max: cantidadMaxima
             });
             
@@ -3550,27 +3599,39 @@ document.addEventListener('DOMContentLoaded', function() {
                     method: 'POST',
                     body: formData
                 })
-                .then(response => response.json())
+                .then(response => response.text())
                 .then(data => {
                     Swal.close();
                     
                     console.log('📥 Respuesta del servidor:', data);
                     
-                    if (data.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: '¡Salida Generada!',
-                            text: data.message,
-                            confirmButtonColor: '#28a745'
-                        }).then(() => {
-                            const idPedido = document.querySelector('input[name="id_pedido"]').value;
-                            window.location.href = `pedido_verificar.php?id=${idPedido}&success=salida_creada`;
-                        });
-                    } else {
+                    // ✅ IGUAL QUE ÓRDENES: Si empieza con "ERROR:"
+                    if (data.startsWith('ERROR:')) {
                         Swal.fire({
                             icon: 'error',
                             title: 'Error',
-                            text: data.message,
+                            html: `<div style="text-align: left;">${data.replace('ERROR:', '')}</div>`,
+                            confirmButtonColor: '#d33',
+                            confirmButtonText: 'Entendido'
+                        });
+                    } else if (data.trim() === 'SI') {
+                        // ✅ ÉXITO
+                        const successParam = `success=${modoEditarSalida ? 'salida_actualizada' : 'salida_creada'}`;
+                        Swal.fire({
+                            icon: 'success',
+                            title: modoEditarSalida ? '¡Salida Actualizada!' : '¡Salida Generada!',
+                            text: modoEditarSalida ? 'La salida se actualizó correctamente' : 'La salida se generó correctamente',
+                            confirmButtonColor: '#28a745'
+                        }).then(() => {
+                            const idPedido = document.querySelector('input[name="id_pedido"]').value;
+                            window.location.href = `pedido_verificar.php?id=${idPedido}&${successParam}`;
+                        });
+                    } else {
+                        // ✅ OTRO ERROR
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data || 'Ocurrió un error al procesar la solicitud',
                             confirmButtonColor: '#d33'
                         });
                     }
@@ -3587,7 +3648,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
 
         
     // ============================================
@@ -5221,7 +5281,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const salidaEditar = {
         id: <?php echo $salida_data['id_salida']; ?>,
         ndoc: '<?php echo $salida_data['ndoc_salida']; ?>',
-        fecha: '<?php echo $salida_data['fec_salida']; ?>',
+        fecha: '<?php echo $salida_data['fec_req_salida']; ?>',
         almacen_origen: <?php echo $salida_data['id_almacen_origen']; ?>,
         ubicacion_origen: <?php echo $salida_data['id_ubicacion_origen']; ?>,
         almacen_destino: <?php echo $salida_data['id_almacen_destino']; ?>,
