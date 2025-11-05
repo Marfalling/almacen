@@ -73,8 +73,10 @@ function AnularUso(id_uso_material) {
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="uso_material_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nuevo Uso</a>
-                        </div>
+                                <a href="uso_material_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
+                                    <i class="fa fa-plus"></i> Nuevo Uso
+                                </a>
+                            </div>
                         </div>
                     </div>
 

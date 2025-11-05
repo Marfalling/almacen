@@ -354,26 +354,22 @@
 
                             <div class="ln_solid"></div>
 
-                            <div class="form-group row">
-                                <div class="col-md-6 offset-md-3">
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <button type="reset" class="btn btn-outline-danger btn-block">
-                                                <i class="fa fa-eraser"></i> Limpiar
-                                            </button>
-                                        </div>
-                                        <div class="col-6">
-                                            <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">
-                                                <i class="fa fa-save"></i> Registrar Salida
-                                            </button>
-                                        </div>
-                                    </div>
+                            <!-- BOTONES -->
+                            <div class="form-group">
+                                <div class="col-md-2 col-sm-2 offset-md-8">
+                                    <a href="salidas_mostrar.php" class="btn btn-outline-danger btn-block">
+                                        Cancelar
+                                    </a>
+                                </div>
+                                <div class="col-md-2 col-sm-2">
+                                    <button type="submit" name="registrar" id="btn_registrar"
+                                        class="btn btn-success btn-block">Registrar</button>
                                 </div>
                             </div>
 
                             <div class="form-group">
                                 <div class="col-md-12 col-sm-12">
-                                    <p class="text-center"><span class="text-danger">*</span> Los campos con (<span class="text-danger">*</span>) son obligatorios.</p>
+                                    <p><span class="text-danger">*</span> Los campos con (<span class="text-danger">*</span>) son obligatorios.</p>
                                 </div>
                             </div>
                         </form>

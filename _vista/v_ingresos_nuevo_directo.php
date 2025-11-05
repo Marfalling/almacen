@@ -8,13 +8,6 @@
             <div class="title_left">
                 <h3>Nuevo Ingreso Directo <small>Sin Orden de Compra</small></h3>
             </div>
-            <div class="title_right">
-                <div class="pull-right">
-                    <a href="ingresos_mostrar.php" class="btn btn-outline-primary">
-                        <i class="fa fa-arrow-left"></i> Volver al Listado
-                    </a>
-                </div>
-            </div>
         </div>
 
         <div class="clearfix"></div>
@@ -128,11 +121,13 @@
 
                             <div class="form-group">
                                 <div class="col-md-2 col-sm-2 offset-md-8">
-                                    <button type="reset" class="btn btn-outline-danger btn-block">Limpiar</button>
+                                    <a href="ingresos_mostrar.php" class="btn btn-outline-danger btn-block">
+                                        Cancelar
+                                    </a>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
                                     <button type="submit" name="registrar" class="btn btn-success btn-block">
-                                        <i class="fa fa-save"></i> Registrar Ingreso
+                                        <i></i> Registrar 
                                     </button>
                                 </div>
                             </div>

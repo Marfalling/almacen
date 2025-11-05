@@ -8,13 +8,6 @@
             <div class="title_left">
                 <h3>Nueva Devolución</h3>
             </div>
-            <div class="title_right">
-                <div class="pull-right">
-                    <a href="devoluciones_mostrar.php" class="btn btn-outline-primary">
-                        <i class="fa fa-arrow-left"></i> Volver al Listado
-                    </a>
-                </div>
-            </div>
         </div>
 
         <div class="clearfix"></div>
@@ -143,21 +136,22 @@
 
                             <div class="ln_solid"></div>
 
-                            <!-- Botones -->
+                            <!-- BOTONES -->
                             <div class="form-group">
-                                <div class="col-md-2 offset-md-8">
-                                    <button type="reset" class="btn btn-outline-danger btn-block">Limpiar</button>
+                                <div class="col-md-2 col-sm-2 offset-md-8">
+                                    <a href="devoluciones_mostrar.php" class="btn btn-outline-danger btn-block">
+                                        Cancelar
+                                    </a>
                                 </div>
-                                <div class="col-md-2">
-                                    <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">
-                                        <i class="fa fa-save"></i> Registrar Devolución
-                                    </button>
+                                <div class="col-md-2 col-sm-2">
+                                    <button type="submit" name="registrar" id="btn_registrar"
+                                        class="btn btn-success btn-block">Registrar</button>
                                 </div>
                             </div>
 
                             <div class="form-group">
-                                <div class="col-md-12">
-                                    <p><span class="text-danger">*</span> Los campos obligatorios son requeridos.</p>
+                                <div class="col-md-12 col-sm-12">
+                                    <p><span class="text-danger">*</span> Los campos con (<span class="text-danger">*</span>) son obligatorios.</p>
                                 </div>
                             </div>
                         </form>

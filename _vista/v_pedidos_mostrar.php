@@ -61,7 +61,9 @@ function AprobarPedidoTecnica(id_pedido) {
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="pedidos_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nuevo Pedido</a>
+                                <a href="pedidos_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
+                                    <i class="fa fa-plus"></i> Nuevo Pedido
+                                </a>
                             </div>
                         </div>
                     </div>
