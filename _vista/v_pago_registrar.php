@@ -177,8 +177,8 @@ function AnularPago(id_pago) {
                         <h2>Pagos Registrados</h2>
                         <div class="pull-right">
                             <button
-                                class="btn btn-sm <?php echo ($oc['est_compra'] == 4) ? 'btn-outline-secondary disabled' : 'btn-outline-success'; ?>"
-                                <?php echo ($oc['est_compra'] == 4) ? 'disabled title="Esta compra está cerrada"' : 'data-toggle="modal" data-target="#modalRegistrarPago"'; ?>>
+                                class="btn btn-sm <?php echo ($oc['est_compra'] == 4 || $oc['est_compra'] == 3) ? 'btn-outline-secondary disabled' : 'btn-outline-success'; ?>"
+                                <?php echo ($oc['est_compra'] == 4 || $oc['est_compra'] == 3) ? 'disabled title="Esta compra está cerrada"' : 'data-toggle="modal" data-target="#modalRegistrarPago"'; ?>>
                                 <i class="fa fa-plus"></i> Registrar Pago
                             </button>
                         </div>

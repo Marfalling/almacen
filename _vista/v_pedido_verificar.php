@@ -329,7 +329,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
 
                                 <?php if (!$esAutoOrden && $esVerificado && isset($detalle['otras_ubicaciones_con_stock'])): ?>
                                 <div class="mt-2 p-2" style="background-color: #f8f9fa; border-radius: 4px; font-size: 11px; border-left: 3px solid <?php echo $colorBorde; ?>;">
-                                    <strong class="d-block mb-2" style="color: ;">
+                                    <strong class="d-block mb-2">
                                         <i class="fa fa-map-marker"></i> Stock por ubicaciones:
                                     </strong>
                                     
@@ -832,7 +832,6 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                                 <?php foreach ($pedido_compra as $compra) {
                                                     $estado_texto = '';
                                                     $estado_clase = '';
-                                                    $puede_agregar_pago = false;
 
                                                     switch ($compra['est_compra']) {
                                                         case 0:
@@ -918,21 +917,6 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                                                         title="<?php echo $mensaje; ?>"
                                                                         disabled>
                                                                     <i class="fa fa-edit"></i>
-                                                                </button>
-                                                            <?php } ?>
-
-                                                            <!-- Botón Registrar Pago -->
-                                                            <?php if ($puede_agregar_pago) { ?>
-                                                                <a href="pago_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
-                                                                class="btn btn-success btn-xs ml-1"
-                                                                title="Registrar Pago">
-                                                                    <i class="fa fa-money"></i>
-                                                                </a>
-                                                            <?php } else { ?>
-                                                                <button class="btn btn-outline-secondary btn-xs ml-1"
-                                                                        title="No disponible - Orden <?php echo strtolower($estado_texto); ?>"
-                                                                        disabled>
-                                                                    <i class="fa fa-money"></i>
                                                                 </button>
                                                             <?php } ?>
 
