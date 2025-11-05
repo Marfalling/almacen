@@ -747,6 +747,45 @@ function cargarProductos(tipoPedido = '') {
 }
 
 function seleccionarProducto(idProducto, nombreProducto, idUnidad, nombreUnidad) {
+    // ===== VALIDACIÓN ANTI-DUPLICADOS =====
+    const materialItems = document.querySelectorAll('.material-item');
+    let productoExistente = null;
+
+    materialItems.forEach(item => {
+        const inputId = item.querySelector('input[name="id_material[]"]');
+        const valorId = inputId ? inputId.value.trim() : '';
+        
+        // Validar que sea un número válido Y que coincida con el producto seleccionado
+        if (valorId !== '' && !isNaN(valorId) && parseInt(valorId) > 0 && parseInt(valorId) === parseInt(idProducto)) {
+            productoExistente = item;
+        }
+    });
+
+    if (productoExistente) {
+        // Producto ya existe → resaltarlo visualmente
+        productoExistente.classList.add('duplicado-resaltado');
+        productoExistente.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Quitar resaltado después de 2 segundos
+        setTimeout(() => productoExistente.classList.remove('duplicado-resaltado'), 2000);
+
+        // Cerrar modal
+        $('#buscar_producto').modal('hide');
+        
+        // Mostrar alerta
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Producto duplicado',
+                text: 'Este producto ya está agregado en el pedido',
+                showConfirmButton: false,
+                timer: 2000
+            });
+        }
+        
+        return; // Detiene aquí, no lo agrega de nuevo
+    }
+    // ===== FIN VALIDACIÓN =====
     if (currentSearchButton) {
         let materialItem = currentSearchButton.closest('.material-item');
         
@@ -787,6 +826,42 @@ function seleccionarProducto(idProducto, nombreProducto, idUnidad, nombreUnidad)
 }
 
 function seleccionarProductoCreado(producto) {
+    // ===== VALIDACIÓN ANTI-DUPLICADOS =====
+    const materialItems = document.querySelectorAll('.material-item');
+    let productoExistente = null;
+
+    materialItems.forEach(item => {
+        const inputId = item.querySelector('input[name="id_material[]"]');
+        const valorId = inputId ? inputId.value.trim() : '';
+        
+        // Validar que sea un número válido Y que coincida con el producto creado
+        if (valorId !== '' && !isNaN(valorId) && parseInt(valorId) > 0 && parseInt(valorId) === parseInt(producto.id_producto)) {
+            productoExistente = item;
+        }
+    });
+
+    if (productoExistente) {
+        // Producto ya existe → resaltarlo visualmente
+        productoExistente.classList.add('duplicado-resaltado');
+        productoExistente.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Quitar resaltado después de 2 segundos
+        setTimeout(() => productoExistente.classList.remove('duplicado-resaltado'), 2000);
+
+        // Mostrar alerta
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Producto duplicado',
+                text: 'Este producto ya está agregado en el pedido',
+                showConfirmButton: false,
+                timer: 2000
+            });
+        }
+        
+        return; // Detiene aquí, no lo agrega de nuevo
+    }
+    // ===== FIN VALIDACIÓN =====
     if (currentSearchButton) {
         let materialItem = currentSearchButton.closest('.material-item');
         
@@ -1082,12 +1157,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         input.value = '';
                         input.name = `archivos_${contadorMateriales}[]`;
                     } else if (input.type === 'hidden') {
-                        if (input.name === 'id_detalle[]') {
-                            input.value = '';
-                        } else if (input.name !== 'id_material[]') {
+                        // SIEMPRE limpiar id_material[] y id_detalle[]
+                        if (input.name === 'id_detalle[]' || input.name === 'id_material[]') {
                             input.value = '';
                         }
-                    } else if (input.name !== 'id_material[]') {
+                    } else {
+                        // Limpiar todos los demás inputs
                         input.value = '';
                     }
                 });
@@ -1516,3 +1591,12 @@ $('#buscar_producto').on('hidden.bs.modal', function () {
     currentSearchButton = null;
 });
 </script>
+
+<style>
+.duplicado-resaltado {
+    background-color: #ffe6e6 !important; /* rojo pálido */
+    border: 2px solid #ff4d4d !important;
+    box-shadow: 0 0 10px rgba(255, 77, 77, 0.6);
+    transition: all 0.3s ease;
+}
+</style>

@@ -199,14 +199,14 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                 // Determinar estado según ubicaciones
                                 if ($esAutoOrden) {
                                     // SERVICIOS 
-                                    $colorFondo = '#e3f2fd';
+                                    //$colorFondo = '#e3f2fd';
                                     $colorBorde = '#2196f3';
                                     $claseTexto = 'text-primary';
                                     $icono = 'fa-cog';
                                     $estadoTexto = 'Auto-Orden';
                                 } else if ($detalle['est_pedido_detalle'] == 2) {
                                     // Cerrado manualmente
-                                    $colorFondo = '#f8d7da';
+                                    //$colorFondo = '#f8d7da';
                                     $colorBorde = '#dc3545';
                                     $claseTexto = 'text-danger';
                                     $icono = 'fa-times-circle';
@@ -223,7 +223,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                     
                                     if ($stock_destino >= $cantidad_pedida) {
                                         // CASO 1: Stock completo en destino → PEDIDO FINALIZADO
-                                        $colorFondo = '#d1f2eb';
+                                        //$colorFondo = '#d1f2eb';
                                         $colorBorde = '#1abc9c';
                                         $claseTexto = 'text-success';
                                         $icono = 'fa-check-circle';
@@ -238,21 +238,21 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                         
                                         if ($cantidad_para_os > 0 && $cantidad_para_oc > 0) {
                                             // Mixto: OS + OC
-                                            $colorFondo = '#fff3cd';
+                                            //$colorFondo = '#fff3cd';
                                             $colorBorde = '#ffc107';
                                             $claseTexto = 'text-warning';
                                             $icono = 'fa-exchange';
                                             $estadoTexto = 'Verificado OS/OC';
                                         } else if ($cantidad_para_os > 0) {
                                             // Solo OS
-                                            $colorFondo = '#d4edda';
+                                            //$colorFondo = '#d4edda';
                                             $colorBorde = '#28a745';
                                             $claseTexto = 'text-success';
                                             $icono = 'fa-truck';
                                             $estadoTexto = 'Verificado OS';
                                         } else if ($cantidad_para_oc > 0) {
                                             // Solo OC
-                                            $colorFondo = '#f8d7da';
+                                            //$colorFondo = '#f8d7da';
                                             $colorBorde = '#dc3545';
                                             $claseTexto = 'text-danger';
                                             $icono = 'fa-shopping-cart';
@@ -260,7 +260,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                         }
                                     } else if ($esVerificado && $stock_otras_ubicaciones <= 0) {
                                         // CASO 3: Verificado pero sin stock → PENDIENTE OC
-                                        $colorFondo = '#f8d7da';
+                                        //$colorFondo = '#f8d7da';
                                         $colorBorde = '#dc3545';
                                         $claseTexto = 'text-danger';
                                         $icono = 'fa-shopping-cart';
@@ -268,14 +268,14 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                         $cantidad_para_oc = $cantidad_pedida - $stock_destino;
                                     } else if (!$esVerificado) {
                                         // CASO 4: No verificado → PENDIENTE VERIFICAR
-                                        $colorFondo = '#fff3cd';
+                                        //$colorFondo = '#fff3cd';
                                         $colorBorde = '#ffc107';
                                         $claseTexto = 'text-warning';
                                         $icono = 'fa-clock-o';
                                         $estadoTexto = 'Pendiente Verificar';
                                     } else {
                                         // Default
-                                        $colorFondo = '#e9ecef';
+                                        //$colorFondo = '#e9ecef';
                                         $colorBorde = '#6c757d';
                                         $claseTexto = 'text-secondary';
                                         $icono = 'fa-info-circle';
@@ -329,13 +329,13 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
 
                                 <?php if (!$esAutoOrden && $esVerificado && isset($detalle['otras_ubicaciones_con_stock'])): ?>
                                 <div class="mt-2 p-2" style="background-color: #f8f9fa; border-radius: 4px; font-size: 11px; border-left: 3px solid <?php echo $colorBorde; ?>;">
-                                    <strong class="d-block mb-2" style="color: <?php echo $colorBorde; ?>;">
+                                    <strong class="d-block mb-2" style="color: ;">
                                         <i class="fa fa-map-marker"></i> Stock por ubicaciones:
                                     </strong>
                                     
                                     <!-- Ubicación destino -->
                                     <div class="mb-2 p-1" style="background-color: #fff; border-radius: 3px;">
-                                        <span class="badge badge-<?php echo $stock_destino >= $cantidad_pedida ? 'success' : 'warning'; ?>" style="font-size: 10px;">
+                                        <span style="font-size: 10px;">
                                             🎯 <?php echo htmlspecialchars($pedido['nom_ubicacion']); ?> (Destino)
                                         </span>
                                         <strong class="ml-2"><?php echo number_format($stock_destino, 2); ?></strong>
@@ -350,7 +350,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                             </small>
                                             <?php foreach ($detalle['otras_ubicaciones_con_stock'] as $ub): ?>
                                                 <div class="ml-3 mb-1" style="font-size: 10px;">
-                                                    <span class="badge badge-info" style="font-size: 9px;">
+                                                    <span style="font-size: 9px;">
                                                         <?php echo htmlspecialchars($ub['nom_ubicacion']); ?>
                                                     </span>
                                                     <strong><?php echo number_format($ub['stock'], 2); ?></strong> unidades
@@ -676,7 +676,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                                     $ordenado_os = isset($detalle['cantidad_ya_ordenada_os']) ? floatval($detalle['cantidad_ya_ordenada_os']) : 0;
                                                     $pendiente_os = $cant_os_verificada - $ordenado_os;
                                                 ?>
-                                                    <div style="background: #d4edda; padding: 3px 8px; border-radius: 3px; margin-bottom: 4px; color: #333;">
+                                                    <div style="background: #ffffffff; padding: 3px 8px; border-radius: 3px; margin-bottom: 4px; color: #333;">
                                                         <strong>📦 OS:</strong>
                                                         <span><strong>Verificado:</strong> <?php echo number_format($cant_os_verificada, 2); ?></span>
                                                         
@@ -700,7 +700,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                                     $ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                                     $pendiente_oc = $cant_oc_verificada - $ordenado_oc;
                                                 ?>
-                                                    <div style="background: #cfe2ff; padding: 3px 8px; border-radius: 3px; color: #333;">
+                                                    <div style="background: #ffffffff; padding: 3px 8px; border-radius: 3px; color: #333;">
                                                         <strong>🛒 OC:</strong>
                                                         <span><strong>Verificado:</strong> <?php echo number_format($cant_oc_verificada, 2); ?></span>
                                                         
