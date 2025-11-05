@@ -97,7 +97,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
             <div class="col-md-6">
                 <div class="x_panel">
                     <div class="x_title" style="padding: 8px 15px;">
-                        <h2 style="margin: 0; font-size: 16px;">Items <small id="contador-pendientes">(<?php echo "Cantidad: " . count($pedido_detalle); ?>)</small></h2>
+                        <h2 style="margin: 0; font-size: 16px;">Productos <small id="contador-pendientes">(<?php echo "Cantidad: " . count($pedido_detalle); ?>)</small></h2>
                         <?php if ($pedido_anulado): ?>
                             <span class="badge badge-danger ml-2">PEDIDO ANULADO</span>
                         <?php endif; ?>
@@ -309,7 +309,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                 
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="<?php echo $claseTexto; ?>" style="font-weight: 600; font-size: 14px;">
-                                        <i class="fa <?php echo $icono; ?>"></i> Item <?php echo $contador_detalle; ?> - <?php echo $estadoTexto; ?>
+                                        <i class="fa <?php echo $icono; ?>"></i> Producto <?php echo $contador_detalle; ?> - <?php echo $estadoTexto; ?>
                                     </span>
 
                                     <!-- a evaluar si se muestra 
@@ -1254,7 +1254,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                                                     }
                                                                     ?>
                                                                 </div>
-                                                                <small class="form-text text-muted">Se aplica sobre el subtotal antes de IGV</small>
+                                                                <small class="form-text text-muted">Se aplica sobre el total después de IGV</small>
                                                             </div>
 
                                                             <!-- RETENCIÓN -->
@@ -2367,7 +2367,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>`;
         });
         htmlUbicaciones += '</div>';
-        
+
         itemElement.innerHTML = `
             <input type="hidden" name="items_salida[${itemId}][id_detalle]" value="${item.idDetalle}">
             <input type="hidden" name="items_salida[${itemId}][id_producto]" value="${item.idProducto}">
@@ -3293,54 +3293,58 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function configurarValidacionTiempoRealSalidas() {
-        document.addEventListener('input', function(event) {
-            if (event.target.classList.contains('cantidad-salida')) {
-                const cantidadInput = event.target;
-                const itemElement = cantidadInput.closest('[id^="item-salida-"]');
+    document.addEventListener('input', function(event) {
+        if (event.target.classList.contains('cantidad-salida')) {
+            const cantidadInput = event.target;
+            const itemElement = cantidadInput.closest('[id^="item-salida-"]');
+            
+            if (!itemElement) return;
+            
+            const cantidadIngresada = parseFloat(cantidadInput.value) || 0;
+            
+            // 🔹 Obtener datos del data-attribute
+            const cantidadVerificada = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
+            const cantidadOrdenada = parseFloat(cantidadInput.getAttribute('data-cantidad-ordenada')) || 0;
+            const cantidadMaxima = cantidadVerificada - cantidadOrdenada;
+            
+            if (cantidadIngresada > cantidadMaxima) {
+                cantidadInput.style.borderColor = '#dc3545';
+                cantidadInput.style.backgroundColor = '#f8d7da';
                 
-                if (!itemElement) return;
-                
-                const cantidadIngresada = parseFloat(cantidadInput.value) || 0;
-                const cantidadMaxima = parseFloat(cantidadInput.getAttribute('max')) || 0;
-                
-                if (cantidadIngresada > cantidadMaxima) {
-                    cantidadInput.style.borderColor = '#dc3545';
-                    cantidadInput.style.backgroundColor = '#f8d7da';
-                    
-                    let tooltip = itemElement.querySelector('.tooltip-error-cantidad-salida');
-                    if (!tooltip) {
-                        tooltip = document.createElement('small');
-                        tooltip.className = 'tooltip-error-cantidad-salida text-danger';
-                        tooltip.style.display = 'block';
-                        tooltip.style.fontSize = '11px';
-                        tooltip.style.marginTop = '2px';
-                        cantidadInput.parentElement.appendChild(tooltip);
-                    }
-                    tooltip.textContent = `⚠ Excede máximo: ${cantidadMaxima.toFixed(2)}`;
-                } else if (cantidadIngresada <= 0) {
-                    cantidadInput.style.borderColor = '#dc3545';
-                    cantidadInput.style.backgroundColor = '#f8d7da';
-                    
-                    let tooltip = itemElement.querySelector('.tooltip-error-cantidad-salida');
-                    if (!tooltip) {
-                        tooltip = document.createElement('small');
-                        tooltip.className = 'tooltip-error-cantidad-salida text-danger';
-                        tooltip.style.display = 'block';
-                        tooltip.style.fontSize = '11px';
-                        tooltip.style.marginTop = '2px';
-                        cantidadInput.parentElement.appendChild(tooltip);
-                    }
-                    tooltip.textContent = `⚠ La cantidad debe ser mayor a 0`;
-                } else {
-                    cantidadInput.style.borderColor = '#28a745';
-                    cantidadInput.style.backgroundColor = '#d4edda';
-                    
-                    const tooltip = itemElement.querySelector('.tooltip-error-cantidad-salida');
-                    if (tooltip) tooltip.remove();
+                let tooltip = itemElement.querySelector('.tooltip-error-cantidad-salida');
+                if (!tooltip) {
+                    tooltip = document.createElement('small');
+                    tooltip.className = 'tooltip-error-cantidad-salida text-danger';
+                    tooltip.style.display = 'block';
+                    tooltip.style.fontSize = '11px';
+                    tooltip.style.marginTop = '2px';
+                    cantidadInput.parentElement.appendChild(tooltip);
                 }
+                tooltip.textContent = `⚠ Excede máximo: ${cantidadMaxima.toFixed(2)}`;
+            } else if (cantidadIngresada <= 0) {
+                cantidadInput.style.borderColor = '#dc3545';
+                cantidadInput.style.backgroundColor = '#f8d7da';
+                
+                let tooltip = itemElement.querySelector('.tooltip-error-cantidad-salida');
+                if (!tooltip) {
+                    tooltip = document.createElement('small');
+                    tooltip.className = 'tooltip-error-cantidad-salida text-danger';
+                    tooltip.style.display = 'block';
+                    tooltip.style.fontSize = '11px';
+                    tooltip.style.marginTop = '2px';
+                    cantidadInput.parentElement.appendChild(tooltip);
+                }
+                tooltip.textContent = `⚠ La cantidad debe ser mayor a 0`;
+            } else {
+                cantidadInput.style.borderColor = '#28a745';
+                cantidadInput.style.backgroundColor = '#d4edda';
+                
+                const tooltip = itemElement.querySelector('.tooltip-error-cantidad-salida');
+                if (tooltip) tooltip.remove();
             }
-        });
-    }
+        }
+    });
+}
 
     // ============================================
     // VALIDACIÓN DE FORMULARIO SALIDA (CORREGIDO)

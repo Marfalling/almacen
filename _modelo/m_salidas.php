@@ -290,6 +290,30 @@ function ActualizarSalida($id_salida, $id_almacen_origen, $id_ubicacion_origen,
 
     error_log("🔧 ActualizarSalida - ID Salida: $id_salida");
     error_log("🔍 Materiales recibidos: " . print_r($materiales, true));
+    
+    //  OBTENER ID_PEDIDO DE LA SALIDA
+    $sql_pedido = "SELECT id_pedido FROM salida WHERE id_salida = $id_salida";
+    $res_pedido = mysqli_query($con, $sql_pedido);
+    $row_pedido = mysqli_fetch_assoc($res_pedido);
+    $id_pedido = $row_pedido ? intval($row_pedido['id_pedido']) : 0;
+    
+    if ($id_pedido <= 0) {
+        mysqli_close($con);
+        return "ERROR: No se encontró el pedido asociado a esta salida";
+    }
+    
+    error_log(" ID Pedido obtenido: $id_pedido");
+    
+    //  VALIDAR CANTIDADES ANTES DE ACTUALIZAR
+    $errores = ValidarCantidadesSalida($id_pedido, $materiales, $id_salida);
+    
+    if (!empty($errores)) {
+        error_log(" Errores de validación: " . implode(", ", $errores));
+        mysqli_close($con);
+        return "ERROR: " . implode(". ", $errores);
+    }
+    
+    error_log(" Validación pasada, continuando con actualización...");
 
     $ndoc_salida = mysqli_real_escape_string($con, $ndoc_salida);
     $fec_req_salida = mysqli_real_escape_string($con, $fec_req_salida);
@@ -972,4 +996,100 @@ function ConsultarSalidasPorPedido($id_pedido) {
     mysqli_close($con);
     
     return $salidas;
+}
+/**
+ * Validar cantidades al actualizar/crear salidas (similar a OC)
+ * Verifica que no se exceda la cantidad verificada para OS
+ */
+function ValidarCantidadesSalida($id_pedido, $items_salida, $id_salida_actual = null)
+{
+    include("../_conexion/conexion.php");
+    
+    $errores = array();
+    
+    error_log(" ValidarCantidadesSalida - Pedido: $id_pedido | Salida actual: " . ($id_salida_actual ?? 'NUEVA'));
+    
+    foreach ($items_salida as $key => $item) {
+        //  OBTENER id_pedido_detalle
+        $id_pedido_detalle = 0;
+        
+        if (is_numeric($key)) {
+            $id_pedido_detalle = isset($item['id_pedido_detalle']) ? intval($item['id_pedido_detalle']) : 0;
+        } else {
+            $id_pedido_detalle = isset($item['id_pedido_detalle']) ? intval($item['id_pedido_detalle']) : 0;
+        }
+        
+        $cantidad_nueva = floatval($item['cantidad']);
+        
+        error_log("    Validando detalle ID: $id_pedido_detalle | Cantidad nueva: $cantidad_nueva | Key: $key");
+        
+        if ($id_pedido_detalle <= 0) {
+            error_log("    ADVERTENCIA: id_pedido_detalle no válido para key $key");
+            continue;
+        }
+        
+        // 🔹 Obtener cantidad verificada para OS de ESTE detalle específico
+        $sql_verificada = "SELECT cant_os_pedido_detalle, id_producto
+                           FROM pedido_detalle 
+                           WHERE id_pedido_detalle = $id_pedido_detalle
+                           LIMIT 1";
+        $res = mysqli_query($con, $sql_verificada);
+        $row = mysqli_fetch_assoc($res);
+        
+        if (!$row || $row['cant_os_pedido_detalle'] === null) {
+            error_log("    Detalle ID $id_pedido_detalle no está verificado para OS");
+            $errores[] = "El detalle ID $id_pedido_detalle no está verificado para orden de salida";
+            continue;
+        }
+        
+        $cant_verificada_os = floatval($row['cant_os_pedido_detalle']);
+        $id_producto = intval($row['id_producto']);
+        
+        error_log("    Cantidad verificada OS: $cant_verificada_os | Producto ID: $id_producto");
+        
+        //  CALCULAR CANTIDAD YA ORDENADA EN SALIDAS PARA ESTE DETALLE
+        $where_salida = "";
+        if ($id_salida_actual) {
+            $where_salida = "AND s.id_salida != $id_salida_actual";
+        }
+        
+        $sql_ordenada = "SELECT COALESCE(SUM(sd.cant_salida_detalle), 0) as total_ordenado
+                         FROM salida_detalle sd
+                         INNER JOIN salida s ON sd.id_salida = s.id_salida
+                         WHERE sd.id_pedido_detalle = $id_pedido_detalle
+                         AND s.est_salida != 0
+                         AND sd.est_salida_detalle = 1
+                         $where_salida";
+        
+        error_log("    SQL Ordenada OS: $sql_ordenada");
+        
+        $res_ord = mysqli_query($con, $sql_ordenada);
+        $row_ord = mysqli_fetch_assoc($res_ord);
+        $ya_ordenado_os = floatval($row_ord['total_ordenado']);
+        
+        error_log("    Ya ordenado OS (sin esta salida): $ya_ordenado_os");
+        
+        // 🔹 Validación: la cantidad nueva + ya ordenado NO debe exceder lo verificado para OS
+        $disponible = $cant_verificada_os - $ya_ordenado_os;
+        $nuevo_total = $ya_ordenado_os + $cantidad_nueva;
+        
+        error_log("    Disponible OS: $disponible | Nuevo total: $nuevo_total");
+        
+        if ($cantidad_nueva > $disponible) {
+            error_log("    EXCEDE - Disponible OS: $disponible | Intentas: $cantidad_nueva");
+            
+            //  OBTENER DESCRIPCIÓN DEL PRODUCTO
+            $sql_desc = "SELECT nom_producto FROM producto WHERE id_producto = $id_producto";
+            $res_desc = mysqli_query($con, $sql_desc);
+            $row_desc = mysqli_fetch_assoc($res_desc);
+            $descripcion = $row_desc ? $row_desc['nom_producto'] : "Producto ID $id_producto";
+            
+            $errores[] = "$descripcion (Detalle $id_pedido_detalle): Cantidad excede lo verificado para OS. Verificado OS: $cant_verificada_os, Ya ordenado: $ya_ordenado_os, Disponible: $disponible, Intentaste ordenar: $cantidad_nueva";
+        } else {
+            error_log("    VÁLIDO");
+        }
+    }
+    
+    mysqli_close($con);
+    return $errores;
 }
