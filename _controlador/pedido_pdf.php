@@ -72,6 +72,8 @@ $almacen = $pedido['nom_almacen'] ?? '';
 $ubicacion = $pedido['nom_ubicacion'] ?? '';
 $aclaraciones = $pedido['acl_pedido'] ?? 'Sin aclaraciones especiales';
 
+$es_servicio = ($pedido['id_producto_tipo'] == 2);
+
 // Función para verificar si es imagen
 function esImagen($filename) {
     $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
@@ -96,7 +98,6 @@ function imagenABase64($rutaImagen) {
     return 'data:' . $tipoMime . ';base64,' . base64_encode($datosImagen);
 }
 
-// CORREGIDO: Preparar detalles del pedido con la estructura correcta
 $detalles_html = '';
 $item = 1;
 $todos_requisitos = array();
@@ -109,6 +110,20 @@ foreach ($pedido_detalle as $detalle) {
         $ot_material = htmlspecialchars($detalle['ot_pedido_detalle'], ENT_QUOTES, 'UTF-8');
     }
     
+    // Obtener personal asignado a este detalle
+    $personal_asignado = array();
+    if ($es_servicio) {
+        $personal_info = ObtenerPersonalDetalleCompleto($detalle['id_pedido_detalle']);
+        
+        if (!empty($personal_info)) {
+            foreach ($personal_info as $persona) {
+                $nombre_completo = htmlspecialchars($persona['nom_personal'], ENT_QUOTES, 'UTF-8');
+                $cargo = !empty($persona['nom_cargo']) ? ' - ' . htmlspecialchars($persona['nom_cargo'], ENT_QUOTES, 'UTF-8') : '';
+                $personal_asignado[] = $nombre_completo . $cargo;
+            }
+        }
+    }
+    
     // Construir comentarios completos
     $comentarios_array = array();
     
@@ -116,9 +131,14 @@ foreach ($pedido_detalle as $detalle) {
         $comentarios_array[] = htmlspecialchars($detalle['com_pedido_detalle'], ENT_QUOTES, 'UTF-8');
     }
     
+    //  Agregar personal asignado a los comentarios si existe
+    if (!empty($personal_asignado)) {
+        $comentarios_array[] = "<strong>PERSONAL ASIGNADO:</strong><br>" . implode("<br>", $personal_asignado);
+    }
+    
     if (!empty($detalle['req_pedido'])) {
         $requisitos = str_replace('|', ' / ', $detalle['req_pedido']);
-        $comentarios_array[] = "REQUISITOS: " . htmlspecialchars($requisitos, ENT_QUOTES, 'UTF-8');
+        $comentarios_array[] = "<strong>REQUISITOS:</strong> " . htmlspecialchars($requisitos, ENT_QUOTES, 'UTF-8');
         
         // Recopilar requisitos únicos
         $req_parts = explode('|', $detalle['req_pedido']);
@@ -130,7 +150,7 @@ foreach ($pedido_detalle as $detalle) {
         }
     }
     
-    $comentarios = implode("<br>", $comentarios_array);
+    $comentarios = implode("<br><br>", $comentarios_array); // Doble salto de línea para mejor separación
     
     // Preparar cantidad con unidad
     $cantidad_text = number_format($detalle['cant_pedido_detalle'], 0);

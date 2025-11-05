@@ -252,6 +252,29 @@ $html = '
         .detalles-table tbody tr:hover {
             background-color: #f0f0f0;
         }
+
+        /* ESTILOS PARA PERSONAL */
+        .comentarios-texto strong {
+            color: #000;
+            font-weight: bold;
+            font-size: 9pt;
+        }
+        
+        .personal-item {
+            margin-left: 10px;
+            line-height: 1.6;
+            padding: 2px 0;
+        }
+        
+        .personal-separador {
+            margin: 8px 0;
+            border-top: 1px dashed #ccc;
+        }
+        
+        /* espaciado entre secciones de comentarios */
+        .comentarios-texto > div {
+            margin-bottom: 8px;
+        }
         
         /* Mejores márgenes para elementos internos */
         table {
