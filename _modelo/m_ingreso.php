@@ -1202,7 +1202,7 @@ function ActualizarCompromisoPedido($id_compra, $id_producto, $cantidad_ingresad
     $estado_actual_pedido = $info['est_pedido'];
 
     // 3️⃣ Insertar movimiento comprometido (tipo_orden=5, tipo_movimiento=2)
-    $sql_insert = "INSERT INTO movimiento (
+    /*$sql_insert = "INSERT INTO movimiento (
                         id_personal, id_orden, id_producto, id_almacen,
                         id_ubicacion, tipo_orden, tipo_movimiento,
                         cant_movimiento, fec_movimiento, est_movimiento
@@ -1211,7 +1211,7 @@ function ActualizarCompromisoPedido($id_compra, $id_producto, $cantidad_ingresad
                         '$id_ubicacion', 5, 2,
                         '$cantidad_ingresada', NOW(), 1
                     )";
-    mysqli_query($con, $sql_insert);
+    mysqli_query($con, $sql_insert);*/
 
     // 4️⃣ Verificar si el pedido ya está totalmente ingresado
     $sql_total_pedido = "SELECT COALESCE(SUM(cant_pedido_detalle), 0) AS total_pedido

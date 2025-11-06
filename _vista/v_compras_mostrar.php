@@ -73,7 +73,11 @@ function AprobarCompraFinanciera(id_compra) {
     });
 }
 
-function AnularCompra(id_compra, id_pedido) {
+//==============================================
+//ANTIGUA FUNCION ANULACION OC Y PEDIDO
+//==============================================
+
+/*function AnularCompra(id_compra, id_pedido) {
     Swal.fire({
         title: '¿Qué deseas anular?',
         text: "Selecciona una opción:",
@@ -125,6 +129,134 @@ function AnularCompra(id_compra, id_pedido) {
                     Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
                 }
             });
+        }
+    });
+}*/
+
+//==============================================
+//NUEVA FUNCION ANULACION OC Y PEDIDO
+//==============================================
+
+function AnularCompra(id_compra, id_pedido) {
+    // Primero validar si el pedido tiene otras OC o salidas
+    $.ajax({
+        url: 'compras_validar_anulacion.php',
+        type: 'POST',
+        data: { 
+            id_compra: id_compra, 
+            id_pedido: id_pedido 
+        },
+        dataType: 'json',
+        success: function(validacion) {
+                
+            if (validacion.error) {
+                Swal.fire('Error', validacion.mensaje, 'error');
+                return;
+            }
+
+            // CASO 1: Pedido tiene otras OC o salidas → SOLO ANULAR OC
+            if (validacion.tiene_otras_oc || validacion.tiene_salidas) {
+                    
+                let mensaje_restriccion = "No se puede anular el pedido completo porque:\n\n";
+                    
+                if (validacion.tiene_otras_oc) {
+                    mensaje_restriccion += `• Tiene ${validacion.total_otras_oc} orden(es) de compra adicional(es)\n`;
+                }
+                    
+                if (validacion.tiene_salidas) {
+                    mensaje_restriccion += `• Tiene ${validacion.total_salidas} orden(es) de salida registrada(s)\n`;
+                }
+                    
+                mensaje_restriccion += "\n¿Deseas anular solo esta Orden de Compra?";
+
+                Swal.fire({
+                    title: '¿Seguro que deseas anular esta O/C?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sí, anular O/C',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        anularSoloOC(id_compra);
+                    }
+                });
+
+            } 
+            // CASO 2: Pedido sin restricciones → MOSTRAR AMBAS OPCIONES
+            else {
+                    
+                Swal.fire({
+                    title: '¿Qué deseas anular?',
+                    text: "Selecciona una opción:",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonColor: '#d33',
+                    denyButtonColor: '#3085d6',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Solo O/C',
+                    denyButtonText: 'O/C y Pedido',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        anularSoloOC(id_compra);
+                    } else if (result.isDenied) {
+                        anularOCyPedido(id_compra, id_pedido);
+                    }
+                });
+            }
+        },
+        error: function() {
+            Swal.fire('Error', 'No se pudo validar la anulación. Intente nuevamente.', 'error');
+        }
+    });
+}
+
+// Anular solo OC
+function anularSoloOC(id_compra) {
+    $.ajax({
+        url: 'compras_anular.php',
+        type: 'POST',
+        data: { id_compra: id_compra },
+        dataType: 'json',
+        success: function(response) {
+            if (response.tipo_mensaje === 'success') {
+                Swal.fire('¡Anulado!', response.mensaje, 'success').then(() => {
+                    location.reload();
+                });
+            } else {
+                Swal.fire('Error', response.mensaje, 'error');
+            }
+        },
+        error: function() {
+            Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+        }
+    });
+}
+
+// Anular OC y Pedido
+function anularOCyPedido(id_compra, id_pedido) {
+    $.ajax({
+        url: 'compras_pedido_anular.php',
+        type: 'POST',
+        data: { 
+            id_compra: id_compra, 
+            id_pedido: id_pedido 
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.tipo_mensaje === 'success') {
+                Swal.fire('¡Anulado!', response.mensaje, 'success').then(() => {
+                    location.reload();
+                });
+            } else {
+                Swal.fire('Error', response.mensaje, 'error');
+            }
+        },
+        error: function() {
+            Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
         }
     });
 }

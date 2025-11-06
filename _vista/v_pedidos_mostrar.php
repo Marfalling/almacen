@@ -148,13 +148,13 @@ function AprobarPedidoTecnica(id_pedido) {
                                                             <?php } elseif ($pedido['est_pedido'] == 1) { ?>
                                                                 <span class="badge badge-warning badge_size">PENDIENTE</span>
                                                             <?php } elseif ($pedido['est_pedido'] == 2) { ?>
-                                                                <span class="badge badge-info badge_size">COMPLETADO</span>
+                                                                <span class="badge badge-info badge_size">ATENDIDO</span>
                                                             <?php } elseif ($pedido['est_pedido'] == 3) { ?>
-                                                                <span class="badge badge-primary badge_size">APROBADO</span>
+                                                                <span class="badge badge-warning badge_size">PENDIENTE</span>
                                                             <?php } elseif ($pedido['est_pedido'] == 4) { ?>
-                                                                <span class="badge badge-success badge_size">INGRESADO</span>
+                                                                <span class="badge badge-warning badge_size">PENDIENTE</span>
                                                             <?php } elseif ($pedido['est_pedido'] == 5) { ?>
-                                                                <span class="badge badge-dark badge_size">FINALIZADO</span>
+                                                                <span class="badge badge-warning badge_size">PENDIENTE</span>
                                                             <?php } else { ?>
                                                                 <span class="badge badge-secondary badge_size">DESCONOCIDO</span>
                                                             <?php } ?>
@@ -300,10 +300,9 @@ if ($puede_editar) { ?>
 // - NO está finalizado (5)
 
 $puede_gestionar = (
-    ($pedido['est_pedido'] == 1 || $pedido['est_pedido'] == 3 || $pedido['est_pedido'] == 4) 
+    ($pedido['est_pedido'] == 1 ||  $pedido['est_pedido'] == 2 || $pedido['est_pedido'] == 3 || $pedido['est_pedido'] == 4) 
     && $pedido['est_pedido'] != 0
     && $pedido['est_pedido'] != 5
-    && $pedido['est_pedido'] != 2
 );
 
 

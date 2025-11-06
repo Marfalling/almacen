@@ -106,15 +106,19 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
 
          // Si proviene de un pedido, liberar compromisos de stock
         if ($id_pedido && $id_pedido > 0) {
-            $sql_liberar = "UPDATE movimiento 
+            /*$sql_liberar = "UPDATE movimiento 
                             SET est_movimiento = 0 
                             WHERE tipo_orden = 5 
                               AND id_orden = $id_pedido 
                               AND est_movimiento = 1";
-            mysqli_query($con, $sql_liberar);
+            mysqli_query($con, $sql_liberar);*/
+
+            require_once("../_modelo/m_pedidos.php");
+            ActualizarEstadoPedido($id_pedido);
         }
         
         mysqli_close($con);
+
         return array(
             'success' => true,
             'id_salida' => intval($id_salida)
@@ -295,22 +299,24 @@ function ActualizarSalida($id_salida, $id_almacen_origen, $id_ubicacion_origen,
     $sql_pedido = "SELECT id_pedido FROM salida WHERE id_salida = $id_salida";
     $res_pedido = mysqli_query($con, $sql_pedido);
     $row_pedido = mysqli_fetch_assoc($res_pedido);
-    $id_pedido = $row_pedido ? intval($row_pedido['id_pedido']) : 0;
     
-    if ($id_pedido <= 0) {
-        mysqli_close($con);
-        return "ERROR: No se encontró el pedido asociado a esta salida";
+    $id_pedido = null;
+    if ($row_pedido && $row_pedido['id_pedido'] !== null) {
+        $id_pedido = intval($row_pedido['id_pedido']);
     }
     
-    error_log(" ID Pedido obtenido: $id_pedido");
+    error_log("📋 ID Pedido obtenido: " . ($id_pedido !== null ? $id_pedido : 'NULL (sin pedido asociado)'));
     
     //  VALIDAR CANTIDADES ANTES DE ACTUALIZAR
-    $errores = ValidarCantidadesSalida($id_pedido, $materiales, $id_salida);
-    
-    if (!empty($errores)) {
-        error_log(" Errores de validación: " . implode(", ", $errores));
-        mysqli_close($con);
-        return "ERROR: " . implode(". ", $errores);
+    if ($id_pedido !== null && $id_pedido > 0) {
+        $errores = ValidarCantidadesSalida($id_pedido, $materiales, $id_salida);
+        if (!empty($errores)){ 
+            error_log(" Errores de validación: " . implode(", ", $errores));
+            mysqli_close($con);
+            return "ERROR: " . implode(". ", $errores);
+        }
+    } else {
+        error_log("⚠️ Sin pedido asociado, omitiendo validación");
     }
     
     error_log(" Validación pasada, continuando con actualización...");
@@ -505,6 +511,18 @@ function ActualizarSalida($id_salida, $id_almacen_origen, $id_ubicacion_origen,
         }
 
         error_log("✅ Total de productos procesados: $contador");
+
+        // ============================================================
+        // 🔹 ACTUALIZAR ESTADO DEL PEDIDO (SOLO SI EXISTE)
+        // ============================================================
+        if ($id_pedido !== null && $id_pedido > 0) {
+            error_log("📋 Actualizando estado del pedido: $id_pedido");
+            require_once("../_modelo/m_pedidos.php");
+            ActualizarEstadoPedido($id_pedido);
+            error_log("✅ Estado del pedido actualizado");
+        } else {
+            error_log("⚠️ Sin pedido asociado, omitiendo actualización de estado");
+        }
 
         mysqli_close($con);
         error_log("✅ ActualizarSalida completado exitosamente");
@@ -822,6 +840,17 @@ function AnularSalida($id_salida, $id_usuario_anulacion = null)
 
             $sql_reactivar = "UPDATE movimiento SET est_movimiento = 1 WHERE tipo_orden = 5 AND id_orden = $id_pedido";
             if (!mysqli_query($con, $sql_reactivar)) throw new Exception("Error al reactivar compromisos del pedido: " . mysqli_error($con));
+
+            // ============================================================
+            // 🔹 ACTUALIZAR ESTADO DEL PEDIDO
+            // ============================================================
+            error_log("📋 Actualizando estado del pedido: $id_pedido");
+            require_once("../_modelo/m_pedidos.php");
+            ActualizarEstadoPedido($id_pedido);
+            error_log("✅ Estado del pedido actualizado");
+
+        } else {
+            error_log("⚠️ Sin pedido asociado, omitiendo reactivación de compromisos y actualización de estado");
         }
 
         mysqli_commit($con);

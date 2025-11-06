@@ -127,9 +127,9 @@ try {
         include("../_conexion/conexion.php");
         
         $sql_pedido = "SELECT p.id_pedido, p.est_pedido 
-                      FROM compra c
-                      INNER JOIN pedido p ON c.id_pedido = p.id_pedido
-                      WHERE c.id_compra = $id_compra";
+                    FROM compra c
+                    INNER JOIN pedido p ON c.id_pedido = p.id_pedido
+                    WHERE c.id_compra = $id_compra";
         $res_pedido = mysqli_query($con, $sql_pedido);
         
         if ($res_pedido && mysqli_num_rows($res_pedido) > 0) {
@@ -138,11 +138,48 @@ try {
             $estado_actual_pedido = $pedido_data['est_pedido'];
             
             if ($estado_actual_pedido == 3) {
-                $sql_update_pedido = "UPDATE pedido SET est_pedido = 4 WHERE id_pedido = $id_pedido_asociado";
-                mysqli_query($con, $sql_update_pedido);
+                
+                // Verificar si se completó el 100% del ingreso
+                $sql_verificar = "
+                    SELECT 
+                        (SELECT SUM(ppd2.cant_oc_pedido_detalle) 
+                        FROM pedido_detalle ppd2 
+                        WHERE ppd2.id_pedido = $id_pedido_asociado
+                        AND ppd2.est_pedido_detalle = 2 
+                        AND ppd2.cant_oc_pedido_detalle > 0
+                        ) as total_requerido,
+                        
+                        COALESCE(
+                            (SELECT SUM(id2.cant_ingreso_detalle) 
+                            FROM compra c2 
+                            INNER JOIN ingreso i2 ON c2.id_compra = i2.id_compra 
+                            INNER JOIN ingreso_detalle id2 ON i2.id_ingreso = id2.id_ingreso 
+                            WHERE c2.id_pedido = $id_pedido_asociado
+                            AND i2.est_ingreso = 1 
+                            AND id2.est_ingreso_detalle = 1
+                            ), 0
+                        ) as total_ingresado
+                ";
+                
+                $res_verificar = mysqli_query($con, $sql_verificar);
+                
+                if ($res_verificar && mysqli_num_rows($res_verificar) > 0) {
+                    $row = mysqli_fetch_assoc($res_verificar);
+                    $total_requerido = floatval($row['total_requerido']);
+                    $total_ingresado = floatval($row['total_ingresado']);
+                    
+                    // Actualizar a estado 4 solo si está completo al 100%
+                    if ($total_ingresado >= $total_requerido && $total_requerido > 0) {
+                        $sql_update_pedido = "UPDATE pedido SET est_pedido = 4 WHERE id_pedido = $id_pedido_asociado";
+                        mysqli_query($con, $sql_update_pedido);
+                        
+                    }
+                }
             }
+            //EVALUAR ACTUALIZAR ESTADO A COMPLETADO
+            require_once("../_modelo/m_pedidos.php");
+            ActualizarEstadoPedido($id_pedido_asociado);
         }
-        
         mysqli_close($con);
     }
 
