@@ -33,7 +33,9 @@ $personal = MostrarPersonal();
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="personal_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nuevo Personal</a> 
+                                <a href="personal_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
+                                    <i class="fa fa-plus"></i> Nuevo Personal
+                                </a>
                             </div>
                         </div>
                     </div>

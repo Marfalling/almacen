@@ -12,6 +12,16 @@ $id_salida_editar = isset($id_salida_editar) ? $id_salida_editar : 0;
 $pedido_salidas = isset($pedido_salidas) ? $pedido_salidas : array();
 $almacenes = isset($almacenes) ? $almacenes : array();
 $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
+
+//=======================================================================
+// Cargar bancos y monedas activas para los select del modal
+//=======================================================================
+require_once("../_modelo/m_banco.php");
+require_once("../_modelo/m_moneda.php");
+
+$bancos = MostrarBanco(); 
+$monedas = MostrarMoneda();
+
 ?>
 <!-- page content -->
 <div class="right_col" role="main">
@@ -110,13 +120,13 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                             $contador_detalle = 1;
                             foreach ($pedido_detalle as $detalle) { 
 
-                                // 🔹 Variables base iniciales
+                                //Variables base iniciales
                                 $stock_destino = 0;
                                 $stock_otras_ubicaciones = 0;
                                 $cantidad_para_oc = 0;
                                 $cantidad_para_os = 0;
                                 
-                                // 🔹 Obtener datos de stock por ubicaciones
+                                //Obtener datos de stock por ubicaciones
                                 if ($pedido['id_producto_tipo'] == 2) {
                                     // SERVICIOS
                                     $cantidad_original = floatval($detalle['cant_pedido_detalle']);
@@ -336,7 +346,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                     <!-- Ubicación destino -->
                                     <div class="mb-2 p-1" style="background-color: #fff; border-radius: 3px;">
                                         <span style="font-size: 10px;">
-                                            🎯 <?php echo htmlspecialchars($pedido['nom_ubicacion']); ?> (Destino)
+                                            <?php echo htmlspecialchars($pedido['nom_ubicacion']); ?> (Destino)
                                         </span>
                                         <strong class="ml-2"><?php echo number_format($stock_destino, 2); ?></strong>
                                         <span class="text-muted">/ Necesita: <?php echo number_format($cantidad_pedida, 2); ?></span>
@@ -359,7 +369,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                         </div>
                                     <?php endif; ?>
                                     
-                                    <!-- 🆕 Resumen de cantidades -->
+                                    <!-- Resumen de cantidades -->
                                     <?php if (isset($cantidad_para_os) && isset($cantidad_para_oc)): ?>
                                     <!--<div class="mt-2 pt-2" style="border-top: 1px solid #dee2e6;">
                                         <?php if ($cantidad_para_os > 0): ?>
@@ -435,22 +445,22 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                         }
                                     } else {
                                         // ========================================
-                                        // MATERIALES - LÓGICA CORREGIDA ✅
+                                        // MATERIALES - LÓGICA CORREGIDA 
                                         // ========================================
                                         
-                                        // 🔹 Obtener cantidades verificadas
+                                        // Obtener cantidades verificadas
                                         $cant_os_verificada = isset($detalle['cant_os_pedido_detalle']) ? floatval($detalle['cant_os_pedido_detalle']) : 0;
                                         $cant_oc_verificada = isset($detalle['cant_oc_pedido_detalle']) ? floatval($detalle['cant_oc_pedido_detalle']) : 0;
                                         
-                                        // 🔹 Calcular pendientes
+                                        // Calcular pendientes
                                         $pendiente_os = isset($detalle['cantidad_pendiente_os']) ? floatval($detalle['cantidad_pendiente_os']) : 0;
                                         $pendiente_oc = isset($detalle['cantidad_pendiente_oc']) ? floatval($detalle['cantidad_pendiente_oc']) : 0;
                                         
-                                        // 🔹 Determinar si están completadas
+                                        // Determinar si están completadas
                                         $os_completada = ($cant_os_verificada > 0 && $pendiente_os <= 0);
                                         $oc_completada = ($cant_oc_verificada > 0 && $pendiente_oc <= 0);
                                         
-                                        // 🔹 Determinar si se verificó algo
+                                        // Determinar si se verificó algo
                                         $se_verifico_os = ($cant_os_verificada > 0);
                                         $se_verifico_oc = ($cant_oc_verificada > 0);
                                         
@@ -458,7 +468,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                         // CASOS DE USO
                                         // ========================================
                                         
-                                        // 🔹 CASO 1: Stock completo en destino → FINALIZADO
+                                        // CASO 1: Stock completo en destino → FINALIZADO
                                         if (isset($stock_destino) && $stock_destino >= $cantidad_pedida) {
                                     ?>
                                             <span class="badge badge-success" style="font-size: 11px; padding: 4px 8px;">
@@ -466,7 +476,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                             </span>
                                     <?php
                                         }
-                                        // 🔹 CASO 2: Ambos completados (OS + OC)
+                                        // CASO 2: Ambos completados (OS + OC)
                                         elseif ($os_completada && $oc_completada) {
                                     ?>
                                             <span class="badge badge-success" style="font-size: 11px; padding: 4px 8px;">
@@ -474,9 +484,9 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                             </span>
                                     <?php
                                         }
-                                        // 🔹 CASO 3: Solo se verificó OC y está pendiente ✅ NUEVO
+                                        // CASO 3: Solo se verificó OC y está pendiente NUEVO
                                     elseif ($se_verifico_oc && !$se_verifico_os && $pendiente_oc > 0 && !$pedidoAnulado) {
-                                        // 🔹 CALCULAR CANTIDAD YA ORDENADA
+                                        // CALCULAR CANTIDAD YA ORDENADA
                                         $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                     ?>
                                         <button type="button" 
@@ -492,7 +502,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                         </button>
                                     <?php
                                     }
-                                        // 🔹 CASO 4: Solo se verificó OC y está completada ✅ NUEVO
+                                        // 🔹 CASO 4: Solo se verificó OC y está completada NUEVO
                                         elseif ($se_verifico_oc && !$se_verifico_os && $oc_completada) {
                                     ?>
                                             <span class="badge badge-success" style="font-size: 11px; padding: 4px 8px;">
@@ -500,7 +510,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                             </span>
                                     <?php
                                         }
-                                        // 🔹 CASO 5: Solo se verificó OS y está pendiente ✅ NUEVO
+                                        // 🔹 CASO 5: Solo se verificó OS y está pendiente NUEVO
                                         elseif ($se_verifico_os && !$se_verifico_oc && $pendiente_os > 0 && !$pedidoAnulado) {
                                     ?>
                                             <button type="button" 
@@ -517,7 +527,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                             </button>
                                     <?php
                                         }
-                                        // 🔹 CASO 6: Solo se verificó OS y está completada ✅ NUEVO
+                                        // CASO 6: Solo se verificó OS y está completada NUEVO
                                         elseif ($se_verifico_os && !$se_verifico_oc && $os_completada) {
                                     ?>
                                             <span class="badge badge-success" style="font-size: 11px; padding: 4px 8px;">
@@ -525,7 +535,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                             </span>
                                     <?php
                                         }
-                                        // 🔹 CASO 7: Ambos verificados, solo OS pendiente
+                                        // CASO 7: Ambos verificados, solo OS pendiente
                                         elseif ($se_verifico_os && $se_verifico_oc && $pendiente_os > 0 && $oc_completada && !$pedidoAnulado) {
                                     ?>
                                             <button type="button" 
@@ -545,9 +555,9 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                             </span>
                                     <?php
                                         }
-                                        // 🔹 CASO 8: Ambos verificados, solo OC pendiente
+                                        // CASO 8: Ambos verificados, solo OC pendiente
                                         elseif ($se_verifico_os && $se_verifico_oc && $pendiente_oc > 0 && $os_completada && !$pedidoAnulado) {
-                                        // 🔹 CALCULAR CANTIDAD YA ORDENADA
+                                        // CALCULAR CANTIDAD YA ORDENADA
                                         $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                     ?>
                                         <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px; margin-right: 4px;">
@@ -566,9 +576,9 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                         </button>
                                     <?php
                                     }
-                                        // 🔹 CASO 9: Ambos verificados y pendientes
+                                        // CASO 9: Ambos verificados y pendientes
                                         elseif ($se_verifico_os && $se_verifico_oc && $pendiente_os > 0 && $pendiente_oc > 0 && !$pedidoAnulado) {
-                                        // 🔹 CALCULAR CANTIDAD YA ORDENADA
+                                        // CALCULAR CANTIDAD YA ORDENADA
                                         $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                     ?>
                                         <button type="button" 
@@ -597,7 +607,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                         </button>
                                     <?php
                                     }
-                                        // 🔹 CASO 10: Pendiente verificar
+                                        // CASO 10: Pendiente verificar
                                         elseif (!$esVerificado && !$pedidoAnulado) {
                                     ?>
                                             <button type="button" class="btn btn-warning btn-xs verificar-btn"
@@ -1327,14 +1337,14 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                 <div id="contenedor-items-orden" class="mb-3">
                                     <?php if ($modo_editar && !empty($orden_detalle)): ?>
                                         <?php foreach ($orden_detalle as $item): 
-                                            // 🔹 CORRECCIÓN: Obtener id_pedido_detalle del item
+                                            // CORRECCIÓN: Obtener id_pedido_detalle del item
                                             $id_pedido_detalle = isset($item['id_pedido_detalle']) ? $item['id_pedido_detalle'] : 0;
                                             
                                             // OBTENER DATOS DE VALIDACIÓN PARA ESTE DETALLE ESPECÍFICO
                                             $cantidad_verificada_item = 0;
                                             $cantidad_ordenada_item = 0;
                                             
-                                            // 🔹 Buscar por id_pedido_detalle
+                                            // Buscar por id_pedido_detalle
                                             foreach ($pedido_detalle as $detalle) {
                                                 if ($detalle['id_pedido_detalle'] == $id_pedido_detalle) {
                                                     $cantidad_verificada_item = isset($detalle['cant_oc_pedido_detalle']) ? $detalle['cant_oc_pedido_detalle'] : 0;
@@ -1344,7 +1354,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                             }
                                         ?>
                                         <div class="alert alert-light p-2 mb-2" id="item-orden-<?php echo $item['id_compra_detalle']; ?>">
-                                            <!-- 🔹 CRÍTICO: Guardar id_pedido_detalle -->
+                                            <!-- CRÍTICO: Guardar id_pedido_detalle -->
                                             <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_compra_detalle]" value="<?php echo $item['id_compra_detalle']; ?>">
                                             <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_pedido_detalle]" value="<?php echo $id_pedido_detalle; ?>">
                                             <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_producto]" value="<?php echo $item['id_producto']; ?>">
@@ -1565,7 +1575,7 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                                         required>
                                                     <option value="">Seleccionar ubicación...</option>
                                                     <?php 
-                                                    // 🔹 DETERMINAR QUÉ UBICACIÓN PRE-SELECCIONAR
+                                                    // DETERMINAR QUÉ UBICACIÓN PRE-SELECCIONAR
                                                     $id_ubicacion_origen_preseleccionada = null;
                                                     
                                                     if ($modo_editar_salida && isset($salida_data)) {
@@ -1680,13 +1690,13 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                 <div id="contenedor-items-salida" class="mb-3">
                                     <?php if ($modo_editar_salida && !empty($salida_detalle)): ?>
                                         <?php foreach ($salida_detalle as $item): 
-                                            // 🔹 CRÍTICO: Obtener id_pedido_detalle del item
+                                            // CRÍTICO: Obtener id_pedido_detalle del item
                                             $id_pedido_detalle_item = isset($item['id_pedido_detalle']) && $item['id_pedido_detalle'] > 0 
                                                                     ? intval($item['id_pedido_detalle']) 
                                                                     : 0;
                                         ?>
                                         <div class="alert alert-light p-2 mb-2" id="item-salida-<?php echo $item['id_salida_detalle']; ?>">
-                                            <!-- 🔹 USAR id_salida_detalle COMO CLAVE DEL ARRAY -->
+                                            <!-- USAR id_salida_detalle COMO CLAVE DEL ARRAY -->
                                             <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_salida_detalle]" value="<?php echo $item['id_salida_detalle']; ?>">
                                             <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_pedido_detalle]" value="<?php echo $id_pedido_detalle_item; ?>">
                                             <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_producto]" value="<?php echo $item['id_producto']; ?>">
@@ -2006,17 +2016,28 @@ $ubicaciones = isset($ubicaciones) ? $ubicaciones : array();
                                 </thead>
                                 <tbody id="tabla-cuentas-modal">
                                     <tr>
-                                        <td><input type="text" name="banco[]" class="form-control form-control-sm"></td>
                                         <td>
-                                            <select name="id_moneda[]" class="form-control form-control-sm">
-                                                <option value="">-- Moneda --</option>
-                                                <?php foreach ($moneda as $m) { ?>
+                                            <select name="id_banco[]" class="form-control select2_banco" required>
+                                                <option value="">Seleccione un banco</option>
+                                                <?php foreach ($bancos as $b) { ?>
+                                                    <?php if ($b['est_banco'] == 1) { // Solo bancos activos ?>
+                                                        <option value="<?php echo $b['id_banco']; ?>">
+                                                            <?php echo $b['cod_banco']; ?>
+                                                        </option>
+                                                    <?php } ?>
+                                                <?php } ?>
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select name="id_moneda[]" class="form-control select2_moneda" required>
+                                                <option value="">Seleccione una moneda</option>
+                                                <?php foreach ($monedas as $m) { ?>
                                                     <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
                                                 <?php } ?>
                                             </select>
                                         </td>
-                                        <td><input type="text" name="cta_corriente[]" class="form-control form-control-sm"></td>
-                                        <td><input type="text" name="cta_interbancaria[]" class="form-control form-control-sm"></td>
+                                        <td><input type="text" name="cta_corriente[]" class="form-control" required></td>
+                                        <td><input type="text" name="cta_interbancaria[]" class="form-control" required></td>
                                         <td><button type="button" class="btn btn-danger btn-sm eliminar-fila-modal">X</button></td>
                                     </tr>
                                 </tbody>
@@ -2076,7 +2097,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
 
     // ============================================
-    // 🆕 MODAL DE VERIFICACIÓN MEJORADO
+    // MODAL DE VERIFICACIÓN MEJORADO
     // ============================================
     
     // Handler para botones de verificar - VERSIÓN SIMPLIFICADA
@@ -2209,7 +2230,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
                 
         // ============================================
-        // 🔹 BOTÓN NUEVA ORDEN (ACTUALIZADO)
+        // BOTÓN NUEVA ORDEN (ACTUALIZADO)
         // ============================================
         const btnNuevaOrden = document.getElementById('btn-nueva-orden');
         if (btnNuevaOrden) {
@@ -2297,7 +2318,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🚚 agregarItemASalida INICIADO');
         console.log('📋 Item recibido:', item);
         
-        // ✅ Validar cantidad disponible
+        // Validar cantidad disponible
         const cantidadDisponible = parseFloat(item.cantidadDisponible) || 0;
         
         if (cantidadDisponible <= 0) {
@@ -2310,7 +2331,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // ✅ Validar ubicaciones con stock
+        // Validar ubicaciones con stock
         let otrasUbicaciones = [];
         try {
             otrasUbicaciones = item.otrasUbicaciones ? JSON.parse(item.otrasUbicaciones) : [];
@@ -2340,7 +2361,7 @@ document.addEventListener('DOMContentLoaded', function() {
         itemElement.id = `item-salida-${itemId}`;
         itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
         
-        // ✅ Construir HTML con información de ubicaciones
+        // Construir HTML con información de ubicaciones
         let htmlUbicaciones = '<div class="mt-2" style="font-size: 11px; background-color: #e8f5e9; padding: 8px; border-radius: 4px;">';
         htmlUbicaciones += '<strong class="text-success"><i class="fa fa-map-marker"></i> Stock disponible en:</strong><br>';
         
@@ -2395,7 +2416,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const contenedorItemsSalida = document.getElementById('contenedor-items-salida');
         contenedorItemsSalida.appendChild(itemElement);
-        console.log('✅ Item agregado al DOM');
+        console.log('Item agregado al DOM');
         
         // Deshabilitar botón original
         if (item.botonOriginal) {
@@ -2412,7 +2433,7 @@ document.addEventListener('DOMContentLoaded', function() {
             removerItemDeSalida(itemId, item.botonOriginal);
         });
         
-        console.log('✅ agregarItemASalida COMPLETADO');
+        console.log('agregarItemASalida COMPLETADO');
     }
     
     function removerItemDeSalida(idDetalle, botonOriginal) {
@@ -2435,7 +2456,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const almacenDestino = document.getElementById('almacen_destino_salida');
         const ubicacionDestino = document.getElementById('ubicacion_destino_salida');
         
-        // 🔹 Filtrar ubicaciones según almacén origen
+        // Filtrar ubicaciones según almacén origen
         almacenOrigen.addEventListener('change', function() {
             const idAlmacenOrigen = this.value;
             const opcionesUbicacionOrigen = ubicacionOrigen.querySelectorAll('option');
@@ -2457,7 +2478,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ubicacionOrigen.value = '';
         });
         
-        // 🔹 Filtrar ubicaciones según almacén destino
+        // Filtrar ubicaciones según almacén destino
         almacenDestino.addEventListener('change', function() {
             const idAlmacenDestino = this.value;
             const opcionesUbicacionDestino = ubicacionDestino.querySelectorAll('option');
@@ -2479,7 +2500,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ubicacionDestino.value = '';
         });
         
-        // 🔹 Validar que origen y destino sean diferentes
+        // Validar que origen y destino sean diferentes
         [ubicacionOrigen, ubicacionDestino].forEach(elemento => {
             elemento.addEventListener('change', function() {
                 if (almacenOrigen.value && ubicacionOrigen.value && 
@@ -4173,8 +4194,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function configurarModalProveedor() {
         const tablaCuentasModal = document.getElementById("tabla-cuentas-modal");
-        const btnAgregarModal = document.getElementById("agregarCuentaModal");
+        //const btnAgregarModal = document.getElementById("agregarCuentaModal");
         
+        /*
         if (btnAgregarModal) {
             btnAgregarModal.addEventListener("click", function() {
                 const nuevaFila = document.createElement("tr");
@@ -4194,7 +4216,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
                 tablaCuentasModal.appendChild(nuevaFila);
             });
-        }
+        } */
         
         if (tablaCuentasModal) {
             tablaCuentasModal.addEventListener("click", function(e) {
@@ -5161,13 +5183,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         fechaOrden.value = new Date().toISOString().split('T')[0];
                     }
                     
-                    // ✅ SIMULAR CLIC EN EL BOTÓN "Agregar a Orden"
+                    // SIMULAR CLIC EN EL BOTÓN "Agregar a Orden"
                     setTimeout(() => {
                         btnAgregarOrden.click();
                         
                         Swal.fire({
                             icon: 'success',
-                            title: '✅ Item Agregado',
+                            title: ' Item Agregado',
                             text: 'El producto se agregó a la nueva orden de compra',
                             timer: 2000,
                             showConfirmButton: false
@@ -5200,20 +5222,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const cantidadCompra = parseFloat(btnMixto.dataset.cantidadCompra);
         
         Swal.fire({
-            title: '🔀 Opción Mixta',
+            title: ' Opción Mixta',
             html: `
                 <div style="text-align: left; padding: 10px;">
                     <p><strong>Producto:</strong><br>${descripcion}</p>
                     <hr>
                     <div class="mb-3">
-                        <p><strong>1️⃣ Traslado Interno:</strong></p>
+                        <p><strong> Traslado Interno:</strong></p>
                         <p class="ml-3">
                             <span class="badge badge-warning">${cantidadTraslado.toFixed(2)}</span> unidades
                             <br><small class="text-muted">Desde otras ubicaciones del almacén</small>
                         </p>
                     </div>
                     <div class="mb-3">
-                        <p><strong>2️⃣ Orden de Compra:</strong></p>
+                        <p><strong> Orden de Compra:</strong></p>
                         <p class="ml-3">
                             <span class="badge badge-danger">${cantidadCompra.toFixed(2)}</span> unidades
                             <br><small class="text-muted">Lo que falta después del traslado</small>

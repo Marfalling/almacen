@@ -20,7 +20,9 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="cargo_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nuevo cargo</a>
+                                <a href="cargo_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
+                                    <i class="fa fa-plus"></i> Nuevo cargo
+                                </a>
                             </div>
                         </div>
                     </div>
