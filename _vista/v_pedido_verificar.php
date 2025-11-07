@@ -3461,7 +3461,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ============================================
 
     function validarFormularioSalida(e) {
-        e.preventDefault(); // ✅ Prevenir envío normal del formulario
+        e.preventDefault(); //  Prevenir envío normal del formulario
         
         console.log('🚚 Validando formulario de salida...');
         
@@ -3568,7 +3568,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let mensajeError = '';
         
         itemsElements.forEach((item, index) => {
-            console.log(🔍 Procesando item ${index}:, item.id);
+            console.log(`🔍 Procesando item ${index}:`, item.id);
             
             // 🔹 BUSCAR INPUTS DENTRO DEL ITEM
             const idProductoInput = item.querySelector('input[name*="[id_producto]"]');
@@ -3584,7 +3584,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             if (!idProductoInput || !cantidadInput) {
-                console.warn(⚠️ Item ${index} sin inputs necesarios);
+                console.warn(`⚠️ Item ${index} sin inputs necesarios`);
                 return;
             }
             
@@ -3609,15 +3609,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (descripcionDiv) {
                     const textoCompleto = descripcionDiv.textContent || '';
                     const match = textoCompleto.match(/Descripción:\s*(.+?)(?:\s*EDITANDO|\s*SALIDA|$)/);
-                    descripcion = match ? match[1].trim() : Producto ${idProducto};
+                    descripcion = match ? match[1].trim() : `Producto ${idProducto}`;
                 } else {
-                    descripcion = Producto ${idProducto};
+                    descripcion = `Producto ${idProducto}`;
                 }
             }
             
             const cantidadMaxima = parseFloat(cantidadInput.getAttribute('max')) || 0;
             
-            console.log(📦 Item ${index} procesado:, {
+            console.log(`📦 Item ${index} procesado:`, {
                 idProducto,
                 idPedidoDetalle,
                 cantidad,
@@ -3628,13 +3628,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // Validar cantidad
             if (cantidad <= 0) {
                 errorCantidad = true;
-                mensajeError = La cantidad para "${descripcion}" debe ser mayor a 0;
+                mensajeError = `La cantidad para "${descripcion}" debe ser mayor a 0`;
                 return;
             }
             
             if (cantidadMaxima > 0 && cantidad > cantidadMaxima) {
                 errorCantidad = true;
-                mensajeError = La cantidad para "${descripcion}" (${cantidad}) excede el máximo disponible (${cantidadMaxima});
+                mensajeError = `La cantidad para "${descripcion}" (${cantidad}) excede el máximo disponible (${cantidadMaxima})`;
                 return;
             }
             
@@ -3709,80 +3709,81 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 // Enviar formulario
-                    fetch('pedido_verificar.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        Swal.close();
-        
-        console.log('📥 Respuesta del servidor:', data);
-        
-        // 🔥 NUEVO: MANEJO ESPECIAL PARA ERROR DE STOCK
-        if (data.tipo === 'error_stock_reverificado' && data.accion === 'recargar_pagina') {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Ajuste Automático Realizado',
-                html: `
-                    <div style="text-align: left; padding: 15px;">
-                        <p style="margin-bottom: 15px; color: #856404;">
-                            <i class="fa fa-exclamation-triangle"></i> 
-                            <strong>Stock Insuficiente Detectado:</strong>
-                        </p>
-                        <div style="background-color: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #ffc107;">
-                            ${data.message}
-                        </div>
-                        <hr>
-                        <p style="margin-bottom: 0; padding: 10px; background-color: #d4edda; border-radius: 5px; border-left: 4px solid #28a745;">
-                            Las cantidades del pedido han sido <strong>re-verificadas automáticamente</strong> según el stock disponible actual.
-                        </p>
-                    </div>
-                `,
-                confirmButtonText: '<i class="fa fa-sync"></i> Ver Cambios',
-                confirmButtonColor: '#28a745',
-                allowOutsideClick: false,
-                width: '600px'
-            }).then(() => {
-                window.location.reload();
-            });
-            return;
-        }
-        
-        // ✅ ÉXITO
-        if (data.success) {
-            const successParam = success=${modoEditarSalida ? 'salida_actualizada' : 'salida_creada'};
-            Swal.fire({
-                icon: 'success',
-                title: modoEditarSalida ? '¡Salida Actualizada!' : '¡Salida Generada!',
-                text: modoEditarSalida ? 'La salida se actualizó correctamente' : 'La salida se generó correctamente',
-                confirmButtonColor: '#28a745'
-            }).then(() => {
-                const idPedido = document.querySelector('input[name="id_pedido"]').value;
-                window.location.href = pedido_verificar.php?id=${idPedido}&${successParam};
-            });
-        } else {
-            // ❌ OTRO ERROR
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                html: <div style="text-align: left;">${data.message || 'Ocurrió un error al procesar la solicitud'}</div>,
-                confirmButtonColor: '#d33'
-            });
-        }
-    })
-    .catch(error => {
-        console.error('❌ Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error de Conexión',
-            text: 'No se pudo conectar con el servidor.',
-            confirmButtonColor: '#d33'
-        });
+                fetch('pedido_verificar.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    Swal.close();
+                    
+                    console.log('📥 Respuesta del servidor:', data);
+                    
+                    // 🔥 NUEVO: MANEJO ESPECIAL PARA ERROR DE STOCK
+                    if (data.tipo === 'error_stock_reverificado' && data.accion === 'recargar_pagina') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Ajuste Automático Realizado',
+                            html: `
+                                <div style="text-align: left; padding: 15px;">
+                                    <p style="margin-bottom: 15px; color: #856404;">
+                                        <i class="fa fa-exclamation-triangle"></i> 
+                                        <strong>Stock Insuficiente Detectado:</strong>
+                                    </p>
+                                    <div style="background-color: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #ffc107;">
+                                        ${data.message}
+                                    </div>
+                                    <hr>
+                                    <p style="margin-bottom: 0; padding: 10px; background-color: #d4edda; border-radius: 5px; border-left: 4px solid #28a745;">
+                                        Las cantidades del pedido han sido <strong>re-verificadas automáticamente</strong> según el stock disponible actual.
+                                    </p>
+                                </div>
+                            `,
+                            confirmButtonText: '<i class="fa fa-sync"></i> Ver Cambios',
+                            confirmButtonColor: '#28a745',
+                            allowOutsideClick: false,
+                            width: '600px'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                        return;
+                    }
+                    
+                    // ✅ ÉXITO
+                    if (data.success) {
+                        const successParam = `success=${modoEditarSalida ? 'salida_actualizada' : 'salida_creada'}`;
+                        Swal.fire({
+                            icon: 'success',
+                            title: modoEditarSalida ? '¡Salida Actualizada!' : '¡Salida Generada!',
+                            text: modoEditarSalida ? 'La salida se actualizó correctamente' : 'La salida se generó correctamente',
+                            confirmButtonColor: '#28a745'
+                        }).then(() => {
+                            const idPedido = document.querySelector('input[name="id_pedido"]').value;
+                            window.location.href = `pedido_verificar.php?id=${idPedido}&${successParam}`;
+                        });
+                    } else {
+                        // ❌ OTRO ERROR
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            html: `<div style="text-align: left;">${data.message || 'Ocurrió un error al procesar la solicitud'}</div>`,
+                            confirmButtonColor: '#d33'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error de Conexión',
+                        text: 'No se pudo conectar con el servidor.',
+                        confirmButtonColor: '#d33'
+                    });
                 });
             }
         });
     }
+
 
         
     // ============================================
