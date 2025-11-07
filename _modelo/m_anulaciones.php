@@ -119,6 +119,7 @@ function AnularCompra($id_compra, $id_personal)
             VerificarReaperturaItemServicioPorDetalle($id_pedido_detalle);
         } else {
             VerificarReaperturaItemPorDetalle($id_pedido_detalle);
+            //VerificarEstadoItemPorDetalle
         }
     }
 

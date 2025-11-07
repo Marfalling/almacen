@@ -240,42 +240,90 @@ $monedas = MostrarMoneda();
                                         $estadoTexto = 'Finalizado';
                                         $cantidad_para_os = 0;
                                         $cantidad_para_oc = 0;
-                                    } else if ($esVerificado && $stock_otras_ubicaciones > 0) {
-                                        // CASO 2: Hay stock en otras ubicaciones → VERIFICADO OS
-                                        // CASO 2: Item verificado - Leer cantidades de BD
+                                    } else if ($esVerificado) {
+                                        // ============================================================
+                                        // CASO 2: ITEM VERIFICADO - Leer cantidades de BD
+                                        // ============================================================
                                         $cantidad_para_os = floatval($detalle['cant_os_pedido_detalle']);
                                         $cantidad_para_oc = floatval($detalle['cant_oc_pedido_detalle']);
                                         
-                                        if ($cantidad_para_os > 0 && $cantidad_para_oc > 0) {
-                                            // Mixto: OS + OC
-                                            //$colorFondo = '#fff3cd';
-                                            $colorBorde = '#ffc107';
-                                            $claseTexto = 'text-warning';
-                                            $icono = 'fa-exchange';
-                                            $estadoTexto = 'Verificado OS/OC';
-                                        } else if ($cantidad_para_os > 0) {
-                                            // Solo OS
+                                        // Verificar si hay órdenes pendientes
+                                        $tiene_oc = $cantidad_para_oc > 0;
+                                        $tiene_os = $cantidad_para_os > 0;
+                                        
+                                        if ($tiene_oc && $tiene_os) {
+                                            // --------------------------------------------------------
+                                            // SUBCASO 2.1: Ambos (OC + OS)
+                                            // --------------------------------------------------------
+                                            $ordenado_oc = ObtenerCantidadYaOrdenadaOCPorDetalle($detalle['id_pedido_detalle']);
+                                            $ordenado_os = ObtenerCantidadYaOrdenadaOSPorDetalle($detalle['id_pedido_detalle']);
+                                            
+                                            // Calcular pendientes
+                                            $pendiente_oc = $cantidad_para_oc - $ordenado_oc;
+                                            $pendiente_os = $cantidad_para_os - $ordenado_os;
+                                            
+                                            if ($pendiente_oc > 0 && $pendiente_os > 0) {
+                                                // Ambos con pendientes
+                                                //$colorFondo = '#fff3cd';
+                                                $colorBorde = '#ffc107';
+                                                $claseTexto = 'text-warning';
+                                                $icono = 'fa-exchange-alt';
+                                                $estadoTexto = 'Verificado OS/OC';
+                                                
+                                            } else if ($pendiente_oc <= 0 && $pendiente_os > 0) {
+                                                // OC completada, OS pendiente
+                                                //$colorFondo = '#d4edda';
+                                                $colorBorde = '#28a745';
+                                                $claseTexto = 'text-success';
+                                                $icono = 'fa-truck';
+                                                $estadoTexto = 'Pendiente OS';
+                                                
+                                            } else if ($pendiente_os <= 0 && $pendiente_oc > 0) {
+                                                // OS completada, OC pendiente
+                                                //$colorFondo = '#cfe2ff';
+                                                $colorBorde = '#2196f3';
+                                                $claseTexto = 'text-primary';
+                                                $icono = 'fa-shopping-cart';
+                                                $estadoTexto = 'Pendiente OC';
+                                                
+                                            } else {
+                                                // Ambos completados (no debería llegar aquí si stock_destino < cantidad_pedida)
+                                                //$colorFondo = '#d1f2eb';
+                                                $colorBorde = '#1abc9c';
+                                                $claseTexto = 'text-success';
+                                                $icono = 'fa-check-circle';
+                                                $estadoTexto = 'Finalizado';
+                                            }
+                                            
+                                        } else if ($tiene_os) {
+                                            // --------------------------------------------------------
+                                            // SUBCASO 2.2: Solo OS
+                                            // --------------------------------------------------------
                                             //$colorFondo = '#d4edda';
                                             $colorBorde = '#28a745';
                                             $claseTexto = 'text-success';
                                             $icono = 'fa-truck';
                                             $estadoTexto = 'Verificado OS';
-                                        } else if ($cantidad_para_oc > 0) {
-                                            // Solo OC
-                                            //$colorFondo = '#f8d7da';
-                                            $colorBorde = '#dc3545';
-                                            $claseTexto = 'text-danger';
+                                            
+                                        } else if ($tiene_oc) {
+                                            // --------------------------------------------------------
+                                            // SUBCASO 2.3: Solo OC
+                                            // --------------------------------------------------------
+                                            //$colorFondo = '#cfe2ff';
+                                            $colorBorde = '#2196f3';
+                                            $claseTexto = 'text-primary';
                                             $icono = 'fa-shopping-cart';
                                             $estadoTexto = 'Verificado OC';
+                                            
+                                        } else {
+                                            // Sin cantidades asignadas (caso raro)
+                                            //$colorFondo = '#e9ecef';
+                                            $colorBorde = '#6c757d';
+                                            $claseTexto = 'text-secondary';
+                                            $icono = 'fa-question-circle';
+                                            $estadoTexto = 'Sin asignar';
                                         }
-                                    } else if ($esVerificado && $stock_otras_ubicaciones <= 0) {
-                                        // CASO 3: Verificado pero sin stock → PENDIENTE OC
-                                        //$colorFondo = '#f8d7da';
-                                        $colorBorde = '#dc3545';
-                                        $claseTexto = 'text-danger';
-                                        $icono = 'fa-shopping-cart';
-                                        $estadoTexto = 'Pendiente OC';
-                                        $cantidad_para_oc = $cantidad_pedida - $stock_destino;
+                                        
                                     } else if (!$esVerificado) {
                                         // CASO 4: No verificado → PENDIENTE VERIFICAR
                                         //$colorFondo = '#fff3cd';
@@ -503,15 +551,15 @@ $monedas = MostrarMoneda();
                                     <?php
                                     }
                                         // 🔹 CASO 4: Solo se verificó OC y está completada NUEVO
-                                        elseif ($se_verifico_oc && !$se_verifico_os && $oc_completada) {
+                                    elseif ($se_verifico_oc && !$se_verifico_os && $oc_completada) {
                                     ?>
                                             <span class="badge badge-success" style="font-size: 11px; padding: 4px 8px;">
                                                 <i class="fa fa-check-circle"></i> OC Completada
                                             </span>
                                     <?php
-                                        }
+                                    }
                                         // 🔹 CASO 5: Solo se verificó OS y está pendiente NUEVO
-                                        elseif ($se_verifico_os && !$se_verifico_oc && $pendiente_os > 0 && !$pedidoAnulado) {
+                                    elseif ($se_verifico_os && !$se_verifico_oc && $pendiente_os > 0 && !$pedidoAnulado) {
                                     ?>
                                             <button type="button" 
                                                     class="btn btn-success btn-sm btn-agregarSalida" 
@@ -526,17 +574,17 @@ $monedas = MostrarMoneda();
                                                 <i class="fa fa-truck"></i> Agregar a OS (<?php echo number_format($pendiente_os, 2); ?>)
                                             </button>
                                     <?php
-                                        }
+                                    }
                                         // CASO 6: Solo se verificó OS y está completada NUEVO
-                                        elseif ($se_verifico_os && !$se_verifico_oc && $os_completada) {
+                                    elseif ($se_verifico_os && !$se_verifico_oc && $os_completada) {
                                     ?>
                                             <span class="badge badge-success" style="font-size: 11px; padding: 4px 8px;">
                                                 <i class="fa fa-check-circle"></i> OS Completada
                                             </span>
                                     <?php
-                                        }
+                                    }
                                         // CASO 7: Ambos verificados, solo OS pendiente
-                                        elseif ($se_verifico_os && $se_verifico_oc && $pendiente_os > 0 && $oc_completada && !$pedidoAnulado) {
+                                    elseif ($se_verifico_os && $se_verifico_oc && $pendiente_os > 0 && $oc_completada && !$pedidoAnulado) {
                                     ?>
                                             <button type="button" 
                                                     class="btn btn-success btn-sm btn-agregarSalida" 
@@ -554,9 +602,9 @@ $monedas = MostrarMoneda();
                                                 <i class="fa fa-check-circle"></i> OC Completada
                                             </span>
                                     <?php
-                                        }
+                                    }
                                         // CASO 8: Ambos verificados, solo OC pendiente
-                                        elseif ($se_verifico_os && $se_verifico_oc && $pendiente_oc > 0 && $os_completada && !$pedidoAnulado) {
+                                    elseif ($se_verifico_os && $se_verifico_oc && $pendiente_oc > 0 && $os_completada && !$pedidoAnulado) {
                                         // CALCULAR CANTIDAD YA ORDENADA
                                         $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                     ?>
@@ -775,12 +823,18 @@ $monedas = MostrarMoneda();
                                     $tiene_items_disponibles = false;
                                     foreach ($pedido_detalle as $detalle) {
                                         $esVerificado = !is_null($detalle['cant_oc_pedido_detalle']);
+
+                                        $detalle['cantidad_ya_ordenada_oc'] = ObtenerCantidadYaOrdenadaOCPorDetalle($detalle['id_pedido_detalle']);
+                                        $detalle['cantidad_pendiente_oc'] = floatval($detalle['cant_oc_pedido_detalle']) - $detalle['cantidad_ya_ordenada_oc'];
+
+                                        $pendiente_oc = isset($detalle['cantidad_pendiente_oc']) ? floatval($detalle['cantidad_pendiente_oc']) : 0;
+
                                         $stockInsuficiente = $detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle'];
                                         $esAutoOrden = ($pedido['id_producto_tipo'] == 2);
                                         $estaCerrado = ($detalle['est_pedido_detalle'] == 2);
                                         
                                         // Si es auto-orden, verificado con stock insuficiente, y no está cerrado
-                                        if (($esAutoOrden || ($esVerificado && $stockInsuficiente)) && !$estaCerrado) {
+                                        if (($esAutoOrden || ($esVerificado && $pendiente_oc>0)) && !$estaCerrado) {
                                             $tiene_items_disponibles = true;
                                             break;
                                         }
@@ -789,7 +843,7 @@ $monedas = MostrarMoneda();
                                     
                                     <?php if ($tiene_items_disponibles): ?>
                                         <button type="button" class="btn btn-primary btn-sm" id="btn-nueva-orden" style="padding: 4px 8px; font-size: 12px;">
-                                            <i class="fa fa-plus"></i> Nueva Orden
+                                            <i class="fa fa-shopping-cart"></i> Nueva Orden
                                         </button>
                                     <?php else: ?>
                                         <button type="button" class="btn btn-secondary btn-sm" disabled title="No hay items disponibles para agregar" style="padding: 4px 8px; font-size: 12px;">
@@ -798,10 +852,61 @@ $monedas = MostrarMoneda();
                                     <?php endif; ?>
                                 <?php endif; ?>
 
-                                <!-- Botón Nueva Salida -->
-                                <button type="button" class="btn btn-success btn-sm" id="btn-nueva-salida" style="padding: 4px 8px; font-size: 12px;">
+                                
+
+                                <!-- Botón Nueva Salida Modificado-->
+                                
+                                <?php if (!$modo_editar_salida && !$pedido_anulado): ?>
+                                    <?php
+                                    // VALIDAR ITEMS DISPONIBLES PARA SALIDA
+                                    $tiene_items_para_salida = false;
+                                    
+                                    foreach ($pedido_detalle as $detalle_validacion) {
+
+                                        $detalle_validacion['cantidad_ya_ordenada_os'] = ObtenerCantidadYaOrdenadaOSPorDetalle($detalle_validacion['id_pedido_detalle']);
+                                        $detalle_validacion['cantidad_pendiente_os'] = floatval($detalle_validacion['cant_os_pedido_detalle']) - $detalle_validacion['cantidad_ya_ordenada_os'];
+
+                                        // validar MATERIALES
+                                        if ($pedido['id_producto_tipo'] != 2) {
+                                            $cant_os_verificada = floatval($detalle_validacion['cant_os_pedido_detalle']);
+                                            
+                                            // Si se verificó alguna cantidad para OS
+                                            if ($cant_os_verificada > 0) {
+
+                                                $pendiente_os = isset($detalle_validacion['cantidad_pendiente_os']) ? floatval($detalle_validacion['cantidad_pendiente_os']) : 0;
+                                                
+                                                // Si hay cantidad pendiente de OS
+                                                if ($pendiente_os > 0) {
+                                                    $tiene_items_para_salida = true;
+                                                    break; 
+                                                }
+                                            }
+                                        }
+                                    }
+                                    ?>
+                                    
+                                    <?php if ($tiene_items_para_salida): ?>
+                                        <!--HAY ITEMS -->
+                                        <button type="button" class="btn btn-success btn-sm" id="btn-nueva-salida" 
+                                                style="padding: 4px 8px; font-size: 12px;">
+                                            <i class="fa fa-truck"></i> Nueva Salida
+                                        </button>
+                                    <?php else: ?>
+                                        <!--NO HAY ITEMS-->
+                                        <button type="button" class="btn btn-secondary btn-sm" disabled 
+                                                title="No hay items disponibles para generar salida" 
+                                                style="padding: 4px 8px; font-size: 12px;">
+                                            <i class="fa fa-ban"></i> Nueva Salida
+                                        </button>
+                                    <?php endif; ?>
+                                <?php endif;?>
+
+                                <!-- Fin Modificado -->
+
+                                <!-- Botón Nueva Salida Anterior-->
+                                <!--<button type="button" class="btn btn-success btn-sm" id="btn-nueva-salida" style="padding: 4px 8px; font-size: 12px;">
                                     <i class="fa fa-truck"></i> Nueva Salida
-                                </button>
+                                </button>-->
                             </div>
                             <?php endif; ?>
                         </div>
@@ -3439,10 +3544,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // RECOLECTAR ITEMS DE SALIDA (CORREGIDO)
+        // ✅ RECOLECTAR ITEMS DE SALIDA (CORREGIDO)
         const contenedorItems = document.getElementById('contenedor-items-salida');
         
-        // BUSCAR TODOS LOS DIVS QUE CONTENGAN INPUTS DE ITEMS
+        // 🔹 BUSCAR TODOS LOS DIVS QUE CONTENGAN INPUTS DE ITEMS
         const itemsElements = contenedorItems.querySelectorAll('div[id^="item-salida-"]');
         
         console.log('📦 Items encontrados en DOM:', itemsElements.length);
@@ -3457,13 +3562,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // CONSTRUIR ARRAY DE ITEMS
+        // ✅ CONSTRUIR ARRAY DE ITEMS
         const itemsSalida = [];
         let errorCantidad = false;
         let mensajeError = '';
         
         itemsElements.forEach((item, index) => {
-            console.log(`🔍 Procesando item ${index}:`, item.id);
+            console.log(🔍 Procesando item ${index}:, item.id);
             
             // 🔹 BUSCAR INPUTS DENTRO DEL ITEM
             const idProductoInput = item.querySelector('input[name*="[id_producto]"]');
@@ -3479,7 +3584,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             if (!idProductoInput || !cantidadInput) {
-                console.warn(`⚠️ Item ${index} sin inputs necesarios`);
+                console.warn(⚠️ Item ${index} sin inputs necesarios);
                 return;
             }
             
@@ -3504,15 +3609,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (descripcionDiv) {
                     const textoCompleto = descripcionDiv.textContent || '';
                     const match = textoCompleto.match(/Descripción:\s*(.+?)(?:\s*EDITANDO|\s*SALIDA|$)/);
-                    descripcion = match ? match[1].trim() : `Producto ${idProducto}`;
+                    descripcion = match ? match[1].trim() : Producto ${idProducto};
                 } else {
-                    descripcion = `Producto ${idProducto}`;
+                    descripcion = Producto ${idProducto};
                 }
             }
             
             const cantidadMaxima = parseFloat(cantidadInput.getAttribute('max')) || 0;
             
-            console.log(`📦 Item ${index} procesado:`, {
+            console.log(📦 Item ${index} procesado:, {
                 idProducto,
                 idPedidoDetalle,
                 cantidad,
@@ -3523,13 +3628,13 @@ document.addEventListener('DOMContentLoaded', function() {
             // Validar cantidad
             if (cantidad <= 0) {
                 errorCantidad = true;
-                mensajeError = `La cantidad para "${descripcion}" debe ser mayor a 0`;
+                mensajeError = La cantidad para "${descripcion}" debe ser mayor a 0;
                 return;
             }
             
             if (cantidadMaxima > 0 && cantidad > cantidadMaxima) {
                 errorCantidad = true;
-                mensajeError = `La cantidad para "${descripcion}" (${cantidad}) excede el máximo disponible (${cantidadMaxima})`;
+                mensajeError = La cantidad para "${descripcion}" (${cantidad}) excede el máximo disponible (${cantidadMaxima});
                 return;
             }
             
@@ -3604,55 +3709,76 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 
                 // Enviar formulario
-                fetch('pedido_verificar.php', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.text())
-                .then(data => {
-                    Swal.close();
-                    
-                    console.log('📥 Respuesta del servidor:', data);
-                    
-                    // ✅ IGUAL QUE ÓRDENES: Si empieza con "ERROR:"
-                    if (data.startsWith('ERROR:')) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            html: `<div style="text-align: left;">${data.replace('ERROR:', '')}</div>`,
-                            confirmButtonColor: '#d33',
-                            confirmButtonText: 'Entendido'
-                        });
-                    } else if (data.trim() === 'SI') {
-                        // ✅ ÉXITO
-                        const successParam = `success=${modoEditarSalida ? 'salida_actualizada' : 'salida_creada'}`;
-                        Swal.fire({
-                            icon: 'success',
-                            title: modoEditarSalida ? '¡Salida Actualizada!' : '¡Salida Generada!',
-                            text: modoEditarSalida ? 'La salida se actualizó correctamente' : 'La salida se generó correctamente',
-                            confirmButtonColor: '#28a745'
-                        }).then(() => {
-                            const idPedido = document.querySelector('input[name="id_pedido"]').value;
-                            window.location.href = `pedido_verificar.php?id=${idPedido}&${successParam}`;
-                        });
-                    } else {
-                        // ✅ OTRO ERROR
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: data || 'Ocurrió un error al procesar la solicitud',
-                            confirmButtonColor: '#d33'
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('❌ Error:', error);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error de Conexión',
-                        text: 'No se pudo conectar con el servidor.',
-                        confirmButtonColor: '#d33'
-                    });
+                    fetch('pedido_verificar.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        Swal.close();
+        
+        console.log('📥 Respuesta del servidor:', data);
+        
+        // 🔥 NUEVO: MANEJO ESPECIAL PARA ERROR DE STOCK
+        if (data.tipo === 'error_stock_reverificado' && data.accion === 'recargar_pagina') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Ajuste Automático Realizado',
+                html: `
+                    <div style="text-align: left; padding: 15px;">
+                        <p style="margin-bottom: 15px; color: #856404;">
+                            <i class="fa fa-exclamation-triangle"></i> 
+                            <strong>Stock Insuficiente Detectado:</strong>
+                        </p>
+                        <div style="background-color: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 15px; border-left: 4px solid #ffc107;">
+                            ${data.message}
+                        </div>
+                        <hr>
+                        <p style="margin-bottom: 0; padding: 10px; background-color: #d4edda; border-radius: 5px; border-left: 4px solid #28a745;">
+                            Las cantidades del pedido han sido <strong>re-verificadas automáticamente</strong> según el stock disponible actual.
+                        </p>
+                    </div>
+                `,
+                confirmButtonText: '<i class="fa fa-sync"></i> Ver Cambios',
+                confirmButtonColor: '#28a745',
+                allowOutsideClick: false,
+                width: '600px'
+            }).then(() => {
+                window.location.reload();
+            });
+            return;
+        }
+        
+        // ✅ ÉXITO
+        if (data.success) {
+            const successParam = success=${modoEditarSalida ? 'salida_actualizada' : 'salida_creada'};
+            Swal.fire({
+                icon: 'success',
+                title: modoEditarSalida ? '¡Salida Actualizada!' : '¡Salida Generada!',
+                text: modoEditarSalida ? 'La salida se actualizó correctamente' : 'La salida se generó correctamente',
+                confirmButtonColor: '#28a745'
+            }).then(() => {
+                const idPedido = document.querySelector('input[name="id_pedido"]').value;
+                window.location.href = pedido_verificar.php?id=${idPedido}&${successParam};
+            });
+        } else {
+            // ❌ OTRO ERROR
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                html: <div style="text-align: left;">${data.message || 'Ocurrió un error al procesar la solicitud'}</div>,
+                confirmButtonColor: '#d33'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('❌ Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error de Conexión',
+            text: 'No se pudo conectar con el servidor.',
+            confirmButtonColor: '#d33'
+        });
                 });
             }
         });

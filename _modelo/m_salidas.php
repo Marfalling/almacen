@@ -8,7 +8,7 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
                      $fec_req_salida, $obs_salida, $id_personal_encargado, 
                      $id_personal_recibe, $id_personal, $materiales, $id_pedido = null) 
 {
-    // VALIDACIONES ANTES DE PROCESAR
+    // ✅ VALIDACIÓN 1: Lógica de cantidades verificadas
     $errores_validacion = ValidarSalidaAntesDeProcesar(
         $id_material_tipo, $id_almacen_origen, $id_ubicacion_origen, 
         $id_almacen_destino, $id_ubicacion_destino, $materiales, $id_pedido
@@ -18,6 +18,30 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
         return "ERROR DE VALIDACIÓN: " . implode(" | ", $errores_validacion);
     }
     
+    // ✅ VALIDACIÓN 2: Stock físico real disponible
+    require_once("../_modelo/m_pedidos.php"); 
+    $errores_stock = ValidarInventarioDisponibleParaSalida(
+        $materiales, 
+        $id_almacen_origen, 
+        $id_ubicacion_origen, 
+        $id_pedido,
+        null
+    );
+    
+    if (!empty($errores_stock)) {
+        // 🔥 SOLO RE-VERIFICAR CUANDO HAY ERROR DE STOCK
+        if ($id_pedido) {
+            foreach ($materiales as $material) {
+                if (isset($material['id_pedido_detalle']) && $material['id_pedido_detalle'] > 0) {
+                    ReverificarItemAutomaticamente(intval($material['id_pedido_detalle']));
+                }
+            }
+        }
+        
+        return "ERROR DE STOCK: " . implode(" | ", $errores_stock) . " | Los items han sido re-verificados automáticamente.";
+    }
+    
+    // ✅ SI PASÓ VALIDACIONES, CONTINUAR SIN RE-VERIFICAR
     include("../_conexion/conexion.php");
 
     $ndoc_salida = mysqli_real_escape_string($con, $ndoc_salida);
@@ -101,6 +125,11 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
                                      $cantidad, NOW(), 1
                                    )";
                 mysqli_query($con, $sql_mov_ingreso);
+
+                if ($id_pedido_detalle !== null && $id_pedido_detalle > 0) {
+                    VerificarEstadoItemPorDetalle($id_pedido_detalle);
+                }
+                
             }
         }
 
@@ -293,33 +322,64 @@ function ActualizarSalida($id_salida, $id_almacen_origen, $id_ubicacion_origen,
     include("../_conexion/conexion.php");
 
     error_log("🔧 ActualizarSalida - ID Salida: $id_salida");
-    error_log("🔍 Materiales recibidos: " . print_r($materiales, true));
     
-    //  OBTENER ID_PEDIDO DE LA SALIDA
+    // Obtener ID_PEDIDO de la salida
     $sql_pedido = "SELECT id_pedido FROM salida WHERE id_salida = $id_salida";
     $res_pedido = mysqli_query($con, $sql_pedido);
     $row_pedido = mysqli_fetch_assoc($res_pedido);
+    $id_pedido = $row_pedido ? intval($row_pedido['id_pedido']) : 0;
     
-    $id_pedido = null;
-    if ($row_pedido && $row_pedido['id_pedido'] !== null) {
-        $id_pedido = intval($row_pedido['id_pedido']);
+    if ($id_pedido <= 0) {
+        mysqli_close($con);
+        return "ERROR: No se encontró el pedido asociado a esta salida";
     }
     
-    error_log("📋 ID Pedido obtenido: " . ($id_pedido !== null ? $id_pedido : 'NULL (sin pedido asociado)'));
+    // ✅ VALIDACIÓN 1: Cantidades lógicas
+    $errores = ValidarCantidadesSalida($id_pedido, $materiales, $id_salida);
     
-    //  VALIDAR CANTIDADES ANTES DE ACTUALIZAR
-    if ($id_pedido !== null && $id_pedido > 0) {
-        $errores = ValidarCantidadesSalida($id_pedido, $materiales, $id_salida);
-        if (!empty($errores)){ 
-            error_log(" Errores de validación: " . implode(", ", $errores));
-            mysqli_close($con);
-            return "ERROR: " . implode(". ", $errores);
+    if (!empty($errores)) {
+        error_log("❌ Errores de validación: " . implode(", ", $errores));
+        mysqli_close($con);
+        return "ERROR: " . implode(". ", $errores);
+    }
+    
+    // ✅ VALIDACIÓN 2: Stock físico real
+    mysqli_close($con);
+    require_once("../_modelo/m_pedidos.php"); 
+    $errores_stock = ValidarInventarioDisponibleParaSalida(
+        $materiales,
+        $id_almacen_origen,
+        $id_ubicacion_origen,
+        $id_pedido,
+        $id_salida  // ← CRÍTICO: Pasar id_salida para excluir sus movimientos
+    );
+    
+    if (!empty($errores_stock)) {
+        error_log("❌ Errores de stock físico: " . implode(", ", $errores_stock));
+        
+        // 🔥 CRÍTICO: Solo re-verificar si es un problema REAL, no temporal
+        $necesita_reverificacion = verificarSiNecesitaReverificacion($materiales, $id_salida, $id_pedido);
+        
+        error_log("🔍 ¿Necesita re-verificación? " . ($necesita_reverificacion ? "SÍ" : "NO"));
+        
+        if ($necesita_reverificacion) {
+            error_log("⚠️ Stock REAL insuficiente, re-verificando items...");
+            
+            foreach ($materiales as $material) {
+                if (isset($material['id_pedido_detalle']) && $material['id_pedido_detalle'] > 0) {
+                    ReverificarItemAutomaticamente(intval($material['id_pedido_detalle']));
+                }
+            }
+            
+            return "ERROR DE STOCK: " . implode(" | ", $errores_stock) . " | Los items han sido re-verificados automáticamente.";
+        } else {
+            error_log("ℹ️ Es ajuste temporal, NO re-verificando");
+            return "ERROR DE STOCK: " . implode(" | ", $errores_stock);
         }
-    } else {
-        error_log("⚠️ Sin pedido asociado, omitiendo validación");
     }
     
-    error_log(" Validación pasada, continuando con actualización...");
+    // ✅ SI PASÓ VALIDACIONES, CONTINUAR SIN RE-VERIFICAR
+    include("../_conexion/conexion.php");
 
     $ndoc_salida = mysqli_real_escape_string($con, $ndoc_salida);
     $fec_req_salida = mysqli_real_escape_string($con, $fec_req_salida);
@@ -448,6 +508,13 @@ function ActualizarSalida($id_salida, $id_almacen_origen, $id_ubicacion_origen,
                 if ($filas_afectadas == 0) {
                     error_log("   ⚠️ ADVERTENCIA: No se actualizó ninguna fila. Verificar condiciones WHERE.");
                 }
+            }
+            // ============================================================
+            // ✅ VERIFICAR ESTADO DEL ITEM (SOLO SI TIENE PEDIDO_DETALLE)
+            // ============================================================
+            if ($id_pedido_detalle !== null && $id_pedido_detalle > 0) {
+                error_log("   🔍 Verificando estado del detalle: $id_pedido_detalle");
+                VerificarEstadoItemPorDetalle($id_pedido_detalle);
             }
         }
 
@@ -807,8 +874,7 @@ function TieneSalidaActivaPedido($id_pedido)
  * Anula una salida: desactiva la salida, desactiva los movimientos generados por la salida
  * si la salida proviene de un pedido- reactiva los compromisos del pedido.
  */
-function AnularSalida($id_salida, $id_usuario_anulacion = null)
-{
+/*function AnularSalida($id_salida, $id_usuario_anulacion = null){
     include("../_conexion/conexion.php");
 
     // Iniciar transacción para mantener consistencia ¿primordial?
@@ -828,7 +894,7 @@ function AnularSalida($id_salida, $id_usuario_anulacion = null)
 
         // 2) Marcar la salida como anulada (est_salida = 0). 
         $sql_up = "UPDATE salida SET est_salida = 0";
-        $sql_up .= " WHERE id_salida = $id_salida"; /*¿editar?*/
+        $sql_up .= " WHERE id_salida = $id_salida"; //¿editar
         if (!mysqli_query($con, $sql_up)) throw new Exception("Error al anular la salida: " . mysqli_error($con));
 
         // 3) Desactivar todos los movimientos que fueron creados por esta salida
@@ -842,7 +908,7 @@ function AnularSalida($id_salida, $id_usuario_anulacion = null)
             if (!mysqli_query($con, $sql_reactivar)) throw new Exception("Error al reactivar compromisos del pedido: " . mysqli_error($con));
 
             // ============================================================
-            // 🔹 ACTUALIZAR ESTADO DEL PEDIDO
+            // ACTUALIZAR ESTADO DEL PEDIDO
             // ============================================================
             error_log("📋 Actualizando estado del pedido: $id_pedido");
             require_once("../_modelo/m_pedidos.php");
@@ -861,7 +927,152 @@ function AnularSalida($id_salida, $id_usuario_anulacion = null)
         mysqli_close($con);
         return "ERROR: " . $e->getMessage();
     }
+}*/
+
+function AnularSalida($id_salida, $id_usuario_anulacion = null)
+{
+    include("../_conexion/conexion.php");
+
+    mysqli_begin_transaction($con);
+
+    try {
+        // ============================================================
+        // 1️⃣ OBTENER DATOS DE LA SALIDA
+        // ============================================================
+        $id_salida = intval($id_salida);
+        
+        $sql_sel = "SELECT id_salida, id_pedido 
+                    FROM salida 
+                    WHERE id_salida = $id_salida 
+                    AND est_salida = 1 
+                    LIMIT 1";
+        
+        $res_sel = mysqli_query($con, $sql_sel);
+        
+        if (!$res_sel) {
+            throw new Exception("Error al consultar la salida: " . mysqli_error($con));
+        }
+        
+        $row = mysqli_fetch_assoc($res_sel);
+        
+        if (!$row) {
+            throw new Exception("Salida no encontrada o ya anulada.");
+        }
+        
+        $id_pedido = isset($row['id_pedido']) && $row['id_pedido'] > 0 
+                    ? intval($row['id_pedido']) 
+                    : null;
+        
+        error_log("📦 Anulando salida ID: $id_salida | Pedido: " . ($id_pedido ?? 'SIN PEDIDO'));
+
+        // ============================================================
+        // 2️⃣ OBTENER ÍTEMS AFECTADOS (ANTES DE ANULAR)
+        // ============================================================
+        $items_afectados = [];
+        
+        if ($id_pedido !== null) {
+            $sql_detalles = "SELECT DISTINCT id_pedido_detalle 
+                            FROM salida_detalle 
+                            WHERE id_salida = $id_salida 
+                            AND id_pedido_detalle IS NOT NULL 
+                            AND id_pedido_detalle > 0";
+            
+            $res_detalles = mysqli_query($con, $sql_detalles);
+            
+            if (!$res_detalles) {
+                throw new Exception("Error al obtener detalles de la salida: " . mysqli_error($con));
+            }
+            
+            while ($row_det = mysqli_fetch_assoc($res_detalles)) {
+                $items_afectados[] = intval($row_det['id_pedido_detalle']);
+            }
+            
+            error_log("📋 Ítems afectados: " . count($items_afectados));
+        }
+
+        // ============================================================
+        // 3️⃣ ANULAR LA SALIDA
+        // ============================================================
+        $sql_up = "UPDATE salida 
+                   SET est_salida = 0 
+                   WHERE id_salida = $id_salida";
+        
+        if (!mysqli_query($con, $sql_up)) {
+            throw new Exception("Error al anular la salida: " . mysqli_error($con));
+        }
+        
+        error_log("✅ Salida anulada");
+
+        // ============================================================
+        // 4️⃣ DESACTIVAR MOVIMIENTOS DE LA SALIDA
+        // ============================================================
+        $sql_mov_off = "UPDATE movimiento 
+                       SET est_movimiento = 0 
+                       WHERE tipo_orden = 2 
+                       AND id_orden = $id_salida";
+        
+        if (!mysqli_query($con, $sql_mov_off)) {
+            throw new Exception("Error al desactivar movimientos de la salida: " . mysqli_error($con));
+        }
+        
+        error_log("✅ Movimientos de salida desactivados");
+
+        // ============================================================
+        // 5️⃣ SI HAY PEDIDO: REACTIVAR COMPROMISOS Y ACTUALIZAR ESTADO
+        // ============================================================
+        if ($id_pedido !== null) {
+            
+            $sql_reactivar = "UPDATE movimiento 
+                             SET est_movimiento = 1 
+                             WHERE tipo_orden = 5 
+                             AND id_orden = $id_pedido";
+            
+            if (!mysqli_query($con, $sql_reactivar)) {
+                throw new Exception("Error al reactivar compromisos del pedido: " . mysqli_error($con));
+            }
+            
+            error_log("✅ Compromisos del pedido reactivados");
+
+            // Actualizar estado del pedido
+            require_once("../_modelo/m_pedidos.php");
+            
+            error_log("📋 Actualizando estado del pedido: $id_pedido");
+            ActualizarEstadoPedido($id_pedido);
+            error_log("✅ Estado del pedido actualizado");
+        }
+
+        mysqli_commit($con);
+        mysqli_close($con);
+        
+        // 🔥 NUEVO: Re-verificar automáticamente los items afectados
+        if ($id_pedido > 0) {
+            require_once("../_modelo/m_pedidos.php");
+            
+            if (!empty($items_afectados)) {
+                foreach ($items_afectados as $id_detalle) {
+                    ReverificarItemAutomaticamente($id_detalle);
+                }
+                error_log("✅ Re-verificados " . count($items_afectados) . " items después de anular salida $id_salida");
+            } else {
+                // Si no hay items específicos, re-verificar todo el pedido
+                ReverificarTodosLosItemsDelPedido($id_pedido);
+            }
+        }
+        
+        // ============================================================
+        // 7️⃣ DEVOLVER ÍTEMS AFECTADOS
+        // ============================================================
+        return "SI|" . json_encode($items_afectados);
+
+    } catch (Exception $e) {
+        mysqli_rollback($con);
+        mysqli_close($con);
+        error_log("❌ Error al anular salida: " . $e->getMessage());
+        return "ERROR: " . $e->getMessage();
+    }
 }
+
+
 
 // ============================================================================
 // OBTENER DATOS DE UNA SALIDA POR ID (para edición)
@@ -1121,4 +1332,94 @@ function ValidarCantidadesSalida($id_pedido, $items_salida, $id_salida_actual = 
     
     mysqli_close($con);
     return $errores;
+}
+
+/**
+ * Verifica si realmente necesita re-verificación o es un ajuste temporal
+ * Retorna TRUE solo si hay problema REAL de stock físico
+ */
+function verificarSiNecesitaReverificacion($materiales, $id_salida, $id_pedido) {
+    include("../_conexion/conexion.php");
+    
+    error_log("🔍 verificarSiNecesitaReverificacion - Salida: $id_salida | Pedido: $id_pedido");
+    
+    // Obtener ubicación origen de la salida
+    $sql_salida = "SELECT id_almacen_origen, id_ubicacion_origen 
+                   FROM salida 
+                   WHERE id_salida = $id_salida";
+    $res = mysqli_query($con, $sql_salida);
+    $salida_info = mysqli_fetch_assoc($res);
+    
+    if (!$salida_info) {
+        error_log("⚠️ No se encontró info de la salida");
+        mysqli_close($con);
+        return false;
+    }
+    
+    $id_almacen = intval($salida_info['id_almacen_origen']);
+    $id_ubicacion = intval($salida_info['id_ubicacion_origen']);
+    
+    foreach ($materiales as $material) {
+        $id_producto = intval($material['id_producto']);
+        $cantidad_solicitada = floatval($material['cantidad']);
+        
+        error_log("   📦 Validando producto $id_producto | Cantidad: $cantidad_solicitada");
+        
+        // 🔹 PASO 1: Obtener cantidad actual en la salida que se está editando
+        $sql_cantidad_actual = "SELECT COALESCE(SUM(cant_salida_detalle), 0) as cantidad_actual
+                                FROM salida_detalle 
+                                WHERE id_salida = $id_salida 
+                                  AND id_producto = $id_producto 
+                                  AND est_salida_detalle = 1";
+        $res_actual = mysqli_query($con, $sql_cantidad_actual);
+        $row_actual = mysqli_fetch_assoc($res_actual);
+        $cantidad_actual_en_salida = floatval($row_actual['cantidad_actual']);
+        
+        error_log("   📊 Cantidad actual en esta salida: $cantidad_actual_en_salida");
+        
+        // 🔹 PASO 2: Calcular stock físico REAL (SIN compromisos)
+        $sql_stock = "SELECT COALESCE(
+                        SUM(
+                            CASE
+                                WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                                WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento
+                                ELSE 0
+                            END
+                        ), 0) AS stock_fisico_real
+                      FROM movimiento mov
+                      WHERE mov.id_producto = $id_producto
+                        AND mov.id_almacen = $id_almacen
+                        AND mov.id_ubicacion = $id_ubicacion
+                        AND mov.est_movimiento = 1";
+        
+        $res_stock = mysqli_query($con, $sql_stock);
+        $row_stock = mysqli_fetch_assoc($res_stock);
+        $stock_fisico_real = floatval($row_stock['stock_fisico_real']);
+        
+        error_log("   📊 Stock físico REAL: $stock_fisico_real");
+        
+        // 🔹 PASO 3: Calcular diferencia de cantidad (aumento/disminución)
+        $diferencia = $cantidad_solicitada - $cantidad_actual_en_salida;
+        
+        error_log("   📊 Diferencia: $diferencia (nueva: $cantidad_solicitada - actual: $cantidad_actual_en_salida)");
+        
+        // 🔹 PASO 4: Verificar si hay stock físico suficiente para el CAMBIO
+        if ($diferencia > 0) {
+            // Usuario quiere AUMENTAR la cantidad
+            if ($diferencia > $stock_fisico_real) {
+                error_log("   ❌ Stock REAL insuficiente para aumento. Diferencia: $diferencia > Stock: $stock_fisico_real");
+                mysqli_close($con);
+                return true; // SÍ necesita re-verificación
+            } else {
+                error_log("   ✅ Stock REAL suficiente para aumento");
+            }
+        } else {
+            // Usuario quiere DISMINUIR o mantener igual
+            error_log("   ✅ Es disminución o sin cambio, no necesita re-verificar");
+        }
+    }
+    
+    error_log("   ✅ NO necesita re-verificación (ajuste temporal válido)");
+    mysqli_close($con);
+    return false;
 }
