@@ -619,7 +619,7 @@ foreach($pedidos as $pedido) {
 function AnularPedido(id_pedido) {
     Swal.fire({
         title: '¿Estás seguro?',
-        text: "El pedido será anulado y se liberará el stock comprometido.",
+        text: "El pedido será anulado.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Sí, anular',

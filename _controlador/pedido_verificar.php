@@ -99,31 +99,11 @@ if (isset($_REQUEST['verificar_item'])) {
                         $id_producto   = intval($detalle['id_producto']);
                         $id_almacen    = intval($pedido_row['id_almacen']);
                         $id_ubicacion  = intval($pedido_row['id_ubicacion']);
-                        //$cantidad_pedida = floatval($new_cant_fin);
 
                         //  Obtener stock actual (físico y disponible)
                         $stock = ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion);
                         $stock_disponible = floatval($stock['stock_disponible']);
 
-                        // Evaluar cantidad a reservar
-                        if ($stock_disponible >= $cantidad_pedida) {
-                            $cantidad_reservar = $cantidad_pedida; // stock suficiente
-                        } elseif ($stock_disponible > 0 && $stock_disponible < $cantidad_pedida) {
-                            $cantidad_reservar = $stock_disponible; // stock parcial
-                        } else {
-                            $cantidad_reservar = 0; // sin stock
-                        }
-
-                        //  Registrar movimiento si hay algo que reservar
-                       /* if ($cantidad_reservar > 0) {
-                            RegistrarMovimientoPedido(
-                                $id_pedido_real,
-                                $id_producto,
-                                $id_almacen,
-                                $id_ubicacion,
-                                $cantidad_reservar
-                            );
-                        }*/
                         // ===============================================================
                         //  Verificación exitosa
                         header("Location: pedido_verificar.php?id=$id_pedido_real&success=verificado");
@@ -140,6 +120,7 @@ if (isset($_REQUEST['verificar_item'])) {
         }
     }
 }
+
 // ============================================================================
 // CREAR ORDEN (Detectar si es Material o Servicio)
 // ============================================================================
@@ -527,10 +508,9 @@ if (isset($_REQUEST['finalizar_verificacion'])) {
 }
 
 // ============================================================================
-// GRABAR SALIDA
+// GRABAR SALIDA (VERSIÓN MEJORADA CON DETECCIÓN DE RE-VERIFICACIÓN)
 // ============================================================================
 if (isset($_REQUEST['crear_salida'])) {
-
     include("../_conexion/conexion.php");
     
     ob_clean();
@@ -660,32 +640,71 @@ if (isset($_REQUEST['crear_salida'])) {
             if (isset($resultado['success']) && $resultado['success'] === true) {
                 error_log("✅ Salida creada correctamente - ID: " . ($resultado['id_salida'] ?? 'N/A'));
                 mysqli_close($con);
-                echo "SI";
+                echo json_encode(['success' => true]);
                 exit;
             } else {
                 $mensaje_error = isset($resultado['message']) ? $resultado['message'] : 'Error desconocido al crear la salida';
                 error_log("❌ Error al crear salida: $mensaje_error");
+                
+                // 🔥 VERIFICAR SI ES ERROR DE STOCK
+                if (strpos($mensaje_error, 'ERROR DE STOCK') !== false || 
+                    strpos($mensaje_error, 'Stock insuficiente') !== false) {
+                    
+                    mysqli_close($con);
+                    echo json_encode([
+                        'success' => false,
+                        'tipo' => 'error_stock_reverificado',
+                        'message' => str_replace(['ERROR DE STOCK: ', 'ERROR: '], '', $mensaje_error),
+                        'accion' => 'recargar_pagina'
+                    ]);
+                    exit;
+                }
+                
                 mysqli_close($con);
-                echo "ERROR: " . $mensaje_error;
+                echo json_encode([
+                    'success' => false,
+                    'message' => $mensaje_error
+                ]);
                 exit;
             }
         } elseif (is_string($resultado)) {
             if (strpos($resultado, 'OK') === 0 || strpos($resultado, 'SI') === 0) {
                 error_log("✅ Salida creada correctamente");
                 mysqli_close($con);
-                echo "SI";
+                echo json_encode(['success' => true]);
                 exit;
             } else {
-                $mensaje_error = str_replace(['ERROR: ', 'ERROR DE VALIDACIÓN: '], '', $resultado);
+                $mensaje_error = str_replace(['ERROR: ', 'ERROR DE VALIDACIÓN: ', 'ERROR DE STOCK: '], '', $resultado);
                 error_log("❌ Error al crear salida: $mensaje_error");
+                
+                // 🔥 VERIFICAR SI ES ERROR DE STOCK
+                if (strpos($resultado, 'ERROR DE STOCK') !== false || 
+                    strpos($resultado, 'Stock insuficiente') !== false) {
+                    
+                    mysqli_close($con);
+                    echo json_encode([
+                        'success' => false,
+                        'tipo' => 'error_stock_reverificado',
+                        'message' => $mensaje_error,
+                        'accion' => 'recargar_pagina'
+                    ]);
+                    exit;
+                }
+                
                 mysqli_close($con);
-                echo "ERROR: " . $mensaje_error;
+                echo json_encode([
+                    'success' => false,
+                    'message' => $mensaje_error
+                ]);
                 exit;
             }
         } else {
             error_log("❌ Error: Respuesta inesperada del sistema");
             mysqli_close($con);
-            echo "ERROR: Respuesta inesperada del sistema";
+            echo json_encode([
+                'success' => false,
+                'message' => 'Respuesta inesperada del sistema'
+            ]);
             exit;
         }
         
@@ -700,10 +719,13 @@ if (isset($_REQUEST['crear_salida'])) {
 }
 
 // ============================================================================
-// ACTUALIZAR SALIDA (CORREGIDO - DECODIFICAR JSON)
+// ACTUALIZAR SALIDA (VERSIÓN MEJORADA CON JSON Y DETECCIÓN DE RE-VERIFICACIÓN)
 // ============================================================================
 if (isset($_REQUEST['actualizar_salida'])) {
     include("../_conexion/conexion.php");
+    
+    ob_clean();
+    header('Content-Type: application/json');
     
     $id_salida = intval($_REQUEST['id_salida']);
     $id_pedido = intval($_REQUEST['id_pedido']);
@@ -718,36 +740,36 @@ if (isset($_REQUEST['actualizar_salida'])) {
     
     // VALIDACIONES BÁSICAS
     if (empty($ndoc_salida) || empty($fec_salida)) {
-        echo "ERROR: Complete todos los campos obligatorios";
+        echo json_encode([
+            'success' => false,
+            'message' => 'Complete todos los campos obligatorios'
+        ]);
         mysqli_close($con);
         exit;
     }
     
     if ($id_almacen_origen <= 0 || $id_ubicacion_origen <= 0 || 
         $id_almacen_destino <= 0 || $id_ubicacion_destino <= 0) {
-        echo "ERROR: Debe seleccionar almacenes y ubicaciones válidas";
+        echo json_encode([
+            'success' => false,
+            'message' => 'Debe seleccionar almacenes y ubicaciones válidas'
+        ]);
         mysqli_close($con);
         exit;
     }
     
-    // 🔹 CONSTRUIR ARRAY DE MATERIALES (CORREGIDO)
+    // 🔹 CONSTRUIR ARRAY DE MATERIALES
     $materiales = [];
     
-    // 🔹 MÉTODO 1: Si viene como JSON string (desde el nuevo código JS)
     if (isset($_REQUEST['items_salida']) && is_string($_REQUEST['items_salida'])) {
-        error_log("📦 Items recibidos como JSON string");
-        
         $items_json = json_decode($_REQUEST['items_salida'], true);
         
         if (json_last_error() === JSON_ERROR_NONE && is_array($items_json)) {
-            error_log("✅ JSON decodificado correctamente: " . count($items_json) . " items");
-            
             foreach ($items_json as $item) {
                 if (empty($item['id_producto']) || empty($item['cantidad'])) {
                     continue;
                 }
                 
-                // 🔥 CRÍTICO: Buscar id_salida_detalle en la BD
                 $id_producto = intval($item['id_producto']);
                 $id_pedido_detalle = isset($item['id_pedido_detalle']) && $item['id_pedido_detalle'] > 0
                                     ? intval($item['id_pedido_detalle']) 
@@ -786,75 +808,19 @@ if (isset($_REQUEST['actualizar_salida'])) {
                     'cantidad' => floatval($item['cantidad']),
                     'es_nuevo' => ($id_salida_detalle > 0) ? '0' : '1'
                 ];
-                
-                error_log("   ✅ Item procesado: id_salida_detalle={$id_salida_detalle}, Producto={$id_producto}, Cantidad={$item['cantidad']}");
             }
-        } else {
-            error_log("❌ Error al decodificar JSON: " . json_last_error_msg());
-        }
-    }
-    // 🔹 MÉTODO 2: Si viene como array (desde el código PHP antiguo)
-    elseif (isset($_REQUEST['items_salida']) && is_array($_REQUEST['items_salida'])) {
-        error_log("📦 Items recibidos como array PHP");
-        
-        foreach ($_REQUEST['items_salida'] as $key => $item) {
-            // 🔥 CRÍTICO: Obtener id_salida_detalle del input hidden
-            $id_salida_detalle = 0;
-            
-            if (isset($item['id_salida_detalle']) && intval($item['id_salida_detalle']) > 0) {
-                $id_salida_detalle = intval($item['id_salida_detalle']);
-            } elseif (is_numeric($key)) {
-                $id_salida_detalle = intval($key);
-            }
-            
-            // Verificar si es nuevo
-            $es_nuevo = isset($item['es_nuevo']) && $item['es_nuevo'] == '1';
-            
-            // Validar datos mínimos
-            if (empty($item['id_producto']) || empty($item['cantidad'])) {
-                continue;
-            }
-            
-            $id_producto = intval($item['id_producto']);
-            $cantidad = floatval($item['cantidad']);
-            $descripcion = isset($item['descripcion']) ? trim($item['descripcion']) : '';
-            $id_pedido_detalle = isset($item['id_pedido_detalle']) && $item['id_pedido_detalle'] > 0 
-                                ? intval($item['id_pedido_detalle']) 
-                                : 0;
-            
-            // Validar cantidad
-            if ($cantidad <= 0) {
-                echo "ERROR: Todas las cantidades deben ser mayores a 0";
-                mysqli_close($con);
-                exit;
-            }
-            
-            // ✅ AGREGAR AL ARRAY
-            $materiales[] = [
-                'id_salida_detalle' => $id_salida_detalle,
-                'id_producto' => $id_producto,
-                'descripcion' => $descripcion,
-                'id_pedido_detalle' => $id_pedido_detalle,
-                'cantidad' => $cantidad,
-                'es_nuevo' => $es_nuevo ? '1' : '0'
-            ];
-            
-            error_log("✅ Material procesado - ID Detalle: $id_salida_detalle | Cantidad: $cantidad | Es nuevo: " . ($es_nuevo ? 'SÍ' : 'NO'));
         }
     }
     
     // VALIDAR QUE HAYA AL MENOS UN MATERIAL
     if (empty($materiales)) {
-        error_log("❌ Array de materiales está vacío");
-        echo "ERROR: Debe agregar al menos un material a la salida";
+        echo json_encode([
+            'success' => false,
+            'message' => 'Debe agregar al menos un material a la salida'
+        ]);
         mysqli_close($con);
         exit;
     }
-    
-    // LOG DE DEBUG
-    error_log("📦 Actualizando salida ID: $id_salida");
-    error_log("📋 Materiales a actualizar: " . count($materiales));
-    error_log("📄 Materiales: " . print_r($materiales, true));
     
     // LLAMAR FUNCIÓN DEL MODELO
     $resultado = ActualizarSalida(
@@ -875,16 +841,28 @@ if (isset($_REQUEST['actualizar_salida'])) {
     mysqli_close($con);
     
     if (strpos($resultado, 'OK') === 0 || strpos($resultado, 'SI') === 0) {
-        echo "SI";
+        echo json_encode(['success' => true]);
     } else {
-        echo $resultado;
+        //  VERIFICAR SI ES ERROR DE STOCK
+        if (strpos($resultado, 'ERROR DE STOCK') !== false || 
+            strpos($resultado, 'Stock insuficiente') !== false) {
+            
+            echo json_encode([
+                'success' => false,
+                'tipo' => 'error_stock_reverificado',
+                'message' => str_replace(['ERROR DE STOCK: ', 'ERROR: '], '', $resultado),
+                'accion' => 'recargar_pagina'
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => $resultado
+            ]);
+        }
     }
     
     exit;
 }
-
-
-
 
 // ============================================================================
 // OBTENER STOCK ACTUALIZADO (cuando cambia ubicación origen)
@@ -1018,7 +996,7 @@ if ($id_pedido > 0) {
     if (!empty($pedido_data)) {
         $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
         $pedido_compra = ConsultarCompra($id_pedido);
-        $pedido_salidas = ConsultarSalidasPorPedido($id_pedido); //nuevoo 
+        $pedido_salidas = ConsultarSalidasPorPedido($id_pedido);
         $proveedor = MostrarProveedores();
         $moneda = MostrarMoneda();
         $obras = MostrarObras();
