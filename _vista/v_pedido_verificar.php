@@ -2062,10 +2062,10 @@ $monedas = MostrarMoneda();
             </div>
             <div class="modal-footer" style="padding: 15px; background-color: #f8f9fa;">
                 <button type="button" class="btn btn-outline-danger" data-dismiss="modal">
-                    <i class="fa fa-times"></i> Cancelar
+                    <i></i> Cancelar
                 </button>
                 <button type="button" class="btn btn-success" id="btn-guardar-proveedor-modal">
-                    <i class="fa fa-save"></i> Registrar
+                    <i></i> Registrar
                 </button>
             </div>
         </div>
@@ -3439,10 +3439,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // ✅ RECOLECTAR ITEMS DE SALIDA (CORREGIDO)
+        // RECOLECTAR ITEMS DE SALIDA (CORREGIDO)
         const contenedorItems = document.getElementById('contenedor-items-salida');
         
-        // 🔹 BUSCAR TODOS LOS DIVS QUE CONTENGAN INPUTS DE ITEMS
+        // BUSCAR TODOS LOS DIVS QUE CONTENGAN INPUTS DE ITEMS
         const itemsElements = contenedorItems.querySelectorAll('div[id^="item-salida-"]');
         
         console.log('📦 Items encontrados en DOM:', itemsElements.length);
@@ -3457,7 +3457,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // ✅ CONSTRUIR ARRAY DE ITEMS
+        // CONSTRUIR ARRAY DE ITEMS
         const itemsSalida = [];
         let errorCantidad = false;
         let mensajeError = '';
@@ -3761,7 +3761,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function configurarEventListeners() {
         // ============================================
-        // 🔹 1. BOTÓN NUEVA SALIDA
+        // 1. BOTÓN NUEVA SALIDA
         // ============================================
         const btnNuevaSalidaElement = document.getElementById('btn-nueva-salida');
         if (btnNuevaSalidaElement) {
@@ -3792,7 +3792,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // ============================================
-        // 🔹 2. BOTÓN NUEVA ORDEN
+        // 2. BOTÓN NUEVA ORDEN
         // ============================================
         const btnNuevaOrden = document.getElementById('btn-nueva-orden');
         if (btnNuevaOrden) {
@@ -3939,14 +3939,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     descripcion: btnAgregar.dataset.descripcion,
                     cantidadVerificada: parseFloat(btnAgregar.dataset.cantidadVerificada) || 0,
                     cantidadOrdenada: parseFloat(btnAgregar.dataset.cantidadOrdenada) || 0,
-                    cantidadPendiente: parseFloat(btnAgregar.dataset.cantidadPendiente) || 0,  // 🔹 NUEVO
+                    cantidadPendiente: parseFloat(btnAgregar.dataset.cantidadPendiente) || 0,  // NUEVO
                     botonOriginal: btnAgregar
                 });
             }
         });
         
         // ============================================
-        // 🔹 4. AGREGAR ITEM A SALIDA
+        // 4. AGREGAR ITEM A SALIDA
         // ============================================
         document.addEventListener('click', function(event) {
             const btnAgregarSalida = event.target.closest('.btn-agregarSalida');
@@ -3961,7 +3961,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     mostrarFormularioNuevaSalida();
                 }
                 
-                // ✅ Parsear otras ubicaciones
+                // Parsear otras ubicaciones
                 let otrasUbicaciones = [];
                 try {
                     const otrasUbicacionesStr = btnAgregarSalida.dataset.otrasUbicaciones;
@@ -4081,7 +4081,7 @@ document.addEventListener('DOMContentLoaded', function() {
             formNuevaSalida.addEventListener('submit', validarFormularioSalida);
         }
         
-        // 🔹 LISTENER PARA REMOVER ITEMS (CON TRACKING DE ELIMINADOS)
+        // LISTENER PARA REMOVER ITEMS (CON TRACKING DE ELIMINADOS)
         document.addEventListener('click', function(event) {
             const btnRemover = event.target.closest('.btn-remover-item');
             if (btnRemover) {
@@ -4205,9 +4205,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td>
                         <select name="id_moneda[]" class="form-control form-control-sm">
                             <option value="">-- Moneda --</option>
-                            <?php foreach ($moneda as $m) { ?>
+                            <?php /*foreach ($moneda as $m) { ?>
                                 <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
-                            <?php } ?>
+                            <?php } */?>
                         </select>
                     </td>
                     <td><input type="text" name="cta_corriente[]" class="form-control form-control-sm"></td>

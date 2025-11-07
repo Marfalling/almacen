@@ -2,6 +2,15 @@
 //=======================================================================
 // VISTA: v_compras_mostrar.php (Versión fusionada)
 //=======================================================================
+
+//=======================================================================
+// Cargar bancos y monedas activas para los select del modal
+//=======================================================================
+require_once("../_modelo/m_banco.php");
+require_once("../_modelo/m_moneda.php");
+
+$bancos = MostrarBanco(); 
+$monedas = MostrarMoneda();
 ?>
 
 <script>
@@ -1073,33 +1082,35 @@ function EliminarDocumento(id_doc) {
                                 </thead>
                                 <tbody id="tabla-cuentas-modal-editar">
                                     <tr>
-                                        <td><input type="text" name="banco[]" class="form-control form-control-sm"></td>
                                         <td>
-                                            <select name="id_moneda[]" class="form-control form-control-sm">
-                                                <option value="">-- Moneda --</option>
-                                                <option value="1">Soles (S/.)</option>
-                                                <option value="2">Dólares (US$)</option>
+                                            <select name="id_banco[]" class="form-control select2_banco" required>
+                                                <option value="">Seleccione un banco</option>
+                                                <?php foreach ($bancos as $b) { ?>
+                                                    <?php if ($b['est_banco'] == 1) { // Solo bancos activos ?>
+                                                        <option value="<?php echo $b['id_banco']; ?>">
+                                                            <?php echo $b['cod_banco']; ?>
+                                                        </option>
+                                                    <?php } ?>
+                                                <?php } ?>
                                             </select>
                                         </td>
-                                        <td><input type="text" name="cta_corriente[]" class="form-control form-control-sm"></td>
-                                        <td><input type="text" name="cta_interbancaria[]" class="form-control form-control-sm"></td>
-                                        <td><button type="button" class="btn btn-danger btn-sm eliminar-fila-modal-editar">X</button></td>
+                                        <td>
+                                            <select name="id_moneda[]" class="form-control select2_moneda" required>
+                                                <option value="">Seleccione una moneda</option>
+                                                <?php foreach ($monedas as $m) { ?>
+                                                    <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
+                                                <?php } ?>
+                                            </select>
+                                        </td>
+                                        <td><input type="text" name="cta_corriente[]" class="form-control" required></td>
+                                        <td><input type="text" name="cta_interbancaria[]" class="form-control" required></td>
+                                        <td><button type="button" class="btn btn-danger btn-sm eliminar-fila-modal">X</button></td>
                                     </tr>
                                 </tbody>
                             </table>
-                            <button type="button" class="btn btn-success btn-sm" id="agregarCuentaModalEditar">
+                            <button type="button" class="btn btn-success btn-sm" id="agregarCuentaModal">
                                 <i class="fa fa-plus"></i> Agregar Cuenta
                             </button>
-                        </div>
-                    </div>
-
-                    <div class="ln_solid"></div>
-
-                    <div class="form-group">
-                        <div class="col-md-12 col-sm-12">
-                            <p class="text-muted" style="font-size: 12px;">
-                                <span class="text-danger">*</span> Los campos con (<span class="text-danger">*</span>) son obligatorios.
-                            </p>
                         </div>
                     </div>
 
@@ -1107,10 +1118,10 @@ function EliminarDocumento(id_doc) {
             </div>
             <div class="modal-footer" style="padding: 15px; background-color: #f8f9fa;">
                 <button type="button" class="btn btn-outline-danger" data-dismiss="modal">
-                    <i class="fa fa-times"></i> Cancelar
+                    <i></i> Cancelar
                 </button>
                 <button type="button" class="btn btn-success" id="btn-guardar-proveedor-modal-editar">
-                    <i class="fa fa-save"></i> Registrar
+                    <i></i> Registrar
                 </button>
             </div>
         </div>
@@ -2060,8 +2071,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function configurarModalProveedorEditar() {
     const tablaCuentasModalEditar = document.getElementById("tabla-cuentas-modal-editar");
-    const btnAgregarModalEditar = document.getElementById("agregarCuentaModalEditar");
+    //const btnAgregarModalEditar = document.getElementById("agregarCuentaModalEditar");
     
+    /*
     if (btnAgregarModalEditar) {
         btnAgregarModalEditar.addEventListener("click", function() {
             const nuevaFila = document.createElement("tr");
@@ -2080,7 +2092,7 @@ function configurarModalProveedorEditar() {
             `;
             tablaCuentasModalEditar.appendChild(nuevaFila);
         });
-    }
+    }*/
     
     if (tablaCuentasModalEditar) {
         tablaCuentasModalEditar.addEventListener("click", function(e) {

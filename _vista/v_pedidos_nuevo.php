@@ -253,7 +253,7 @@
                                     <a href="pedidos_mostrar.php" class="btn btn-outline-danger btn-block">Cancelar</a>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
-                                    <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">Finalizar Pedido</button>
+                                    <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">Registrar</button>
                                 </div>
                             </div>
 

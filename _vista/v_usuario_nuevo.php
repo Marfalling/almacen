@@ -98,7 +98,7 @@
 
                             <div class="form-group">
                                 <div class="col-md-2 col-sm-2  offset-md-8">
-                                    <button type="reset" class="btn btn-outline-danger btn-block">Limpiar</button>
+                                    <a href="usuario_mostrar.php" class="btn btn-outline-danger btn-block">Cancelar</a>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
                                     <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">Registrar</button>

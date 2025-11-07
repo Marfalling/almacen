@@ -52,16 +52,19 @@ if (isset($_POST['registrar_ajax'])) {
     $id_proveedor = $rpta;
     
     // Registrar cuentas bancarias si existen
-    if (isset($_POST['banco']) && is_array($_POST['banco'])) {
-        for ($i = 0; $i < count($_POST['banco']); $i++) {
-            $banco = !empty($_POST['banco'][$i]) ? strtoupper(trim($_POST['banco'][$i])) : '';
+    if (
+        isset($_POST['id_banco'], $_POST['id_moneda'], $_POST['cta_corriente'], $_POST['cta_interbancaria']) &&
+        is_array($_POST['id_banco'])
+    ) {
+        for ($i = 0; $i < count($_POST['id_banco']); $i++) {
+            $id_banco = !empty($_POST['id_banco'][$i]) ? (int)$_POST['id_banco'][$i] : null;
             $id_moneda = !empty($_POST['id_moneda'][$i]) ? (int)$_POST['id_moneda'][$i] : null;
             $cta_corriente = !empty($_POST['cta_corriente'][$i]) ? trim($_POST['cta_corriente'][$i]) : '';
             $cta_interbancaria = !empty($_POST['cta_interbancaria'][$i]) ? trim($_POST['cta_interbancaria'][$i]) : '';
-            
-            // Solo grabar si hay banco y moneda
-            if (!empty($banco) && !empty($id_moneda)) {
-                GrabarCuentaProveedor($id_proveedor, $banco, $id_moneda, $cta_corriente, $cta_interbancaria);
+
+            // Solo registrar si hay datos válidos
+            if (!empty($id_banco) && !empty($id_moneda) && !empty($cta_corriente)) {
+                GrabarCuentaProveedor($id_proveedor, $id_banco, $id_moneda, $cta_corriente, $cta_interbancaria);
             }
         }
     }

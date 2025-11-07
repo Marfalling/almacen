@@ -362,30 +362,54 @@ $(document).ready(function () {
 });
 </script>
 
-<!-- Script dinámico para manejar cuentas bancarias -->
+
+<!-- Script dinámico para manejar cuentas bancarias (VISTA_EDITAR) -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const tablaCuentas = document.getElementById("tabla-cuentas");
     const btnAgregar = document.getElementById("agregarCuenta");
 
-    // Acción para agregar nueva fila
+    //Función para inicializar Select2 SOLO una vez por elemento
+    function inicializarSelect2(context = document) {
+        $(context).find('.select2_moneda').each(function() {
+            if (!$(this).data('select2')) {
+                $(this).select2({
+                    placeholder: "Seleccione una moneda",
+                    allowClear: true,
+                    width: '100%'
+                });
+            }
+        });
+        $(context).find('.select2_banco').each(function() {
+            if (!$(this).data('select2')) {
+                $(this).select2({
+                    placeholder: "Seleccione un banco",
+                    allowClear: true,
+                    width: '100%'
+                });
+            }
+        });
+    }
+
+    //Inicializa los Select2 existentes al cargar la página
+    inicializarSelect2();
+
+    //Evento para agregar nueva fila
     btnAgregar.addEventListener("click", function() {
         const nuevaFila = document.createElement("tr");
         nuevaFila.innerHTML = `
             <td>
                 <select name="id_banco[]" class="form-control select2_banco" required>
-                    <option value="">-- Banco --</option>
+                    <option value="">Seleccione un banco</option>
                     <?php foreach ($bancos as $b) { 
                         if ($b['est_banco'] == 1) { ?>
-                            <option value="<?php echo $b['id_banco']; ?>">
-                                <?php echo $b['cod_banco']; ?>
-                            </option>
+                            <option value="<?php echo $b['id_banco']; ?>"><?php echo $b['cod_banco']; ?></option>
                     <?php } } ?>
                 </select>
             </td>
             <td>
                 <select name="id_moneda[]" class="form-control select2_moneda" required>
-                    <option value="">-- Moneda --</option>
+                    <option value="">Seleccione una moneda</option>
                     <?php foreach ($monedas as $m) { ?>
                         <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
                     <?php } ?>
@@ -397,40 +421,20 @@ document.addEventListener("DOMContentLoaded", function() {
         `;
         tablaCuentas.appendChild(nuevaFila);
 
-        // Inicializar Select2 en la nueva fila
-        $(nuevaFila).find('.select2_moneda').select2({
-            placeholder: "Seleccione una moneda",
-            allowClear: true,
-            width: '100%'
-        });
-         $(nuevaFila).find('.select2_banco').select2({
-            placeholder: "Seleccione un banco",
-            allowClear: true,
-            width: '100%'
-        });
+        // Inicializa Select2 solo en la nueva fila
+        inicializarSelect2(nuevaFila);
     });
 
-    // Acción para eliminar fila
+    //Evento para eliminar filas
     tablaCuentas.addEventListener("click", function(e) {
         if (e.target.classList.contains("eliminar-fila")) {
             e.target.closest("tr").remove();
         }
     });
-
-    // Inicialización inicial de Select2
-    $('.select2_moneda').select2({
-        placeholder: "Seleccione una moneda",
-        allowClear: true,
-        width: '100%'
-    });
-    $('.select2_banco').select2({
-        placeholder: "Seleccione un banco",
-        allowClear: true,
-        width: '100%'
-    });
 });
 </script>
 
+<!-- Script dinámico para manejar cuentas bancarias (MODAL CUENTAS)-->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
     const tablaCuentasModal = document.getElementById("tabla-cuentas-modal");
@@ -502,6 +506,98 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 </script>
+
+<script>
+// ================================================================
+// GESTIÓN DE CUENTAS BANCARIAS (MODA EDITAR PROVEEDOR)
+// ================================================================
+document.addEventListener("DOMContentLoaded", function () {
+    const tablaCuentasModalEditar = document.getElementById("tabla-cuentas-modal-editar");
+    const btnAgregarCuentaEditar = document.getElementById("agregarCuentaModal");
+
+    //Inicializar Select2 con configuración común
+    function inicializarSelect2Editar($scope, dropdownParent = null) {
+        const opcionesBanco = {
+            placeholder: "Seleccione un banco",
+            allowClear: true,
+            width: "100%"
+        };
+        const opcionesMoneda = {
+            placeholder: "Seleccione una moneda",
+            allowClear: true,
+            width: "100%"
+        };
+        if (dropdownParent) {
+            opcionesBanco.dropdownParent = dropdownParent;
+            opcionesMoneda.dropdownParent = dropdownParent;
+        }
+
+        $scope.find('.select2_banco').select2(opcionesBanco);
+        $scope.find('.select2_moneda').select2(opcionesMoneda);
+    }
+
+    //Evento: Agregar nueva fila de cuenta
+    if (btnAgregarCuentaEditar) {
+        btnAgregarCuentaEditar.addEventListener("click", function () {
+            const nuevaFila = document.createElement("tr");
+            nuevaFila.innerHTML = `
+                <td>
+                    <select name="id_banco[]" class="form-control select2_banco" required>
+                        <option value="">Seleccione un banco</option>
+                        <?php foreach ($bancos as $b) { if ($b['est_banco'] == 1) { ?>
+                            <option value="<?php echo $b['id_banco']; ?>">
+                                <?php echo $b['cod_banco']; ?>
+                            </option>
+                        <?php } } ?>
+                    </select>
+                </td>
+                <td>
+                    <select name="id_moneda[]" class="form-control select2_moneda" required>
+                        <option value="">Seleccione una moneda</option>
+                        <?php foreach ($monedas as $m) { ?>
+                            <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
+                        <?php } ?>
+                    </select>
+                </td>
+                <td><input type="text" name="cta_corriente[]" class="form-control" required></td>
+                <td><input type="text" name="cta_interbancaria[]" class="form-control" required></td>
+                <td><button type="button" class="btn btn-danger btn-sm eliminar-fila-modal-editar">X</button></td>
+            `;
+            tablaCuentasModalEditar.appendChild(nuevaFila);
+
+            // Re-inicializa Select2 solo en la nueva fila
+            inicializarSelect2Editar($(nuevaFila), $('#modalNuevoProveedorEditar'));
+        });
+    }
+
+    //Evento: Eliminar fila
+    if (tablaCuentasModalEditar) {
+        tablaCuentasModalEditar.addEventListener("click", function (e) {
+            if (e.target.classList.contains("eliminar-fila-modal-editar")) {
+                const filas = tablaCuentasModalEditar.querySelectorAll("tr");
+                if (filas.length > 1) {
+                    e.target.closest("tr").remove();
+                } else {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Advertencia',
+                        text: 'Debe mantener al menos una fila de cuenta'
+                    });
+                }
+            }
+        });
+    }
+
+    //Cuando se abre el modal, inicializar Select2
+    $('#modalNuevoProveedorEditar').on('shown.bs.modal', function () {
+        inicializarSelect2Editar($('#modalNuevoProveedorEditar'), $('#modalNuevoProveedorEditar'));
+    });
+});
+</script>
+
+
+
+
 
 
 
