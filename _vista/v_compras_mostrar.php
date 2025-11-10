@@ -651,7 +651,7 @@ function EliminarDocumento(id_doc) {
 
                                                                 <!-- Botón Pagos -->
                                                                 <?php if ($tiene_financiera) { ?>
-                                                                    <a href="pago_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
+                                                                    <a href="comprobante_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
                                                                     class="btn btn-warning btn-sm"
                                                                     title="Registrar/Ver Pagos">
                                                                         <i class="fa fa-money"></i>
@@ -706,14 +706,14 @@ function EliminarDocumento(id_doc) {
 
                                                                 <!-- Botón Pagos -->
                                                                 <?php if ($compra['est_compra'] == 2 || $compra['est_compra'] == 3) { ?>
-                                                                    <a href="pago_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
+                                                                    <a href="comprobante_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
                                                                     class="btn btn-warning btn-sm"
                                                                     title="Registrar/Ver Pagos">
                                                                         <i class="fa fa-money"></i>
                                                                     </a>
                                                                 <?php } elseif ($compra['est_compra'] == 4) { ?>
                                                                     <!--debe poder verse la vista pero no registrar nuevos pagos-->
-                                                                    <a href="pago_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
+                                                                    <a href="comprobante_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
                                                                     class="btn btn-warning btn-sm"
                                                                     title="Compra pagada"
                                                                     tabindex="-1" aria-disabled="true">

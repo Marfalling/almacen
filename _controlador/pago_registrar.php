@@ -71,41 +71,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['monto'])) {
     }
 
     // ====================================================================
-// VALIDACIONES DE MONTO Y SALDO
-// ====================================================================
-$monto = round(floatval($_POST['monto']), 2);
-$saldo = round(floatval($oc['saldo']), 2);
+    // VALIDACIONES DE MONTO Y SALDO
+    // ====================================================================
+    $monto = round(floatval($_POST['monto']), 2);
+    $saldo = round(floatval($oc['saldo']), 2);
 
-if ($monto <= 0) {
-    $mostrar_alerta = true;
-    $tipo_alerta = 'warning';
-    $titulo_alerta = 'Monto inválido';
-    $mensaje_alerta = 'Debe ingresar un monto mayor a cero.';
-} elseif ($monto > $saldo) {
-    $mostrar_alerta = true;
-    $tipo_alerta = 'warning';
-    $titulo_alerta = 'Monto excedido';
-    $mensaje_alerta = "El monto del pago ($monto) no puede superar el saldo pendiente ($saldo).";
-} else {
-    // Registrar pago en BD
-    $resultado = GrabarPago($id_compra, $id_cuenta, $monto, $comprobante, $id_personal, $enviar_correo, $enviar_correo2, $enviar_correo3);
-
-    if ($resultado === "SI") {
-        ?>
-        <script>
-        setTimeout(function() {
-            window.location.href = 'pago_registrar.php?id_compra=<?php echo $id_compra; ?>&registrado=true';
-        }, 100);
-        </script>
-        <?php
-        exit();
-    } else {
+    if ($monto <= 0) {
         $mostrar_alerta = true;
-        $tipo_alerta = 'error';
-        $titulo_alerta = 'Error al registrar';
-        $mensaje_alerta = $resultado;
+        $tipo_alerta = 'warning';
+        $titulo_alerta = 'Monto inválido';
+        $mensaje_alerta = 'Debe ingresar un monto mayor a cero.';
+    } elseif ($monto > $saldo) {
+        $mostrar_alerta = true;
+        $tipo_alerta = 'warning';
+        $titulo_alerta = 'Monto excedido';
+        $mensaje_alerta = "El monto del pago ($monto) no puede superar el saldo pendiente ($saldo).";
+    } else {
+        // Registrar pago en BD
+        $resultado = GrabarPago($id_compra, $id_cuenta, $monto, $comprobante, $id_personal, $enviar_correo, $enviar_correo2, $enviar_correo3);
+
+        if ($resultado === "SI") {
+            ?>
+            <script>
+            setTimeout(function() {
+                window.location.href = 'pago_registrar.php?id_compra=<?php echo $id_compra; ?>&registrado=true';
+            }, 100);
+            </script>
+            <?php
+            exit();
+        } else {
+            $mostrar_alerta = true;
+            $tipo_alerta = 'error';
+            $titulo_alerta = 'Error al registrar';
+            $mensaje_alerta = $resultado;
+        }
     }
-}
 }
 
 ?>
