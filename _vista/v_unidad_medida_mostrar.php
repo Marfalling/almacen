@@ -20,7 +20,9 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="unidad_medida_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nueva unidad de medida</a> 
+                                <a href="unidad_medida_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
+                                    <i class="fa fa-plus"></i> Nueva unidad de medida
+                                </a> 
                             </div>
                         </div>
                     </div>

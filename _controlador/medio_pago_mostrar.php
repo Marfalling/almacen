@@ -8,9 +8,7 @@ if (!verificarPermisoEspecifico('ver_medio de pago')) {
     exit;
 }
 require_once("../_modelo/m_medio_pago.php");
-
 ?>
-
 
 <!DOCTYPE html>
 <html lang="es">

@@ -1,6 +1,6 @@
 <?php 
 //=======================================================================
-// VISTA: v_ingresos_mostrar.php - CORREGIDO CON LÓGICA DE BOTONES
+// VISTA: v_ingresos_mostrar.php 
 //=======================================================================
 ?>
 <!-- page content -->
@@ -13,7 +13,7 @@
             <div class="title_right">
                 <div class="pull-right">
                     <a href="ingresos_directo_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                        <i class="fa fa-plus"></i> Nuevo Ingreso Directo
+                        <i class="fa fa-plus"></i> Nuevo ingreso directo
                     </a>
                 </div>
             </div>

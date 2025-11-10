@@ -20,7 +20,9 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="moneda_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nueva moneda</a>
+                                <a href="moneda_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
+                                    <i class="fa fa-plus"></i> Nueva moneda
+                                </a>
                             </div>
                         </div>
                     </div>

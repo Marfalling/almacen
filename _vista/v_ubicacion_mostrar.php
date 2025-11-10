@@ -20,7 +20,9 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="ubicacion_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nueva ubicacion</a> 
+                                <a href="ubicacion_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
+                                    <i class="fa fa-plus"></i> Nueva ubicacion
+                                </a> 
                             </div>
                         </div>
                     </div>

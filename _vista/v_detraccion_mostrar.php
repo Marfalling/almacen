@@ -68,7 +68,7 @@
                             <div class="col-sm-2">
                                 <?php if (verificarPermisoEspecifico('crear_detraccion')): ?>
                                     <a href="detraccion_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                        <i></i> Nuevo Registro
+                                        <i class="fa fa-plus"></i> Nuevo Registro
                                     </a>
                                 <?php endif; ?>
                             </div>

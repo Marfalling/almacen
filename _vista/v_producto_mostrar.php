@@ -25,7 +25,9 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="producto_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nuevo producto</a> 
+                                <a href="producto_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
+                                    <i class="fa fa-plus"></i> Nuevo producto
+                                </a> 
                             </div>
                         </div>
                     </div>

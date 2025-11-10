@@ -21,10 +21,12 @@
                             <h2>Listado de Proveedor</h2>
                         </div>
                         <div class="col-sm-4 text-right">
-                            <a href="proveedor_nuevo.php" class="btn btn-outline-info btn-sm">Nuevo proveedor</a>
+                            <a href="proveedor_nuevo.php" class="btn btn-outline-info btn-sm">
+                                <i class="fa fa-plus"></i> Nuevo proveedor
+                            </a>
                             <!-- BOTÓN MODAL -->
                             <button class="btn btn-outline-success btn-sm" data-toggle="modal" data-target="#modalImportar">
-                                Importar CSV
+                                <i class="fa fa-upload"></i> Importar CSV
                             </button>
                         </div>
                     </div>
