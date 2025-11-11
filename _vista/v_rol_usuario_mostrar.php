@@ -21,7 +21,7 @@
                             </div>
                             <div class="col-sm-2">
                                 <a href="rol_usuario_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo rol de usuario
+                                    <i class="fa fa-plus"></i> Nuevo Rol Usuario
                                 </a> 
                             </div>
                         </div>

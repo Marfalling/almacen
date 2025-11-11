@@ -57,7 +57,7 @@
                             <div class="col-sm-2">
                                 <?php if (verificarPermisoEspecifico('crear_centro de costo')): ?>
                                     <a href="centro_costo_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                       <i class="fa fa-plus"></i> Nuevo centro costo
+                                       <i class="fa fa-plus"></i> Nuevo Centro Costo
                                     </a>
                                 <?php endif; ?>
                             </div>

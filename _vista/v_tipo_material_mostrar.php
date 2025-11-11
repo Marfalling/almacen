@@ -21,7 +21,7 @@
                             </div>
                             <div class="col-sm-2">
                                 <a href="tipo_material_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo tipo de material
+                                    <i class="fa fa-plus"></i> Nuevo Tipo Material
                                 </a> 
                             </div>
                         </div>

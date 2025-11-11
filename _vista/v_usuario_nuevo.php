@@ -22,7 +22,8 @@
                             <div class="form-group row ">
                                 <label class="control-label col-md-3 col-sm-3 ">Personal <span class="text-danger">*</span> :</label>
                                 <div class="col-md-9 col-sm-9 ">
-                                    <select name="id_personal" class="form-control" required="required">
+
+                                    <select name="id_personal" id="id_personal" class="form-control" required>
                                         <option value="">Seleccione personal</option>
                                         <?php if(isset($personal_sin_usuario) && !empty($personal_sin_usuario)) { ?>
                                             <?php foreach($personal_sin_usuario as $personal) { 

@@ -21,7 +21,7 @@
                             </div>
                             <div class="col-sm-2">
                                 <a href="cargo_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo cargo
+                                    <i class="fa fa-plus"></i> Nuevo Cargo
                                 </a>
                             </div>
                         </div>

@@ -168,11 +168,8 @@
                             <div class="ln_solid"></div>
 
                             <div class="form-group">
-                                <div class="col-md-2 col-sm-2 offset-md-6">
-                                    <a href="uso_material_mostrar.php" class="btn btn-outline-secondary btn-block">Cancelar</a>
-                                </div>
-                                <div class="col-md-2 col-sm-2">
-                                    <button type="reset" class="btn btn-outline-danger btn-block">Limpiar</button>
+                                <div class="col-md-2 col-sm-2 offset-md-8">
+                                    <a href="uso_material_mostrar.php" class="btn btn-outline-danger btn-block">Cancelar</a>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
                                     <button type="submit" name="actualizar" id="btn_actualizar" class="btn btn-success btn-block">Actualizar</button>

@@ -21,7 +21,7 @@
                             </div>
                             <div class="col-sm-2">
                                 <a href="clientes_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo cliente
+                                    <i class="fa fa-plus"></i> Nuevo Cliente
                                 </a>
                             </div>
                         </div>

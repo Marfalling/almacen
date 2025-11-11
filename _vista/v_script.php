@@ -595,6 +595,27 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 
+<!-- Personal (Nuevo Usuario) -->
+<script>
+$(document).ready(function () {
+  const $personal = $('#id_personal');
+
+  if ($personal.length) {
+    $personal.select2({
+      placeholder: 'Seleccionar personal...',
+      allowClear: true,
+      width: '100%',
+      minimumInputLength: 0,
+      language: {
+        noResults: function () { return 'No se encontraron resultados'; },
+        searching: function () { return 'Buscando...'; }
+      }
+    });
+  }
+});
+</script>
+
+
 
 
 

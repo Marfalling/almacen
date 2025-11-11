@@ -26,7 +26,7 @@
                             </div>
                             <div class="col-sm-2">
                                 <a href="producto_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo producto
+                                    <i class="fa fa-plus"></i> Nuevo Producto
                                 </a> 
                             </div>
                         </div>
@@ -93,6 +93,7 @@
                                                     <td><?php echo $mod_producto; ?></td>
                                                     <td><?php echo $mar_producto; ?></td>
                                                     <td>
+                                                        <!--Ver documento de homologación--->
                                                         <?php if (!empty($hom_producto)) { ?>
                                                             <a href="../_uploads/documentos/<?php echo $hom_producto; ?>" target="_blank" class="btn btn-success btn-xs" title="Ver documento de homologación">
                                                                 <i class="fa fa-file"></i>
@@ -100,10 +101,13 @@
                                                             <br>
                                                             <small class="text-muted"><?php echo substr($hom_producto, 0, 15) . '...'; ?></small>
                                                         <?php } else { ?>
-                                                            <span class="text-muted">Sin documento</span>
+                                                            <button class="btn btn-secondary btn-xs" style="cursor: not-allowed;" title="Sin documento">
+                                                                <i class="fa fa-file" style="color: white;"></i>
+                                                            </button>
                                                         <?php } ?>
                                                     </td>
                                                     <td>
+                                                        <!--Ver documento de calibrado--->
                                                         <?php if (!empty($dcal_producto)) { ?>
                                                             <a href="../_uploads/documentos/<?php echo $dcal_producto; ?>" target="_blank" class="btn btn-primary btn-xs" title="Ver documento de calibrado">
                                                                 <i class="fa fa-file"></i>
@@ -111,10 +115,13 @@
                                                             <br>
                                                             <small class="text-muted"><?php echo substr($dcal_producto, 0, 15) . '...'; ?></small>
                                                         <?php } else { ?>
-                                                            <span class="text-muted">Sin documento</span>
+                                                            <button class="btn btn-secondary btn-xs" style="cursor: not-allowed;" title="Sin documento">
+                                                                <i class="fa fa-file" style="color: white;"></i>
+                                                            </button>
                                                         <?php } ?>
                                                     </td>
                                                     <td>
+                                                        <!--Ver documento de operatividad--->
                                                         <?php if (!empty($dope_producto)) { ?>
                                                             <a href="../_uploads/documentos/<?php echo $dope_producto; ?>" target="_blank" class="btn btn-primary btn-xs" title="Ver documento de operatividad">
                                                                 <i class="fa fa-file"></i>
@@ -122,7 +129,9 @@
                                                             <br>
                                                             <small class="text-muted"><?php echo substr($dope_producto, 0, 15) . '...'; ?></small>
                                                         <?php } else { ?>
-                                                            <span class="text-muted">Sin documento</span>
+                                                            <button class="btn btn-secondary btn-xs" style="cursor: not-allowed;" title="Sin documento">
+                                                                <i class="fa fa-file" style="color: white;"></i>
+                                                            </button>
                                                         <?php } ?>
                                                     </td>
                                                     <td>

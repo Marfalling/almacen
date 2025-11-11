@@ -272,16 +272,17 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                     icon: '<?php echo $tipo_alerta; ?>',
                     title: '<?php echo $titulo_alerta; ?>',
                     text: '<?php echo $mensaje_alerta; ?>',
-                    confirmButtonText: 'Entendido',
-                    confirmButtonColor: '<?php echo ($tipo_alerta == "error") ? "#d33" : "#3085d6"; ?>',
-                    allowOutsideClick: false
-                }).then((result) => {
+                    showConfirmButton: false,
+                    timer: 2000,
+                    timerProgressBar: true,
+                    allowOutsideClick: false,
+                    willClose: () => {         
                     <?php if (!empty($redirigir_a)) { ?>
-                        if (result.isConfirmed) {
-                            window.location.href = '<?php echo $redirigir_a; ?>';
-                        }
+                        window.location.href = '<?php echo $redirigir_a; ?>';
                     <?php } ?>
+                    }
                 });
+                
             } else {
                 alert('<?php echo $titulo_alerta . ": " . $mensaje_alerta; ?>');
                 <?php if (!empty($redirigir_a)) { ?>

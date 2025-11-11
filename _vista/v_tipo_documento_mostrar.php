@@ -21,7 +21,7 @@
                             </div>
                             <div class="col-sm-2">
                                 <a href="tipo_documento_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo tipo documento
+                                    <i class="fa fa-plus"></i> Nuevo Tipo Documento
                                 </a>
                             </div>
                         </div>

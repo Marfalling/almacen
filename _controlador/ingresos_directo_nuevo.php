@@ -102,12 +102,9 @@ if (!verificarPermisoEspecifico('crear_ingresos')) {
                         $resultado = ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal_ingreso, $productos);
                         
                         if ($resultado['success']) {
-                            // Redirección exitosa con JavaScript inmediato
                             ?>
                             <script Language="JavaScript">
-                                setTimeout(function() {
-                                    window.location.href = 'ingresos_mostrar.php?tab=todos-ingresos&registrado_directo=true&id_ingreso=<?php echo $resultado["id_ingreso"]; ?>';
-                                }, 100);
+                                location.href = 'ingresos_mostrar.php?tab=todos-ingresos&registrado=true';
                             </script>
                             <?php
                             exit();

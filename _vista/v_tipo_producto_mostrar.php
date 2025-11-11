@@ -22,7 +22,7 @@
                             <div class="col-sm-2">
                                 
                                 <a href="tipo_producto_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo tipo de producto
+                                    <i class="fa fa-plus"></i> Nuevo Tipo Producto
                                 </a> 
                             </div>
                         </div>

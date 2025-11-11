@@ -22,7 +22,7 @@
                         </div>
                         <div class="col-sm-4 text-right">
                             <a href="proveedor_nuevo.php" class="btn btn-outline-info btn-sm">
-                                <i class="fa fa-plus"></i> Nuevo proveedor
+                                <i class="fa fa-plus"></i> Nuevo Proveedor
                             </a>
                             <!-- BOTÓN MODAL -->
                             <button class="btn btn-outline-success btn-sm" data-toggle="modal" data-target="#modalImportar">

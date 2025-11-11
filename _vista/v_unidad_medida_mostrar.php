@@ -21,7 +21,7 @@
                             </div>
                             <div class="col-sm-2">
                                 <a href="unidad_medida_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nueva unidad de medida
+                                    <i class="fa fa-plus"></i> Nueva Unidad Medida
                                 </a> 
                             </div>
                         </div>

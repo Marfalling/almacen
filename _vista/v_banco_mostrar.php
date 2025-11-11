@@ -21,7 +21,7 @@
                             </div>
                             <div class="col-sm-2">
                                 <a href="banco_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo banco
+                                    <i class="fa fa-plus"></i> Nuevo Banco
                                 </a>
                             </div>
                         </div>

@@ -13,7 +13,7 @@
             <div class="title_right">
                 <div class="pull-right">
                     <a href="ingresos_directo_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                        <i class="fa fa-plus"></i> Nuevo ingreso directo
+                        <i class="fa fa-plus"></i> Nuevo Ingreso Directo
                     </a>
                 </div>
             </div>

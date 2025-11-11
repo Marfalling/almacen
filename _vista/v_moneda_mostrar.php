@@ -21,7 +21,7 @@
                             </div>
                             <div class="col-sm-2">
                                 <a href="moneda_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nueva moneda
+                                    <i class="fa fa-plus"></i> Nueva Moneda
                                 </a>
                             </div>
                         </div>
