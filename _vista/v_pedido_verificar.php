@@ -46,12 +46,12 @@ $monedas = MostrarMoneda();
             <div class="col-md-12">
                 <div class="x_panel">
                     <div class="x_title" style="padding: 10px 15px; background-color: #f8f9fa;">
-                        <h2 style="margin: 0; font-size: 18px;">
-                            <i class="fa fa-info-circle text-primary"></i> 
-                            Información General - Pedido <?php echo $pedido['cod_pedido']; ?>
-                        </h2>
-                        <div class="clearfix"></div>
-                    </div>
+                    <h2 style="margin: 0; font-size: 18px;">
+                        <i class="fa fa-info-circle text-primary"></i> 
+                        Información General - Pedido <?php echo $pedido['cod_pedido']; ?>
+                    </h2>
+                    <div class="clearfix"></div>
+                </div>
                     <div class="x_content" style="padding: 15px;">
                         <table class="table table-bordered" style="font-size: 13px; margin-bottom: 0;">
                             <tbody>
@@ -1799,6 +1799,28 @@ $monedas = MostrarMoneda();
                                             $id_pedido_detalle_item = isset($item['id_pedido_detalle']) && $item['id_pedido_detalle'] > 0 
                                                                     ? intval($item['id_pedido_detalle']) 
                                                                     : 0;
+                                            
+                                            // 🔹 CALCULAR CANTIDAD MÁXIMA
+                                            $cant_actual_en_salida = floatval($item['cant_salida_detalle']);
+                                            $cantidad_maxima = $cant_actual_en_salida; // Por defecto
+                                            
+                                            if ($id_pedido_detalle_item > 0) {
+                                                // Buscar en el detalle del pedido
+                                                foreach ($pedido_detalle as $detalle_pedido) {
+                                                    if ($detalle_pedido['id_pedido_detalle'] == $id_pedido_detalle_item) {
+                                                        $cant_os_verificada = floatval($detalle_pedido['cant_os_pedido_detalle']);
+                                                        $cant_os_ordenada_total = ObtenerCantidadYaOrdenadaOSPorDetalle($id_pedido_detalle_item);
+                                                        
+                                                        // Restar lo que tiene ESTA salida
+                                                        $cant_ordenada_otras_salidas = max(0, $cant_os_ordenada_total - $cant_actual_en_salida);
+                                                        
+                                                        // Calcular máximo
+                                                        $cantidad_maxima = $cant_os_verificada - $cant_ordenada_otras_salidas;
+                                                        
+                                                        break;
+                                                    }
+                                                }
+                                            }
                                         ?>
                                         <div class="alert alert-light p-2 mb-2" id="item-salida-<?php echo $item['id_salida_detalle']; ?>">
                                             <!-- USAR id_salida_detalle COMO CLAVE DEL ARRAY -->
@@ -1826,12 +1848,18 @@ $monedas = MostrarMoneda();
                                             <div class="row">
                                                 <div class="col-md-4">
                                                     <label style="font-size: 11px; font-weight: bold;">Cantidad:</label>
-                                                    <input type="number" class="form-control form-control-sm cantidad-salida" 
+                                                    <input type="number" 
+                                                        class="form-control form-control-sm cantidad-salida" 
                                                         name="items_salida[<?php echo $item['id_salida_detalle']; ?>][cantidad]"
                                                         value="<?php echo $item['cant_salida_detalle']; ?>" 
-                                                        min="0.01" 
+                                                        min="0.01"
+                                                        max="<?php echo number_format($cantidad_maxima, 2, '.', ''); ?>"
                                                         step="0.01"
-                                                        style="font-size: 12px;" required>
+                                                        style="font-size: 12px;" 
+                                                        required>
+                                                    <small class="text-info" style="font-size: 10px;">
+                                                        <i class="fa fa-arrow-up"></i> Máx: <?php echo number_format($cantidad_maxima, 2); ?>
+                                                    </small>
                                                 </div>
                                             </div>
                                         </div>
@@ -2306,7 +2334,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Cargar salida si está en edición
     if (modoEditarSalida) {
-        setTimeout(cargarSalidaEdicion, 300);
+        //setTimeout(cargarSalidaEdicion, 300);
     }
     
     configurarEventListeners();
@@ -2367,14 +2395,24 @@ document.addEventListener('DOMContentLoaded', function() {
         let hayDisponibles = false;
         
         itemsPendientes.forEach(function(item) {
-            const cantPedido = parseFloat(item.getAttribute('data-cant-pedido')) || 0;
-            const cantDisponible = parseFloat(item.getAttribute('data-cant-disponible')) || 0;
+            // 🔹 BUSCAR BOTÓN DE SALIDA DENTRO DEL ITEM
+            const btnAgregarSalida = item.querySelector('.btn-agregarSalida');
             
-            if (cantDisponible >= cantPedido) {
-                hayDisponibles = true;
+            if (btnAgregarSalida && !btnAgregarSalida.disabled) {
+                // Si el botón existe y NO está deshabilitado = hay cantidad disponible
+                const cantidadDisponible = parseFloat(btnAgregarSalida.dataset.cantidadDisponible) || 0;
+                
+                if (cantidadDisponible > 0) {
+                    hayDisponibles = true;
+                    console.log('✅ Item con salida disponible:', {
+                        idProducto: btnAgregarSalida.dataset.idProducto,
+                        cantidad: cantidadDisponible
+                    });
+                }
             }
         });
         
+        console.log('🔍 Resultado validación salidas:', hayDisponibles);
         return hayDisponibles;
     }
     
@@ -2423,8 +2461,21 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🚚 agregarItemASalida INICIADO');
         console.log('📋 Item recibido:', item);
         
-        // Validar cantidad disponible
-        const cantidadDisponible = parseFloat(item.cantidadDisponible) || 0;
+        // 🔹 VALIDACIÓN MEJORADA
+        let cantidadDisponible = 0;
+    
+        if (item.cantidadDisponible !== undefined && item.cantidadDisponible !== null) {
+            cantidadDisponible = parseFloat(item.cantidadDisponible);
+        }
+        
+        // Si sigue siendo 0, intentar calcular desde verificada - ordenada
+        if (cantidadDisponible <= 0) {
+            const cantidadVerificada = parseFloat(item.cantidadVerificada) || 0;
+            const cantidadOrdenada = parseFloat(item.cantidadOrdenada) || 0;
+            cantidadDisponible = cantidadVerificada - cantidadOrdenada;
+        }
+        
+        console.log('📦 Cantidad disponible final:', cantidadDisponible);
         
         if (cantidadDisponible <= 0) {
             Swal.fire({
@@ -2786,6 +2837,9 @@ document.addEventListener('DOMContentLoaded', function() {
         contenido.style.display = 'block';
     }
     
+    // ============================================
+    // FUNCIÓN ANULAR SALIDA (CORREGIDA)
+    // ============================================
     function anularSalida(idSalida) {
         Swal.fire({
             title: '¿Anular Salida?',
@@ -2798,6 +2852,17 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
+                // Mostrar loading
+                Swal.fire({
+                    title: 'Anulando...',
+                    text: 'Por favor espere',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
                 fetch('salidas_anular.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -2805,16 +2870,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .then(response => response.json())
                 .then(data => {
+                    Swal.close();
+                    
                     if (data.success) {
-                        Swal.fire('¡Anulada!', data.mensaje, 'success').then(() => {
-                            location.reload();
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Anulada!',
+                            text: data.message || 'La salida fue anulada correctamente',
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            // 🔹 RECARGAR LA PÁGINA PARA ACTUALIZAR CANTIDADES
+                            window.location.reload();
                         });
                     } else {
-                        Swal.fire('Error', data.mensaje, 'error');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message || 'No se pudo anular la salida'
+                        });
                     }
                 })
                 .catch(error => {
-                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+                    Swal.close();
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error de conexión',
+                        text: 'No se pudo conectar con el servidor.'
+                    });
                 });
             }
         });
@@ -3131,18 +3215,27 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 const tipo = esOrdenServicio ? 'servicio' : 'compra';
                 const successParam = `success=${modoEditar ? 'actualizado' : 'creado'}&tipo=${tipo}`;
-                window.location.href = `pedido_verificar.php?id=<?php echo $id_pedido; ?>&${successParam}`;
+
+                // 1️⃣ Primero re-verificar
+                fetch('pedido_verificar.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `reverificar_items=1&id_pedido=<?php echo $id_pedido; ?>`
+                })
+                .then(r => r.json())
+                .then(reverificacion => {
+                    console.log('✅ Items re-verificados:', reverificacion.items_reverificados);
+                    
+                    // 2️⃣ Ahora sí recargar la página
+                    window.location.href = `pedido_verificar.php?id=<?php echo $id_pedido; ?>&${successParam}`;
+                })
+                .catch(error => {
+                    console.error('Error en re-verificación:', error);
+                    // Recargar de todas formas
+                    window.location.href = `pedido_verificar.php?id=<?php echo $id_pedido; ?>&${successParam}`;
+                });
             }
         })
-        .catch(error => {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error de Conexión',
-                text: 'No se pudo conectar con el servidor. Intente nuevamente.',
-                confirmButtonColor: '#d33',
-                confirmButtonText: 'Entendido'
-            });
-        });
     }
 
     function validarCantidadesCliente(itemsOrden) {
@@ -3403,58 +3496,53 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function configurarValidacionTiempoRealSalidas() {
-    document.addEventListener('input', function(event) {
-        if (event.target.classList.contains('cantidad-salida')) {
-            const cantidadInput = event.target;
-            const itemElement = cantidadInput.closest('[id^="item-salida-"]');
-            
-            if (!itemElement) return;
-            
-            const cantidadIngresada = parseFloat(cantidadInput.value) || 0;
-            
-            // 🔹 Obtener datos del data-attribute
-            const cantidadVerificada = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
-            const cantidadOrdenada = parseFloat(cantidadInput.getAttribute('data-cantidad-ordenada')) || 0;
-            const cantidadMaxima = cantidadVerificada - cantidadOrdenada;
-            
-            if (cantidadIngresada > cantidadMaxima) {
-                cantidadInput.style.borderColor = '#dc3545';
-                cantidadInput.style.backgroundColor = '#f8d7da';
+        document.addEventListener('input', function(event) {
+            if (event.target.classList.contains('cantidad-salida')) {
+                const cantidadInput = event.target;
+                const itemElement = cantidadInput.closest('[id^="item-salida-"]');
                 
-                let tooltip = itemElement.querySelector('.tooltip-error-cantidad-salida');
-                if (!tooltip) {
-                    tooltip = document.createElement('small');
+                if (!itemElement) return;
+                
+                const cantidadIngresada = parseFloat(cantidadInput.value) || 0;
+                
+                // ✅ USAR EL ATRIBUTO 'max' DEL INPUT
+                const cantidadMaxima = parseFloat(cantidadInput.getAttribute('max')) || 0;
+                
+                // Remover tooltip anterior
+                const tooltipExistente = itemElement.querySelector('.tooltip-error-cantidad-salida');
+                if (tooltipExistente) tooltipExistente.remove();
+                
+                if (cantidadIngresada > cantidadMaxima) {
+                    cantidadInput.style.borderColor = '#dc3545';
+                    cantidadInput.style.backgroundColor = '#f8d7da';
+                    
+                    const tooltip = document.createElement('small');
                     tooltip.className = 'tooltip-error-cantidad-salida text-danger';
                     tooltip.style.display = 'block';
                     tooltip.style.fontSize = '11px';
                     tooltip.style.marginTop = '2px';
+                    tooltip.textContent = `⚠ Excede máximo: ${cantidadMaxima.toFixed(2)}`;
                     cantidadInput.parentElement.appendChild(tooltip);
-                }
-                tooltip.textContent = `⚠ Excede máximo: ${cantidadMaxima.toFixed(2)}`;
-            } else if (cantidadIngresada <= 0) {
-                cantidadInput.style.borderColor = '#dc3545';
-                cantidadInput.style.backgroundColor = '#f8d7da';
-                
-                let tooltip = itemElement.querySelector('.tooltip-error-cantidad-salida');
-                if (!tooltip) {
-                    tooltip = document.createElement('small');
+                    
+                } else if (cantidadIngresada <= 0) {
+                    cantidadInput.style.borderColor = '#dc3545';
+                    cantidadInput.style.backgroundColor = '#f8d7da';
+                    
+                    const tooltip = document.createElement('small');
                     tooltip.className = 'tooltip-error-cantidad-salida text-danger';
                     tooltip.style.display = 'block';
                     tooltip.style.fontSize = '11px';
                     tooltip.style.marginTop = '2px';
+                    tooltip.textContent = `⚠ La cantidad debe ser mayor a 0`;
                     cantidadInput.parentElement.appendChild(tooltip);
+                    
+                } else {
+                    cantidadInput.style.borderColor = '#28a745';
+                    cantidadInput.style.backgroundColor = '#d4edda';
                 }
-                tooltip.textContent = `⚠ La cantidad debe ser mayor a 0`;
-            } else {
-                cantidadInput.style.borderColor = '#28a745';
-                cantidadInput.style.backgroundColor = '#d4edda';
-                
-                const tooltip = itemElement.querySelector('.tooltip-error-cantidad-salida');
-                if (tooltip) tooltip.remove();
             }
-        }
-    });
-}
+        });
+    }
 
     // ============================================
     // VALIDACIÓN DE FORMULARIO SALIDA (CORREGIDO)
@@ -3833,53 +3921,116 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function cargarSalidaEdicion() {
-        if (!modoEditarSalida) return;
+    if (!modoEditarSalida) return;
+    
+    console.log('📝 Cargando salida en modo edición...');
+    
+    // Llenar campos básicos
+    const ndocInput = document.querySelector('input[name="ndoc_salida"]');
+    const fechaInput = document.getElementById('fecha_salida');
+    const obsInput = document.getElementById('observaciones_salida');
+    const almacenOrigenSelect = document.getElementById('almacen_origen_salida');
+    const ubicacionOrigenSelect = document.getElementById('ubicacion_origen_salida');
+    const almacenDestinoSelect = document.getElementById('almacen_destino_salida');
+    const ubicacionDestinoSelect = document.getElementById('ubicacion_destino_salida');
+    
+    if (ndocInput) ndocInput.value = salidaEditar.ndoc || '';
+    if (fechaInput) fechaInput.value = salidaEditar.fecha ? salidaEditar.fecha.split(' ')[0] : '';
+    if (obsInput) obsInput.value = salidaEditar.obs || '';
+    if (almacenOrigenSelect) almacenOrigenSelect.value = salidaEditar.almacen_origen || '';
+    if (almacenDestinoSelect) almacenDestinoSelect.value = salidaEditar.almacen_destino || '';
+    
+    setTimeout(() => {
+        if (ubicacionOrigenSelect) ubicacionOrigenSelect.value = salidaEditar.ubicacion_origen || '';
+        if (ubicacionDestinoSelect) ubicacionDestinoSelect.value = salidaEditar.ubicacion_destino || '';
+    }, 200);
+    
+    const contenedor = document.getElementById('contenedor-items-salida');
+    if (!contenedor) return;
+    
+    contenedor.innerHTML = '';
+    console.log('🗑️ Contenedor limpiado');
+    
+    itemsSalidaEditar.forEach(item => {
+        console.log('📦 Procesando item edición:', item);
         
-        // Llenar campos
-        document.getElementById('ndoc_salida').value = salidaEditar.ndoc;
-        document.getElementById('fecha_salida').value = salidaEditar.fecha;
-        document.getElementById('observaciones_salida').value = salidaEditar.obs;
-        document.getElementById('almacen_origen_salida').value = salidaEditar.almacen_origen;
-        document.getElementById('almacen_destino_salida').value = salidaEditar.almacen_destino;
+        const idPedidoDetalle = parseInt(item.id_pedido_detalle) || 0;
+        const cantActualEnSalida = parseFloat(item.cant_salida_detalle) || 0;
         
-        // Esperar y seleccionar ubicaciones
-        setTimeout(() => {
-            document.getElementById('ubicacion_origen_salida').value = salidaEditar.ubicacion_origen;
-            document.getElementById('ubicacion_destino_salida').value = salidaEditar.ubicacion_destino;
-        }, 200);
+        // ✅ USAR DATOS QUE VIENEN DE PHP
+        const cantVerificadaOS = parseFloat(item.cant_os_verificada) || 0;
+        const cantOrdenadaTotalOS = parseFloat(item.cant_os_ordenada_total) || 0;
         
-        // Cargar items
-        const contenedor = document.getElementById('contenedor-items-salida');
-        itemsSalidaEditar.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'alert alert-light p-2 mb-2';
-            div.id = `item-salida-${item.id_salida_detalle}`;
-            div.innerHTML = `
-                <input type="hidden" name="items_salida[${item.id_salida_detalle}][id_producto]" value="${item.id_producto}">
-                <input type="hidden" name="items_salida[${item.id_salida_detalle}][id_salida_detalle]" value="${item.id_salida_detalle}">
-                <div class="row">
-                    <div class="col-md-11">
-                        <strong>${item.nom_producto}</strong>
-                        <span class="badge badge-warning ml-1">EDITANDO</span>
-                    </div>
-                    <div class="col-md-1">
-                        <button type="button" class="btn btn-danger btn-sm" onclick="this.parentElement.parentElement.parentElement.remove()">
-                            <i class="fa fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="row mt-2">
-                    <div class="col-md-4">
-                        <label style="font-size: 11px;">Cantidad:</label>
-                        <input type="number" class="form-control form-control-sm" 
-                            name="items_salida[${item.id_salida_detalle}][cantidad]"
-                            value="${item.cant_salida_detalle}" min="0.01" step="0.01" required>
-                    </div>
-                </div>
-            `;
-            contenedor.appendChild(div);
+        // 🔑 Restar lo que tiene ESTA salida
+        const cantOrdenadaOtrasSalidas = Math.max(0, cantOrdenadaTotalOS - cantActualEnSalida);
+        
+        // ✅ CALCULAR MÁXIMO
+        const cantidadMaxima = cantVerificadaOS - cantOrdenadaOtrasSalidas;
+        
+        console.log(`  📊 Cálculos para ${item.nom_producto}:`, {
+            verificadoOS: cantVerificadaOS,
+            ordenadoTotal: cantOrdenadaTotalOS,
+            enEstaSalida: cantActualEnSalida,
+            ordenadoOtrasSalidas: cantOrdenadaOtrasSalidas,
+            maximoPermitido: cantidadMaxima
         });
-    }
+        
+        // ✅ GENERAR HTML
+        const div = document.createElement('div');
+        div.className = 'alert alert-light p-2 mb-2';
+        div.id = `item-salida-${item.id_salida_detalle}`;
+        div.innerHTML = `
+            <input type="hidden" name="items_salida[${item.id_salida_detalle}][id_salida_detalle]" value="${item.id_salida_detalle}">
+            <input type="hidden" name="items_salida[${item.id_salida_detalle}][id_pedido_detalle]" value="${idPedidoDetalle}">
+            <input type="hidden" name="items_salida[${item.id_salida_detalle}][id_producto]" value="${item.id_producto}">
+            <input type="hidden" name="items_salida[${item.id_salida_detalle}][es_nuevo]" value="0">
+            <input type="hidden" name="items_salida[${item.id_salida_detalle}][descripcion]" value="${item.nom_producto || ''}">
+            
+            <div class="row align-items-center mb-2">
+                <div class="col-md-11">
+                    <div style="font-size: 12px;">
+                        <strong>Descripción:</strong> ${item.nom_producto || 'Sin nombre'}
+                        <span class="badge badge-warning badge-sm ml-1">EDITANDO</span>
+                    </div>
+                    <small class="text-muted" style="font-size: 11px;">
+                        <i class="fa fa-info-circle"></i> 
+                        Verificado OS: ${cantVerificadaOS.toFixed(2)} | 
+                        En esta salida: ${cantActualEnSalida.toFixed(2)} | 
+                        Otras salidas: ${cantOrdenadaOtrasSalidas.toFixed(2)}
+                    </small>
+                </div>
+                <div class="col-md-1 text-right">
+                    <button type="button" class="btn btn-danger btn-sm btn-remover-item-salida" 
+                            data-id-detalle="${item.id_salida_detalle}">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <label style="font-size: 11px; font-weight: bold;">Cantidad a Trasladar:</label>
+                    <input type="number" 
+                           class="form-control form-control-sm cantidad-salida" 
+                           name="items_salida[${item.id_salida_detalle}][cantidad]"
+                           value="${cantActualEnSalida.toFixed(2)}" 
+                           min="0.01" 
+                           max="${cantidadMaxima.toFixed(2)}" 
+                           step="0.01"
+                           style="font-size: 12px;" 
+                           required>
+                    <small class="text-info" style="font-size: 10px;">
+                        <i class="fa fa-arrow-up"></i> Máx: ${cantidadMaxima.toFixed(2)}
+                    </small>
+                </div>
+            </div>
+        `;
+        
+        contenedor.appendChild(div);
+    });
+    
+    console.log('✅ Items cargados en modo edición');
+}
 
     
     // ============================================
@@ -5287,7 +5438,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handler: Opción Salida Directa
     /* 1****************************************************************************** */
-
+// BOTÓN DE RE-VERIFICACIÓN MANUAL
+const btnReverificar = document.getElementById('btn-reverificar-manual');
+if (btnReverificar) {
+    btnReverificar.addEventListener('click', function() {
+        Swal.fire({
+            title: 'Actualizando...',
+            text: 'Re-calculando cantidades según stock actual',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+        
+        window.location.href = 'pedido_verificar.php?id=<?php echo $id_pedido; ?>&force_reload=1';
+    });
+}
     // ============================================
     // 🆕 HANDLERS PARA BOTONES DE OPCIONES DE STOCK
     // ============================================
@@ -5536,6 +5700,23 @@ document.addEventListener('DOMContentLoaded', function() {
             actualizarTotalGeneral();
         }, 300);
     }
+
+    // Llamar después de operaciones críticas
+    function reverificarItemsPedido() {
+        fetch('pedido_verificar.php', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: `reverificar_items=1&id_pedido=<?php echo $id_pedido; ?>`
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                console.log(`✅ ${data.items_reverificados} items re-verificados`);
+                window.location.reload();
+            }
+        });
+    }
+
 
     // Datos para edición de salida
     <?php if ($modo_editar_salida && $salida_data): ?>

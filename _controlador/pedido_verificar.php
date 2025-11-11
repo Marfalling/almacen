@@ -980,9 +980,9 @@ if (isset($_GET['success'])) {
     }
 }
 
-// ============================================================================
-// CARGAR DATOS DEL PEDIDO
-// ============================================================================
+// ============================================================
+// CARGAR DATOS DEL PEDIDO CON RE-VERIFICACIÓN AUTOMÁTICA
+// ============================================================
 
 $tiene_salida_activa = false; // Inicializar variable
 
@@ -994,19 +994,107 @@ if ($id_pedido > 0) {
     }
     
     if (!empty($pedido_data)) {
+        $pedido = $pedido_data[0];
+        $estado_pedido = intval($pedido['est_pedido']);
+        
+        // ============================================================
+        //  RE-VERIFICACIÓN AUTOMÁTICA (SIEMPRE)
+        // ============================================================
+        if ($estado_pedido != 0 && $estado_pedido != 5) {
+            error_log(" RE-VERIFICACIÓN AUTOMÁTICA - Pedido $id_pedido");
+            
+            include("../_conexion/conexion.php");
+            
+            // Obtener todos los detalles activos
+            $sql_detalles = "SELECT id_pedido_detalle 
+                            FROM pedido_detalle 
+                            WHERE id_pedido = $id_pedido 
+                            AND est_pedido_detalle IN (1, 2)";
+            
+            $res_detalles = mysqli_query($con, $sql_detalles);
+            $items_reverificados = 0;
+            
+            while ($row = mysqli_fetch_assoc($res_detalles)) {
+                $id_detalle = intval($row['id_pedido_detalle']);
+                
+                //  RE-VERIFICAR CANTIDADES SEGÚN STOCK ACTUAL
+                require_once("../_modelo/m_pedidos.php");
+                ReverificarItemAutomaticamente($id_detalle);
+                $items_reverificados++;
+            }
+            
+            mysqli_close($con);
+            
+            error_log(" Items re-verificados automáticamente: $items_reverificados");
+        }
+        
+        // ============================================================
+        // CARGAR DETALLE CON STOCK CALCULADO
+        // ============================================================
         $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
+        
+        foreach ($pedido_detalle as &$detalle) {
+            $id_producto  = intval($detalle['id_producto']);
+            $id_almacen   = intval($pedido['id_almacen']);
+            $id_ubicacion = intval($pedido['id_ubicacion']);
+
+            // Obtener stock completo
+            $stock = ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion, $id_pedido);
+            $detalle['cantidad_disponible_almacen'] = $stock['stock_fisico'];
+            $detalle['cantidad_disponible_real']   = $stock['stock_disponible'];
+            
+            // Obtener stock por ubicaciones
+            $detalle['stock_ubicacion_destino'] = ObtenerStockEnUbicacion(
+                $id_producto, 
+                $id_almacen, 
+                $id_ubicacion
+            );
+            
+            $detalle['otras_ubicaciones_con_stock'] = ObtenerOtrasUbicacionesConStock(
+                $id_producto,
+                $id_almacen,
+                $id_ubicacion
+            );
+            
+            $detalle['stock_total_almacen'] = ObtenerStockTotalAlmacen(
+                $id_producto,
+                $id_almacen
+            );
+        }
+        unset($detalle);
+        
+        // ============================================================
+        // ACTUALIZAR ESTADOS (sin re-calcular cantidades)
+        // ============================================================
+        if ($estado_pedido != 0 && $estado_pedido != 5) {
+            include("../_conexion/conexion.php");
+            
+            $sql_detalles = "SELECT id_pedido_detalle 
+                            FROM pedido_detalle 
+                            WHERE id_pedido = $id_pedido 
+                            AND est_pedido_detalle IN (1, 2)";
+            
+            $res_detalles = mysqli_query($con, $sql_detalles);
+            
+            while ($row = mysqli_fetch_assoc($res_detalles)) {
+                $id_detalle = intval($row['id_pedido_detalle']);
+                VerificarEstadoItemPorDetalle($id_detalle);
+            }
+            
+            mysqli_close($con);
+        }
+        
+        // Cargar resto de datos
         $pedido_compra = ConsultarCompra($id_pedido);
         $pedido_salidas = ConsultarSalidasPorPedido($id_pedido);
         $proveedor = MostrarProveedores();
         $moneda = MostrarMoneda();
         $obras = MostrarObras();
-        
         $almacenes = MostrarAlmacenesActivos();
         $ubicaciones = MostrarUbicacionesActivas();
-        
         $tiene_salida_activa = TieneSalidaActivaPedido($id_pedido);
 
-        // ✅ CARGAR DATOS DE ORDEN SI ESTÁ EN MODO EDICIÓN
+        // Cargar datos de orden si está en modo edición
         $orden_data = null;
         $orden_detalle = null;
         if ($modo_editar) {
@@ -1014,7 +1102,7 @@ if ($id_pedido > 0) {
             $orden_detalle = ObtenerDetalleOrden($id_compra_editar);
         }
 
-        // ✅ CARGAR DATOS DE SALIDA SI ESTÁ EN MODO EDICIÓN
+        // Cargar datos de salida si está en modo edición
         $salida_data = null;
         $salida_detalle = null;
         if ($modo_editar_salida) {
@@ -1040,7 +1128,6 @@ if ($id_pedido > 0) {
             
             // Obtener datos de la salida
             $salida_data = ObtenerSalidaPorId($id_salida_editar);
-            
             if (!$salida_data) {
                 header("Location: pedido_verificar.php?id=$id_pedido&error=salida_no_encontrada");
                 exit;
@@ -1051,6 +1138,7 @@ if ($id_pedido > 0) {
         }
 
         $pedido = $pedido_data[0];
+        
     } else {
         header("Location: pedidos_mostrar.php?error=pedido_no_encontrado");
         exit;
@@ -1109,7 +1197,7 @@ if ($id_pedido > 0) {
     <?php if (isset($alerta) && !empty($alerta) && !empty($alerta['text'])): ?>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // 🔹 VALIDACIÓN: Solo mostrar si hay contenido real
+        //  VALIDACIÓN: Solo mostrar si hay contenido real
         const alerta = <?php echo json_encode($alerta, JSON_UNESCAPED_UNICODE); ?>;
         
         if (alerta && alerta.text && alerta.text.trim() !== '') {

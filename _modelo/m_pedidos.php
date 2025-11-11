@@ -1578,55 +1578,58 @@ function VerificarEstadoItemPorDetalle($id_pedido_detalle) {
     
     error_log(" VerificarEstadoItemPorDetalle - ID: $id_pedido_detalle");
     
-    // Obtener cantidad verificada
-    $sql_verificada = "SELECT cant_oc_pedido_detalle, cant_os_pedido_detalle, id_producto
-                       FROM pedido_detalle 
-                       WHERE id_pedido_detalle = $id_pedido_detalle";
-    $res = mysqli_query($con, $sql_verificada);
-    $row = mysqli_fetch_assoc($res);
+    // 1. Obtener cantidades verificadas del detalle
+    $sql_detalle = "SELECT cant_oc_pedido_detalle, cant_os_pedido_detalle, 
+                           id_producto, cant_pedido_detalle
+                    FROM pedido_detalle 
+                    WHERE id_pedido_detalle = $id_pedido_detalle";
+    $res_detalle = mysqli_query($con, $sql_detalle);
+    $detalle = mysqli_fetch_assoc($res_detalle);
     
-    if (!$row) {
-        error_log("   No se encontró el detalle");
+    if (!$detalle) {
         mysqli_close($con);
         return;
     }
     
-    $cant_verificada_oc = floatval($row['cant_oc_pedido_detalle']);
-    $cant_verificada_os = floatval($row['cant_os_pedido_detalle']);
-    $id_producto = intval($row['id_producto']);
+    $cant_oc_verificada = floatval($detalle['cant_oc_pedido_detalle']);
+    $cant_os_verificada = floatval($detalle['cant_os_pedido_detalle']);
+    $id_producto = intval($detalle['id_producto']);
     
-    error_log("  Cantidad verificada OC: $cant_verificada_oc | OS: $cant_verificada_os | Producto: $id_producto");
+    error_log("  Cantidad verificada OC: $cant_oc_verificada | OS: $cant_os_verificada | Producto: $id_producto");
     
-    // OBTENER CANTIDADES ORDENADAS EN OC Y OS
+    // 2. Obtener cantidades ya ordenadas (solo activas)
     $total_ordenado_oc = ObtenerCantidadYaOrdenadaOCPorDetalle($id_pedido_detalle);
     $total_ordenado_os = ObtenerCantidadYaOrdenadaOSPorDetalle($id_pedido_detalle);
     
-    error_log("   Total ordenado - OC: $total_ordenado_oc/$cant_verificada_oc | OS: $total_ordenado_os/$cant_verificada_os");
+    error_log("   📦 Total ordenado - OC: $total_ordenado_oc/$cant_oc_verificada | OS: $total_ordenado_os/$cant_os_verificada");
     
-    // 🔹 LÓGICA CORREGIDA:
-    // - Si total_ordenado >= cant_verificada → CERRAR (estado 2)
-    // - Si total_ordenado < cant_verificada → ABRIR (estado 1)
-
-    // INICIALIZAR LAS VARIABLES ANTES DE USARLAS
-    $oc_completo = ($total_ordenado_oc >= $cant_verificada_oc);
-    $os_completo = ($total_ordenado_os >= $cant_verificada_os);
-
-    // Cerrar si ambos oc y os están completos
-    if ($oc_completo && $os_completo) {
-        $sql_cerrar = "UPDATE pedido_detalle 
-                        SET est_pedido_detalle = 2 
-                        WHERE id_pedido_detalle = $id_pedido_detalle";
-        mysqli_query($con, $sql_cerrar);
-    } else {
-        $sql_abrir = "UPDATE pedido_detalle 
-                       SET est_pedido_detalle = 1 
-                       WHERE id_pedido_detalle = $id_pedido_detalle";
-        mysqli_query($con, $sql_abrir);
+    // 3. Determinar si el ítem debe estar CERRADO o ABIERTO
+    $cerrar_item = true;
+    
+    // Solo cerrar si ambas cantidades (OC y OS) están completas O son cero
+    if ($cant_oc_verificada > 0 && $total_ordenado_oc < $cant_oc_verificada) {
+        $cerrar_item = false;
+        error_log("   🔓 OC incompleta - Pendiente: " . ($cant_oc_verificada - $total_ordenado_oc));
     }
+    
+    if ($cant_os_verificada > 0 && $total_ordenado_os < $cant_os_verificada) {
+        $cerrar_item = false;
+        error_log("   🔓 OS incompleta - Pendiente: " . ($cant_os_verificada - $total_ordenado_os));
+    }
+    
+    // 4. Actualizar estado del ítem
+    $nuevo_estado = $cerrar_item ? 2 : 1; // 2 = Cerrado, 1 = Abierto
+    $estado_texto = $cerrar_item ? "CERRADO" : "ABIERTO";
+    
+    $sql_actualizar = "UPDATE pedido_detalle 
+                      SET est_pedido_detalle = $nuevo_estado 
+                      WHERE id_pedido_detalle = $id_pedido_detalle";
+    
+    mysqli_query($con, $sql_actualizar);
+    error_log("   🎯 Item $estado_texto");
     
     mysqli_close($con);
 }
-
 // ============================================================================
 // CORRECCIÓN: ObtenerCantidadYaOrdenadaOCPorDetalle
 // ============================================================================
@@ -1670,12 +1673,12 @@ function ObtenerCantidadYaOrdenadaOSPorDetalle($id_pedido_detalle) {
     
     $id_pedido_detalle = intval($id_pedido_detalle);
     
-    // 🔹 Suma solo las cantidades asociadas a este detalle específico (órdenes activas)
+    // 🔹 CORRECCIÓN: Usar query directa con variable ya sanitizada
     $sql = "SELECT COALESCE(SUM(sd.cant_salida_detalle), 0) as total_ordenado
             FROM salida_detalle sd
             INNER JOIN salida s ON sd.id_salida = s.id_salida
             WHERE sd.id_pedido_detalle = $id_pedido_detalle
-            AND s.est_salida != 0
+            AND s.est_salida != 0  
             AND sd.est_salida_detalle = 1";
     
     error_log("   📊 SQL ObtenerCantidadYaOrdenadaOSPorDetalle: $sql");
@@ -1691,7 +1694,17 @@ function ObtenerCantidadYaOrdenadaOSPorDetalle($id_pedido_detalle) {
     $row = mysqli_fetch_assoc($resultado);
     $total = floatval($row['total_ordenado']);
     
-    error_log("   ✅ Total ordenado OS para detalle $id_pedido_detalle: $total");
+    // 🔹 NUEVO: Log histórico para debugging
+    $sql_historico = "SELECT COALESCE(SUM(sd.cant_salida_detalle), 0) as total_historico
+                      FROM salida_detalle sd
+                      INNER JOIN salida s ON sd.id_salida = s.id_salida
+                      WHERE sd.id_pedido_detalle = $id_pedido_detalle
+                      AND sd.est_salida_detalle = 1";
+    $res_hist = mysqli_query($con, $sql_historico);
+    $row_hist = mysqli_fetch_assoc($res_hist);
+    $total_historico = floatval($row_hist['total_historico']);
+    
+    error_log("   ✅ Total ordenado OS para detalle $id_pedido_detalle: $total (Histórico: $total_historico)");
     
     mysqli_close($con);
     return $total;
@@ -3351,10 +3364,6 @@ function ValidarInventarioDisponibleParaSalida($materiales, $id_almacen_origen, 
     mysqli_close($con);
     return $errores;
 }
-/**
- * Re-verifica automáticamente un item del pedido basándose en el stock real disponible
- *  NO CREA NUEVOS COMPROMISOS - Solo actualiza cantidades verificadas
- */
 function ReverificarItemAutomaticamente($id_pedido_detalle) {
     include("../_conexion/conexion.php");
     
@@ -3368,8 +3377,8 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
                         pd.id_pedido,
                         pd.id_producto,
                         pd.cant_pedido_detalle,
-                        pd.cant_oc_pedido_detalle,
-                        pd.cant_os_pedido_detalle,
+                        pd.cant_oc_pedido_detalle as cant_oc_anterior,
+                        pd.cant_os_pedido_detalle as cant_os_anterior,
                         p.id_almacen,
                         p.id_ubicacion
                     FROM pedido_detalle pd
@@ -3380,7 +3389,6 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
     $detalle = mysqli_fetch_assoc($res);
     
     if (!$detalle) {
-        error_log("⚠️ Detalle no encontrado");
         mysqli_close($con);
         return false;
     }
@@ -3391,45 +3399,61 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
     $id_almacen = intval($detalle['id_almacen']);
     $id_ubicacion = intval($detalle['id_ubicacion']);
     
-    // 2️⃣ Obtener stock real disponible (SIN incluir compromisos)
+    $cant_oc_anterior = floatval($detalle['cant_oc_anterior']);
+    $cant_os_anterior = floatval($detalle['cant_os_anterior']);
+    
+    // 🔹 NUEVO: Log de stock ANTES de calcular
+    error_log("   📊 Consultando stock para producto $id_producto en almacén $id_almacen, ubicación $id_ubicacion");
+    
+    // 2️⃣ Obtener stock real disponible (SIN compromisos)
     $stock_data = ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion, $id_pedido);
-    $stock_destino = floatval($stock_data['stock_fisico']); // Stock físico real
+    $stock_destino = floatval($stock_data['stock_fisico']);
     
-    error_log("📊 Stock físico real en destino: $stock_destino");
+    error_log("   📊 Stock físico obtenido: $stock_destino");
     
-    // 3️⃣ Obtener stock en otras ubicaciones del mismo almacén
+    // 3️⃣ Obtener stock en otras ubicaciones
     $otras_ubicaciones = ObtenerOtrasUbicacionesConStock($id_producto, $id_almacen, $id_ubicacion);
     $stock_otras_ubicaciones = 0;
-    foreach ($otras_ubicaciones as $ub) {
-        $stock_otras_ubicaciones += floatval($ub['stock']);
+    
+    if (is_array($otras_ubicaciones)) {
+        foreach ($otras_ubicaciones as $ub) {
+            $stock_otras_ubicaciones += floatval($ub['stock']);
+        }
     }
     
-    error_log("📦 Stock en otras ubicaciones: $stock_otras_ubicaciones");
+    error_log("   📊 Stock en otras ubicaciones: $stock_otras_ubicaciones");
     
-    // 4️⃣ Calcular cantidades verificadas automáticamente
+    // 4️⃣ Calcular cantidades verificadas
     $faltante_en_destino = max(0, $cantidad_pedida - $stock_destino);
     $cantidad_para_os = min($stock_otras_ubicaciones, $faltante_en_destino);
     $cantidad_para_oc = max(0, $cantidad_pedida - $stock_destino - $cantidad_para_os);
     
-    error_log("✅ Cantidades calculadas - OS: $cantidad_para_os | OC: $cantidad_para_oc");
+    error_log("   📊 Cálculo: Pedido=$cantidad_pedida, Destino=$stock_destino, Faltante=$faltante_en_destino");
+    error_log("   📊 Resultado: OS=$cantidad_para_os, OC=$cantidad_para_oc");
     
-    // 5️⃣ Actualizar SOLO las cantidades verificadas (SIN crear movimientos)
-    $sql_update = "UPDATE pedido_detalle SET 
-                      cant_os_pedido_detalle = $cantidad_para_os,
-                      cant_oc_pedido_detalle = $cantidad_para_oc,
-                      est_pedido_detalle = 1
-                   WHERE id_pedido_detalle = $id_pedido_detalle";
-    
-    $resultado = mysqli_query($con, $sql_update);
-    
-    if ($resultado) {
-        error_log("✅ Re-verificación completada (SIN crear compromisos)");
+    // 5️⃣ Solo actualizar si cambió
+    if ($cantidad_para_os != $cant_os_anterior || $cantidad_para_oc != $cant_oc_anterior) {
+        
+        $sql_update = "UPDATE pedido_detalle SET 
+                          cant_os_pedido_detalle = $cantidad_para_os,
+                          cant_oc_pedido_detalle = $cantidad_para_oc,
+                          est_pedido_detalle = 1
+                       WHERE id_pedido_detalle = $id_pedido_detalle";
+        
+        $resultado = mysqli_query($con, $sql_update);
+        
+        if ($resultado) {
+            error_log("✅ Item $id_pedido_detalle RE-VERIFICADO | OS: $cant_os_anterior → $cantidad_para_os | OC: $cant_oc_anterior → $cantidad_para_oc");
+        }
+        
+        mysqli_close($con);
+        return $resultado ? true : false;
+        
     } else {
-        error_log("❌ Error al actualizar: " . mysqli_error($con));
+        error_log("⏭️ Item $id_pedido_detalle SIN CAMBIOS (OS: $cantidad_para_os | OC: $cantidad_para_oc)");
+        mysqli_close($con);
+        return true;
     }
-    
-    mysqli_close($con);
-    return $resultado ? true : false;
 }
 /**
  * Re-verifica TODOS los items de un pedido

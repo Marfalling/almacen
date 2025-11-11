@@ -928,7 +928,6 @@ function TieneSalidaActivaPedido($id_pedido)
         return "ERROR: " . $e->getMessage();
     }
 }*/
-
 function AnularSalida($id_salida, $id_usuario_anulacion = null)
 {
     include("../_conexion/conexion.php");
@@ -1018,60 +1017,77 @@ function AnularSalida($id_salida, $id_usuario_anulacion = null)
         error_log("✅ Movimientos de salida desactivados");
 
         // ============================================================
-        // 5️⃣ SI HAY PEDIDO: REACTIVAR COMPROMISOS Y ACTUALIZAR ESTADO
+        // 5️⃣ SI HAY PEDIDO: REACTIVAR COMPROMISOS
         // ============================================================
         if ($id_pedido !== null) {
             
             $sql_reactivar = "UPDATE movimiento 
-                             SET est_movimiento = 1 
-                             WHERE tipo_orden = 5 
-                             AND id_orden = $id_pedido";
+                            SET est_movimiento = 1 
+                            WHERE tipo_orden = 5 
+                            AND id_orden = $id_pedido";
             
             if (!mysqli_query($con, $sql_reactivar)) {
                 throw new Exception("Error al reactivar compromisos del pedido: " . mysqli_error($con));
             }
             
             error_log("✅ Compromisos del pedido reactivados");
+        }
 
-            // Actualizar estado del pedido
+        // ============================================================
+        // 6️⃣ COMMIT **ANTES** DE ACTUALIZAR ESTADOS
+        // ============================================================
+        mysqli_commit($con);
+        mysqli_close($con);
+
+        error_log("✅ Transacción completada, movimientos confirmados");
+
+        // ============================================================
+        // 7️⃣ ACTUALIZAR SOLO ESTADOS (SIN RECALCULAR CANTIDADES)
+        // ============================================================
+        if ($id_pedido > 0 && !empty($items_afectados)) {
             require_once("../_modelo/m_pedidos.php");
             
+            error_log("🔄 Esperando estabilización de BD...");
+            usleep(200000); // 200ms para asegurar consistencia
+            
+            // ✅ SOLO actualizar estados (abierto/cerrado)
+            // NO recalcular cantidades verificadas (OS/OC)
+            foreach ($items_afectados as $id_detalle) {
+                error_log("   🔒 Actualizando estado del item: $id_detalle");
+                VerificarEstadoItemPorDetalle($id_detalle);
+            }
+            
+            error_log("✅ Estados actualizados para " . count($items_afectados) . " items");
+        }
+        
+        // ============================================================
+        // 8️⃣ ACTUALIZAR ESTADO DEL PEDIDO
+        // ============================================================
+        if ($id_pedido > 0) {
             error_log("📋 Actualizando estado del pedido: $id_pedido");
             ActualizarEstadoPedido($id_pedido);
             error_log("✅ Estado del pedido actualizado");
         }
-
-        mysqli_commit($con);
-        mysqli_close($con);
-        
-        // 🔥 NUEVO: Re-verificar automáticamente los items afectados
-        if ($id_pedido > 0) {
-            require_once("../_modelo/m_pedidos.php");
-            
-            if (!empty($items_afectados)) {
-                foreach ($items_afectados as $id_detalle) {
-                    ReverificarItemAutomaticamente($id_detalle);
-                }
-                error_log("✅ Re-verificados " . count($items_afectados) . " items después de anular salida $id_salida");
-            } else {
-                // Si no hay items específicos, re-verificar todo el pedido
-                ReverificarTodosLosItemsDelPedido($id_pedido);
-            }
-        }
         
         // ============================================================
-        // 7️⃣ DEVOLVER ÍTEMS AFECTADOS
+        // 9️⃣ RETORNAR ÉXITO
         // ============================================================
-        return "SI|" . json_encode($items_afectados);
+        return [
+            'success' => true,
+            'message' => 'Salida anulada correctamente'
+        ];
 
     } catch (Exception $e) {
         mysqli_rollback($con);
         mysqli_close($con);
         error_log("❌ Error al anular salida: " . $e->getMessage());
-        return "ERROR: " . $e->getMessage();
+        
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
     }
 }
-
 
 
 // ============================================================================

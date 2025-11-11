@@ -18,6 +18,7 @@ $id_salida = intval($_POST['id']);
 
 require_once("../_modelo/m_salidas.php");
 require_once("../_modelo/m_auditoria.php");
+require_once("../_modelo/m_pedidos.php");
 
 $id_usuario = $_SESSION['id'] ?? 0;
 
@@ -29,48 +30,37 @@ $result = AnularSalida($id_salida, $id_usuario);
 // ============================================================
 // 2️⃣ PROCESAR RESULTADO
 // ============================================================
-if (strpos($result, "SI|") === 0) {
+if (is_array($result) && isset($result['success'])) {
     
-    // Extraer ítems afectados
-    $items_json = substr($result, 3);
-    $items_afectados = json_decode($items_json, true);
-    
-    error_log("📊 Actualizando estados de ítems | Total: " . count($items_afectados));
-    
-    // ============================================================
-    // 3️⃣ ACTUALIZAR ESTADO DE CADA ÍTEM (fuera de la transacción)
-    // ============================================================
-    if (!empty($items_afectados)) {
+    if ($result['success']) {
+        error_log("✅ Salida anulada correctamente");
         
-        require_once("../_modelo/m_pedidos.php");
+        // ✅ REGISTRAR AUDITORÍA
+        // GrabarAuditoria($id_usuario, $_SESSION['usuario_sesion'] ?? '', 'ANULACIÓN DE SALIDA', 'SALIDAS', "Anuló salida ID: $id_salida");
         
-        foreach ($items_afectados as $id_pedido_detalle) {
-            error_log("   🔄 Actualizando ítem: $id_pedido_detalle");
-            VerificarEstadoItemPorDetalle($id_pedido_detalle);
-        }
+        echo json_encode([
+            'success' => true, 
+            'message' => $result['message']
+        ]);
         
-        error_log("✅ Estados de ítems actualizados: " . count($items_afectados) . " ítems");
+    } else {
+        error_log("❌ Error al anular salida: " . $result['message']);
+        // GrabarAuditoria($id_usuario, $_SESSION['usuario_sesion'] ?? '', 'ERROR ANULAR SALIDA', 'SALIDAS', "Error en salida ID: $id_salida - " . $result['message']);
+        
+        echo json_encode([
+            'success' => false, 
+            'message' => $result['message']
+        ]);
     }
     
-    // ============================================================
-    // 4️⃣ REGISTRAR AUDITORÍA
-    // ============================================================
-    //GrabarAuditoria($id_usuario, $_SESSION['usuario_sesion'] ?? '', 'ANULACIÓN DE SALIDA', 'SALIDAS', "Anuló salida ID: $id_salida");
-    
-    echo json_encode([
-        'success' => true, 
-        'message' => 'La salida fue anulada correctamente.'
-    ]);
-    
 } else {
-    // ============================================================
-    // 5️⃣ MANEJAR ERROR
-    // ============================================================
-    error_log("❌ Error al anular salida: $result");
-    //GrabarAuditoria($id_usuario, $_SESSION['usuario_sesion'] ?? '', 'ERROR ANULAR SALIDA', 'SALIDAS', "Error en salida ID: $id_salida - $result");
+    // error
+    $mensaje_error = is_string($result) ? $result : 'Error desconocido al anular salida';
+    error_log("❌ Error al anular salida: $mensaje_error");
     
     echo json_encode([
         'success' => false, 
-        'message' => $result
+        'message' => $mensaje_error
     ]);
 }
+?>
