@@ -967,17 +967,22 @@ function ConsultarCompraCom($id_compra)
         $monto_total += $monto_percepcion;
     }
 
-    //  CALCULAR MONTO PAGADO
-    $sql_pagado = "SELECT COALESCE(SUM(monto), 0) as pagado
-                   FROM pago
+    // 3️⃣ Calcular TOTAL PAGADO (comprobantes con voucher)
+    $sql_pagado = "SELECT 
+                    COALESCE(SUM(total_pagar), 0) as total_pagado_comprobantes,
+                    COUNT(*) as cantidad_comprobantes_pagados
+                   FROM comprobante
                    WHERE id_compra = $id_compra
-                     AND est_pago = 1";
+                   AND est_comprobante = 3";  // ← ESTADO 3 = PAGADO
+    
     $res_pagado = mysqli_query($con, $sql_pagado);
-    $fila_pagado = mysqli_fetch_assoc($res_pagado);
-    $monto_pagado = floatval($fila_pagado['pagado']);
-
-    // CALCULAR SALDO
-    $saldo = $total_con_igv - $monto_pagado;
+    $row_pagado = mysqli_fetch_assoc($res_pagado);
+    
+    $total_pagado = floatval($row_pagado['total_pagado_comprobantes']);
+    $cantidad_pagados = intval($row_pagado['cantidad_comprobantes_pagados']);
+    
+    // 4️⃣ Calcular SALDO PENDIENTE
+    $saldo_pendiente = $total_con_igv - $total_pagado;
 
     //  ARMAR ARRAY COMPLETO
     $compra['subtotal'] = round($subtotal, 2);
@@ -987,8 +992,9 @@ function ConsultarCompraCom($id_compra)
     $compra['monto_retencion'] = round($monto_retencion, 2);
     $compra['monto_percepcion'] = round($monto_percepcion, 2);
     $compra['monto_total'] = round($monto_total, 2);
-    $compra['monto_pagado'] = round($monto_pagado, 2);
-    $compra['saldo'] = round($saldo, 2);
+
+    $compra['monto_pagado'] = round($total_pagado, 2);
+    $compra['saldo'] = round($saldo_pendiente, 2);
     
     mysqli_close($con);
     return $compra;

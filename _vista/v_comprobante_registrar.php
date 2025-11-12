@@ -66,7 +66,7 @@ require_once("../_modelo/m_detraccion.php");
                             <!-- MONTO TOTAL CON IGV (destacado) -->
                             <tr style="background-color: #d4edda; border: 2px solid #28a745;">
                                 <td colspan="2">
-                                    <strong style="font-size: 16px;">💰 MONTO TOTAL CON IGV:</strong>
+                                    <strong style="font-size: 16px;">MONTO TOTAL CON IGV:</strong>
                                 </td>
                                 <td colspan="2">
                                     <span class="badge badge-success" style="font-size: 18px; padding: 10px 16px;">
@@ -88,22 +88,26 @@ require_once("../_modelo/m_detraccion.php");
                             </tr>
                             <?php endif; ?>
                             
+                            <!--  TOTAL A PAGAR AL PROVEEDOR (más destacado) -->
+                            <tr style="background-color: #e3f2fd;">
+                                <td colspan="2"><strong> TOTAL:</strong>
+                                    <br><small class="text-muted">Monto real a pagar en cuenta bancaria</small>
+                                </td>
+                                <td colspan="2">
+                                    <span class="badge badge-info" style="font-size: 15px; padding: 8px 14px;">
+                                        <?php echo ($oc['simbolo_moneda'] ?? 'S/.') . ' ' . number_format($oc['monto_total'], 2); ?>
+                                    </span>
+                                </td>
+                            </tr>
+                            
                             <tr>
-                                <td><strong>Estado:</strong></td>
-                                <td colspan="3">
-                                    <?php
-                                    $badge_class = 'secondary';
-                                    $estado_texto = 'Desconocido';
-                                    
-                                    switch($oc['est_compra']) {
-                                        case 0: $badge_class = 'danger'; $estado_texto = 'Anulado'; break;
-                                        case 1: $badge_class = 'warning'; $estado_texto = 'Pendiente'; break;
-                                        case 2: $badge_class = 'info'; $estado_texto = 'Aprobado'; break;
-                                        case 3: $badge_class = 'success'; $estado_texto = 'Ingresado'; break;
-                                        case 4: $badge_class = 'primary'; $estado_texto = 'Pagado'; break;
-                                    }
-                                    ?>
-                                    <span class="badge badge-<?php echo $badge_class; ?>"><?php echo $estado_texto; ?></span>
+                                <td><strong> Pagado:</strong></td>
+                                <td><?php echo ($oc['simbolo_moneda'] ?? 'S/.') . ' ' . number_format($oc['monto_pagado'], 2); ?></td>
+                                <td><strong> Saldo Pendiente:</strong></td>
+                                <td>
+                                    <span class="badge badge-<?php echo ($oc['saldo'] > 0 ? 'warning' : 'success'); ?>" style="font-size: 14px; padding: 6px 12px;">
+                                        <?php echo ($oc['simbolo_moneda'] ?? 'S/.') . ' ' . number_format($oc['saldo'], 2); ?>
+                                    </span>
                                 </td>
                             </tr>
                         </table>
@@ -117,6 +121,7 @@ require_once("../_modelo/m_detraccion.php");
                     <div class="x_title">
                         <h2><i class="fa fa-file-text"></i> Comprobantes Registrados</h2>
                         <div class="pull-right">
+                            <button type="button" class="btn btn-primary" onclick="abrirModalMasivo()">📤 Subir vouchers masivo</button>
                             <button
                                 class="btn btn-sm <?php echo ($oc['est_compra'] == 4 || $oc['est_compra'] == 3) ? 'btn-outline-secondary disabled' : 'btn-outline-success'; ?>"
                                 <?php echo ($oc['est_compra'] == 4 || $oc['est_compra'] == 3) ? 'disabled title="Esta compra está cerrada"' : 'data-toggle="modal" data-target="#modalRegistrarComprobante"'; ?>>
@@ -262,6 +267,75 @@ require_once("../_modelo/m_detraccion.php");
             </div>
         </div>
     </div>
+
+</div>
+
+<!-- MODAL SIMPLE -->
+<div id="modalSubidaMasivo" 
+     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+    
+    <div style="background:white; width:85%; max-width:950px; border-radius:10px; 
+                display:flex; flex-direction:column; max-height:90vh; overflow:hidden;">
+
+        <!-- CABECERA -->
+        <div style="background:#667eea; color:white; padding:10px 20px; 
+                    display:flex; justify-content:space-between; align-items:center;">
+            <h5 style="margin:0;">Subida Masiva de Vouchers</h5>
+            <button onclick="cerrarModalMasivo()" 
+                    style="background:none; border:none; color:white; font-size:20px;">&times;</button>
+        </div>
+
+        <!-- CONTENIDO SCROLLEABLE -->
+        <div style="padding:20px; overflow-y:auto; flex:1;">
+
+            <!-- CONTENEDOR PRINCIPAL -->
+            <div style="display:flex; flex-wrap:wrap; gap:20px; align-items:stretch;">
+                
+                <!-- INSTRUCCIONES -->
+                <div style="flex:1; min-width:300px; background:#f1f3f5; border-radius:8px; padding:15px;">
+                    <strong>Instrucciones:</strong>
+                    <ol style="margin:5px 0 0 20px; font-size:14px; color:#333;">
+                        <li>Archivos deben llamarse como la serie-número del comprobante</li>
+                        <li>Ej: <code>F001-1234.pdf</code>, <code>B002-5678.jpg</code></li>
+                        <li>Formatos: PDF, JPG, JPEG, PNG</li>
+                        <li>Máx. 5MB por archivo</li>
+                    </ol>
+                </div>
+
+                <!-- ZONA DE CARGA -->
+                <div style="flex:1; min-width:300px; display:flex; align-items:center; justify-content:center;">
+                    <div id="dropZone" onclick="document.getElementById('inputArchivos').click()"
+                        style="border:2px dashed #667eea; border-radius:8px; padding:25px; text-align:center;
+                               background:#f9f9fc; cursor:pointer; transition:0.3s; width:100%;">
+                        <i class="fa fa-cloud-upload" style="font-size:40px; color:#667eea; margin-bottom:8px;"></i>
+                        <h5 style="color:#667eea; font-size:16px; margin-bottom:5px;">Haz clic para seleccionar archivos</h5>
+                        <p style="color:#6c757d; font-size:13px; margin:0;">(Puedes seleccionar varios a la vez)</p>
+                        <input type="file" id="inputArchivos" multiple style="display:none" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                </div>
+            </div>
+
+            <!-- LISTA CON SCROLL -->
+            <div id="listaArchivos" 
+                 style="margin-top:25px; max-height:250px; overflow-y:auto; border:1px solid #e0e0e0; border-radius:6px; padding:10px;">
+            </div>
+
+            <!-- OPCIONES DE CORREO -->
+            <div style="margin-top:20px; background:#f8f9fa; padding:15px; border-radius:8px;">
+                <h6><i class="fa fa-envelope"></i> Notificaciones:</h6>
+                <label><input type="checkbox" id="enviarProveedor" checked> Enviar al Proveedor</label><br>
+                <label><input type="checkbox" id="enviarContabilidad" checked> Enviar a Contabilidad</label><br>
+                <label><input type="checkbox" id="enviarTesoreria" checked> Enviar a Tesorería</label>
+            </div>
+        </div>
+
+        <!-- PIE FIJO -->
+        <div style="padding:10px 20px; text-align:right; border-top:1px solid #ddd; background:#fff;">
+            <button class="btn btn-secondary" onclick="cerrarModalMasivo()">Cancelar</button>
+            <button class="btn btn-primary" id="btnProcesarMasivo" onclick="procesarArchivos()">Procesar</button>
+        </div>
+    </div>
 </div>
 
 <!-- ============================================================ -->
@@ -312,7 +386,7 @@ require_once("../_modelo/m_detraccion.php");
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Monto Total con IGV <span class="text-danger">*</span></label>
-                            <input name="monto_total_igv" class="form-control" placeholder="0.00" required>
+                            <input name="monto_total_igv" id="monto_total_igv" class="form-control" placeholder="0.00" required>
                         </div>
                     </div>
 
@@ -382,7 +456,7 @@ require_once("../_modelo/m_detraccion.php");
                                                                 data-porcentaje="<?php echo $porcentaje; ?>" 
                                                                 data-nombre="<?php echo $nombre; ?>"
                                                                 data-tipo="DETRACCION"
-                                                                onchange="manejarClickDetraccion(this)"
+                                                                
                                                                 id="detraccion_<?php echo $id_det; ?>">
                                                             <label class="form-check-label" 
                                                                 for="detraccion_<?php echo $id_det; ?>" 
@@ -422,7 +496,7 @@ require_once("../_modelo/m_detraccion.php");
                                                                 data-porcentaje="<?php echo $porcentaje; ?>" 
                                                                 data-nombre="<?php echo $nombre; ?>"
                                                                 data-tipo="RETENCION"
-                                                                onchange="manejarClickRetencion(this)"
+                                                                
                                                                 id="retencion_<?php echo $id_ret; ?>">
                                                             <label class="form-check-label" 
                                                                 for="retencion_<?php echo $id_ret; ?>" 
@@ -462,7 +536,7 @@ require_once("../_modelo/m_detraccion.php");
                                                                 data-porcentaje="<?php echo $porcentaje; ?>" 
                                                                 data-nombre="<?php echo $nombre; ?>"
                                                                 data-tipo="PERCEPCION"
-                                                                onchange="manejarClickPercepcion(this)"
+                                                                
                                                                 id="percepcion_<?php echo $id_per; ?>">
                                                             <label class="form-check-label" 
                                                                 for="percepcion_<?php echo $id_per; ?>" 
@@ -586,14 +660,14 @@ require_once("../_modelo/m_detraccion.php");
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Serie <span class="text-danger">*</span></label>
-                            <input type="text" name="serie" id="edit_serie" class="form-control" required>
+                            <input type="text" name="serie" id="edit_serie" class="form-control" placeholder="Ej: F001" required>
                         </div>
                     </div>
                     
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Número <span class="text-danger">*</span></label>
-                            <input type="text" name="numero" id="edit_numero" class="form-control" required>
+                            <input type="text" name="numero" id="edit_numero" class="form-control" placeholder="Ej: 00001234" required>
                         </div>
                     </div>
                 </div>
@@ -602,49 +676,188 @@ require_once("../_modelo/m_detraccion.php");
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Monto Total con IGV <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" name="monto_total_igv" id="edit_monto_total_igv" class="form-control" required>
+                            <input type="number" step="0.01" name="monto_total_igv" id="edit_monto_total_igv" class="form-control" placeholder="0.00" required>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Total a Pagar <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" name="total_pagar" id="edit_total_pagar" class="form-control" required>
+                            <label>Moneda <span class="text-danger">*</span></label>
+                            <div class="form-control" style="background-color: #f8f9fa; border: 1px solid #ced4da; padding: 0.375rem 0.75rem;">
+                                <?php 
+                                foreach($monedas as $mon) { 
+                                    if($mon['id_moneda'] == $oc['id_moneda']) {
+                                        if($mon['id_moneda']==1){
+                                            $simbolo_moneda='S/.';
+                                        }
+                                        else if($mon['id_moneda']==2){
+                                            $simbolo_moneda='US$';
+                                        }
+                                        echo  $mon['nom_moneda'] . ' (' . $simbolo_moneda . ')</strong>';
+                                    }
+                                } 
+                                ?>
+                            </div>
+                            <!-- Campo oculto para enviar el valor -->
+                            <input type="hidden" name="id_moneda" id="edit_id_moneda" value="<?php echo $oc['id_moneda']; ?>">
+
                         </div>
                     </div>
+
                 </div>
                 
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Moneda <span class="text-danger">*</span></label>
-                            <select name="id_moneda" id="edit_id_moneda" class="form-control" required>
-                                <?php foreach($monedas as $mon) { 
-                                    if($mon['id_moneda']==1){
-                                        $simbolo_moneda='S/.';
-                                    }
-                                    else if($mon['id_moneda']==2){
-                                        $simbolo_moneda='US$';
-                                    }?>
-                                    <option value="<?php echo $mon['id_moneda']; ?>">
-                                        <?php echo $mon['nom_moneda']; ?> (<?php echo $simbolo_moneda; ?>)
-                                    </option>
-                                <?php } ?>
-                            </select>
+                            <label>Afectaciones Tributarias (Opcional)</label>
+                            <div class="card" style="border: 1px solid #dee2e6;">
+                                <div class="card-header" style="background-color: #f8f9fa; padding: 8px 12px; cursor: pointer;" 
+                                    data-toggle="collapse" 
+                                    data-target="#afectacionesCollapse"
+                                    aria-expanded="false">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0" style="font-size: 13px;">
+                                            <i class="fa fa-percent text-info"></i> 
+                                            Detracción, Retención y Percepción
+                                        </h6>
+                                        <i class="fa fa-chevron-down"></i>
+                                    </div>
+                                </div>
+                                
+                                <div class="collapse" id="afectacionesCollapse">
+                                    <div class="card-body" style="padding: 12px;">
+                                        <!-- DETRACCIÓN -->
+                                        <div class="mb-3">
+                                            <label style="font-size: 11px; font-weight: bold;">Detracción:</label>
+                                            <div id="contenedor-detracciones" style="padding: 8px; background-color: #fff3cd; border-radius: 4px; border: 1px solid #ffc107;">
+                                                <?php
+                                                $detracciones_lista = ObtenerDetraccionesPorTipo('DETRACCION');
+                                                
+                                                if (!empty($detracciones_lista)) {
+                                                    foreach ($detracciones_lista as $detraccion) {
+                                                        $id_det = $detraccion['id_detraccion'];
+                                                        $porcentaje = $detraccion['porcentaje'];
+                                                        $nombre = htmlspecialchars($detraccion['nombre_detraccion'], ENT_QUOTES);
+                                                        ?>
+                                                        <div class="form-check" style="margin-bottom: 5px;">
+                                                            <input class="form-check-input detraccion-checkbox-edit" 
+                                                                type="checkbox" 
+                                                                name="id_detraccion[]" 
+                                                                value="<?php echo $id_det; ?>" 
+                                                                data-porcentaje="<?php echo $porcentaje; ?>" 
+                                                                data-nombre="<?php echo $nombre; ?>"
+                                                                data-tipo="DETRACCION"
+                                                                
+                                                                id="edit_detraccion_<?php echo $id_det; ?>">
+                                                            <label class="form-check-label" 
+                                                                for="edit_detraccion_<?php echo $id_det; ?>" 
+                                                                style="font-size: 12px; cursor: pointer;">
+                                                                <?php echo $nombre; ?> 
+                                                                <strong>(<?php echo $porcentaje; ?>%)</strong>
+                                                            </label>
+                                                        </div>
+                                                        <?php
+                                                    }
+                                                } else {
+                                                    echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay detracciones configuradas</p>';
+                                                }
+                                                ?>
+                                            </div>
+                                            <small class="form-text text-muted">Se descuenta del total con IGV</small>
+                                        </div>
+
+                                        <!-- RETENCIÓN -->
+                                        <div class="mb-3">
+                                            <label style="font-size: 11px; font-weight: bold;">Retención:</label>
+                                            <div id="contenedor-retenciones" style="padding: 8px; background-color: #e7f3ff; border-radius: 4px; border: 1px solid #2196f3;">
+                                                <?php
+                                                $retenciones_lista = ObtenerDetraccionesPorTipo('RETENCION');
+                                                
+                                                if (!empty($retenciones_lista)) {
+                                                    foreach ($retenciones_lista as $retencion) {
+                                                        $id_ret = $retencion['id_detraccion'];
+                                                        $porcentaje = $retencion['porcentaje'];
+                                                        $nombre = htmlspecialchars($retencion['nombre_detraccion'], ENT_QUOTES);
+                                                        ?>
+                                                        <div class="form-check" style="margin-bottom: 5px;">
+                                                            <input class="form-check-input retencion-checkbox-edit" 
+                                                                type="checkbox" 
+                                                                name="id_retencion[]" 
+                                                                value="<?php echo $id_ret; ?>" 
+                                                                data-porcentaje="<?php echo $porcentaje; ?>" 
+                                                                data-nombre="<?php echo $nombre; ?>"
+                                                                data-tipo="RETENCION"
+                                                                
+                                                                id="edit_retencion_<?php echo $id_ret; ?>">
+                                                            <label class="form-check-label" 
+                                                                for="edit_retencion_<?php echo $id_ret; ?>" 
+                                                                style="font-size: 12px; cursor: pointer;">
+                                                                <?php echo $nombre; ?> 
+                                                                <strong>(<?php echo $porcentaje; ?>%)</strong>
+                                                            </label>
+                                                        </div>
+                                                        <?php
+                                                    }
+                                                } else {
+                                                    echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay retenciones configuradas</p>';
+                                                }
+                                                ?>
+                                            </div>
+                                            <small class="form-text text-muted">Se descuenta del total con IGV</small>
+                                        </div>
+
+                                        <!-- PERCEPCIÓN -->
+                                        <div class="mb-2">
+                                            <label style="font-size: 11px; font-weight: bold;">Percepción:</label>
+                                            <div id="contenedor-percepciones" style="padding: 8px; background-color: #e8f5e9; border-radius: 4px; border: 1px solid #4caf50;">
+                                                <?php
+                                                $percepciones_lista = ObtenerDetraccionesPorTipo('PERCEPCION');
+                                                
+                                                if (!empty($percepciones_lista)) {
+                                                    foreach ($percepciones_lista as $percepcion) {
+                                                        $id_per = $percepcion['id_detraccion'];
+                                                        $porcentaje = $percepcion['porcentaje'];
+                                                        $nombre = htmlspecialchars($percepcion['nombre_detraccion'], ENT_QUOTES);
+                                                        ?>
+                                                        <div class="form-check" style="margin-bottom: 5px;">
+                                                            <input class="form-check-input percepcion-checkbox-edit" 
+                                                                type="checkbox" 
+                                                                name="id_percepcion[]" 
+                                                                value="<?php echo $id_per; ?>" 
+                                                                data-porcentaje="<?php echo $porcentaje; ?>" 
+                                                                data-nombre="<?php echo $nombre; ?>"
+                                                                data-tipo="PERCEPCION"
+                                                                
+                                                                id="edit_percepcion_<?php echo $id_per; ?>">
+                                                            <label class="form-check-label" 
+                                                                for="edit_percepcion_<?php echo $id_per; ?>" 
+                                                                style="font-size: 12px; cursor: pointer;">
+                                                                <?php echo $nombre; ?> 
+                                                                <strong>(<?php echo $porcentaje; ?>%)</strong>
+                                                            </label>
+                                                        </div>
+                                                        <?php
+                                                    }
+                                                } else {
+                                                    echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay percepciones configuradas</p>';
+                                                }
+                                                ?>
+                                            </div>
+                                            <small class="form-text text-muted">Se suma al total con IGV</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    
+
+                    <!-- Campo oculto para enviar la afectación seleccionada -->
+                    <input type="hidden" name="afectacion_seleccionada" id="edit_afectacion_seleccionada" value="">
+
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Detracción</label>
-                            <select name="id_detraccion" id="edit_id_detraccion" class="form-control">
-                                <option value="">Sin detracción</option>
-                                <?php foreach($detracciones as $det) { ?>
-                                    <option value="<?php echo $det['id_detraccion']; ?>">
-                                        <?php echo $det['nombre_detraccion']; ?> (<?php echo $det['porcentaje']; ?>%)
-                                    </option>
-                                <?php } ?>
-                            </select>
+                            <label>Total a Pagar <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" name="total_pagar" id="edit_total_pagar" class="form-control" placeholder="0.00" required readonly style="background-color: #e9ecef;">
                         </div>
                     </div>
                 </div>
@@ -789,217 +1002,212 @@ require_once("../_modelo/m_detraccion.php");
     </div>
 </div>
 
+
 <!-- ============================================================ -->
 <!-- SCRIPTS -->
 <!-- ============================================================ -->
+
 <script>
 
-function manejarClickDetraccion(checkbox) {
-    console.log('🔵 Click en DETRACCIÓN');
-    
-    if (checkbox.checked) {
-        document.querySelectorAll('.retencion-checkbox, .percepcion-checkbox').forEach(function(cb) {
-            cb.checked = false;
-        });
-        
-        document.querySelectorAll('.detraccion-checkbox').forEach(function(cb) {
-            if (cb !== checkbox) {
-                cb.checked = false;
-            }
-        });
-        
-        document.getElementById('afectacion_seleccionada').value = 'DETRACCION:' + checkbox.value;
-    } else {
-        document.getElementById('afectacion_seleccionada').value = '';
-    }
-    
-    calcularTotalPagar();
-}
 
-function manejarClickRetencion(checkbox) {
-    console.log('🟡 Click en RETENCIÓN');
+// Variables globales
+let archivosSeleccionados = [];
+// ====================================================================
+// ESPERAR A QUE JQUERY ESTÉ LISTO
+// ====================================================================
+(function() {
+    'use strict';
     
-    if (checkbox.checked) {
-        document.querySelectorAll('.detraccion-checkbox, .percepcion-checkbox').forEach(function(cb) {
-            cb.checked = false;
+    console.log('🚀 Iniciando sistema...');
+
+    // ====================================================================
+    // FUNCIÓN: CALCULAR TOTAL A PAGAR
+    // ====================================================================
+    window.calcularTotalPagar = function(isEditMode) {
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('💰 CALCULANDO - Modo:', isEditMode ? 'EDICIÓN' : 'REGISTRO');
+        
+        const prefix = isEditMode ? 'edit_' : '';
+        const suffix = isEditMode ? '-edit' : '';
+        
+        const inputMonto = document.getElementById(prefix + 'monto_total_igv');
+        const inputTotal = document.getElementById(prefix + 'total_pagar');
+        
+        if (!inputMonto || !inputTotal) {
+            console.error('❌ ERROR: Campos no encontrados');
+            return;
+        }
+        
+        const montoConIGV = parseFloat(inputMonto.value) || 0;
+        console.log('📊 Monto con IGV:', montoConIGV);
+        
+        if (montoConIGV <= 0) {
+            console.log('⚠️ Monto vacío - Limpiando total');
+            inputTotal.value = '';
+            return;
+        }
+        
+        let totalPagar = montoConIGV;
+        let tipoAfectacion = null;
+        let porcentaje = 0;
+        let montoAfectacion = 0;
+        
+        // Buscar checkbox marcado
+        const detraccionChecked = document.querySelector('.detraccion-checkbox' + suffix + ':checked');
+        const retencionChecked = document.querySelector('.retencion-checkbox' + suffix + ':checked');
+        const percepcionChecked = document.querySelector('.percepcion-checkbox' + suffix + ':checked');
+        
+        if (detraccionChecked) {
+            tipoAfectacion = 'DETRACCION';
+            porcentaje = parseFloat(detraccionChecked.getAttribute('data-porcentaje')) || 0;
+            montoAfectacion = (montoConIGV * porcentaje) / 100;
+            totalPagar = montoConIGV - montoAfectacion;
+            console.log('🔵 DETRACCIÓN:', porcentaje + '%');
+        } else if (retencionChecked) {
+            tipoAfectacion = 'RETENCION';
+            porcentaje = parseFloat(retencionChecked.getAttribute('data-porcentaje')) || 0;
+            montoAfectacion = (montoConIGV * porcentaje) / 100;
+            totalPagar = montoConIGV - montoAfectacion;
+            console.log('🟡 RETENCIÓN:', porcentaje + '%');
+        } else if (percepcionChecked) {
+            tipoAfectacion = 'PERCEPCION';
+            porcentaje = parseFloat(percepcionChecked.getAttribute('data-porcentaje')) || 0;
+            montoAfectacion = (montoConIGV * porcentaje) / 100;
+            totalPagar = montoConIGV + montoAfectacion;
+            console.log('🟢 PERCEPCIÓN:', porcentaje + '%');
+        } else {
+            console.log('⚪ Sin afectaciones');
+        }
+        
+        inputTotal.value = totalPagar.toFixed(2);
+        
+        console.log('✅ RESULTADO:');
+        console.log('   - Monto IGV:', montoConIGV.toFixed(2));
+        console.log('   - Tipo:', tipoAfectacion || 'Ninguna');
+        console.log('   - Porcentaje:', porcentaje + '%');
+        console.log('   - Afectación:', montoAfectacion.toFixed(2));
+        console.log('   - TOTAL:', totalPagar.toFixed(2));
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    };
+
+    // ====================================================================
+    // FUNCIÓN: MANEJAR CHECKBOXES
+    // ====================================================================
+    window.manejarCheckbox = function(checkbox, tipo, isEditMode) {
+        console.log('📌 CLICK ' + tipo + ' - Modo:', isEditMode ? 'EDICIÓN' : 'REGISTRO');
+        
+        const suffix = isEditMode ? '-edit' : '';
+        const prefix = isEditMode ? 'edit_' : '';
+        
+        if (checkbox.checked) {
+            console.log('   ✓ Marcando:', checkbox.value);
+            
+            // Desmarcar todos los demás
+            const allCheckboxes = document.querySelectorAll(
+                '.detraccion-checkbox' + suffix + ', ' +
+                '.retencion-checkbox' + suffix + ', ' +
+                '.percepcion-checkbox' + suffix
+            );
+            
+            allCheckboxes.forEach(function(cb) {
+                if (cb !== checkbox) {
+                    cb.checked = false;
+                }
+            });
+            
+            const hiddenInput = document.getElementById(prefix + 'afectacion_seleccionada');
+            if (hiddenInput) {
+                hiddenInput.value = tipo + ':' + checkbox.value;
+            }
+        } else {
+            console.log('   ✗ Desmarcando');
+            const hiddenInput = document.getElementById(prefix + 'afectacion_seleccionada');
+            if (hiddenInput) {
+                hiddenInput.value = '';
+            }
+        }
+        
+        calcularTotalPagar(isEditMode);
+    };
+
+    // ====================================================================
+    // INICIALIZAR CUANDO EL DOM ESTÉ LISTO
+    // ====================================================================
+    function inicializar() {
+        console.log('✅ DOM listo - Configurando eventos...');
+        
+        // EVENTOS: MONTO REGISTRO
+        const montoRegistro = document.getElementById('monto_total_igv');
+        if (montoRegistro) {
+            montoRegistro.addEventListener('input', function() {
+                console.log('💰 Monto REGISTRO cambiado:', this.value);
+                calcularTotalPagar(false);
+            });
+        }
+        
+        // EVENTOS: MONTO EDICIÓN
+        const montoEdicion = document.getElementById('edit_monto_total_igv');
+        if (montoEdicion) {
+            montoEdicion.addEventListener('input', function() {
+                console.log('💰 Monto EDICIÓN cambiado:', this.value);
+                calcularTotalPagar(true);
+            });
+        }
+        
+        // EVENTOS: CHECKBOXES REGISTRO
+        document.querySelectorAll('.detraccion-checkbox').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                manejarCheckbox(this, 'DETRACCION', false);
+            });
         });
         
         document.querySelectorAll('.retencion-checkbox').forEach(function(cb) {
-            if (cb !== checkbox) {
-                cb.checked = false;
-            }
-        });
-        
-        document.getElementById('afectacion_seleccionada').value = 'RETENCION:' + checkbox.value;
-    } else {
-        document.getElementById('afectacion_seleccionada').value = '';
-    }
-    
-    calcularTotalPagar();
-}
-
-function manejarClickPercepcion(checkbox) {
-    console.log('🟢 Click en PERCEPCIÓN');
-    
-    if (checkbox.checked) {
-        document.querySelectorAll('.detraccion-checkbox, .retencion-checkbox').forEach(function(cb) {
-            cb.checked = false;
+            cb.addEventListener('change', function() {
+                manejarCheckbox(this, 'RETENCION', false);
+            });
         });
         
         document.querySelectorAll('.percepcion-checkbox').forEach(function(cb) {
-            if (cb !== checkbox) {
-                cb.checked = false;
-            }
+            cb.addEventListener('change', function() {
+                manejarCheckbox(this, 'PERCEPCION', false);
+            });
         });
         
-        document.getElementById('afectacion_seleccionada').value = 'PERCEPCION:' + checkbox.value;
+        // EVENTOS: CHECKBOXES EDICIÓN
+        document.querySelectorAll('.detraccion-checkbox-edit').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                manejarCheckbox(this, 'DETRACCION', true);
+            });
+        });
+        
+        document.querySelectorAll('.retencion-checkbox-edit').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                manejarCheckbox(this, 'RETENCION', true);
+            });
+        });
+        
+        document.querySelectorAll('.percepcion-checkbox-edit').forEach(function(cb) {
+            cb.addEventListener('change', function() {
+                manejarCheckbox(this, 'PERCEPCION', true);
+            });
+        });
+        
+        console.log('✅ Eventos configurados correctamente');
+    }
+
+    // Ejecutar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', inicializar);
     } else {
-        document.getElementById('afectacion_seleccionada').value = '';
+        inicializar();
     }
-    
-    calcularTotalPagar();
-}
 
-function calcularTotalPagar() {
-    var inputMonto = document.querySelector('input[name="monto_total_igv"]');
-    var inputTotal = document.getElementById('total_pagar');
-    
-    if (!inputMonto || !inputTotal) {
-        console.error('❌ No se encontraron los campos de entrada');
-        return;
-    }
-    
-    var montoConIGV = parseFloat(inputMonto.value) || 0;
-    
-    if (montoConIGV <= 0) {
-        inputTotal.value = '';
-        return;
-    }
-    
-    var totalPagar = montoConIGV;
-    var tipoAfectacion = null;
-    var porcentaje = 0;
-    var montoAfectacion = 0;
-    
-    var detraccionChecked = document.querySelector('.detraccion-checkbox:checked');
-    if (detraccionChecked) {
-        tipoAfectacion = 'DETRACCION';
-        porcentaje = parseFloat(detraccionChecked.getAttribute('data-porcentaje')) || 0;
-        montoAfectacion = (montoConIGV * porcentaje) / 100;
-        totalPagar = montoConIGV - montoAfectacion;
-    }
-    
-    var retencionChecked = document.querySelector('.retencion-checkbox:checked');
-    if (retencionChecked) {
-        tipoAfectacion = 'RETENCION';
-        porcentaje = parseFloat(retencionChecked.getAttribute('data-porcentaje')) || 0;
-        montoAfectacion = (montoConIGV * porcentaje) / 100;
-        totalPagar = montoConIGV - montoAfectacion;
-    }
-    
-    var percepcionChecked = document.querySelector('.percepcion-checkbox:checked');
-    if (percepcionChecked) {
-        tipoAfectacion = 'PERCEPCION';
-        porcentaje = parseFloat(percepcionChecked.getAttribute('data-porcentaje')) || 0;
-        montoAfectacion = (montoConIGV * porcentaje) / 100;
-        totalPagar = montoConIGV + montoAfectacion;
-    }
-    
-    inputTotal.value = totalPagar.toFixed(2);
-    
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('📊 CÁLCULO DE TOTAL A PAGAR');
-    console.log('💰 Monto con IGV: ' + montoConIGV.toFixed(2));
-    console.log('📌 Tipo: ' + (tipoAfectacion || 'Ninguna'));
-    console.log('📊 Porcentaje: ' + porcentaje + '%');
-    console.log('💵 Afectación: ' + montoAfectacion.toFixed(2));
-    console.log('✅ Total: ' + totalPagar.toFixed(2));
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-}
+})();
 
 // ====================================================================
-// JQUERY READY
+// FUNCIONES GLOBALES PARA BOTONES
 // ====================================================================
-$(document).ready(function() {
-    
-    console.log('🚀 Script iniciado correctamente');
-    
-    // Evento para cambio de monto
-    $(document).on('input change keyup', 'input[name="monto_total_igv"]', function() {
-        console.log('💰 Monto cambiado: ' + $(this).val());
-        calcularTotalPagar();
-    });
-    
-    // Evento para cambio de moneda
-    $(document).on('change', 'select[name="id_moneda"]', function() {
-        console.log('💱 Moneda cambiada');
-        calcularTotalPagar();
-    });
-    
-    // Limpiar al abrir modal
-    $('#modalRegistrarComprobante').on('show.bs.modal', function() {
-        console.log('🔄 Modal abierto - Limpiando');
-        $('.detraccion-checkbox, .retencion-checkbox, .percepcion-checkbox').prop('checked', false);
-        $('input[name="monto_total_igv"]').val('');
-        $('#total_pagar').val('');
-        $('#afectacion_seleccionada').val('');
-    });
-    
-    // Validación
-    $('#modalRegistrarComprobante form').on('submit', function(e) {
-        var montoIGV = parseFloat($('input[name="monto_total_igv"]').val()) || 0;
-        var totalPagar = parseFloat($('#total_pagar').val()) || 0;
-        
-        if (montoIGV <= 0) {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Debe ingresar el Monto Total con IGV'
-            });
-            return false;
-        }
-        
-        if (totalPagar <= 0) {
-            e.preventDefault();
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'El Total a Pagar debe ser mayor a cero'
-            });
-            return false;
-        }
-        
-        console.log('✅ Formulario validado correctamente');
-        return true;
-    });
-    
-    // DataTables con manejo de errores
-    try {
-        if ($.fn.DataTable.isDataTable('#tablaComprobantes')) {
-            $('#tablaComprobantes').DataTable().destroy();
-        }
-        
-        $('#tablaComprobantes').DataTable({
-            "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
-            },
-            "order": [[0, "desc"]],
-            "pageLength": 25,
-            "responsive": true
-        });
-        
-        console.log('✅ DataTables inicializado correctamente');
-    } catch (error) {
-        console.error('❌ Error al inicializar DataTables:', error);
-    }
-        
-    console.log('✅ Todo configurado');
-});
 
-// ====================================================================
-// FUNCIÓN PARA ANULAR COMPROBANTE
-// ====================================================================
 function AnularComprobante(id_comprobante) {
     Swal.fire({
         title: '¿Seguro que deseas anular este comprobante?',
@@ -1025,7 +1233,7 @@ function AnularComprobante(id_comprobante) {
                             text: response.message,
                             confirmButtonColor: '#28a745'
                         }).then(() => {
-                            window.location.href = 'comprobante_registrar.php?id_compra=<?php echo $id_compra; ?>';
+                            location.reload();
                         });
                     } else {
                         Swal.fire({
@@ -1036,14 +1244,11 @@ function AnularComprobante(id_comprobante) {
                         });
                     }
                 },
-                error: function(xhr, status, error) {
-                    console.error('Error AJAX:', error);
-                    console.error('Respuesta:', xhr.responseText);
+                error: function() {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error de conexión',
-                        text: 'No se pudo conectar con el servidor.',
-                        confirmButtonColor: '#d33'
+                        text: 'No se pudo conectar con el servidor.'
                     });
                 }
             });
@@ -1051,9 +1256,6 @@ function AnularComprobante(id_comprobante) {
     });
 }
 
-// ====================================================================
-// FUNCIÓN PARA CARGAR DATOS EN MODAL DE EDICIÓN
-// ====================================================================
 function CargarModalEditar(id_comprobante) {
     $.ajax({
         url: 'comprobante_consultar.php',
@@ -1066,51 +1268,69 @@ function CargarModalEditar(id_comprobante) {
                 return;
             }
             
-            // Llenar campos del modal
-            $('#edit_id_comprobante').val(data.id_comprobante);
-            $('#edit_id_tipo_documento').val(data.id_tipo_documento);
-            $('#edit_serie').val(data.serie);
-            $('#edit_numero').val(data.numero);
-            $('#edit_monto_total_igv').val(data.monto_total_igv);
-            $('#edit_id_detraccion').val(data.id_detraccion || '');
-            $('#edit_total_pagar').val(data.total_pagar);
-            $('#edit_id_moneda').val(data.id_moneda);
-            $('#edit_id_medio_pago').val(data.id_medio_pago || '');
-            $('#edit_fec_pago').val(data.fec_pago || '');
+            console.log('📝 Cargando datos para edición:', data);
             
-            // Mostrar archivos actuales
+            // Limpiar checkboxes
+            document.querySelectorAll('.detraccion-checkbox-edit, .retencion-checkbox-edit, .percepcion-checkbox-edit').forEach(function(cb) {
+                cb.checked = false;
+            });
+            
+            // Llenar campos
+            document.getElementById('edit_id_comprobante').value = data.id_comprobante;
+            document.getElementById('edit_id_tipo_documento').value = data.id_tipo_documento;
+            document.getElementById('edit_serie').value = data.serie;
+            document.getElementById('edit_numero').value = data.numero;
+            document.getElementById('edit_monto_total_igv').value = data.monto_total_igv;
+            document.getElementById('edit_id_moneda').value = data.id_moneda;
+            
+            if (data.id_medio_pago) {
+                document.getElementById('edit_id_medio_pago').value = data.id_medio_pago;
+            }
+            
+            if (data.fec_pago) {
+                document.getElementById('edit_fec_pago').value = data.fec_pago;
+            }
+            
+            // Marcar checkbox si existe
+            if (data.id_detraccion) {
+                const checkbox = document.getElementById('edit_detraccion_' + data.id_detraccion);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    document.getElementById('edit_afectacion_seleccionada').value = 'DETRACCION:' + data.id_detraccion;
+                }
+            }
+            
+            // Calcular total
+            setTimeout(function() {
+                calcularTotalPagar(true);
+            }, 100);
+            
+            // Archivos
             if (data.archivo_pdf) {
-                $('#pdf_actual').html('<a href="../_upload/comprobantes/' + data.archivo_pdf + '" target="_blank" class="badge badge-danger"><i class="fa fa-file-pdf-o"></i> Ver PDF actual</a>');
+                document.getElementById('pdf_actual').innerHTML = '<a href="../_upload/comprobantes/' + data.archivo_pdf + '" target="_blank" class="badge badge-danger"><i class="fa fa-file-pdf-o"></i> Ver PDF</a>';
             } else {
-                $('#pdf_actual').html('<span class="text-muted">Sin archivo</span>');
+                document.getElementById('pdf_actual').innerHTML = '<span class="text-muted">Sin archivo</span>';
             }
             
             if (data.archivo_xml) {
-                $('#xml_actual').html('<a href="../_upload/comprobantes/' + data.archivo_xml + '" target="_blank" class="badge badge-info"><i class="fa fa-file-code-o"></i> Ver XML actual</a>');
+                document.getElementById('xml_actual').innerHTML = '<a href="../_upload/comprobantes/' + data.archivo_xml + '" target="_blank" class="badge badge-info"><i class="fa fa-file-code-o"></i> Ver XML</a>';
             } else {
-                $('#xml_actual').html('<span class="text-muted">Sin archivo</span>');
+                document.getElementById('xml_actual').innerHTML = '<span class="text-muted">Sin archivo</span>';
             }
             
-            // Abrir modal
             $('#modalEditarComprobante').modal('show');
         },
         error: function() {
-            Swal.fire('Error', 'No se pudo cargar la información del comprobante', 'error');
+            Swal.fire('Error', 'No se pudo cargar la información', 'error');
         }
     });
 }
 
-// ====================================================================
-// FUNCIÓN PARA ABRIR MODAL DE SUBIR VOUCHER
-// ====================================================================
 function AbrirModalVoucher(id_comprobante) {
-    $('#voucher_id_comprobante').val(id_comprobante);
+    document.getElementById('voucher_id_comprobante').value = id_comprobante;
     $('#modalSubirVoucher').modal('show');
 }
 
-// ====================================================================
-// FUNCIÓN PARA VER DETALLES DEL COMPROBANTE - CON MODAL BOOTSTRAP
-// ====================================================================
 function VerDetalleComprobante(id_comprobante) {
     $.ajax({
         url: 'comprobante_consultar.php',
@@ -1118,88 +1338,47 @@ function VerDetalleComprobante(id_comprobante) {
         data: { id_comprobante: id_comprobante },
         dataType: 'json',
         beforeSend: function() {
-            $('#contenidoDetalleComprobante').html(`
-                <div class="text-center py-3">
-                    <i class="fa fa-spinner fa-spin fa-2x text-primary"></i>
-                </div>
-            `);
+            $('#contenidoDetalleComprobante').html('<div class="text-center py-3"><i class="fa fa-spinner fa-spin fa-2x text-primary"></i></div>');
             $('#modalDetalleComprobante').modal('show');
         },
         success: function(data) {
             if (data.error) {
-                $('#contenidoDetalleComprobante').html(`
-                    <div class="alert alert-danger">
-                        <i class="fa fa-exclamation-triangle"></i> ${data.error}
-                    </div>
-                `);
+                $('#contenidoDetalleComprobante').html('<div class="alert alert-danger">' + data.error + '</div>');
                 return;
             }
-            
+
             let subtotal = parseFloat(data.monto_total_igv > 0 ? data.total_pagar - data.monto_total_igv : data.total_pagar);
             
             let html = `
-                <div style="font-family: Arial, sans-serif;">
-                    <!-- DATOS -->
-                    <table class="table table-sm table-bordered">
-                        <tr>
-                            <th width="35%" style="background-color: #f8f9fa;">Tipo Documento:</th>
-                            <td>${data.nom_tipo_documento}</td>
-                        </tr>
-                        <tr>
-                            <th style="background-color: #f8f9fa;">Serie - Número:</th>
-                            <td><strong>${data.num_comprobante}</strong></td>
-                        </tr>
-                        <tr>
-                            <th style="background-color: #f8f9fa;">Proveedor:</th>
-                            <td>${data.nom_proveedor}</td>
-                        </tr>
-                        <tr>
-                            <th style="background-color: #f8f9fa;">RUC:</th>
-                            <td>${data.ruc_proveedor}</td>
-                        </tr>
-                        <tr>
-                            <th style="background-color: #f8f9fa;">Medio de Pago:</th>
-                            <td>${data.nom_medio_pago || 'No especificado'}</td>
-                        </tr>
-                        <tr>
-                            <th style="background-color: #f8f9fa;">Fecha de Pago:</th>
-                            <td>${data.fec_pago || '<span class="text-warning">Pendiente</span>'}</td>
-                        </tr>
-                        <tr>
-                            <th style="background-color: #f8f9fa;">Total con IGV (18%):</th>
-                            <td>${data.simbolo_moneda} ${parseFloat(data.monto_total_igv || 0).toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                            <th style="background-color: #f8f9fa;">Detracción:</th>
-                            <td>${data.simbolo_moneda} ${subtotal.toFixed(2)}</td>
-                        </tr>
-                        
-                        <tr style="background-color: #d4edda;">
-                            <th style="font-size: 16px;">TOTAL:</th>
-                            <td style="font-size: 18px; font-weight: bold; color: #155724;">
-                                ${data.simbolo_moneda} ${parseFloat(data.total_pagar).toFixed(2)}
-                            </td>
-                        </tr>
-                        
-                    </table>
-                    
-                    <!-- ARCHIVOS -->
-                    <div style="background-color: #f8f9fa; padding: 12px; border-radius: 5px; margin-top: 15px;">
-                        <div style="display: flex; align-items: center;">
-                            <strong style="margin: 0; min-width: 35%; flex-shrink: 0;">
-                                <i class="fa fa-paperclip"></i> Archivos Adjuntos:
-                            </strong>
-                            <div style="flex: 1;">
-                                ${data.archivo_pdf ? 
-                                    '<a href="../_upload/comprobantes/' + data.archivo_pdf + '" target="_blank" class="btn btn-sm btn-danger" style="margin-right: 8px;"><i class="fa fa-file-pdf-o"></i> PDF</a>' : 
-                                    '<span class="badge badge-secondary">Sin PDF</span>'}
-                                ${data.archivo_xml ? 
-                                    '<a href="../_upload/comprobantes/' + data.archivo_xml + '" target="_blank" class="btn btn-sm btn-info" style="margin-right: 8px;"><i class="fa fa-file-code-o"></i> XML</a>' : 
-                                    ''}
-                                ${data.voucher_pago ? 
-                                    '<a href="../_upload/vouchers/' + data.voucher_pago + '" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-check-circle"></i> Voucher</a>' : 
-                                    ''}
-                            </div>
+                <table class="table table-sm table-bordered">
+                    <tr><th width="35%">Tipo Documento:</th><td>${data.nom_tipo_documento}</td></tr>
+                    <tr><th>Serie - Número:</th><td><strong>${data.num_comprobante}</strong></td></tr>
+                    <tr><th>Proveedor:</th><td>${data.nom_proveedor}</td></tr>
+                    <tr><th>RUC:</th><td>${data.ruc_proveedor}</td></tr>
+                    <tr><th>Medio de Pago:</th><td>${data.nom_medio_pago || 'No especificado'}</td></tr>
+                    <tr><th>Fecha de Pago:</th><td>${data.fec_pago || 'Pendiente'}</td></tr>
+                    <tr><th>Monto con IGV:</th><td>${data.simbolo_moneda} ${parseFloat(data.monto_total_igv).toFixed(2)}</td></tr>
+                    <tr><th>Detracción:</th><td>${data.simbolo_moneda} ${subtotal.toFixed(2)}</td>
+</tr>
+                    <tr style="background-color: #d4edda;"><th>TOTAL:</th><td><strong>${data.simbolo_moneda} ${parseFloat(data.total_pagar).toFixed(2)}</strong></td></tr>
+                </table>
+
+                <!-- ARCHIVOS -->
+                <div style="background-color: #f8f9fa; padding: 12px; border-radius: 5px; margin-top: 15px;">
+                    <div style="display: flex; align-items: center;">
+                        <strong style="margin: 0; min-width: 35%; flex-shrink: 0;">
+                            <i class="fa fa-paperclip"></i> Archivos Adjuntos:
+                        </strong>
+                        <div style="flex: 1;">
+                            ${data.archivo_pdf ? 
+                                '<a href="../_upload/comprobantes/' + data.archivo_pdf + '" target="_blank" class="btn btn-sm btn-danger" style="margin-right: 8px;"><i class="fa fa-file-pdf-o"></i> PDF</a>' : 
+                                '<span class="badge badge-secondary">Sin PDF</span>'}
+                            ${data.archivo_xml ? 
+                                '<a href="../_upload/comprobantes/' + data.archivo_xml + '" target="_blank" class="btn btn-sm btn-info" style="margin-right: 8px;"><i class="fa fa-file-code-o"></i> XML</a>' : 
+                                ''}
+                            ${data.voucher_pago ? 
+                                '<a href="../_upload/vouchers/' + data.voucher_pago + '" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-check-circle"></i> Voucher</a>' : 
+                                ''}
                         </div>
                     </div>
                 </div>
@@ -1208,13 +1387,292 @@ function VerDetalleComprobante(id_comprobante) {
             $('#contenidoDetalleComprobante').html(html);
         },
         error: function() {
-            $('#contenidoDetalleComprobante').html(`
-                <div class="alert alert-danger">
-                    <i class="fa fa-exclamation-circle"></i> No se pudo cargar la información
-                </div>
-            `);
+            $('#contenidoDetalleComprobante').html('<div class="alert alert-danger">No se pudo cargar</div>');
         }
     });
 }
 
+// ====================================================================
+// DATATABLES (SI EXISTE JQUERY)
+// ====================================================================
+$(document).ready(function() {
+    if ($.fn.DataTable) {
+        $('#tablaComprobantes').DataTable({
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+            },
+            "order": [[0, "desc"]],
+            "pageLength": 25
+        });
+    }
+});
+
+
+// Abrir / cerrar modal
+function abrirModalMasivo() {
+    const modal = document.getElementById("modalSubidaMasivo");
+    if (modal) {
+        modal.style.display = "flex";
+        console.log("✅ Modal abierto");
+        
+        // Reinicializar el input cuando se abre el modal
+        setTimeout(() => {
+            inicializarModalMasivo();
+        }, 200);
+    } else {
+        console.error("❌ Modal no encontrado");
+    }
+}
+
+function cerrarModalMasivo() {
+    const modal = document.getElementById("modalSubidaMasivo");
+    if (modal) {
+        modal.style.display = "none";
+        archivosSeleccionados = [];
+        document.getElementById("listaArchivos").innerHTML = "";
+    }
+}
+
+// Esperar a que el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inicializarModalMasivo);
+} else {
+    inicializarModalMasivo();
+}
+
+function inicializarModalMasivo() {
+    console.log("🚀 Inicializando modal masivo...");
+    
+    // Esperar un momento para que el DOM esté completamente listo
+    setTimeout(() => {
+        const inputArchivos = document.getElementById("inputArchivos");
+        
+        if (!inputArchivos) {
+            console.error("❌ Input de archivos no encontrado");
+            return;
+        }
+        
+        console.log("✅ Input encontrado:", inputArchivos);
+        
+        // Remover listeners anteriores y agregar uno nuevo
+        inputArchivos.removeEventListener("change", manejarCambioArchivos);
+        inputArchivos.addEventListener("change", manejarCambioArchivos);
+        
+        console.log("✅ Listener agregado correctamente");
+    }, 100);
+}
+
+function manejarCambioArchivos(e) {
+    console.log("📂 ¡¡¡CAMBIO DETECTADO!!!");
+    console.log("Archivos seleccionados:", e.target.files.length);
+    
+    if (e.target.files.length === 0) {
+        console.log("⚠️ No hay archivos");
+        return;
+    }
+    
+    const nuevosArchivos = Array.from(e.target.files);
+    console.log("Array creado:", nuevosArchivos);
+    
+    nuevosArchivos.forEach((archivo) => {
+        console.log("Procesando:", archivo.name, archivo.size, "bytes");
+        if (!archivosSeleccionados.find(a => a.name === archivo.name)) {
+            archivosSeleccionados.push(archivo);
+            console.log("✅ Agregado a la lista");
+        } else {
+            console.log("⚠️ Duplicado, ignorado");
+        }
+    });
+    
+    console.log("Total en memoria:", archivosSeleccionados.length);
+    actualizarListaArchivos();
+    e.target.value = "";
+}
+
+function actualizarListaArchivos() {
+    console.log("📋 Actualizando lista, total:", archivosSeleccionados.length);
+    
+    const listaArchivos = document.getElementById("listaArchivos");
+    
+    if (archivosSeleccionados.length === 0) {
+        listaArchivos.innerHTML = "";
+        return;
+    }
+
+    let html = `
+        <h6><i class="fa fa-list"></i> Archivos seleccionados (${archivosSeleccionados.length}):</h6>
+        <table class="table table-sm table-bordered" style="margin-top:10px;">
+            <thead style="background:#667eea; color:white;">
+                <tr>
+                    <th width="5%">#</th>
+                    <th>Nombre</th>
+                    <th width="15%">Tamaño</th>
+                    <th width="10%">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    archivosSeleccionados.forEach((archivo, index) => {
+        html += `
+            <tr>
+                <td>${index + 1}</td>
+                <td><i class="fa fa-file-o"></i> ${archivo.name}</td>
+                <td>${(archivo.size / 1024).toFixed(1)} KB</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-danger" onclick="eliminarArchivo(${index})">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `</tbody></table></div>`;
+    listaArchivos.innerHTML = html;
+}
+
+function eliminarArchivo(index) {
+    archivosSeleccionados.splice(index, 1);
+    actualizarListaArchivos();
+}
+
+/*async function procesarArchivos() {
+    if (archivosSeleccionados.length === 0) {
+        Swal.fire('Advertencia', 'Selecciona al menos un archivo', 'warning');
+        return;
+    }
+
+    const formData = new FormData();
+    archivosSeleccionados.forEach((archivo) => {
+        formData.append('archivos[]', archivo);
+    });
+
+    formData.append('id_compra', <?php echo $id_compra; ?>);
+    formData.append('enviar_proveedor', document.getElementById('enviarProveedor').checked ? 1 : 0);
+    formData.append('enviar_contabilidad', document.getElementById('enviarContabilidad').checked ? 1 : 0);
+    formData.append('enviar_tesoreria', document.getElementById('enviarTesoreria').checked ? 1 : 0);
+
+    try {
+        Swal.fire({
+            title: 'Procesando...',
+            text: 'Subiendo vouchers, por favor espera...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        // 👇 ruta relativa (sube una carpeta y entra a _controlador)
+        const response = await fetch('../_controlador/comprobante_subida_masiva.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        console.log("🔍 Estado HTTP:", response.status);
+        if (!response.ok) {
+            throw new Error(`Error HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("📥 Respuesta del servidor:", data);
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Subida completada',
+                html: `<b>${data.exitosos}</b> archivos subidos correctamente.<br>
+                       <b>${data.fallidos}</b> archivos fallaron.`,
+                confirmButtonText: 'Aceptar'
+            }).then(() => {
+                cerrarModalMasivo();
+            });
+        } else {
+            Swal.fire('Error', data.mensaje || 'Ocurrió un error en el servidor', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Error al enviar archivos:', error);
+        Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
+    }
+}*/
+
+async function procesarArchivos() {
+    if (archivosSeleccionados.length === 0) {
+        Swal.fire('Advertencia', 'Selecciona al menos un archivo', 'warning');
+        return;
+    }
+
+    const formData = new FormData();
+    archivosSeleccionados.forEach((archivo) => {
+        formData.append('archivos[]', archivo);
+    });
+
+    formData.append('id_compra', <?php echo $id_compra; ?>);
+    formData.append('enviar_proveedor', document.getElementById('enviarProveedor').checked ? 1 : 0);
+    formData.append('enviar_contabilidad', document.getElementById('enviarContabilidad').checked ? 1 : 0);
+    formData.append('enviar_tesoreria', document.getElementById('enviarTesoreria').checked ? 1 : 0);
+
+    // Mostrar loading
+    Swal.fire({
+        title: 'Procesando...',
+        text: 'Subiendo vouchers, por favor espera...',
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    try {
+        const response = await fetch('../_controlador/comprobante_subida_masiva.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
+
+        const data = await response.json();
+        console.log("📥 Respuesta del servidor:", data);
+
+        // Cerrar el modal PRIMERO
+        cerrarModalMasivo();
+
+        // Luego mostrar resultado
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Subida completada',
+                html: `<b>${data.exitosos}</b> archivos subidos correctamente.<br>
+                       <b>${data.fallidos}</b> archivos fallaron.`,
+                confirmButtonText: 'Aceptar'
+            }).then(() => {
+                location.reload(); // Recargar para ver los cambios
+            });
+        } else {
+            Swal.fire('Error', data.mensaje || 'Ocurrió un error en el servidor', 'error');
+        }
+
+    } catch (error) {
+        console.error('❌ Error al enviar archivos:', error);
+        cerrarModalMasivo();
+        Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
+    }
+}
+
 </script>
+
+<style>
+    #listaArchivos {
+        max-height: 300px; /* o el valor que prefieras */
+        overflow-y: auto;
+        margin-top: 20px;
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        scroll-behavior: smooth;
+    }
+    #listaArchivos table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    #listaArchivos th, #listaArchivos td {
+        padding: 8px;
+        border: 1px solid #dee2e6;
+    }
+</style>
