@@ -4,7 +4,7 @@ require_once("../_conexion/conexion.php");
 
 // Configurar la respuesta JSON
 header('Content-Type: application/json; charset=utf-8');
-error_reporting(0);
+mysqli_set_charset($con, "utf8");
 
 // Verificar si es una petición POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -131,8 +131,8 @@ while ($row = mysqli_fetch_assoc($result)) {
         $action_btn = '<button type="button" 
                         class="btn btn-sm btn-success d-inline-flex align-items-center gap-1"
                         onclick="seleccionarProducto(' . $row['id_producto'] . ', \'' . 
-                        addslashes($row['nom_producto']) . '\', \'' . 
-                        addslashes($row['nom_unidad_medida']) . '\', ' . 
+                        htmlspecialchars(addslashes($row['nom_producto']), ENT_QUOTES, 'UTF-8'). '\', \'' . 
+                        htmlspecialchars(addslashes($row['nom_unidad_medida']), ENT_QUOTES, 'UTF-8') . '\', ' . 
                         $stock_disponible . ')"
                         title="Seleccionar producto">
                         <i class="fa fa-check"></i><span>Seleccionar</span>
@@ -144,10 +144,10 @@ while ($row = mysqli_fetch_assoc($result)) {
     }
 
     $data[] = array(
-        htmlspecialchars($row['cod_material']),
-        htmlspecialchars($row['nom_producto']),
-        htmlspecialchars($row['nom_material_tipo']),
-        htmlspecialchars($row['nom_unidad_medida']),
+        htmlspecialchars($row['cod_material'], ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($row['nom_producto'], ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($row['nom_material_tipo'], ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($row['nom_unidad_medida'], ENT_QUOTES, 'UTF-8'),
         number_format($stock_fisico, 2),          // Físico
         number_format($stock_comprometido, 2),    // Comprometido
         $stock_disp_html,                         // Disponible con color

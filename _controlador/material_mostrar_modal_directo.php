@@ -3,7 +3,8 @@ require_once("../_conexion/sesion.php");
 require_once("../_conexion/conexion.php");
 
 // Configurar la respuesta JSON
-header('Content-Type: application/json');
+header('Content-Type: application/json; charset=utf-8');
+mysqli_set_charset($con, "utf8");
 
 // Verificar si es una petición POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -26,7 +27,7 @@ $where_conditions = array();
 $where_conditions[] = "p.est_producto = 1";
 $where_conditions[] = "mt.est_material_tipo = 1";
 $where_conditions[] = "pt.nom_producto_tipo = 'MATERIAL'";
-$where_conditions[] = "mt.nom_material_tipo IN ('CONSUMIBLES', 'HERRAMIENTAS')";
+$where_conditions[] = "mt.nom_material_tipo IN ('CONSUMIBLES', 'HERRAMIENTAS', 'NA')";
 
 // Construir condición de búsqueda
 $search_condition = "";
@@ -132,16 +133,16 @@ while ($row = mysqli_fetch_assoc($result)) {
     // Botón de acción para seleccionar el producto
     $action_btn = '<button type="button" class="btn btn-primary btn-sm" 
                     onclick="seleccionarProducto(' . $row['id_producto'] . ', \'' . 
-                    addslashes($descripcion_completa) . '\', \'' . 
-                    addslashes($row['nom_unidad_medida']) . '\', ' . $stock_actual . ')">
+                    htmlspecialchars(addslashes($descripcion_completa), ENT_QUOTES, 'UTF-8') . '\', \'' . 
+                    htmlspecialchars(addslashes($row['nom_unidad_medida']), ENT_QUOTES, 'UTF-8') . '\', ' . $stock_actual . ')">
                     <i class="fa fa-check"></i> Seleccionar
-                  </button>';
+                </button>';
     
     $data[] = array(
-        htmlspecialchars($row['cod_material']),
+        htmlspecialchars($row['cod_material'], ENT_QUOTES, 'UTF-8'),
         htmlspecialchars($descripcion_completa),
-        htmlspecialchars($row['nom_material_tipo']),
-        htmlspecialchars($row['nom_unidad_medida']),
+        htmlspecialchars($row['nom_material_tipo'], ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($row['nom_unidad_medida'], ENT_QUOTES, 'UTF-8'),
         number_format($stock_actual, 2), 
         $action_btn
     );

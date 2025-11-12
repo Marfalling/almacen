@@ -3316,7 +3316,22 @@ function ValidarInventarioDisponibleParaSalida($materiales, $id_almacen_origen, 
     foreach ($materiales as $material) {
         $id_producto = intval($material['id_producto']);
         $cantidad_solicitada = floatval($material['cantidad']);
-        $descripcion = isset($material['descripcion']) ? $material['descripcion'] : "Producto ID $id_producto";
+        
+        // ✅ OBTENER DESCRIPCIÓN CORRECTA
+        $descripcion = '';
+        if (isset($material['descripcion']) && !empty(trim($material['descripcion']))) {
+            $descripcion = trim($material['descripcion']);
+        } else {
+            // 🔹 BUSCAR EN LA BD
+            $sql_desc = "SELECT nom_producto FROM producto WHERE id_producto = $id_producto";
+            $res_desc = mysqli_query($con, $sql_desc);
+            if ($res_desc && $row_desc = mysqli_fetch_assoc($res_desc)) {
+                $descripcion = $row_desc['nom_producto'];
+            } else {
+                $descripcion = "Producto ID $id_producto";
+            }
+        }
+        
         
         // 🔹 CALCULAR STOCK FÍSICO REAL
         $sql_stock = "SELECT COALESCE(
@@ -3351,13 +3366,22 @@ function ValidarInventarioDisponibleParaSalida($materiales, $id_almacen_origen, 
         
         // 🔹 VALIDAR DISPONIBILIDAD
         if ($cantidad_solicitada > $stock_real) {
-            $errores[] = sprintf(
-                "%s: Stock insuficiente. Disponible: %.2f, Solicitado: %.2f (Diferencia: %.2f)",
-                $descripcion,
-                $stock_real,
-                $cantidad_solicitada,
-                $cantidad_solicitada - $stock_real
-            );
+            // ✅ NUEVO: Formato específico para detectar error de stock
+            if ($stock_real <= 0) {
+                $errores[] = sprintf(
+                    "El producto '%s' no tiene stock disponible en la ubicación origen seleccionada. Solicitado: %.2f unidades.",
+                    $descripcion,
+                    $cantidad_solicitada
+                );
+            } else {
+                $errores[] = sprintf(
+                    "Stock insuficiente para '%s'. Disponible: %.2f, Solicitado: %.2f (Faltante: %.2f)",
+                    $descripcion,
+                    $stock_real,
+                    $cantidad_solicitada,
+                    $cantidad_solicitada - $stock_real
+                );
+            }
         }
     }
     
@@ -3490,4 +3514,24 @@ function ReverificarTodosLosItemsDelPedido($id_pedido) {
     error_log("✅ Re-verificación completa del pedido: $id_pedido (" . count($detalles) . " items procesados)");
     
     return true;
+}
+
+/**
+ * Obtener cantidad en salidas ACTIVAS para un detalle (excluyendo anuladas)
+ */
+function ObtenerCantidadEnSalidasActivasPorDetalle($id_pedido_detalle) {
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT COALESCE(SUM(sd.cant_salida_detalle), 0) as total_activo
+            FROM salida_detalle sd
+            INNER JOIN salida s ON sd.id_salida = s.id_salida
+            WHERE sd.id_pedido_detalle = $id_pedido_detalle
+            AND s.est_salida = 1  -- SOLO ACTIVAS
+            AND sd.est_salida_detalle = 1";
+    
+    $resultado = mysqli_query($con, $sql);
+    $row = mysqli_fetch_assoc($resultado);
+    
+    mysqli_close($con);
+    return floatval($row['total_activo']);
 }

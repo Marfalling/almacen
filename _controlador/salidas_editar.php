@@ -67,7 +67,6 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                 $titulo_alerta = 'Salida no encontrada';
                 $mensaje_alerta = 'La salida especificada no existe o ha sido eliminada';
                 
-                // Redireccionar después de un tiempo
                 ?>
                 <script Language="JavaScript">
                     setTimeout(function() {
@@ -86,11 +85,11 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
             $personal = MostrarPersonal();
             $material_tipos = MostrarMaterialTipoActivos();
 
-            //Cargar documentos asociados a la salida
+            // Cargar documentos asociados a la salida
             $documentos = MostrarDocumentos('salidas', $id_salida);
 
             // ============================================================
-            // SUBIR NUEVOS DOCUMENTOS (si se mandan)
+            // SUBIR NUEVOS DOCUMENTOS
             // ============================================================
             if (isset($_FILES['documento']) && count($_FILES['documento']['name']) > 0) {
                 $entidad = "salidas";
@@ -101,7 +100,6 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
 
                 foreach ($_FILES['documento']['name'] as $i => $nombre_original) {
                     if (!empty($nombre_original)) {
-                        // Normalizar nombre del archivo
                         $nombre_limpio = preg_replace('/[^A-Za-z0-9_\-\.]/', '_', $nombre_original);
                         $nombre_archivo = $entidad . "_" . $id_salida . "_" . time() . "_" . $nombre_limpio;
                         $target_file = $target_dir . $nombre_archivo;
@@ -111,7 +109,6 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                         }
                     }
                 }
-                // Refrescar documentos
                 $documentos = MostrarDocumentos('salidas', $id_salida);
             }
 
@@ -125,11 +122,14 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                 exit;
             }
 
-
             //=======================================================================
-            // CONTROLADOR 
+            // 🔥 CONTROLADOR - VERSIÓN CORREGIDA
             //=======================================================================
             if (isset($_REQUEST['actualizar'])) {
+                error_log("========================================");
+                error_log("🔧 INICIO ACTUALIZACIÓN SALIDA");
+                error_log("========================================");
+                
                 $id_material_tipo = intval($_REQUEST['id_material_tipo']);
                 $id_almacen_origen = intval($_REQUEST['id_almacen_origen']);
                 $id_ubicacion_origen = intval($_REQUEST['id_ubicacion_origen']);
@@ -140,26 +140,60 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                 $obs_salida = $_REQUEST['obs_salida'];
                 $id_personal_encargado = intval($_REQUEST['id_personal_encargado']);
                 $id_personal_recibe = intval($_REQUEST['id_personal_recibe']);
-                                
-                // Procesar materiales
+                
+                // ============================================================
+                // 🔥 CONSTRUCCIÓN CORRECTA DEL ARRAY DE MATERIALES
+                // ============================================================
                 $materiales = array();
+                
                 if (isset($_REQUEST['id_producto']) && is_array($_REQUEST['id_producto'])) {
+                    
+                    error_log("📦 Total de productos recibidos: " . count($_REQUEST['id_producto']));
+                    
                     foreach ($_REQUEST['id_producto'] as $index => $id_producto) {
                         if (!empty($id_producto) && !empty($_REQUEST['cantidad'][$index])) {
-                            $cantidad = floatval($_REQUEST['cantidad'][$index]); 
                             
+                            $cantidad = floatval($_REQUEST['cantidad'][$index]);
+                            $descripcion = isset($_REQUEST['descripcion'][$index]) ? $_REQUEST['descripcion'][$index] : '';
+                            
+                            // 🔹 OBTENER id_salida_detalle DESDE salida_detalles
+                            $id_salida_detalle = 0;
+                            if (isset($salida_detalles[$index])) {
+                                $id_salida_detalle = intval($salida_detalles[$index]['id_salida_detalle']);
+                            }
+                            
+                            // 🔹 OBTENER id_pedido_detalle si existe
+                            $id_pedido_detalle = 0;
+                            if (isset($salida_detalles[$index]) && isset($salida_detalles[$index]['id_pedido_detalle'])) {
+                                $id_pedido_detalle = intval($salida_detalles[$index]['id_pedido_detalle']);
+                            }
+                            
+                            // 🔹 DETERMINAR SI ES NUEVO (si no tiene id_salida_detalle)
+                            $es_nuevo = ($id_salida_detalle <= 0) ? '1' : '0';
+                            
+                            error_log("   Item $index: id_salida_detalle=$id_salida_detalle | id_pedido_detalle=$id_pedido_detalle | id_producto=$id_producto | cantidad=$cantidad | es_nuevo=$es_nuevo");
+                            
+                            //  CONSTRUIR EL ARRAY CON LA ESTRUCTURA CORRECTA
                             $materiales[] = array(
+                                'id_salida_detalle' => $id_salida_detalle,
                                 'id_producto' => intval($id_producto),
-                                'descripcion' => $_REQUEST['descripcion'][$index],
-                                'cantidad' => $cantidad
+                                'id_pedido_detalle' => $id_pedido_detalle,
+                                'descripcion' => $descripcion,
+                                'cantidad' => $cantidad,
+                                'es_nuevo' => $es_nuevo
                             );
                         }
                     }
                 }
 
+                error_log("📋 Total de materiales procesados: " . count($materiales));
+
                 // Validar que haya al menos un material
                 if (count($materiales) > 0) {
-                    // Validar stocks antes de actualizar
+                    
+                    // ============================================================
+                    // 🔥 VALIDACIÓN DE STOCKS (OPCIONAL - Puedes quitarlo si no es necesario)
+                    // ============================================================
                     $errores_stock = array();
                     
                     foreach ($materiales as $material) {
@@ -190,16 +224,32 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                         $tipo_alerta = 'warning';
                         $titulo_alerta = 'Stock insuficiente';
                         $mensaje_alerta = implode('<br>', $errores_stock);
+                        
+                        error_log("❌ ERRORES DE STOCK: " . implode(" | ", $errores_stock));
                     } else {
-                        // Proceder con la actualización
+                        // ============================================================
+                        // ✅ LLAMAR A LA FUNCIÓN ACTUALIZAR
+                        // ============================================================
+                        error_log("🚀 Llamando a ActualizarSalida...");
+                        
                         $resultado = ActualizarSalida(
-                            $id_salida, $id_almacen_origen, $id_ubicacion_origen,
-                            $id_almacen_destino, $id_ubicacion_destino, $ndoc_salida,
-                            $fec_req_salida, $obs_salida, $id_personal_encargado,
-                            $id_personal_recibe, $materiales
+                            $id_salida, 
+                            $id_almacen_origen, 
+                            $id_ubicacion_origen,
+                            $id_almacen_destino, 
+                            $id_ubicacion_destino, 
+                            $ndoc_salida,
+                            $fec_req_salida, 
+                            $obs_salida, 
+                            $id_personal_encargado,
+                            $id_personal_recibe, 
+                            $materiales
                         );
                         
+                        error_log("📤 Resultado: $resultado");
+                        
                         if ($resultado === "SI") {
+                            error_log("✅ ACTUALIZACIÓN EXITOSA");
                             ?>
                             <script Language="JavaScript">
                                 setTimeout(function() {
@@ -209,6 +259,7 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                             <?php
                             exit();
                         } else {
+                            error_log("❌ ERROR EN ACTUALIZACIÓN: $resultado");
                             $mostrar_alerta = true;
                             $tipo_alerta = 'error';
                             $titulo_alerta = 'Error al actualizar';
@@ -221,9 +272,11 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                     $titulo_alerta = 'Datos incompletos';
                     $mensaje_alerta = 'Debe tener al menos un material en la salida';
                 }
-            
+                
+                error_log("========================================");
+                error_log("🔧 FIN ACTUALIZACIÓN SALIDA");
+                error_log("========================================");
             }
-            //-------------------------------------------
             
             // Solo mostrar la vista si hay datos válidos de salida
             if (!empty($salida_datos)) {

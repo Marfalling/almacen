@@ -587,7 +587,22 @@ if (isset($_REQUEST['crear_salida'])) {
                     
                     $id_producto = intval($item['id_producto']);
                     $cantidad = floatval($item['cantidad']);
-                    $descripcion = isset($item['descripcion']) ? trim($item['descripcion']) : '';
+                    
+                    //   Obtener descripción DESDE LA BD si no viene en el JSON
+                    $descripcion = '';
+                    if (isset($item['descripcion']) && !empty(trim($item['descripcion']))) {
+                        $descripcion = trim($item['descripcion']);
+                    } else {
+                        
+                        $sql_desc = "SELECT nom_producto FROM producto WHERE id_producto = $id_producto";
+                        $res_desc = mysqli_query($con, $sql_desc);
+                        if ($res_desc && $row_desc = mysqli_fetch_assoc($res_desc)) {
+                            $descripcion = $row_desc['nom_producto'];
+                        } else {
+                            $descripcion = "Producto ID $id_producto";
+                        }
+                    }
+                    
                     $id_pedido_detalle = isset($item['id_pedido_detalle']) && $item['id_pedido_detalle'] > 0
                                         ? intval($item['id_pedido_detalle']) 
                                         : 0;
@@ -603,7 +618,7 @@ if (isset($_REQUEST['crear_salida'])) {
                     $materiales[] = [
                         'id_producto' => $id_producto,
                         'id_pedido_detalle' => $id_pedido_detalle,
-                        'descripcion' => $descripcion,
+                        'descripcion' => $descripcion, 
                         'cantidad' => $cantidad
                     ];
                 }
@@ -760,12 +775,12 @@ if (isset($_REQUEST['actualizar_salida'])) {
     
     // 🔹 CONSTRUIR ARRAY DE MATERIALES
     $materiales = [];
-    
+
     if (isset($_REQUEST['items_salida']) && is_string($_REQUEST['items_salida'])) {
         $items_json = json_decode($_REQUEST['items_salida'], true);
         
         if (json_last_error() === JSON_ERROR_NONE && is_array($items_json)) {
-            foreach ($items_json as $item) {
+            foreach ($items_json as $key => $item) {
                 if (empty($item['id_producto']) || empty($item['cantidad'])) {
                     continue;
                 }
@@ -775,30 +790,12 @@ if (isset($_REQUEST['actualizar_salida'])) {
                                     ? intval($item['id_pedido_detalle']) 
                                     : 0;
                 
-                // 🔹 BUSCAR id_salida_detalle EXISTENTE
-                $sql_buscar = "SELECT id_salida_detalle FROM salida_detalle 
-                              WHERE id_salida = ? AND id_producto = ?";
+                // 🔹 CRÍTICO: Obtener id_salida_detalle desde el item
+                $id_salida_detalle = isset($item['id_salida_detalle']) && $item['id_salida_detalle'] > 0
+                                ? intval($item['id_salida_detalle'])
+                                : 0;
                 
-                if ($id_pedido_detalle > 0) {
-                    $sql_buscar .= " AND id_pedido_detalle = ?";
-                }
-                
-                $stmt = $con->prepare($sql_buscar);
-                
-                if ($id_pedido_detalle > 0) {
-                    $stmt->bind_param("iii", $id_salida, $id_producto, $id_pedido_detalle);
-                } else {
-                    $stmt->bind_param("ii", $id_salida, $id_producto);
-                }
-                
-                $stmt->execute();
-                $result = $stmt->get_result();
-                
-                $id_salida_detalle = 0;
-                if ($row = $result->fetch_assoc()) {
-                    $id_salida_detalle = intval($row['id_salida_detalle']);
-                }
-                $stmt->close();
+                error_log("📦 Item key: $key | id_salida_detalle: $id_salida_detalle | id_producto: $id_producto");
                 
                 $materiales[] = [
                     'id_salida_detalle' => $id_salida_detalle,
@@ -1001,7 +998,7 @@ if ($id_pedido > 0) {
         //  RE-VERIFICACIÓN AUTOMÁTICA (SIEMPRE)
         // ============================================================
         if ($estado_pedido != 0 && $estado_pedido != 5) {
-            error_log(" RE-VERIFICACIÓN AUTOMÁTICA - Pedido $id_pedido");
+            error_log("🔄 RE-VERIFICACIÓN AUTOMÁTICA - Pedido $id_pedido");
             
             include("../_conexion/conexion.php");
             
@@ -1025,7 +1022,7 @@ if ($id_pedido > 0) {
             
             mysqli_close($con);
             
-            error_log(" Items re-verificados automáticamente: $items_reverificados");
+            error_log("✅ Items re-verificados automáticamente: $items_reverificados");
         }
         
         // ============================================================
@@ -1102,10 +1099,10 @@ if ($id_pedido > 0) {
             $orden_detalle = ObtenerDetalleOrden($id_compra_editar);
         }
 
-        // Cargar datos de salida si está en modo edición
-        $salida_data = null;
-        $salida_detalle = null;
-        if ($modo_editar_salida) {
+        // ============================================
+        // CARGAR DETALLE DE SALIDA (EDICIÓN)
+        // ============================================
+        if ($modo_editar_salida && $id_salida_editar > 0) {
             // Validar que la salida existe
             $validacion = ValidarSalidaExiste($id_salida_editar);
             
@@ -1133,8 +1130,53 @@ if ($id_pedido > 0) {
                 exit;
             }
             
-            // Obtener detalle de la salida
             $salida_detalle = ObtenerDetalleSalida($id_salida_editar);
+            
+            // ABRIR CONEXIÓN PARA CONSULTAS
+            include("../_conexion/conexion.php");
+            
+            //  CALCULAR CANTIDAD MÁXIMA POR ITEM
+            foreach ($salida_detalle as &$item_sal) {
+                $id_pedido_detalle = intval($item_sal['id_pedido_detalle']);
+                $id_producto = intval($item_sal['id_producto']);
+                
+                //  PASO 1: Obtener cantidad verificada para OS
+                $cant_os_verificada = 0;
+                foreach ($pedido_detalle as $det) {
+                    if ($det['id_pedido_detalle'] == $id_pedido_detalle) {
+                        $cant_os_verificada = floatval($det['cant_os_pedido_detalle']);
+                        break;
+                    }
+                }
+                
+                //  PASO 2: Cantidad ya ordenada en OTRAS salidas activas (excluyendo la actual)
+                $sql_otras_salidas = "SELECT COALESCE(SUM(sd.cant_salida_detalle), 0) as total_otras
+                                      FROM salida_detalle sd
+                                      INNER JOIN salida s ON sd.id_salida = s.id_salida
+                                      WHERE sd.id_pedido_detalle = $id_pedido_detalle
+                                        AND s.est_salida = 1
+                                        AND s.id_salida != $id_salida_editar";
+                $res_otras = mysqli_query($con, $sql_otras_salidas);
+                $row_otras = mysqli_fetch_assoc($res_otras);
+                $ordenado_otras_salidas = floatval($row_otras['total_otras']);
+                
+                //  PASO 3: Cantidad actual en ESTA salida
+                $cantidad_actual_salida = floatval($item_sal['cant_salida_detalle']);
+                
+                //  PASO 4: Calcular máximo disponible
+                $item_sal['cantidad_maxima'] = ($cant_os_verificada - $ordenado_otras_salidas);
+                
+                //  LOG DEBUG
+                error_log("   Calculando max para detalle $id_pedido_detalle:");
+                error_log("   Verificado OS: $cant_os_verificada");
+                error_log("   Otras salidas: $ordenado_otras_salidas");
+                error_log("   Actual en salida: $cantidad_actual_salida");
+                error_log("   MAX FINAL: " . $item_sal['cantidad_maxima']);
+            }
+            unset($item_sal); // Liberar referencia
+            
+            //  CERRAR CONEXIÓN
+            mysqli_close($con);
         }
 
         $pedido = $pedido_data[0];
