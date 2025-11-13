@@ -37,7 +37,7 @@ for ($i = 0; $i < count($archivos['name']); $i++) {
     }
 
     $serie = strtoupper($match[1]);
-    $numero = intval($match[2]);
+    $numero = ltrim($match[2]);
 
     // 2️⃣ Buscar comprobante correspondiente
     $sql = "SELECT id_comprobante FROM comprobante 
@@ -69,6 +69,7 @@ for ($i = 0; $i < count($archivos['name']); $i++) {
         $resultado = SubirVoucherComprobante(
             $id_comprobante,
             $resultado_archivo['ruta'],
+            $_SESSION['id_personal'],
             $enviar_proveedor,
             $enviar_contabilidad,
             $enviar_tesoreria

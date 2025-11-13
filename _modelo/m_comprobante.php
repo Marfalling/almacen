@@ -16,6 +16,7 @@ function GrabarComprobante($datos)
     $total_pagar = round(floatval($datos['total_pagar']), 2);
     $id_moneda = intval($datos['id_moneda']);
     $id_medio_pago = !empty($datos['id_medio_pago']) ? intval($datos['id_medio_pago']) : 'NULL';
+    $id_cuenta_proveedor = !empty($datos['id_cuenta_proveedor']) ? intval($datos['id_cuenta_proveedor']) : 'NULL';
     $archivo_pdf = !empty($datos['archivo_pdf']) ? "'" . mysqli_real_escape_string($con, $datos['archivo_pdf']) . "'" : 'NULL';
     $archivo_xml = !empty($datos['archivo_xml']) ? "'" . mysqli_real_escape_string($con, $datos['archivo_xml']) . "'" : 'NULL';
     $fec_pago = !empty($datos['fec_pago']) ? "'" . mysqli_real_escape_string($con, $datos['fec_pago']) . "'" : 'NULL';
@@ -61,7 +62,8 @@ function GrabarComprobante($datos)
                 est_comprobante,
                 fec_registro,
                 fec_pago,
-                id_personal
+                id_personal,
+                id_cuenta_proveedor
             ) VALUES (
                 $id_compra,
                 $id_tipo_documento,
@@ -77,7 +79,8 @@ function GrabarComprobante($datos)
                 $est_comprobante,
                 NOW(),
                 $fec_pago,
-                $id_personal
+                $id_personal,
+                $id_cuenta_proveedor
             )";
     
     $res = mysqli_query($con, $sql);
@@ -97,7 +100,7 @@ function GrabarComprobante($datos)
 //-----------------------------------------------------------------------
 // Subir voucher de pago a un comprobante existente
 //-----------------------------------------------------------------------
-function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $enviar_proveedor = false, $enviar_contabilidad = false, $enviar_tesoreria = false)
+function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $id_personal_voucher, $enviar_proveedor = false, $enviar_contabilidad = false, $enviar_tesoreria = false)
 {
     include("../_conexion/conexion.php");
 
@@ -106,6 +109,7 @@ function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $enviar_prov
     error_log("id_comprobante recibido: $id_comprobante (tipo: " . gettype($id_comprobante) . ")");
     
     $id_comprobante = intval($id_comprobante);
+    $id_personal_voucher = intval($id_personal_voucher);
     
     error_log("id_comprobante después de intval: $id_comprobante");
 
@@ -164,7 +168,8 @@ function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $enviar_prov
     // Actualizar el voucher
     $sql = "UPDATE comprobante 
             SET voucher_pago = '$archivo_voucher_escaped',
-                fec_pago = COALESCE(fec_pago, NOW()),
+                id_personal_voucher = $id_personal_voucher,
+                fecha_voucher = NOW(),
                 est_comprobante = 3
             WHERE id_comprobante = $id_comprobante";
     
@@ -255,7 +260,7 @@ function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $enviar_prov
             
             // URL del voucher
             $url_voucher = "https://montajeseingenieriaarceperusac.pe/almacen/_upload/vouchers/" . $archivo_voucher;
-
+            $simbolo = ($comprobante['id_comprobante'] == 1) ? 'S/' : 'U$';
             $mensaje = "
             <html>
                 <head>
@@ -348,7 +353,7 @@ function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $enviar_prov
                             <div class='details'>
                                 <p><strong>Comprobante:</strong> {$comprobante['num_comprobante']}</p>
                                 <p><strong>RUC:</strong> {$comprobante['ruc_proveedor']}</p>
-                                <p><strong>Monto pagado:</strong> {$comprobante['simbolo_moneda']} " . number_format($comprobante['total_pagar'], 2) . "</p>
+                                <p><strong>Monto pagado:</strong> $simbolo " . number_format($comprobante['total_pagar'], 2) . "</p>
                                 <p><strong>Fecha de pago:</strong> " . date('d/m/Y', strtotime($comprobante['fec_pago'])) . "</p>
                             </div>
 
@@ -445,6 +450,7 @@ function EditarComprobante($id_comprobante, $datos)
     $total_pagar = round(floatval($datos['total_pagar']), 2);
     $id_moneda = intval($datos['id_moneda']);
     $id_medio_pago = !empty($datos['id_medio_pago']) ? intval($datos['id_medio_pago']) : 'NULL';
+    $id_cuenta_proveedor = !empty($datos['id_cuenta_proveedor']) ? intval($datos['id_cuenta_proveedor']) : 'NULL';
     $archivo_pdf = !empty($datos['archivo_pdf']) ? "'" . mysqli_real_escape_string($con, $datos['archivo_pdf']) . "'" : 'NULL';
     $archivo_xml = !empty($datos['archivo_xml']) ? "'" . mysqli_real_escape_string($con, $datos['archivo_xml']) . "'" : 'NULL';
     $fec_pago = !empty($datos['fec_pago']) ? "'" . mysqli_real_escape_string($con, $datos['fec_pago']) . "'" : 'NULL';
@@ -477,7 +483,8 @@ function EditarComprobante($id_comprobante, $datos)
                 id_medio_pago = $id_medio_pago,
                 archivo_pdf = $archivo_pdf,
                 archivo_xml = $archivo_xml,
-                fec_pago = $fec_pago
+                fec_pago = $fec_pago,
+                id_cuenta_proveedor = $id_cuenta_proveedor
             WHERE id_comprobante = $id_comprobante";
     
     $res = mysqli_query($con, $sql);
@@ -580,6 +587,7 @@ function ConsultarComprobante($id_comprobante)
                    CONCAT(c.serie, '-', c.numero) as num_comprobante,
                    td.nom_tipo_documento,
                    co.id_proveedor,
+                   pc.nro_cuenta_corriente as nro_cuenta_proveedor,
                    co.fec_compra,
                    co.obs_compra,
                    p.nom_proveedor,
@@ -604,6 +612,7 @@ function ConsultarComprobante($id_comprobante)
             INNER JOIN tipo_documento td ON c.id_tipo_documento = td.id_tipo_documento
             INNER JOIN compra co ON c.id_compra = co.id_compra
             INNER JOIN proveedor p ON co.id_proveedor = p.id_proveedor
+            LEFT JOIN proveedor_cuenta pc ON c.id_cuenta_proveedor = pc.id_proveedor_cuenta
             INNER JOIN moneda m ON c.id_moneda = m.id_moneda
             LEFT JOIN medio_pago mp ON c.id_medio_pago = mp.id_medio_pago
             LEFT JOIN detraccion d ON c.id_detraccion = d.id_detraccion
@@ -895,10 +904,12 @@ function ConsultarCompraCom($id_compra)
                    det.porcentaje as porcentaje_detraccion,
                    per.nom_personal as nom_personal_crea,
                    -- Personal que aprobó financieramente
-                   per_fin.nom_personal as nom_personal_aprueba_financiera
-                   
+                   per_fin.nom_personal as nom_personal_aprueba_financiera,
+                   pc.banco_proveedor,
+                   pc.nro_cuenta_corriente     
             FROM compra c
             INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor
+            LEFT JOIN proveedor_cuenta pc ON p.id_proveedor = pc.id_proveedor
             INNER JOIN moneda m ON c.id_moneda = m.id_moneda
             LEFT JOIN detraccion det ON c.id_detraccion = det.id_detraccion
             LEFT JOIN {$bd_complemento}.personal per ON c.id_personal = per.id_personal
@@ -995,8 +1006,43 @@ function ConsultarCompraCom($id_compra)
 
     $compra['monto_pagado'] = round($total_pagado, 2);
     $compra['saldo'] = round($saldo_pendiente, 2);
+
+    $compra['cuentas'] = ConsultarCuentasPorCompra($id_compra);
     
     mysqli_close($con);
     return $compra;
 }
+
+function ConsultarCuentasPorCompra($id_compra)
+{
+    include("../_conexion/conexion.php");
+
+    $id_compra = intval($id_compra);
+
+    $sql = "SELECT pc.id_proveedor_cuenta,
+                pc.banco_proveedor,
+                pc.nro_cuenta_corriente
+            FROM proveedor_cuenta pc
+            INNER JOIN proveedor p ON pc.id_proveedor = p.id_proveedor
+            INNER JOIN compra c ON c.id_proveedor = p.id_proveedor
+            WHERE c.id_compra = $id_compra
+            AND pc.est_proveedor_cuenta = 1"; // si manejas un estado activo
+
+    $res = mysqli_query($con, $sql);
+
+    if (!$res) {
+        error_log('Error al consultar cuentas por compra: ' . mysqli_error($con));
+        mysqli_close($con);
+        return [];
+    }
+
+    $cuentas = [];
+    while ($row = mysqli_fetch_assoc($res)) {
+        $cuentas[] = $row;
+    }
+
+    mysqli_close($con);
+    return $cuentas;
+}
+
 ?>

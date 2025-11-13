@@ -131,6 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             'total_pagar' => $_POST['total_pagar'],
             'id_medio_pago' => !empty($_POST['id_medio_pago']) ? $_POST['id_medio_pago'] : null,
             'fec_pago' => !empty($_POST['fec_pago']) ? $_POST['fec_pago'] : null,
+            'id_cuenta_proveedor' => !empty($_POST['id_cuenta_proveedor']) ? $_POST['id_cuenta_proveedor'] : null,
             'archivo_pdf' => $archivo_pdf,
             'archivo_xml' => $archivo_xml,
             'id_personal' => $_SESSION['id_personal'],
@@ -221,6 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 'total_pagar' => $_POST['total_pagar'],
                 'id_medio_pago' => !empty($_POST['id_medio_pago']) ? $_POST['id_medio_pago'] : null,
                 'fec_pago' => !empty($_POST['fec_pago']) ? $_POST['fec_pago'] : null,
+                'id_cuenta_proveedor' => !empty($_POST['edit_id_cuenta_proveedor']) ? $_POST['edit_id_cuenta_proveedor'] : null,
                 'archivo_pdf' => $archivo_pdf,
                 'archivo_xml' => $archivo_xml
             ];
@@ -292,6 +294,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         $resultado = SubirVoucherComprobante(
             $id_comprobante,
             $voucher_pago,
+            $_SESSION['id_personal'],
             $enviar_proveedor,
             $enviar_contabilidad,
             $enviar_tesoreria
@@ -431,7 +434,8 @@ if (isset($_GET['alert']) && $_GET['alert'] === 'success') {
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-
+            require_once("../_vista/v_alertas.php");
+            
             // Vista principal
             require_once("../_vista/v_comprobante_registrar.php");
 

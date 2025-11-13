@@ -80,7 +80,7 @@ require_once("../_modelo/m_detraccion.php");
                             <tr>
                                 <td colspan="2">
                                     <strong>📊 Detracción (<?php echo $oc['nombre_detraccion']; ?> - <?php echo $oc['porcentaje_detraccion']; ?>%):</strong>
-                                    <br><small class="text-muted">A depositar en cuenta SUNAT del proveedor</small>
+                                    <br>
                                 </td>
                                 <td colspan="2" class="text-danger" style="font-weight: bold;">
                                     -<?php echo ($oc['simbolo_moneda'] ?? 'S/.') . ' ' . number_format($oc['monto_detraccion'], 2); ?>
@@ -91,7 +91,7 @@ require_once("../_modelo/m_detraccion.php");
                             <!--  TOTAL A PAGAR AL PROVEEDOR (más destacado) -->
                             <tr style="background-color: #e3f2fd;">
                                 <td colspan="2"><strong> TOTAL:</strong>
-                                    <br><small class="text-muted">Monto real a pagar en cuenta bancaria</small>
+                                    <br><small class="text-muted">Monto que recibe el proveedor</small>
                                 </td>
                                 <td colspan="2">
                                     <span class="badge badge-info" style="font-size: 15px; padding: 8px 14px;">
@@ -273,7 +273,7 @@ require_once("../_modelo/m_detraccion.php");
 <!-- MODAL SIMPLE -->
 <div id="modalSubidaMasivo" 
      style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
-            background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center;">
+            background:rgba(0,0,0,0.5); z-index:1040; justify-content:center; align-items:center;">
     
     <div style="background:white; width:85%; max-width:950px; border-radius:10px; 
                 display:flex; flex-direction:column; max-height:90vh; overflow:hidden;">
@@ -573,10 +573,10 @@ require_once("../_modelo/m_detraccion.php");
                 </div>
                 
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label>Medio de Pago</label>
-                            <select name="id_medio_pago" class="form-control">
+                            <select name="id_medio_pago" id="id_medio_pago" class="form-control">
                                 <option value="">Seleccionar...</option>
                                 <?php foreach($medios_pago as $mp) { ?>
                                     <option value="<?php echo $mp['id_medio_pago']; ?>">
@@ -586,11 +586,29 @@ require_once("../_modelo/m_detraccion.php");
                             </select>
                         </div>
                     </div>
-                    
-                    <div class="col-md-6">
+
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label>Fecha de Pago</label>
                             <input type="date" name="fec_pago" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">                    
+                        <div class="form-group">
+                            <label for="id_cuenta_proveedor">Cuenta bancaria</label>
+                            <select name="id_cuenta_proveedor" id="id_cuenta_proveedor" class="form-control" disabled>
+                                <option value="">-- Primero selecciona un medio de pago --</option>
+                                <?php if (!empty($oc['cuentas'])): ?>
+                                    <?php foreach ($oc['cuentas'] as $cuenta): ?>
+                                        <option value="<?php echo $cuenta['id_proveedor_cuenta']; ?>">
+                                            <?php echo htmlspecialchars($cuenta['banco_proveedor'] . ' - ' . $cuenta['nro_cuenta_corriente']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <option value="">Sin cuentas registradas</option>
+                                <?php endif; ?>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -863,7 +881,7 @@ require_once("../_modelo/m_detraccion.php");
                 </div>
                 
                 <div class="row">
-                    <div class="col-md-6">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label>Medio de Pago</label>
                             <select name="id_medio_pago" id="edit_id_medio_pago" class="form-control">
@@ -877,10 +895,28 @@ require_once("../_modelo/m_detraccion.php");
                         </div>
                     </div>
                     
-                    <div class="col-md-6">
+                    <div class="col-md-3">
                         <div class="form-group">
                             <label>Fecha de Pago</label>
                             <input type="date" name="fec_pago" id="edit_fec_pago" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="edit_id_cuenta_proveedor">Cuenta bancaria</label>
+                            <select name="edit_id_cuenta_proveedor" id="edit_id_cuenta_proveedor" class="form-control" disabled>
+                                <option value="">-- Primero selecciona un medio de pago --</option>
+                                <?php if (!empty($oc['cuentas'])): ?>
+                                    <?php foreach ($oc['cuentas'] as $cuenta): ?>
+                                        <option value="<?php echo $cuenta['id_proveedor_cuenta']; ?>">
+                                            <?php echo htmlspecialchars($cuenta['banco_proveedor'] . ' - ' . $cuenta['nro_cuenta_corriente']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php else: ?>
+                                    <option value="">Sin cuentas registradas</option>
+                                <?php endif; ?>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -1191,6 +1227,67 @@ let archivosSeleccionados = [];
                 manejarCheckbox(this, 'PERCEPCION', true);
             });
         });
+
+        // --- CONTROL CUENTA (inicializar y manejar cambios) ---
+        function setupCuentaControl() {
+            const medio = document.getElementById('id_medio_pago') || document.querySelector('select[name="id_medio_pago"]');
+            const cuenta = document.getElementById('id_cuenta_proveedor');
+            if (!medio || !cuenta) return false;
+
+            function aplicarEstado() {
+                if ((medio.value || '').toString().trim() === '2') {
+                    cuenta.disabled = false;
+                    cuenta.required = true;
+                    cuenta.style.backgroundColor = '#ffffff';
+                } else {
+                    cuenta.disabled = true;
+                    cuenta.required = false;
+                    cuenta.value = '';
+                    cuenta.style.backgroundColor = '#e9ecef';
+                }
+            }
+
+            // aplicar ahora y en cambios
+            aplicarEstado();
+            medio.removeEventListener('change', aplicarEstado);
+            medio.addEventListener('change', aplicarEstado);
+
+            // exponer por si lo necesitamos llamar desde fuera (ej. after AJAX)
+            window.setupCuentaControl = setupCuentaControl;
+            return true;
+        }
+
+        // --- CONTROL CUENTA en modo EDICIÓN ---
+        function setupCuentaControlEdit() {
+            const medio = document.getElementById('edit_id_medio_pago');
+            const cuenta = document.getElementById('edit_id_cuenta_proveedor');
+            if (!medio || !cuenta) return false;
+
+            function aplicarEstadoEdit() {
+                if ((medio.value || '').toString().trim() === '2') {
+                    cuenta.disabled = false;
+                    cuenta.required = true;
+                    cuenta.style.backgroundColor = '#ffffff';
+                } else {
+                    cuenta.disabled = true;
+                    cuenta.required = false;
+                    cuenta.value = '';
+                    cuenta.style.backgroundColor = '#e9ecef';
+                }
+            }
+
+            aplicarEstadoEdit(); // aplicar al cargar
+            medio.removeEventListener('change', aplicarEstadoEdit);
+            medio.addEventListener('change', aplicarEstadoEdit);
+
+            // expone la función si la necesitas luego
+            window.setupCuentaControlEdit = setupCuentaControlEdit;
+            return true;
+        }
+
+        // llamar en inicializar
+        setupCuentaControl();
+        setupCuentaControlEdit();
         
         console.log('✅ Eventos configurados correctamente');
     }
@@ -1285,6 +1382,7 @@ function CargarModalEditar(id_comprobante) {
             
             if (data.id_medio_pago) {
                 document.getElementById('edit_id_medio_pago').value = data.id_medio_pago;
+                setupCuentaControlEdit();
             }
             
             if (data.fec_pago) {
@@ -1355,6 +1453,7 @@ function VerDetalleComprobante(id_comprobante) {
                     <tr><th>Serie - Número:</th><td><strong>${data.num_comprobante}</strong></td></tr>
                     <tr><th>Proveedor:</th><td>${data.nom_proveedor}</td></tr>
                     <tr><th>RUC:</th><td>${data.ruc_proveedor}</td></tr>
+                    <tr><th>Cuenta Depósito:</th><td>${data.nro_cuenta_proveedor}</td></tr>
                     <tr><th>Medio de Pago:</th><td>${data.nom_medio_pago || 'No especificado'}</td></tr>
                     <tr><th>Fecha de Pago:</th><td>${data.fec_pago || 'Pendiente'}</td></tr>
                     <tr><th>Monto con IGV:</th><td>${data.simbolo_moneda} ${parseFloat(data.monto_total_igv).toFixed(2)}</td></tr>
@@ -1463,7 +1562,7 @@ function inicializarModalMasivo() {
 }
 
 function manejarCambioArchivos(e) {
-    console.log("📂 ¡¡¡CAMBIO DETECTADO!!!");
+    /*console.log("📂 ¡¡¡CAMBIO DETECTADO!!!");
     console.log("Archivos seleccionados:", e.target.files.length);
     
     if (e.target.files.length === 0) {
@@ -1482,8 +1581,51 @@ function manejarCambioArchivos(e) {
         } else {
             console.log("⚠️ Duplicado, ignorado");
         }
+    });*/
+
+    console.log("📂 ¡¡¡CAMBIO DETECTADO!!!");
+    const nuevosArchivos = Array.from(e.target.files);
+    if (nuevosArchivos.length === 0) return;
+
+    nuevosArchivos.forEach((archivo) => {
+        const nombre = archivo.name.trim();
+        const tamañoMB = archivo.size / (1024 * 1024);
+
+        // 1️⃣ Validar tamaño (máximo 5 MB)
+        if (tamañoMB > 5) {
+            mostrarAlerta(
+                'error',
+                'Archivo demasiado grande',
+                `El archivo "${nombre}" pesa ${(tamañoMB).toFixed(2)} MB. El máximo permitido es 5 MB.`
+            );
+            return;
+        }
+
+        // 2️⃣ Validar formato de nombre (0000-00000000)
+        const regexNombre = /^[A-Z0-9]{4}-\d{2,8}\.[A-Za-z0-9]+$/i; // permite letras o números antes del guion
+        if (!regexNombre.test(nombre)) {
+            mostrarAlerta(
+                'warning',
+                'Formato inválido',
+                `El archivo "${nombre}" no cumple el formato "SERIE-NUMERO", por ejemplo: "F001-00012345.pdf"`
+            );
+            return;
+        }
+
+        // 3️⃣ Evitar duplicados y agregar
+        if (!archivosSeleccionados.find(a => a.name === nombre)) {
+            archivosSeleccionados.push(archivo);
+            console.log("✅ Archivo agregado:", nombre);
+        } else {
+            mostrarAlerta(
+                'info',
+                'Archivo duplicado',
+                `El archivo "${nombre}" ya fue agregado.`
+            );
+            console.log("⚠️ Duplicado, ignorado:", nombre);
+        }
     });
-    
+
     console.log("Total en memoria:", archivosSeleccionados.length);
     actualizarListaArchivos();
     e.target.value = "";
@@ -1537,7 +1679,7 @@ function eliminarArchivo(index) {
     actualizarListaArchivos();
 }
 
-/*async function procesarArchivos() {
+async function procesarArchivos() {
     if (archivosSeleccionados.length === 0) {
         Swal.fire('Advertencia', 'Selecciona al menos un archivo', 'warning');
         return;
@@ -1592,66 +1734,6 @@ function eliminarArchivo(index) {
         console.error('❌ Error al enviar archivos:', error);
         Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
     }
-}*/
-
-async function procesarArchivos() {
-    if (archivosSeleccionados.length === 0) {
-        Swal.fire('Advertencia', 'Selecciona al menos un archivo', 'warning');
-        return;
-    }
-
-    const formData = new FormData();
-    archivosSeleccionados.forEach((archivo) => {
-        formData.append('archivos[]', archivo);
-    });
-
-    formData.append('id_compra', <?php echo $id_compra; ?>);
-    formData.append('enviar_proveedor', document.getElementById('enviarProveedor').checked ? 1 : 0);
-    formData.append('enviar_contabilidad', document.getElementById('enviarContabilidad').checked ? 1 : 0);
-    formData.append('enviar_tesoreria', document.getElementById('enviarTesoreria').checked ? 1 : 0);
-
-    // Mostrar loading
-    Swal.fire({
-        title: 'Procesando...',
-        text: 'Subiendo vouchers, por favor espera...',
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-    });
-
-    try {
-        const response = await fetch('../_controlador/comprobante_subida_masiva.php', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
-
-        const data = await response.json();
-        console.log("📥 Respuesta del servidor:", data);
-
-        // Cerrar el modal PRIMERO
-        cerrarModalMasivo();
-
-        // Luego mostrar resultado
-        if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Subida completada',
-                html: `<b>${data.exitosos}</b> archivos subidos correctamente.<br>
-                       <b>${data.fallidos}</b> archivos fallaron.`,
-                confirmButtonText: 'Aceptar'
-            }).then(() => {
-                location.reload(); // Recargar para ver los cambios
-            });
-        } else {
-            Swal.fire('Error', data.mensaje || 'Ocurrió un error en el servidor', 'error');
-        }
-
-    } catch (error) {
-        console.error('❌ Error al enviar archivos:', error);
-        cerrarModalMasivo();
-        Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
-    }
 }
 
 </script>
@@ -1674,5 +1756,15 @@ async function procesarArchivos() {
     #listaArchivos th, #listaArchivos td {
         padding: 8px;
         border: 1px solid #dee2e6;
+    }
+
+    #id_cuenta_proveedor:disabled,
+    #edit_id_cuenta_proveedor:disabled {
+        background-color: #e9ecef;
+        cursor: not-allowed;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
     }
 </style>

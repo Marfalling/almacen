@@ -424,6 +424,15 @@ function EliminarDocumento(id_doc) {
 
                         <div class="row">
                             <div class="col-sm-12">
+
+                                <div class="row mb-3">
+                                    <div class="col-sm-12 text-right">
+                                        <button type="button" class="btn btn-primary" onclick="abrirModalMasivo()">
+                                            📤 Subir vouchers masivo
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <div class="card-box table-responsive">
                                     <table id="datatable-buttons" class="table table-striped table-bordered" style="width:100%">
                                         <thead>
@@ -2209,4 +2218,5 @@ function limpiarFormularioProveedorEditar() {
         }
     }
 }
+
 </script>
