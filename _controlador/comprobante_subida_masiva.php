@@ -75,13 +75,15 @@ for ($i = 0; $i < count($archivos['name']); $i++) {
 
     if (!$resultado_archivo['error']) {
         // 4️⃣ Asociar a comprobante
+        $fecha_voucher = date('Y-m-d');
         $resultado = SubirVoucherComprobante(
             $id_comprobante,
             $resultado_archivo['ruta'],
             $_SESSION['id_personal'],
             $enviar_proveedor,
             $enviar_contabilidad,
-            $enviar_tesoreria
+            $enviar_tesoreria,
+            $fecha_voucher
         );
 
         if (strpos($resultado, 'SI|') === 0) {

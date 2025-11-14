@@ -267,6 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
     $enviar_proveedor = isset($_POST['enviar_proveedor']) ? true : false;
     $enviar_contabilidad = isset($_POST['enviar_contabilidad']) ? true : false;
     $enviar_tesoreria = isset($_POST['enviar_tesoreria']) ? true : false;
+    $fec_voucher = isset($_POST['fec_voucher']);
 
     $error_archivo = false;
     $voucher_pago = null;
@@ -297,7 +298,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             $_SESSION['id_personal'],
             $enviar_proveedor,
             $enviar_contabilidad,
-            $enviar_tesoreria
+            $enviar_tesoreria,
+            $fec_voucher
         );
 
         if (strpos($resultado, 'SI|') === 0) {

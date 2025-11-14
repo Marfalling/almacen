@@ -589,7 +589,7 @@ require_once("../_modelo/m_detraccion.php");
 
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label>Fecha de Pago</label>
+                            <label>Fecha de Emisión</label>
                             <input type="date" name="fec_pago" class="form-control">
                         </div>
                     </div>
@@ -897,7 +897,7 @@ require_once("../_modelo/m_detraccion.php");
                     
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label>Fecha de Pago</label>
+                            <label>Fecha de Emisión</label>
                             <input type="date" name="fec_pago" id="edit_fec_pago" class="form-control">
                         </div>
                     </div>
@@ -971,8 +971,13 @@ require_once("../_modelo/m_detraccion.php");
                     <label>Archivo de Voucher <span class="text-danger">*</span></label>
                     <input type="file" name="voucher_pago" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
                     <small class="form-text text-muted">Formatos permitidos: PDF, JPG, PNG (Máx. 5MB)</small>
+
+                    <br>
+
+                    <label>Fecha de Emisión <span class="text-danger">*</span></label>
+                    <input type="date" name="fec_voucher" id="fec_voucher" class="form-control" required>
                 </div>
-                
+
                 <hr>
                 
                 <div class="form-group">

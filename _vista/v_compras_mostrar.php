@@ -2522,52 +2522,25 @@ function limpiarFormularioProveedorEditar() {
 }
 
 
-async function exportarExcel() {
-    try {
-        Swal.fire({
-            title: "Generando Excel...",
-            text: "Por favor espera",
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading(),
-        });
+function descargarExcel() {
+    Swal.fire({
+        title: "Generando Excel...",
+        text: "Por favor espera",
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading(),
+    });
 
-        const response = await fetch("generar_excel.php");
-
-        const data = await response.json();
-        console.log("Respuesta del servidor:", data);
-
-        if (!data.ok) {
-            Swal.close();
-            Swal.fire("Sin datos", data.msg, "warning");
-            return;
-        }
-
-        // Generar descarga
-        const url = "temp/" + data.archivo;
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = data.archivo;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+    // Simular espera corta
+    setTimeout(() => {
+        window.location.href = "generar_excel.php";
 
         Swal.close();
         Swal.fire(
             "¡Listo!",
-            "Excel generado correctamente.",
+            "Excel generado correctamente y estados actualizados.",
             "success"
         );
-
-    } catch (error) {
-        console.error(error);
-
-        Swal.close();
-        Swal.fire(
-            "Error",
-            "No se pudo generar el archivo Excel.",
-            "error"
-        );
-    }
+    }, 800);
 }
 
 </script>
