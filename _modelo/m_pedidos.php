@@ -3454,7 +3454,7 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
 
     error_log("🔄 ReverificarItemAutomaticamente - ID: $id_pedido_detalle");
 
-    //  Obtener información del detalle y del pedido
+    // Obtener información del detalle y del pedido
     $sql_detalle = "SELECT 
                         pd.id_pedido_detalle,
                         pd.id_pedido,
@@ -3481,7 +3481,7 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
     $estado_item = intval($detalle['est_pedido_detalle']);
     $estado_pedido = intval($detalle['est_pedido']);
 
-    //  No re-verificar si ya está cerrado
+    // No re-verificar si ya está cerrado
     if (($estado_item == 2 && $estado_pedido == 4) || $estado_pedido == 5) {
         error_log("⏭️ NO re-verificar | Item: $estado_item | Pedido: $estado_pedido");
         mysqli_close($con);
@@ -3498,10 +3498,10 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
     $cant_oc_anterior = floatval($detalle['cant_oc_anterior']);
     $cant_os_anterior = floatval($detalle['cant_os_anterior']);
 
-    //  Obtener cantidad ya entregada realmente (OS ya realizadas)
+    // Obtener cantidad ya entregada realmente (OS ya realizadas)
     $cantidad_ya_entregada = ObtenerCantidadYaEntregadaOS($id_pedido_detalle);
 
-    //  Pendiente REAL basado en lo ya entregado
+    // Pendiente REAL basado en lo ya entregado
     $pendiente_real = max(0, $cantidad_pedida - $cantidad_ya_entregada);
 
     error_log("📊 Pedido: $cantidad_pedida | Ya entregado: $cantidad_ya_entregada | Pendiente real: $pendiente_real");
@@ -3512,7 +3512,7 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
 
     error_log("📦 Stock destino: $stock_destino");
 
-    //  Obtener stock en otras ubicaciones
+    // Obtener stock en otras ubicaciones
     $otras = ObtenerOtrasUbicacionesConStock($id_producto, $id_almacen, $id_ubicacion);
     $stock_otras = 0;
 
@@ -3524,17 +3524,23 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
 
     error_log("📦 Stock otras ubicaciones: $stock_otras");
 
-    // 5️ Calcular OS y OC — **CORREGIDO**
-    // OS = cantidad que puedo abastecer con stock total (físico + otras ubicaciones)
-    $stock_total = $stock_destino + $stock_otras;
-    $nueva_os = min($pendiente_real, $stock_total);
+    // 🔥 CORRECCIÓN CRÍTICA: Calcular OS y OC correctamente
+    
+    // PASO 1: ¿Cuánto falta en la ubicación destino?
+    $falta_en_destino = max(0, $pendiente_real - $stock_destino);
+    
+    // PASO 2: OS = Lo que se puede trasladar desde otras ubicaciones
+    // (limitado por lo que falta en destino Y lo que hay disponible en otras)
+    $nueva_os = min($falta_en_destino, $stock_otras);
+    
+    // PASO 3: OC = Lo que no se puede cubrir con traslados
+    // (lo que falta después de considerar el stock destino + lo que se puede trasladar)
+    $nueva_oc = max(0, $pendiente_real - $stock_destino - $nueva_os);
 
-    // OC = lo que falta tras consumir OS
-    $nueva_oc = max(0, $pendiente_real - $nueva_os);
+    error_log("📊 Falta en destino: $falta_en_destino | Nueva OS=$nueva_os | Nueva OC=$nueva_oc");
+    error_log("   Stock destino: $stock_destino | Stock otras: $stock_otras | Pendiente: $pendiente_real");
 
-    error_log("📊 TOTAL stock: $stock_total | Nueva OS=$nueva_os | Nueva OC=$nueva_oc");
-
-    //  Solo actualizar si cambió algo
+    // Solo actualizar si cambió algo
     if ($nueva_os != $cant_os_anterior || $nueva_oc != $cant_oc_anterior) {
 
         $sql_update = "UPDATE pedido_detalle SET 
@@ -3545,15 +3551,14 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
 
         mysqli_query($con, $sql_update);
 
-        error_log(" Actualizado OK: OS=$nueva_os | OC=$nueva_oc");
+        error_log("✅ Actualizado OK: OS=$nueva_os | OC=$nueva_oc");
     } else {
-        error_log(" Nada cambió, no se actualiza");
+        error_log("⏭️ Nada cambió, no se actualiza");
     }
 
     mysqli_close($con);
     return true;
 }
-
 /**
  * Re-verifica TODOS los items de un pedido
  * Se usa después de anular una salida completa

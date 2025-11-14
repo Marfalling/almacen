@@ -1619,7 +1619,8 @@ function AprobarSalida($id_salida, $id_personal)
     // ✅ Actualizar la salida con los datos de aprobación
     $sql_update = "UPDATE salida 
                    SET id_personal_aprueba_salida = '$id_personal',
-                       fec_aprueba_salida = NOW()
+                       fec_aprueba_salida = NOW(),
+                       est_salida = 2
                    WHERE id_salida = '$id_salida'";
 
     $res_update = mysqli_query($con, $sql_update);
@@ -1627,14 +1628,68 @@ function AprobarSalida($id_salida, $id_personal)
     if ($res_update) {
         // 🔄 ACTUALIZAR ESTADO DEL PEDIDO SI EXISTE
         if ($id_pedido > 0) {
-            require_once("../_modelo/m_pedidos.php");
-            
-            error_log("📋 Actualizando estado del pedido después de recepción: $id_pedido");
-            ActualizarEstadoPedido($id_pedido);
-            error_log("✅ Estado del pedido actualizado");
+            verificarYAtenderPedido($id_pedido, $con);
         }
     }
 
     mysqli_close($con);
     return $res_update;
+}
+
+/**
+ * Verificar si todas las salidas de un pedido están recepcionadas
+ * y actualizar el estado del pedido a ATENDIDO (2) si corresponde
+ */
+function verificarYAtenderPedido($id_pedido, $con = null)
+{
+    $cerrar_conexion = false;
+    
+    if ($con === null) {
+        include("../_conexion/conexion.php");
+        $cerrar_conexion = true;
+    }
+    
+    // ✅ Verificar estado actual del pedido
+    $sql_estado = "SELECT est_pedido FROM pedido WHERE id_pedido = $id_pedido";
+    $res_estado = mysqli_query($con, $sql_estado);
+    $row_estado = mysqli_fetch_assoc($res_estado);
+    
+    // Solo actualizar si está en PENDIENTE (1)
+    if (!$row_estado || $row_estado['est_pedido'] != 1) {
+        if ($cerrar_conexion) mysqli_close($con);
+        return;
+    }
+    
+    // ✅ Verificar si hay salidas pendientes de recepcionar
+    $sql_pendientes = "SELECT COUNT(*) as total_pendientes
+                      FROM salida 
+                      WHERE id_pedido = $id_pedido 
+                      AND est_salida = 1"; // Activas pero NO recepcionadas
+    
+    $resultado = mysqli_query($con, $sql_pendientes);
+    $row = mysqli_fetch_assoc($resultado);
+    
+    // ✅ Si NO hay salidas pendientes, marcar pedido como ATENDIDO
+    if ($row['total_pendientes'] == 0) {
+        // Verificar que haya al menos una salida recepcionada
+        $sql_recepcionadas = "SELECT COUNT(*) as total_recepcionadas
+                             FROM salida 
+                             WHERE id_pedido = $id_pedido 
+                             AND est_salida = 2"; // Recepcionadas
+        
+        $resultado_recep = mysqli_query($con, $sql_recepcionadas);
+        $row_recep = mysqli_fetch_assoc($resultado_recep);
+        
+        if ($row_recep['total_recepcionadas'] > 0) {
+            // 🔥 Actualizar a ATENDIDO (estado 2)
+            $sql_atender = "UPDATE pedido SET est_pedido = 2 WHERE id_pedido = $id_pedido";
+            mysqli_query($con, $sql_atender);
+            
+            error_log("✅ Pedido $id_pedido marcado como ATENDIDO");
+        }
+    }
+    
+    if ($cerrar_conexion) {
+        mysqli_close($con);
+    }
 }
