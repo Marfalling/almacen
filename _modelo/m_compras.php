@@ -1,4 +1,6 @@
 <?php
+require_once("m_pedidos.php");
+
 function MostrarCompras()
 {
     include("../_conexion/conexion.php");
@@ -212,7 +214,10 @@ function AprobarCompraFinanciera($id_compra, $id_personal)
     return $res_update;
 }
 
-
+/**
+ * Verificar si todas las órdenes de compra están aprobadas
+ * y actualizar el estado del pedido
+ */
 function verificarYCompletarPedido($id_pedido, $con = null)
 {
     $cerrar_conexion = false;
@@ -222,43 +227,8 @@ function verificarYCompletarPedido($id_pedido, $con = null)
         $cerrar_conexion = true;
     }
     
-    // Verificar estado actual del pedido
-    $sql_estado = "SELECT est_pedido FROM pedido WHERE id_pedido = $id_pedido";
-    $res_estado = mysqli_query($con, $sql_estado);
-    $row_estado = mysqli_fetch_assoc($res_estado);
-    
-    // Solo actualizar si está en PENDIENTE (1) o COMPLETADO (2)
-    if (!$row_estado || !in_array($row_estado['est_pedido'], [1, 2])) {
-        if ($cerrar_conexion) mysqli_close($con);
-        return;
-    }
-    
-    // Verificar si hay órdenes pendientes (sin aprobar completamente)
-    $sql_pendientes = "SELECT COUNT(*) as total_pendientes
-                      FROM compra 
-                      WHERE id_pedido = $id_pedido 
-                      AND est_compra = 1";
-    
-    $resultado = mysqli_query($con, $sql_pendientes);
-    $row = mysqli_fetch_assoc($resultado);
-    
-    // Si NO hay órdenes pendientes, marcar pedido como APROBADO
-    if ($row['total_pendientes'] == 0) {
-        // Verificar que haya al menos una orden aprobada
-        $sql_aprobadas = "SELECT COUNT(*) as total_aprobadas
-                         FROM compra 
-                         WHERE id_pedido = $id_pedido 
-                         AND est_compra = 2";
-        
-        $resultado_aprobadas = mysqli_query($con, $sql_aprobadas);
-        $row_aprobadas = mysqli_fetch_assoc($resultado_aprobadas);
-        
-        if ($row_aprobadas['total_aprobadas'] > 0) {
-            //  Actualizar a APROBADO (estado 3)
-            $sql_aprobar = "UPDATE pedido SET est_pedido = 3 WHERE id_pedido = $id_pedido";
-            mysqli_query($con, $sql_aprobar);
-        }
-    }
+    // función unificada maneja TODO
+    ActualizarEstadoPedidoUnificado($id_pedido, $con);
     
     if ($cerrar_conexion) {
         mysqli_close($con);

@@ -434,7 +434,7 @@ $monedas = MostrarMoneda();
                                         <span style="font-size: 10px;">
                                             <?php echo htmlspecialchars($pedido['nom_ubicacion']); ?> (Destino)
                                         </span>
-                                        <strong class="ml-2"><?php echo number_format($stock_destino, 2); ?></strong>
+                                        <strong class="ml-2"><?php echo number_format($detalle['stock_ubicacion_destino'], 2); ?></strong>
                                         <span class="text-muted">/ Necesita: <?php echo number_format($cantidad_pedida, 2); ?></span>
                                     </div>
                                     
@@ -672,44 +672,44 @@ $monedas = MostrarMoneda();
                                         // CALCULAR CANTIDAD YA ORDENADA
                                         $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                     ?>
-                                        <button type="button" 
-                                                class="btn btn-success btn-sm btn-agregarSalida" 
-                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
-                                                data-cantidad-disponible="<?php echo $pendiente_os; ?>"
-                                                data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
-                                                data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
-                                                data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
-                                                style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
-                                            <i class="fa fa-truck"></i> Agregar a OS (<?php echo number_format($pendiente_os, 2); ?>)
-                                        </button>
-                                        
-                                        <button type="button" 
-                                                class="btn btn-primary btn-sm btn-agregarOrden" 
-                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
-                                                data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
-                                                data-cantidad-ordenada="<?php echo $ya_ordenado_oc; ?>"
-                                                data-cantidad-pendiente="<?php echo $pendiente_oc; ?>"
-                                                style="padding: 2px 8px; font-size: 11px;">
-                                            <i class="fa fa-shopping-cart"></i> Agregar a OC (<?php echo number_format($pendiente_oc, 2); ?>)
-                                        </button>
+                                    <button type="button" 
+                                            class="btn btn-success btn-sm btn-agregarSalida" 
+                                            data-id-detalle="<?php echo $id_detalle; ?>"
+                                            data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                            data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                                            data-cantidad-disponible="<?php echo $pendiente_os; ?>"
+                                            data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
+                                            data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
+                                            data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
+                                            style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
+                                        <i class="fa fa-truck"></i> OS (<?php echo number_format($pendiente_os, 2); ?>)
+                                    </button>
+                                    
+                                    <button type="button" 
+                                            class="btn btn-primary btn-sm btn-agregarOrden" 
+                                            data-id-detalle="<?php echo $id_detalle; ?>"
+                                            data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                            data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                                            data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
+                                            data-cantidad-ordenada="<?php echo $cant_oc_ordenada; ?>"
+                                            data-cantidad-pendiente="<?php echo $pendiente_oc; ?>"
+                                            style="padding: 2px 8px; font-size: 11px;">
+                                        <i class="fa fa-shopping-cart"></i> OC (<?php echo number_format($pendiente_oc, 2); ?>)
+                                    </button>
                                     <?php
                                     }
                                         // CASO 10: Pendiente verificar
                                         elseif (!$esVerificado && !$pedidoAnulado) {
                                     ?>
-                                            <button type="button" class="btn btn-warning btn-xs verificar-btn"
-                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                    data-cantidad-pedida="<?php echo $cantidad_pedida; ?>"
-                                                    data-stock-destino="<?php echo isset($stock_destino) ? $stock_destino : 0; ?>"
-                                                    data-stock-otras-ubicaciones="<?php echo isset($stock_otras_ubicaciones) ? $stock_otras_ubicaciones : 0; ?>"
-                                                    data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
-                                                    style="padding: 2px 8px; font-size: 11px;">
-                                                <i class="fa fa-check"></i> Verificar
-                                            </button>
+                                        <button type="button" class="btn btn-warning btn-xs verificar-btn"
+                                                data-id-detalle="<?php echo $id_detalle; ?>"
+                                                data-cantidad-pedida="<?php echo $cantidad_pedida; ?>"
+                                                data-stock-destino="<?php echo $stock_destino; ?>"
+                                                data-stock-otras-ubicaciones="<?php echo isset($stock_otras_ubicaciones) ? $stock_otras_ubicaciones : 0; ?>"
+                                                data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
+                                                style="padding: 2px 8px; font-size: 11px;">
+                                            <i class="fa fa-check"></i> Verificar
+                                        </button>
                                     <?php
                                         }
                                     }
@@ -769,6 +769,10 @@ $monedas = MostrarMoneda();
                                         $cant_oc_verificada = floatval($detalle['cant_oc_pedido_detalle']);
                                         $cant_os_verificada = floatval($detalle['cant_os_pedido_detalle']);
                                         
+                                        // 🔹 DEFINIR CANTIDADES ORDENADAS AQUÍ (ANTES DE USARLAS)
+                                        $cant_oc_ordenada = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
+                                        $cant_os_ordenada = isset($detalle['cantidad_ya_ordenada_os']) ? floatval($detalle['cantidad_ya_ordenada_os']) : 0;
+                                        
                                         // Obtener salidas históricas reales
                                         $cant_os_ordenada_historica = ObtenerCantidadYaOrdenadaOSPorDetalle($detalle['id_pedido_detalle']);
                                         
@@ -778,76 +782,75 @@ $monedas = MostrarMoneda();
                                         }
                                         
                                         // Calcular pendiente OS basado en CANTIDAD PEDIDA
-                                        $ordenado_os = isset($detalle['cantidad_ya_ordenada_os']) ? floatval($detalle['cantidad_ya_ordenada_os']) : 0;
-                                        if ($ordenado_os == 0 && $cant_os_ordenada_historica > 0) {
-                                            $ordenado_os = $cant_os_ordenada_historica;
+                                        if ($cant_os_ordenada == 0 && $cant_os_ordenada_historica > 0) {
+                                            $cant_os_ordenada = $cant_os_ordenada_historica;
                                         }
+                                        
                                         // El pendiente debe ser: Cantidad Pedida - Lo ya ordenado (limitado por OS verificada)
-                                        $pendiente_os = $cantidad_pedida - $ordenado_os;
+                                        $pendiente_os = $cantidad_pedida - $cant_os_ordenada;
                                         $pendiente_os = min($pendiente_os, $cant_os_verificada); // No puede exceder lo verificado
                                         $pendiente_os = max(0, $pendiente_os); // No puede ser negativo
                                         
-                                        $ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
-                                        $pendiente_oc = $cant_oc_verificada - $ordenado_oc;
+                                        $pendiente_oc = $cant_oc_verificada - $cant_oc_ordenada;
                                         
-                                        //  DETERMINAR SI ESTÁN COMPLETADAS
+                                        // DETERMINAR SI ESTÁN COMPLETADAS
                                         $os_completada = ($cant_os_verificada > 0 && $pendiente_os <= 0);
                                         $oc_completada = ($cant_oc_verificada > 0 && $pendiente_oc <= 0);
                                         
                                         if ($cant_os_verificada > 0 || $cant_oc_verificada > 0) { ?>
-                                            <div style="padding: 4px 0; border-top: 1px solid #e0e0e0;">
-                                                
-                                                <?php // ========== SECCIÓN OS ==========
-                                                if ($cant_os_verificada > 0): ?>
-                                                    <div style="background: #ffffff; padding: 3px 8px; border-radius: 3px; margin-bottom: 4px; color: #333;">
-                                                        <strong>📦 OS:</strong>
-                                                        <span><strong>Verificado:</strong> <?php echo number_format($cant_os_verificada, 2); ?></span>
-                                                        
-                                                        <?php if ($ordenado_os > 0) { ?>
-                                                            <span style="margin: 0 6px;">•</span>
-                                                            <span><strong>Ordenado:</strong> <?php echo number_format($ordenado_os, 2); ?></span>
-                                                        <?php }
-                                                        
-                                                        if ($pendiente_os > 0) { ?>
-                                                            <span style="margin: 0 6px;">•</span>
-                                                            <span><strong>Pendiente:</strong> <?php echo number_format($pendiente_os, 2); ?></span>
-                                                        <?php } else if ($os_completada) { ?>
-                                                            <span style="margin: 0 6px;">•</span>
-                                                            <span style="font-weight: bold; color: #28a745;">✓ Completada</span>
-                                                        <?php } ?>
-                                                    </div>
-                                                <?php endif; ?>
-                                                                            
-                                                <?php // ========== SECCIÓN OC ==========
-                                                if ($cant_oc_verificada > 0): ?>
-                                                    <div style="background: #ffffff; padding: 3px 8px; border-radius: 3px; color: #333;">
-                                                        <strong>🛒 OC:</strong>
-                                                        <span><strong>Verificado:</strong> <?php echo number_format($cant_oc_verificada, 2); ?></span>
-                                                        
-                                                        <?php if ($ordenado_oc > 0) { ?>
-                                                            <span style="margin: 0 6px;">•</span>
-                                                            <span><strong>Ordenado:</strong> <?php echo number_format($ordenado_oc, 2); ?></span>
-                                                        <?php }
-                                                        
-                                                        if ($pendiente_oc > 0) { ?>
-                                                            <span style="margin: 0 6px;">•</span>
-                                                            <span><strong>Pendiente:</strong> <?php echo number_format($pendiente_oc, 2); ?></span>
-                                                        <?php } else if ($oc_completada) { ?>
-                                                            <span style="margin: 0 6px;">•</span>
-                                                            <span style="font-weight: bold; color: #28a745;">✓ Completada</span>
-                                                        <?php } ?>
-                                                    </div>
-                                                <?php endif; ?>
-                                                
-                                                <?php // ========== RESUMEN SI AMBOS COMPLETADOS ==========
-                                                if ($os_completada && $oc_completada && $cant_os_verificada > 0 && $cant_oc_verificada > 0): ?>
-                                                    <div style="background: #d4edda; padding: 5px 8px; border-radius: 4px; margin-top: 5px; border-left: 3px solid #28a745;">
-                                                        <strong style="color: #155724;">
-                                                            <i class="fa fa-check-double"></i> OS + OC Completadas
-                                                        </strong>
-                                                    </div>
-                                                <?php endif; ?>
-                                            </div>
+                                        <div style="padding: 4px 0; border-top: 1px solid #e0e0e0;">
+                                            
+                                            <?php if ($se_verifico_os && $cant_os_verificada > 0): ?>
+                                                <div style="background: #ffffff; padding: 3px 8px; border-radius: 3px; margin-bottom: 4px; color: #333;">
+                                                    <strong>📦 OS:</strong>
+                                                    <span><strong>Verificado:</strong> <?php echo number_format($cant_os_verificada, 2); ?></span>
+                                                    
+                                                    <?php if ($cant_os_ordenada > 0): ?>
+                                                        <span style="margin: 0 6px;">•</span>
+                                                        <span><strong>Trasladado:</strong> <?php echo number_format($cant_os_ordenada, 2); ?></span>
+                                                    <?php endif; ?>
+                                                    
+                                                    <?php if ($pendiente_os > 0): ?>
+                                                        <span style="margin: 0 6px;">•</span>
+                                                        <span><strong>Pendiente:</strong> <?php echo number_format($pendiente_os, 2); ?></span>
+                                                    <?php elseif ($os_completada): ?>
+                                                        <span style="margin: 0 6px;">•</span>
+                                                        <span style="font-weight: bold; color: #28a745;">✓ Completada</span>
+                                                    <?php endif; ?>
+                                                    
+                                                    <span style="margin: 0 6px;">•</span>
+                                                    <span class="text-info"><strong>Stock destino:</strong> <?php echo number_format($stock_destino, 2); ?>/<?php echo number_format($cantidad_pedida, 2); ?></span>
+                                                </div>
+                                            <?php endif; ?>
+                                            
+                                            <?php if ($se_verifico_oc && $cant_oc_verificada > 0): ?>
+                                                <div style="background: #ffffff; padding: 3px 8px; border-radius: 3px; color: #333;">
+                                                    <strong>🛒 OC:</strong>
+                                                    <span><strong>Verificado:</strong> <?php echo number_format($cant_oc_verificada, 2); ?></span>
+                                                    
+                                                    <?php if ($cant_oc_ordenada > 0): ?>
+                                                        <span style="margin: 0 6px;">•</span>
+                                                        <span><strong>Ordenado:</strong> <?php echo number_format($cant_oc_ordenada, 2); ?></span>
+                                                    <?php endif; ?>
+                                                    
+                                                    <?php if ($pendiente_oc > 0): ?>
+                                                        <span style="margin: 0 6px;">•</span>
+                                                        <span><strong>Pendiente:</strong> <?php echo number_format($pendiente_oc, 2); ?></span>
+                                                    <?php elseif ($oc_completada): ?>
+                                                        <span style="margin: 0 6px;">•</span>
+                                                        <span style="font-weight: bold; color: #28a745;">✓ Completada</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                            
+                                            <?php if ($os_completada && $oc_completada && $cant_os_verificada > 0 && $cant_oc_verificada > 0): ?>
+                                                <div style="background: #d4edda; padding: 5px 8px; border-radius: 4px; margin-top: 5px; border-left: 3px solid #28a745;">
+                                                    <strong style="color: #155724;">
+                                                        <i class="fa fa-check-double"></i> OS + OC Completadas
+                                                    </strong>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
                                         <?php }
                                     }
                                     ?>
@@ -1007,7 +1010,7 @@ $monedas = MostrarMoneda();
                             <div class="tab-pane fade show active" id="ordenes" role="tabpanel">
                                 <div class="table-responsive mt-2">
                                     <table class="table table-striped table-bordered" style="font-size: 12px;">
-                                        <thead style="background-color: #f8f9fa;">
+                                        <thead style="background-color: #007bff; color: white;">
                                             <tr>
                                                 <th style="width: 15%;">N° Orden</th>
                                                 <th style="width: 20%;">Proveedor</th>
@@ -1164,7 +1167,7 @@ $monedas = MostrarMoneda();
                             <div class="tab-pane fade" id="salidas" role="tabpanel">
                                 <div class="table-responsive mt-2">
                                     <table class="table table-striped table-bordered" style="font-size: 12px;">
-                                        <thead style="background-color: #f0f8ff;">
+                                        <thead style="background-color: #28a745; color: white;">
                                             <tr>
                                                 <th style="width: 12%;">N° Salida</th>
                                                 <th style="width: 18%;">Destino</th>
@@ -2394,7 +2397,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Cargar salida si está en edición
     if (modoEditarSalida) {
-        //setTimeout(cargarSalidaEdicion, 300);
+        setTimeout(cargarSalidaEdicion, 300);
     }
     
     configurarEventListeners();
@@ -3987,6 +3990,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 100);
     }
 
+    // Actualizar la función cargarSalidaEdicion - Línea ~730
     function cargarSalidaEdicion() {
         if (!modoEditarSalida) return;
         
@@ -4015,6 +4019,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const contenedor = document.getElementById('contenedor-items-salida');
         if (!contenedor) return;
         
+        //  LIMPIAR EL CONTENEDOR ANTES DE AGREGAR NUEVOS ITEMS
+        contenedor.innerHTML = '';
+        
         console.log('🗑️ Contenedor limpiado');
         
         itemsSalidaEditar.forEach(item => {
@@ -4022,16 +4029,20 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const idPedidoDetalle = parseInt(item.id_pedido_detalle) || 0;
             const cantActualEnSalida = parseFloat(item.cant_salida_detalle) || 0;
-            
-            // ✅ CORRECCIÓN: Obtener directamente del PHP (ya calculado)
             const cantidadMaxima = parseFloat(item.cantidad_maxima) || cantActualEnSalida;
             
-            // 🔍 Log de depuración
+            //  Log detallado
             console.log(`  📊 Item: ${item.nom_producto}`, {
+                idSalidaDetalle: item.id_salida_detalle,
                 cantActualEnSalida,
                 cantidadMaximaCalculada: item.cantidad_maxima,
                 cantidadMaximaFinal: cantidadMaxima
             });
+            
+            //  VERIFICAR QUE cantidad_maxima SEA VÁLIDA
+            if (cantidadMaxima <= 0) {
+                console.error(` cantidad_maxima inválida para item ${item.nom_producto}: ${cantidadMaxima}`);
+            }
             
             // ✅ GENERAR HTML CON EL MAX CORRECTO
             const div = document.createElement('div');
@@ -4084,7 +4095,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log('✅ Items cargados en modo edición');
     }
-
     
     // ============================================
     // CONFIGURACIÓN DE EVENT LISTENERS
