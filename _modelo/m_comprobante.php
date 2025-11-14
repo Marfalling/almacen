@@ -1045,4 +1045,55 @@ function ConsultarCuentasPorCompra($id_compra)
     return $cuentas;
 }
 
+function ActualizarComprobantesEstado()
+{
+    include("../_conexion/conexion.php");
+
+    // Actualizar todos los comprobantes con est_comprobante = 1 a est_comprobante = 2
+    $sql = "UPDATE comprobante 
+            SET est_comprobante = 2 
+            WHERE est_comprobante = 1";
+
+    $res = mysqli_query($con, $sql);
+
+    if (!$res) {
+        $error = mysqli_error($con);
+        mysqli_close($con);
+        return "Error al actualizar comprobantes: $error";
+    }
+
+    $filas_actualizadas = mysqli_affected_rows($con);
+    mysqli_close($con);
+
+    return "SI|$filas_actualizadas";
+}
+
+function obtenerComprobantesEstado1($con)
+{
+    $sql = "SELECT id_comprobante, 
+                    id_compra, 
+                    id_tipo_documento, 
+                    serie, 
+                    numero, 
+                    monto_total_igv, 
+                    total_pagar, 
+                    id_moneda, 
+                    fec_registro, 
+                    est_comprobante
+            FROM comprobante
+            WHERE est_comprobante = 1
+            ORDER BY id_comprobante ASC";
+
+    $res = mysqli_query($con, $sql);
+    $comprobantes = [];
+
+    if ($res && mysqli_num_rows($res) > 0) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $comprobantes[] = $row;
+        }
+    }
+
+    return $comprobantes; // arreglo vacío si no hay registros
+}
+
 ?>

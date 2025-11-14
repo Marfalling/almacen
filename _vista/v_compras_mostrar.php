@@ -361,12 +361,17 @@ function EliminarDocumento(id_doc) {
             <div class="col-md-12 col-sm-12">
                 <div class="x_panel">
                     <div class="x_title">
-                        <div class="row">
-                            <div class="col-sm-10">
+                        <div class="row align-items-center">
+                            <div class="col-sm-6">
                                 <h2>Listado de Compras</h2>
                             </div>
-                            <div class="col-sm-2">
-                               <!-- <a href="compras_nuevo.php" class="btn btn-outline-info btn-sm btn-block">Nueva Compra</a> -->  
+                            <div class="col-sm-6 text-right">
+                                <a href="generar_excel.php" class="btn btn-success btn-sm">
+                                    <i class="fa fa-file-excel-o"></i> Excel
+                                </a>
+                                <button type="button" class="btn btn-primary btn-sm" onclick="abrirModalMasivo()">
+                                    <i class="fa fa-cloud-upload"></i> Vouchers Masivo
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -425,13 +430,7 @@ function EliminarDocumento(id_doc) {
                         <div class="row">
                             <div class="col-sm-12">
 
-                                <div class="row mb-3">
-                                    <div class="col-sm-12 text-right">
-                                        <button type="button" class="btn btn-primary" onclick="abrirModalMasivo()">
-                                            📤 Subir vouchers masivo
-                                        </button>
-                                    </div>
-                                </div>
+                                
 
                                 <div class="card-box table-responsive">
                                     <table id="datatable-buttons" class="table table-striped table-bordered" style="width:100%">
@@ -813,6 +812,75 @@ function EliminarDocumento(id_doc) {
     </div>
 </div>
 <?php } ?>
+
+<!-- MODAL SIMPLE -->
+<div id="modalSubidaMasivo" 
+     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%;
+            background:rgba(0,0,0,0.5); z-index:1040; justify-content:center; align-items:center;">
+    
+    <div style="background:white; width:85%; max-width:950px; border-radius:10px; 
+                display:flex; flex-direction:column; max-height:90vh; overflow:hidden;">
+
+        <!-- CABECERA -->
+        <div style="background:#667eea; color:white; padding:10px 20px; 
+                    display:flex; justify-content:space-between; align-items:center;">
+            <h5 style="margin:0;">Subida Masiva de Vouchers</h5>
+            <button onclick="cerrarModalMasivo()" 
+                    style="background:none; border:none; color:white; font-size:20px;">&times;</button>
+        </div>
+
+        <!-- CONTENIDO SCROLLEABLE -->
+        <div style="padding:20px; overflow-y:auto; flex:1;">
+
+            <!-- CONTENEDOR PRINCIPAL -->
+            <div style="display:flex; flex-wrap:wrap; gap:20px; align-items:stretch;">
+                
+                <!-- INSTRUCCIONES -->
+                <div style="flex:1; min-width:300px; background:#f1f3f5; border-radius:8px; padding:15px;">
+                    <strong>Instrucciones:</strong>
+                    <ol style="margin:5px 0 0 20px; font-size:14px; color:#333;">
+                        <li>Archivos deben llamarse como la serie-número del comprobante</li>
+                        <li>Ej: <code>F001-1234.pdf</code>, <code>B002-5678.jpg</code></li>
+                        <li>Formatos: PDF, JPG, JPEG, PNG</li>
+                        <li>Máx. 5MB por archivo</li>
+                    </ol>
+                </div>
+
+                <!-- ZONA DE CARGA -->
+                <div style="flex:1; min-width:300px; display:flex; align-items:center; justify-content:center;">
+                    <div id="dropZone" onclick="document.getElementById('inputArchivos').click()"
+                        style="border:2px dashed #667eea; border-radius:8px; padding:25px; text-align:center;
+                               background:#f9f9fc; cursor:pointer; transition:0.3s; width:100%;">
+                        <i class="fa fa-cloud-upload" style="font-size:40px; color:#667eea; margin-bottom:8px;"></i>
+                        <h5 style="color:#667eea; font-size:16px; margin-bottom:5px;">Haz clic para seleccionar archivos</h5>
+                        <p style="color:#6c757d; font-size:13px; margin:0;">(Puedes seleccionar varios a la vez)</p>
+                        <input type="file" id="inputArchivos" multiple style="display:none" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                </div>
+            </div>
+
+            <!-- LISTA CON SCROLL -->
+            <div id="listaArchivos" 
+                 style="margin-top:25px; max-height:250px; overflow-y:auto; border:1px solid #e0e0e0; border-radius:6px; padding:10px;">
+            </div>
+
+            <!-- OPCIONES DE CORREO -->
+            <div style="margin-top:20px; background:#f8f9fa; padding:15px; border-radius:8px;">
+                <h6><i class="fa fa-envelope"></i> Notificaciones:</h6>
+                <label><input type="checkbox" id="enviarProveedor" checked> Enviar al Proveedor</label><br>
+                <label><input type="checkbox" id="enviarContabilidad" checked> Enviar a Contabilidad</label><br>
+                <label><input type="checkbox" id="enviarTesoreria" checked> Enviar a Tesorería</label>
+            </div>
+        </div>
+
+        <!-- PIE FIJO -->
+        <div style="padding:10px 20px; text-align:right; border-top:1px solid #ddd; background:#fff;">
+            <button class="btn btn-secondary" onclick="cerrarModalMasivo()">Cancelar</button>
+            <button class="btn btn-primary" id="btnProcesarMasivo" onclick="procesarArchivos()">Procesar</button>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Editar Orden de Compra -->
 <div class="modal fade" id="modalEditarOrden" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-xl" role="document">
@@ -1138,6 +1206,240 @@ function EliminarDocumento(id_doc) {
 </div>
 
 <script>
+
+//SUBIDA MASIVA DE VOUCHERS
+
+// Variables globales
+let archivosSeleccionados = [];
+
+// Abrir / cerrar modal
+function abrirModalMasivo() {
+    const modal = document.getElementById("modalSubidaMasivo");
+    if (modal) {
+        modal.style.display = "flex";
+        console.log("✅ Modal abierto");
+        
+        // Reinicializar el input cuando se abre el modal
+        setTimeout(() => {
+            inicializarModalMasivo();
+        }, 200);
+    } else {
+        console.error("❌ Modal no encontrado");
+    }
+}
+
+function cerrarModalMasivo() {
+    const modal = document.getElementById("modalSubidaMasivo");
+    if (modal) {
+        modal.style.display = "none";
+        archivosSeleccionados = [];
+        document.getElementById("listaArchivos").innerHTML = "";
+    }
+}
+
+// Esperar a que el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inicializarModalMasivo);
+} else {
+    inicializarModalMasivo();
+}
+
+function inicializarModalMasivo() {
+    console.log("🚀 Inicializando modal masivo...");
+    
+    // Esperar un momento para que el DOM esté completamente listo
+    setTimeout(() => {
+        const inputArchivos = document.getElementById("inputArchivos");
+        
+        if (!inputArchivos) {
+            console.error("❌ Input de archivos no encontrado");
+            return;
+        }
+        
+        console.log("✅ Input encontrado:", inputArchivos);
+        
+        // Remover listeners anteriores y agregar uno nuevo
+        inputArchivos.removeEventListener("change", manejarCambioArchivos);
+        inputArchivos.addEventListener("change", manejarCambioArchivos);
+        
+        console.log("✅ Listener agregado correctamente");
+    }, 100);
+}
+
+function manejarCambioArchivos(e) {
+    /*console.log("📂 ¡¡¡CAMBIO DETECTADO!!!");
+    console.log("Archivos seleccionados:", e.target.files.length);
+    
+    if (e.target.files.length === 0) {
+        console.log("⚠️ No hay archivos");
+        return;
+    }
+    
+    const nuevosArchivos = Array.from(e.target.files);
+    console.log("Array creado:", nuevosArchivos);
+    
+    nuevosArchivos.forEach((archivo) => {
+        console.log("Procesando:", archivo.name, archivo.size, "bytes");
+        if (!archivosSeleccionados.find(a => a.name === archivo.name)) {
+            archivosSeleccionados.push(archivo);
+            console.log("✅ Agregado a la lista");
+        } else {
+            console.log("⚠️ Duplicado, ignorado");
+        }
+    });*/
+
+    console.log("📂 ¡¡¡CAMBIO DETECTADO!!!");
+    const nuevosArchivos = Array.from(e.target.files);
+    if (nuevosArchivos.length === 0) return;
+
+    nuevosArchivos.forEach((archivo) => {
+        const nombre = archivo.name.trim();
+        const tamañoMB = archivo.size / (1024 * 1024);
+
+        // 1️⃣ Validar tamaño (máximo 5 MB)
+        if (tamañoMB > 5) {
+            mostrarAlerta(
+                'error',
+                'Archivo demasiado grande',
+                `El archivo "${nombre}" pesa ${(tamañoMB).toFixed(2)} MB. El máximo permitido es 5 MB.`
+            );
+            return;
+        }
+
+        // 2️⃣ Validar formato de nombre (0000-00000000)
+        const regexNombre = /^[A-Z0-9]{4}-\d{2,8}\.[A-Za-z0-9]+$/i; // permite letras o números antes del guion
+        if (!regexNombre.test(nombre)) {
+            mostrarAlerta(
+                'warning',
+                'Formato inválido',
+                `El archivo "${nombre}" no cumple el formato "SERIE-NUMERO", por ejemplo: "F001-00012345.pdf"`
+            );
+            return;
+        }
+
+        // 3️⃣ Evitar duplicados y agregar
+        if (!archivosSeleccionados.find(a => a.name === nombre)) {
+            archivosSeleccionados.push(archivo);
+            console.log("✅ Archivo agregado:", nombre);
+        } else {
+            mostrarAlerta(
+                'info',
+                'Archivo duplicado',
+                `El archivo "${nombre}" ya fue agregado.`
+            );
+            console.log("⚠️ Duplicado, ignorado:", nombre);
+        }
+    });
+
+    console.log("Total en memoria:", archivosSeleccionados.length);
+    actualizarListaArchivos();
+    e.target.value = "";
+}
+
+function actualizarListaArchivos() {
+    console.log("📋 Actualizando lista, total:", archivosSeleccionados.length);
+    
+    const listaArchivos = document.getElementById("listaArchivos");
+    
+    if (archivosSeleccionados.length === 0) {
+        listaArchivos.innerHTML = "";
+        return;
+    }
+
+    let html = `
+        <h6><i class="fa fa-list"></i> Archivos seleccionados (${archivosSeleccionados.length}):</h6>
+        <table class="table table-sm table-bordered" style="margin-top:10px;">
+            <thead style="background:#667eea; color:white;">
+                <tr>
+                    <th width="5%">#</th>
+                    <th>Nombre</th>
+                    <th width="15%">Tamaño</th>
+                    <th width="10%">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+
+    archivosSeleccionados.forEach((archivo, index) => {
+        html += `
+            <tr>
+                <td>${index + 1}</td>
+                <td><i class="fa fa-file-o"></i> ${archivo.name}</td>
+                <td>${(archivo.size / 1024).toFixed(1)} KB</td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-danger" onclick="eliminarArchivo(${index})">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    html += `</tbody></table></div>`;
+    listaArchivos.innerHTML = html;
+}
+
+function eliminarArchivo(index) {
+    archivosSeleccionados.splice(index, 1);
+    actualizarListaArchivos();
+}
+
+async function procesarArchivos() {
+    if (archivosSeleccionados.length === 0) {
+        Swal.fire('Advertencia', 'Selecciona al menos un archivo', 'warning');
+        return;
+    }
+
+    const formData = new FormData();
+    archivosSeleccionados.forEach((archivo) => {
+        formData.append('archivos[]', archivo);
+    });
+
+    formData.append('enviar_proveedor', document.getElementById('enviarProveedor').checked ? 1 : 0);
+    formData.append('enviar_contabilidad', document.getElementById('enviarContabilidad').checked ? 1 : 0);
+    formData.append('enviar_tesoreria', document.getElementById('enviarTesoreria').checked ? 1 : 0);
+
+    try {
+        Swal.fire({
+            title: 'Procesando...',
+            text: 'Subiendo vouchers, por favor espera...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        // 👇 ruta relativa (sube una carpeta y entra a _controlador)
+        const response = await fetch('../_controlador/comprobante_subida_masiva.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        console.log("🔍 Estado HTTP:", response.status);
+        if (!response.ok) {
+            throw new Error(`Error HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("📥 Respuesta del servidor:", data);
+
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Subida completada',
+                html: `<b>${data.exitosos}</b> archivos subidos correctamente.<br>
+                       <b>${data.fallidos}</b> archivos fallaron.`,
+                confirmButtonText: 'Aceptar'
+            }).then(() => {
+                cerrarModalMasivo();
+            });
+        } else {
+            Swal.fire('Error', data.mensaje || 'Ocurrió un error en el servidor', 'error');
+        }
+    } catch (error) {
+        console.error('❌ Error al enviar archivos:', error);
+        Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
+    }
+}
+
 // ============================================================================
 // FUNCIÓN PARA VER DETALLES DE ORDEN DE COMPRA
 // ============================================================================
@@ -2216,6 +2518,55 @@ function limpiarFormularioProveedorEditar() {
                 filas[i].remove();
             }
         }
+    }
+}
+
+
+async function exportarExcel() {
+    try {
+        Swal.fire({
+            title: "Generando Excel...",
+            text: "Por favor espera",
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading(),
+        });
+
+        const response = await fetch("generar_excel.php");
+
+        const data = await response.json();
+        console.log("Respuesta del servidor:", data);
+
+        if (!data.ok) {
+            Swal.close();
+            Swal.fire("Sin datos", data.msg, "warning");
+            return;
+        }
+
+        // Generar descarga
+        const url = "temp/" + data.archivo;
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = data.archivo;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        Swal.close();
+        Swal.fire(
+            "¡Listo!",
+            "Excel generado correctamente.",
+            "success"
+        );
+
+    } catch (error) {
+        console.error(error);
+
+        Swal.close();
+        Swal.fire(
+            "Error",
+            "No se pudo generar el archivo Excel.",
+            "error"
+        );
     }
 }
 

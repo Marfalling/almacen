@@ -1690,7 +1690,6 @@ async function procesarArchivos() {
         formData.append('archivos[]', archivo);
     });
 
-    formData.append('id_compra', <?php echo $id_compra; ?>);
     formData.append('enviar_proveedor', document.getElementById('enviarProveedor').checked ? 1 : 0);
     formData.append('enviar_contabilidad', document.getElementById('enviarContabilidad').checked ? 1 : 0);
     formData.append('enviar_tesoreria', document.getElementById('enviarTesoreria').checked ? 1 : 0);

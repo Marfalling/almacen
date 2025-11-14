@@ -6,12 +6,17 @@ require_once("../_modelo/m_comprobante.php");
 
 header('Content-Type: application/json');
 
-$id_compra = isset($_POST['id_compra']) ? intval($_POST['id_compra']) : 0;
+//$id_compra = isset($_POST['id_compra']) ? intval($_POST['id_compra']) : 0;
 $enviar_proveedor = isset($_POST['enviar_proveedor']) && $_POST['enviar_proveedor'] == '1';
 $enviar_contabilidad = isset($_POST['enviar_contabilidad']) && $_POST['enviar_contabilidad'] == '1';
 $enviar_tesoreria = isset($_POST['enviar_tesoreria']) && $_POST['enviar_tesoreria'] == '1';
 
-if ($id_compra <= 0 || empty($_FILES['archivos'])) {
+/*if ($id_compra <= 0 || empty($_FILES['archivos'])) {
+    echo json_encode(['success' => false, 'mensaje' => 'Datos incompletos']);
+    exit;
+}*/
+
+if (empty($_FILES['archivos'])) {
     echo json_encode(['success' => false, 'mensaje' => 'Datos incompletos']);
     exit;
 }
@@ -40,8 +45,12 @@ for ($i = 0; $i < count($archivos['name']); $i++) {
     $numero = ltrim($match[2]);
 
     // 2️⃣ Buscar comprobante correspondiente
-    $sql = "SELECT id_comprobante FROM comprobante 
+    /*$sql = "SELECT id_comprobante FROM comprobante 
             WHERE serie = '$serie' AND numero = '$numero' AND id_compra = $id_compra
+            LIMIT 1";
+    $res = mysqli_query($con, $sql);*/
+    $sql = "SELECT id_comprobante FROM comprobante 
+            WHERE serie = '$serie' AND numero = '$numero' 
             LIMIT 1";
     $res = mysqli_query($con, $sql);
 
@@ -54,7 +63,7 @@ for ($i = 0; $i < count($archivos['name']); $i++) {
     $row = mysqli_fetch_assoc($res);
 
     if (!$row) {
-        error_log("⚠️ No se encontró comprobante para serie=$serie numero=$numero compra=$id_compra");
+        error_log("⚠️ No se encontró comprobante para serie=$serie numero=$numero");
         $fallidos++;
         continue;
     }
