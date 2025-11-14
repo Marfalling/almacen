@@ -508,7 +508,12 @@ $monedas = MostrarMoneda();
                                         $cant_oc_verificada = isset($detalle['cant_oc_pedido_detalle']) ? floatval($detalle['cant_oc_pedido_detalle']) : 0;
 
                                         //  CALCULAR PENDIENTE OS 
-                                        $pendiente_os = $cant_os_verificada - $cant_os_ordenada_actual;
+                                        // Calcular pendiente OS basado en CANTIDAD PEDIDA, no en OS verificada
+                                        $pendiente_os = $cantidad_pedida - $cant_os_ordenada_actual;
+                                        // Pero no puede exceder lo verificado para OS
+                                        $pendiente_os = min($pendiente_os, $cant_os_verificada);
+                                        $pendiente_os = max(0, $pendiente_os); // Asegurar que no sea negativo
+
                                         $pendiente_oc = isset($detalle['cantidad_pendiente_oc']) ? floatval($detalle['cantidad_pendiente_oc']) : 0;
 
                                         // Determinar si están completadas
@@ -741,12 +746,15 @@ $monedas = MostrarMoneda();
                                             $cant_os_verificada = $cant_os_ordenada_historica;
                                         }
                                         
-                                        //  CALCULAR ESTADOS REALES
+                                        // Calcular pendiente OS basado en CANTIDAD PEDIDA
                                         $ordenado_os = isset($detalle['cantidad_ya_ordenada_os']) ? floatval($detalle['cantidad_ya_ordenada_os']) : 0;
                                         if ($ordenado_os == 0 && $cant_os_ordenada_historica > 0) {
                                             $ordenado_os = $cant_os_ordenada_historica;
                                         }
-                                        $pendiente_os = $cant_os_verificada - $ordenado_os;
+                                        // El pendiente debe ser: Cantidad Pedida - Lo ya ordenado (limitado por OS verificada)
+                                        $pendiente_os = $cantidad_pedida - $ordenado_os;
+                                        $pendiente_os = min($pendiente_os, $cant_os_verificada); // No puede exceder lo verificado
+                                        $pendiente_os = max(0, $pendiente_os); // No puede ser negativo
                                         
                                         $ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                         $pendiente_oc = $cant_oc_verificada - $ordenado_oc;
@@ -1127,39 +1135,35 @@ $monedas = MostrarMoneda();
                                     <table class="table table-striped table-bordered" style="font-size: 12px;">
                                         <thead style="background-color: #f0f8ff;">
                                             <tr>
-                                                <th style="width: 15%;">N° Salida</th>
-                                                <th style="width: 20%;">Destino</th>
-                                                <th style="width: 15%;">Fecha Requerida</th>
-                                                <th style="width: 15%;">Estado</th>
-                                                <th style="width: 20%;">Acciones</th>
+                                                <th style="width: 12%;">N° Salida</th>
+                                                <th style="width: 18%;">Destino</th>
+                                                <th style="width: 12%;">Fecha Requerida</th>
+                                                <th style="width: 18%;">Recepcionado Por</th>
+                                                <th style="width: 12%;">Estado</th>
+                                                <th style="width: 18%;">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody id="tbody-salidas">
                                             <?php if (!empty($pedido_salidas)) { ?>
                                                 <?php foreach ($pedido_salidas as $salida) {
+                                                    // Verificar si está recepcionada
+                                                    $tiene_recepcion = !empty($salida['id_personal_aprueba_salida']);
+                                                    
                                                     $estado_salida_texto = '';
                                                     $estado_salida_clase = '';
 
-                                                    switch ($salida['est_salida']) {
-                                                        case 0:
-                                                            $estado_salida_texto = 'Anulada';
-                                                            $estado_salida_clase = 'danger';
-                                                            break;
-                                                        case 1:
-                                                            $estado_salida_texto = 'Pendiente';
-                                                            $estado_salida_clase = 'warning';
-                                                            break;
-                                                        case 2:
-                                                            $estado_salida_texto = 'En Tránsito';
-                                                            $estado_salida_clase = 'info';
-                                                            break;
-                                                        case 3:
-                                                            $estado_salida_texto = 'Completada';
-                                                            $estado_salida_clase = 'success';
-                                                            break;
-                                                        default:
-                                                            $estado_salida_texto = 'Desconocido';
-                                                            $estado_salida_clase = 'secondary';
+                                                    if ($salida['est_salida'] == 0) {
+                                                        $estado_salida_texto = 'Anulada';
+                                                        $estado_salida_clase = 'danger';
+                                                    } elseif ($tiene_recepcion) {
+                                                        $estado_salida_texto = 'Recepcionada';
+                                                        $estado_salida_clase = 'success';
+                                                    } elseif ($salida['est_salida'] == 1) {
+                                                        $estado_salida_texto = 'Pendiente';
+                                                        $estado_salida_clase = 'warning';
+                                                    } else {
+                                                        $estado_salida_texto = 'Desconocido';
+                                                        $estado_salida_clase = 'secondary';
                                                     }
 
                                                     $fecha_salida = date('d/m/Y', strtotime($salida['fec_req_salida']));
@@ -1168,6 +1172,21 @@ $monedas = MostrarMoneda();
                                                         <td><strong>S00<?php echo $salida['id_salida']; ?></strong></td>
                                                         <td><?php echo htmlspecialchars($salida['nom_ubicacion_destino']); ?></td>
                                                         <td><?php echo $fecha_salida; ?></td>
+                                                        <td>
+                                                            <?php 
+                                                            if ($tiene_recepcion) {
+                                                                // Usar el dato que ya viene de la consulta
+                                                                echo htmlspecialchars($salida['nom_personal_recepciona']);
+                                                                if (!empty($salida['fec_aprueba_salida'])) {
+                                                                    echo '<br><small class="text-muted">' . 
+                                                                        date('d/m/Y H:i', strtotime($salida['fec_aprueba_salida'])) . 
+                                                                        '</small>';
+                                                                }
+                                                            } else {
+                                                                echo '<span class="text-muted">-</span>';
+                                                            }
+                                                            ?>
+                                                        </td>
                                                         <td>
                                                             <span class="badge badge-<?php echo $estado_salida_clase; ?>">
                                                                 <?php echo $estado_salida_texto; ?>
@@ -1181,18 +1200,30 @@ $monedas = MostrarMoneda();
                                                                 <i class="fa fa-eye"></i>
                                                             </button>
 
-                                                            <?php if ($salida['est_salida'] == 1) { ?>
-                                                                <!-- Botón Editar -->
+                                                            <?php if ($salida['est_salida'] == 1 && !$tiene_recepcion) { ?>
+                                                                <!-- Botón Editar (solo si NO está recepcionada) -->
                                                                 <button class="btn btn-warning btn-xs ml-1 btn-editar-salida"
                                                                         title="Editar Salida"
                                                                         data-id-salida="<?php echo $salida['id_salida']; ?>">
                                                                     <i class="fa fa-edit"></i>
                                                                 </button>
 
-                                                                <!-- Botón Anular -->
+                                                                <!-- Botón Anular (solo si NO está recepcionada) -->
                                                                 <button class="btn btn-danger btn-xs ml-1 btn-anular-salida"
                                                                         title="Anular Salida"
                                                                         data-id-salida="<?php echo $salida['id_salida']; ?>">
+                                                                    <i class="fa fa-times"></i>
+                                                                </button>
+                                                            <?php } elseif ($tiene_recepcion) { ?>
+                                                                <!-- Botones deshabilitados si está recepcionada -->
+                                                                <button class="btn btn-outline-secondary btn-xs ml-1 disabled"
+                                                                        title="No se puede editar - Salida recepcionada"
+                                                                        disabled>
+                                                                    <i class="fa fa-edit"></i>
+                                                                </button>
+                                                                <button class="btn btn-outline-secondary btn-xs ml-1 disabled"
+                                                                        title="No se puede anular - Salida recepcionada"
+                                                                        disabled>
                                                                     <i class="fa fa-times"></i>
                                                                 </button>
                                                             <?php } ?>
@@ -1201,7 +1232,7 @@ $monedas = MostrarMoneda();
                                                 <?php } ?>
                                             <?php } else { ?>
                                                 <tr>
-                                                    <td colspan="5" class="text-center p-3">
+                                                    <td colspan="6" class="text-center p-3">
                                                         <i class="fa fa-truck fa-2x text-success mb-2"></i>
                                                         <h5 class="text-success">Sin salidas registradas</h5>
                                                         <p class="text-muted" style="font-size: 12px;">
@@ -2929,6 +2960,11 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const estadoPedido = <?php echo $pedido['est_pedido']; ?>;
         const tieneSalidaActiva = <?php echo isset($tiene_salida_activa) && $tiene_salida_activa ? 'true' : 'false'; ?>;
+
+        if (estadoPedido === 4) {
+            console.log('⏭ Pedido en estado INGRESADO - No verificar automáticamente');
+            return;
+        }
 
         if (tieneSalidaActiva) {
             console.log('Este pedido ya tiene una salida activa registrada');

@@ -103,6 +103,9 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
     if (mysqli_query($con, $sql)) {
         $id_salida = mysqli_insert_id($con);
         
+        // ----------------------------
+        // desde el foreach de materiales hasta el return
+        // ----------------------------
         foreach ($materiales as $material) {
             $id_producto = intval($material['id_producto']);
             $descripcion = mysqli_real_escape_string($con, $material['descripcion']);
@@ -158,25 +161,44 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
                                      $cantidad, NOW(), 1
                                    )";
                 mysqli_query($con, $sql_mov_ingreso);
-
-                if ($id_pedido_detalle !== null && $id_pedido_detalle > 0) {
-                    VerificarEstadoItemPorDetalle($id_pedido_detalle);
-                }
             }
         }
 
+        mysqli_close($con);
+
+        // 🔹 ACTUALIZACIÓN DE ESTADOS DESPUÉS DEL COMMIT (FUERA DE LA TRANSACCIÓN)
         if ($id_pedido && $id_pedido > 0) {
             require_once("../_modelo/m_pedidos.php");
+            
+            usleep(200000); // 200ms - esperar a que se procesen los movimientos
+            
+            // 🔹 RE-VERIFICAR ITEMS AFECTADOS (igual que en AnularSalida)
+            foreach ($materiales as $material) {
+                if (isset($material['id_pedido_detalle']) && $material['id_pedido_detalle'] > 0) {
+                    $id_detalle = intval($material['id_pedido_detalle']);
+                    error_log("🔄 Re-verificando item después de salida: $id_detalle");
+                    
+                    // Primero verificar estado
+                    VerificarEstadoItemPorDetalle($id_detalle);
+                    
+                    // Luego forzar re-verificación (igual que AnularSalida)
+                    ReverificarItemAutomaticamente($id_detalle);
+                }
+            }
+            
+            // Actualizar estado del pedido al final
+            error_log("📋 Actualizando estado del pedido: $id_pedido");
             ActualizarEstadoPedido($id_pedido);
+            error_log("✅ Estados actualizados correctamente");
         }
-        
-        mysqli_close($con);
+
         return array('success' => true, 'id_salida' => intval($id_salida));
     } else {
         mysqli_close($con);
         return "ERROR: " . mysqli_error($con);
     }
 }
+
 
 //-----------------------------------------------------------------------
 function MostrarSalidas()
@@ -191,7 +213,9 @@ function MostrarSalidas()
                 ud.nom_ubicacion as nom_ubicacion_destino,
                 pr.nom_personal, 
                 pe.nom_personal as nom_encargado,
-                prec.nom_personal as nom_recibe
+                prec.nom_personal as nom_recibe,
+                COALESCE(papr.nom_personal, '-') AS nom_aprueba,
+                s.fec_aprueba_salida
              FROM salida s 
              INNER JOIN material_tipo mt ON s.id_material_tipo = mt.id_material_tipo
              INNER JOIN almacen ao ON s.id_almacen_origen = ao.id_almacen
@@ -201,7 +225,7 @@ function MostrarSalidas()
              INNER JOIN {$bd_complemento}.personal pr ON s.id_personal = pr.id_personal
              LEFT JOIN {$bd_complemento}.personal pe ON s.id_personal_encargado = pe.id_personal
              LEFT JOIN {$bd_complemento}.personal prec ON s.id_personal_recibe = prec.id_personal
-             
+             LEFT JOIN {$bd_complemento}.personal papr ON s.id_personal_aprueba_salida = papr.id_personal
              ORDER BY s.fec_salida DESC";
 
     $resc = mysqli_query($con, $sqlc);
@@ -214,6 +238,8 @@ function MostrarSalidas()
     mysqli_close($con);
     return $resultado;
 }
+
+//-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
 function MostrarSalidasFecha($fecha_inicio = null, $fecha_fin = null)
 {
@@ -234,7 +260,9 @@ function MostrarSalidasFecha($fecha_inicio = null, $fecha_fin = null)
                 ud.nom_ubicacion as nom_ubicacion_destino,
                 pr.nom_personal, 
                 pe.nom_personal as nom_encargado,
-                prec.nom_personal as nom_recibe
+                prec.nom_personal as nom_recibe,
+                COALESCE(papr.nom_personal, '-') AS nom_aprueba,
+                s.fec_aprueba_salida
              FROM salida s 
              INNER JOIN material_tipo mt ON s.id_material_tipo = mt.id_material_tipo
              INNER JOIN almacen ao ON s.id_almacen_origen = ao.id_almacen
@@ -244,7 +272,8 @@ function MostrarSalidasFecha($fecha_inicio = null, $fecha_fin = null)
              INNER JOIN {$bd_complemento}.personal pr ON s.id_personal = pr.id_personal
              LEFT JOIN {$bd_complemento}.personal pe ON s.id_personal_encargado = pe.id_personal
              LEFT JOIN {$bd_complemento}.personal prec ON s.id_personal_recibe = prec.id_personal
-             
+             LEFT JOIN {$bd_complemento}.personal papr ON s.id_personal_aprueba_salida = papr.id_personal
+             WHERE 1=1
              $whereFecha
              ORDER BY s.fec_salida DESC";
 
@@ -258,7 +287,6 @@ function MostrarSalidasFecha($fecha_inicio = null, $fecha_fin = null)
     mysqli_close($con);
     return $resultado;
 }
-
 //-----------------------------------------------------------------------
 function ConsultarSalida($id_salida)
 {
@@ -272,7 +300,8 @@ function ConsultarSalida($id_salida)
                 ud.nom_ubicacion as nom_ubicacion_destino,
                 pr.nom_personal, 
                 pe.nom_personal as nom_encargado,
-                prec.nom_personal as nom_recibe
+                prec.nom_personal as nom_recibe,
+                COALESCE(papr.nom_personal, '-') AS nom_aprueba
              FROM salida s 
              INNER JOIN material_tipo mt ON s.id_material_tipo = mt.id_material_tipo
              INNER JOIN almacen ao ON s.id_almacen_origen = ao.id_almacen
@@ -282,6 +311,7 @@ function ConsultarSalida($id_salida)
              INNER JOIN {$bd_complemento}.personal pr ON s.id_personal = pr.id_personal
              LEFT JOIN {$bd_complemento}.personal pe ON s.id_personal_encargado = pe.id_personal
              LEFT JOIN {$bd_complemento}.personal prec ON s.id_personal_recibe = prec.id_personal
+             LEFT JOIN {$bd_complemento}.personal papr ON s.id_personal_aprueba_salida = papr.id_personal
              WHERE s.id_salida = $id_salida";
     
     $resc = mysqli_query($con, $sqlc);
@@ -1073,9 +1103,17 @@ function AnularSalida($id_salida, $id_usuario_anulacion = null)
             error_log("✅ Estados actualizados");
         }
         
-        // 7️⃣ ACTUALIZAR ESTADO DEL PEDIDO
+        // 7️⃣ ACTUALIZAR ESTADO DEL PEDIDO (SIEMPRE después de anular)
         if ($id_pedido > 0) {
             error_log("📋 Actualizando estado del pedido: $id_pedido");
+            
+            // 🔹 FORZAR RE-VERIFICACIÓN DESPUÉS DE ANULAR
+            require_once("../_modelo/m_pedidos.php");
+            
+            foreach ($items_afectados as $id_detalle) {
+                ReverificarItemAutomaticamente($id_detalle); // ← Siempre verificar
+            }
+            
             ActualizarEstadoPedido($id_pedido);
             error_log("✅ Estado del pedido actualizado");
         }
@@ -1232,6 +1270,7 @@ function ObtenerPedidoDeSalida($id_salida) {
     return $id_pedido;
 }
 
+//-----------------------------------------------------------------------
 function ConsultarSalidasPorPedido($id_pedido) {
     include("../_conexion/conexion.php");
     
@@ -1243,14 +1282,24 @@ function ConsultarSalidasPorPedido($id_pedido) {
                 s.fec_req_salida,
                 s.est_salida,
                 s.obs_salida,
-                CONCAT(ud.nom_ubicacion, ' (', ad.nom_almacen, ')') as nom_ubicacion_destino
+                s.id_personal_aprueba_salida,
+                s.fec_aprueba_salida,
+                CONCAT(ud.nom_ubicacion, ' (', ad.nom_almacen, ')') as nom_ubicacion_destino,
+                COALESCE(papr.nom_personal, NULL) as nom_personal_recepciona
             FROM salida s
             INNER JOIN almacen ad ON s.id_almacen_destino = ad.id_almacen
             INNER JOIN ubicacion ud ON s.id_ubicacion_destino = ud.id_ubicacion
+            LEFT JOIN {$bd_complemento}.personal papr ON s.id_personal_aprueba_salida = papr.id_personal
             WHERE s.id_pedido = $id_pedido
             ORDER BY s.fec_req_salida ASC, s.id_salida DESC";
     
     $resultado = mysqli_query($con, $sql);
+    
+    if (!$resultado) {
+        error_log("Error en ConsultarSalidasPorPedido: " . mysqli_error($con));
+        mysqli_close($con);
+        return [];
+    }
     
     $salidas = [];
     while ($row = mysqli_fetch_assoc($resultado)) {
@@ -1524,4 +1573,68 @@ function ObtenerCantidadEnSalidasAnuladasPorDetalle($id_pedido_detalle) {
     
     mysqli_close($con);
     return floatval($row['total_anulado']);
+}
+
+
+/**
+ * Aprobar/Recepcionar una salida
+ * Registra quién aprueba y la fecha/hora de recepción
+ * Actualiza el estado del pedido si es necesario
+ */
+function AprobarSalida($id_salida, $id_personal)
+{
+    include("../_conexion/conexion.php");
+
+    // ✅ Verificar que la salida existe y está activa
+    $sql_check = "SELECT est_salida, id_personal_aprueba_salida, id_pedido 
+                  FROM salida 
+                  WHERE id_salida = '$id_salida'";
+    $res_check = mysqli_query($con, $sql_check);
+    $row_check = mysqli_fetch_array($res_check, MYSQLI_ASSOC);
+
+    // Validar que existe y está activa
+    if (!$row_check || $row_check['est_salida'] == 0) {
+        mysqli_close($con);
+        return false;
+    }
+
+    // Validar que no esté ya aprobada
+    if (!empty($row_check['id_personal_aprueba_salida'])) {
+        mysqli_close($con);
+        return false;
+    }
+
+    $id_pedido = intval($row_check['id_pedido']);
+
+    // ✅ Validar que el personal existe
+    $sql_validar = "SELECT id_personal FROM {$bd_complemento}.personal WHERE id_personal = '$id_personal'";
+    $res_validar = mysqli_query($con, $sql_validar);
+    
+    if (!$res_validar || mysqli_num_rows($res_validar) == 0) {
+        mysqli_close($con);
+        error_log("Error: id_personal $id_personal no existe en la tabla personal");
+        return false;
+    }
+
+    // ✅ Actualizar la salida con los datos de aprobación
+    $sql_update = "UPDATE salida 
+                   SET id_personal_aprueba_salida = '$id_personal',
+                       fec_aprueba_salida = NOW()
+                   WHERE id_salida = '$id_salida'";
+
+    $res_update = mysqli_query($con, $sql_update);
+
+    if ($res_update) {
+        // 🔄 ACTUALIZAR ESTADO DEL PEDIDO SI EXISTE
+        if ($id_pedido > 0) {
+            require_once("../_modelo/m_pedidos.php");
+            
+            error_log("📋 Actualizando estado del pedido después de recepción: $id_pedido");
+            ActualizarEstadoPedido($id_pedido);
+            error_log("✅ Estado del pedido actualizado");
+        }
+    }
+
+    mysqli_close($con);
+    return $res_update;
 }

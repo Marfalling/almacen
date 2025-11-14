@@ -997,11 +997,22 @@ if ($id_pedido > 0) {
         // ============================================================
         //  RE-VERIFICACIÓN AUTOMÁTICA (SIEMPRE)
         // ============================================================
-        if ($estado_pedido != 0 && $estado_pedido != 5) {
-            error_log("🔄 RE-VERIFICACIÓN AUTOMÁTICA - Pedido $id_pedido");
-            
-            include("../_conexion/conexion.php");
-            
+        if ($estado_pedido != 0 && $estado_pedido != 5 && $estado_pedido != 4) { //  NO verificar si está en estado 4 (Ingresado)
+        error_log("🔄 RE-VERIFICACIÓN AUTOMÁTICA - Pedido $id_pedido");
+        
+        include("../_conexion/conexion.php");
+        
+        //  VALIDAR: ¿Hay items que NECESITEN re-verificación?
+        $sql_check = "SELECT COUNT(*) as items_pendientes
+                    FROM pedido_detalle 
+                    WHERE id_pedido = $id_pedido 
+                    AND est_pedido_detalle = 1"; // Solo items abiertos
+        
+        $res_check = mysqli_query($con, $sql_check);
+        $row_check = mysqli_fetch_assoc($res_check);
+        $hay_items_pendientes = intval($row_check['items_pendientes']) > 0;
+        
+        if ($hay_items_pendientes) {
             // Obtener todos los detalles activos
             $sql_detalles = "SELECT id_pedido_detalle 
                             FROM pedido_detalle 
@@ -1014,16 +1025,18 @@ if ($id_pedido > 0) {
             while ($row = mysqli_fetch_assoc($res_detalles)) {
                 $id_detalle = intval($row['id_pedido_detalle']);
                 
-                //  RE-VERIFICAR CANTIDADES SEGÚN STOCK ACTUAL
-                require_once("../_modelo/m_pedidos.php");
+                //  RE-VERIFICAR SOLO SI NO ESTÁ COMPLETAMENTE INGRESADO
                 ReverificarItemAutomaticamente($id_detalle);
                 $items_reverificados++;
             }
             
-            mysqli_close($con);
-            
             error_log("✅ Items re-verificados automáticamente: $items_reverificados");
+        } else {
+            error_log(" Sin items pendientes - Omitiendo re-verificación");
         }
+        
+        mysqli_close($con);
+    }
         
         // ============================================================
         // CARGAR DETALLE CON STOCK CALCULADO
