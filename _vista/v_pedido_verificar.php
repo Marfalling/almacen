@@ -354,14 +354,45 @@ $monedas = MostrarMoneda();
                                     }
                                 }
 
+                                // ========================================
+                                //  BLOQUE ÚNICO DE CÁLCULO DE PENDIENTES
+                                // ========================================
                                 $id_detalle = $detalle['id_pedido_detalle'];
-                                $cant_verificada_os = floatval($detalle['cant_os_pedido_detalle']);
-                                $cant_os_ordenada_total = ObtenerCantidadYaOrdenadaOSPorDetalle($id_detalle);
-                                $cant_anulada = ObtenerCantidadEnSalidasAnuladasPorDetalle($id_detalle);
-                                $cant_os_ordenada_actual = max(0, $cant_os_ordenada_total - $cant_anulada);
+                                
+                                if (!$esAutoOrden) {
+                                    //  Variables básicas del detalle (MATERIALES)
+                                    $cant_os_verificada = isset($detalle['cant_os_pedido_detalle']) ? floatval($detalle['cant_os_pedido_detalle']) : 0;
+                                    $cant_oc_verificada = isset($detalle['cant_oc_pedido_detalle']) ? floatval($detalle['cant_oc_pedido_detalle']) : 0;
+
+                                    //  Obtener cantidad ya ordenada en salidas activas (excluyendo anuladas)
+                                    $cant_os_ordenada_total = ObtenerCantidadYaOrdenadaOSPorDetalle($id_detalle);
+                                    $cant_anulada = ObtenerCantidadEnSalidasAnuladasPorDetalle($id_detalle);
+                                    $cant_os_ordenada_actual = max(0, $cant_os_ordenada_total - $cant_anulada);
+
+                                    //  CORRECCIÓN: Calcular pendiente OS correctamente
+                                    // Lo que falta en destino
+                                    $falta_en_destino = max(0, $cantidad_pedida - $stock_destino);
+
+                                    // OS pendiente = lo que se puede trasladar (limitado por OS verificada y ya ordenado)
+                                    $pendiente_os = max(0, min($falta_en_destino, $cant_os_verificada) - $cant_os_ordenada_actual);
+
+                                    //  OC pendiente (sin cambios)
+                                    $pendiente_oc = isset($detalle['cantidad_pendiente_oc']) ? floatval($detalle['cantidad_pendiente_oc']) : 0;
+
+                                    //  Log para debugging
+                                    error_log("🔍 Item {$id_detalle}: Pedido=$cantidad_pedida | Stock destino=$stock_destino | Falta=$falta_en_destino | OS verificada=$cant_os_verificada | OS ordenada=$cant_os_ordenada_actual | Pendiente OS=$pendiente_os");
+
+                                    //  Determinar si están completadas
+                                    $os_completada = ($cant_os_verificada > 0 && $pendiente_os <= 0);
+                                    $oc_completada = ($cant_oc_verificada > 0 && $pendiente_oc <= 0);
+
+                                    //  Determinar si se verificó algo
+                                    $se_verifico_os = ($cant_os_verificada > 0);
+                                    $se_verifico_oc = ($cant_oc_verificada > 0);
 
                                 // --Verificar si el item tiene stock completo para salida
                                 //$tieneStockCompleto = ($detalle['cantidad_disponible_real'] >= $detalle['cant_pedido_detalle']);
+                                }
                             ?>
                                 
                             <div class="item-pendiente border mb-2"
@@ -403,7 +434,7 @@ $monedas = MostrarMoneda();
                                         <span style="font-size: 10px;">
                                             <?php echo htmlspecialchars($pedido['nom_ubicacion']); ?> (Destino)
                                         </span>
-                                        <strong class="ml-2"><?php echo number_format($stock_destino, 2); ?></strong>
+                                        <strong class="ml-2"><?php echo number_format($detalle['stock_ubicacion_destino'], 2); ?></strong>
                                         <span class="text-muted">/ Necesita: <?php echo number_format($cantidad_pedida, 2); ?></span>
                                     </div>
                                     
@@ -641,44 +672,44 @@ $monedas = MostrarMoneda();
                                         // CALCULAR CANTIDAD YA ORDENADA
                                         $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                     ?>
-                                        <button type="button" 
-                                                class="btn btn-success btn-sm btn-agregarSalida" 
-                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
-                                                data-cantidad-disponible="<?php echo $pendiente_os; ?>"
-                                                data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
-                                                data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
-                                                data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
-                                                style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
-                                            <i class="fa fa-truck"></i> Agregar a OS (<?php echo number_format($pendiente_os, 2); ?>)
-                                        </button>
-                                        
-                                        <button type="button" 
-                                                class="btn btn-primary btn-sm btn-agregarOrden" 
-                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
-                                                data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
-                                                data-cantidad-ordenada="<?php echo $ya_ordenado_oc; ?>"
-                                                data-cantidad-pendiente="<?php echo $pendiente_oc; ?>"
-                                                style="padding: 2px 8px; font-size: 11px;">
-                                            <i class="fa fa-shopping-cart"></i> Agregar a OC (<?php echo number_format($pendiente_oc, 2); ?>)
-                                        </button>
+                                    <button type="button" 
+                                            class="btn btn-success btn-sm btn-agregarSalida" 
+                                            data-id-detalle="<?php echo $id_detalle; ?>"
+                                            data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                            data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                                            data-cantidad-disponible="<?php echo $pendiente_os; ?>"
+                                            data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
+                                            data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
+                                            data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
+                                            style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
+                                        <i class="fa fa-truck"></i> OS (<?php echo number_format($pendiente_os, 2); ?>)
+                                    </button>
+                                    
+                                    <button type="button" 
+                                            class="btn btn-primary btn-sm btn-agregarOrden" 
+                                            data-id-detalle="<?php echo $id_detalle; ?>"
+                                            data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                            data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                                            data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
+                                            data-cantidad-ordenada="<?php echo $cant_oc_ordenada; ?>"
+                                            data-cantidad-pendiente="<?php echo $pendiente_oc; ?>"
+                                            style="padding: 2px 8px; font-size: 11px;">
+                                        <i class="fa fa-shopping-cart"></i> OC (<?php echo number_format($pendiente_oc, 2); ?>)
+                                    </button>
                                     <?php
                                     }
                                         // CASO 10: Pendiente verificar
                                         elseif (!$esVerificado && !$pedidoAnulado) {
                                     ?>
-                                            <button type="button" class="btn btn-warning btn-xs verificar-btn"
-                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                    data-cantidad-pedida="<?php echo $cantidad_pedida; ?>"
-                                                    data-stock-destino="<?php echo isset($stock_destino) ? $stock_destino : 0; ?>"
-                                                    data-stock-otras-ubicaciones="<?php echo isset($stock_otras_ubicaciones) ? $stock_otras_ubicaciones : 0; ?>"
-                                                    data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
-                                                    style="padding: 2px 8px; font-size: 11px;">
-                                                <i class="fa fa-check"></i> Verificar
-                                            </button>
+                                        <button type="button" class="btn btn-warning btn-xs verificar-btn"
+                                                data-id-detalle="<?php echo $id_detalle; ?>"
+                                                data-cantidad-pedida="<?php echo $cantidad_pedida; ?>"
+                                                data-stock-destino="<?php echo $stock_destino; ?>"
+                                                data-stock-otras-ubicaciones="<?php echo isset($stock_otras_ubicaciones) ? $stock_otras_ubicaciones : 0; ?>"
+                                                data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
+                                                style="padding: 2px 8px; font-size: 11px;">
+                                            <i class="fa fa-check"></i> Verificar
+                                        </button>
                                     <?php
                                         }
                                     }
@@ -738,6 +769,10 @@ $monedas = MostrarMoneda();
                                         $cant_oc_verificada = floatval($detalle['cant_oc_pedido_detalle']);
                                         $cant_os_verificada = floatval($detalle['cant_os_pedido_detalle']);
                                         
+                                        // 🔹 DEFINIR CANTIDADES ORDENADAS AQUÍ (ANTES DE USARLAS)
+                                        $cant_oc_ordenada = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
+                                        $cant_os_ordenada = isset($detalle['cantidad_ya_ordenada_os']) ? floatval($detalle['cantidad_ya_ordenada_os']) : 0;
+                                        
                                         // Obtener salidas históricas reales
                                         $cant_os_ordenada_historica = ObtenerCantidadYaOrdenadaOSPorDetalle($detalle['id_pedido_detalle']);
                                         
@@ -747,76 +782,75 @@ $monedas = MostrarMoneda();
                                         }
                                         
                                         // Calcular pendiente OS basado en CANTIDAD PEDIDA
-                                        $ordenado_os = isset($detalle['cantidad_ya_ordenada_os']) ? floatval($detalle['cantidad_ya_ordenada_os']) : 0;
-                                        if ($ordenado_os == 0 && $cant_os_ordenada_historica > 0) {
-                                            $ordenado_os = $cant_os_ordenada_historica;
+                                        if ($cant_os_ordenada == 0 && $cant_os_ordenada_historica > 0) {
+                                            $cant_os_ordenada = $cant_os_ordenada_historica;
                                         }
+                                        
                                         // El pendiente debe ser: Cantidad Pedida - Lo ya ordenado (limitado por OS verificada)
-                                        $pendiente_os = $cantidad_pedida - $ordenado_os;
+                                        $pendiente_os = $cantidad_pedida - $cant_os_ordenada;
                                         $pendiente_os = min($pendiente_os, $cant_os_verificada); // No puede exceder lo verificado
                                         $pendiente_os = max(0, $pendiente_os); // No puede ser negativo
                                         
-                                        $ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
-                                        $pendiente_oc = $cant_oc_verificada - $ordenado_oc;
+                                        $pendiente_oc = $cant_oc_verificada - $cant_oc_ordenada;
                                         
-                                        //  DETERMINAR SI ESTÁN COMPLETADAS
+                                        // DETERMINAR SI ESTÁN COMPLETADAS
                                         $os_completada = ($cant_os_verificada > 0 && $pendiente_os <= 0);
                                         $oc_completada = ($cant_oc_verificada > 0 && $pendiente_oc <= 0);
                                         
                                         if ($cant_os_verificada > 0 || $cant_oc_verificada > 0) { ?>
-                                            <div style="padding: 4px 0; border-top: 1px solid #e0e0e0;">
-                                                
-                                                <?php // ========== SECCIÓN OS ==========
-                                                if ($cant_os_verificada > 0): ?>
-                                                    <div style="background: #ffffff; padding: 3px 8px; border-radius: 3px; margin-bottom: 4px; color: #333;">
-                                                        <strong>📦 OS:</strong>
-                                                        <span><strong>Verificado:</strong> <?php echo number_format($cant_os_verificada, 2); ?></span>
-                                                        
-                                                        <?php if ($ordenado_os > 0) { ?>
-                                                            <span style="margin: 0 6px;">•</span>
-                                                            <span><strong>Ordenado:</strong> <?php echo number_format($ordenado_os, 2); ?></span>
-                                                        <?php }
-                                                        
-                                                        if ($pendiente_os > 0) { ?>
-                                                            <span style="margin: 0 6px;">•</span>
-                                                            <span><strong>Pendiente:</strong> <?php echo number_format($pendiente_os, 2); ?></span>
-                                                        <?php } else if ($os_completada) { ?>
-                                                            <span style="margin: 0 6px;">•</span>
-                                                            <span style="font-weight: bold; color: #28a745;">✓ Completada</span>
-                                                        <?php } ?>
-                                                    </div>
-                                                <?php endif; ?>
-                                                                            
-                                                <?php // ========== SECCIÓN OC ==========
-                                                if ($cant_oc_verificada > 0): ?>
-                                                    <div style="background: #ffffff; padding: 3px 8px; border-radius: 3px; color: #333;">
-                                                        <strong>🛒 OC:</strong>
-                                                        <span><strong>Verificado:</strong> <?php echo number_format($cant_oc_verificada, 2); ?></span>
-                                                        
-                                                        <?php if ($ordenado_oc > 0) { ?>
-                                                            <span style="margin: 0 6px;">•</span>
-                                                            <span><strong>Ordenado:</strong> <?php echo number_format($ordenado_oc, 2); ?></span>
-                                                        <?php }
-                                                        
-                                                        if ($pendiente_oc > 0) { ?>
-                                                            <span style="margin: 0 6px;">•</span>
-                                                            <span><strong>Pendiente:</strong> <?php echo number_format($pendiente_oc, 2); ?></span>
-                                                        <?php } else if ($oc_completada) { ?>
-                                                            <span style="margin: 0 6px;">•</span>
-                                                            <span style="font-weight: bold; color: #28a745;">✓ Completada</span>
-                                                        <?php } ?>
-                                                    </div>
-                                                <?php endif; ?>
-                                                
-                                                <?php // ========== RESUMEN SI AMBOS COMPLETADOS ==========
-                                                if ($os_completada && $oc_completada && $cant_os_verificada > 0 && $cant_oc_verificada > 0): ?>
-                                                    <div style="background: #d4edda; padding: 5px 8px; border-radius: 4px; margin-top: 5px; border-left: 3px solid #28a745;">
-                                                        <strong style="color: #155724;">
-                                                            <i class="fa fa-check-double"></i> OS + OC Completadas
-                                                        </strong>
-                                                    </div>
-                                                <?php endif; ?>
-                                            </div>
+                                        <div style="padding: 4px 0; border-top: 1px solid #e0e0e0;">
+                                            
+                                            <?php if ($se_verifico_os && $cant_os_verificada > 0): ?>
+                                                <div style="background: #ffffff; padding: 3px 8px; border-radius: 3px; margin-bottom: 4px; color: #333;">
+                                                    <strong>📦 OS:</strong>
+                                                    <span><strong>Verificado:</strong> <?php echo number_format($cant_os_verificada, 2); ?></span>
+                                                    
+                                                    <?php if ($cant_os_ordenada > 0): ?>
+                                                        <span style="margin: 0 6px;">•</span>
+                                                        <span><strong>Trasladado:</strong> <?php echo number_format($cant_os_ordenada, 2); ?></span>
+                                                    <?php endif; ?>
+                                                    
+                                                    <?php if ($pendiente_os > 0): ?>
+                                                        <span style="margin: 0 6px;">•</span>
+                                                        <span><strong>Pendiente:</strong> <?php echo number_format($pendiente_os, 2); ?></span>
+                                                    <?php elseif ($os_completada): ?>
+                                                        <span style="margin: 0 6px;">•</span>
+                                                        <span style="font-weight: bold; color: #28a745;">✓ Completada</span>
+                                                    <?php endif; ?>
+                                                    
+                                                    <span style="margin: 0 6px;">•</span>
+                                                    <span class="text-info"><strong>Stock destino:</strong> <?php echo number_format($stock_destino, 2); ?>/<?php echo number_format($cantidad_pedida, 2); ?></span>
+                                                </div>
+                                            <?php endif; ?>
+                                            
+                                            <?php if ($se_verifico_oc && $cant_oc_verificada > 0): ?>
+                                                <div style="background: #ffffff; padding: 3px 8px; border-radius: 3px; color: #333;">
+                                                    <strong>🛒 OC:</strong>
+                                                    <span><strong>Verificado:</strong> <?php echo number_format($cant_oc_verificada, 2); ?></span>
+                                                    
+                                                    <?php if ($cant_oc_ordenada > 0): ?>
+                                                        <span style="margin: 0 6px;">•</span>
+                                                        <span><strong>Ordenado:</strong> <?php echo number_format($cant_oc_ordenada, 2); ?></span>
+                                                    <?php endif; ?>
+                                                    
+                                                    <?php if ($pendiente_oc > 0): ?>
+                                                        <span style="margin: 0 6px;">•</span>
+                                                        <span><strong>Pendiente:</strong> <?php echo number_format($pendiente_oc, 2); ?></span>
+                                                    <?php elseif ($oc_completada): ?>
+                                                        <span style="margin: 0 6px;">•</span>
+                                                        <span style="font-weight: bold; color: #28a745;">✓ Completada</span>
+                                                    <?php endif; ?>
+                                                </div>
+                                            <?php endif; ?>
+                                            
+                                            <?php if ($os_completada && $oc_completada && $cant_os_verificada > 0 && $cant_oc_verificada > 0): ?>
+                                                <div style="background: #d4edda; padding: 5px 8px; border-radius: 4px; margin-top: 5px; border-left: 3px solid #28a745;">
+                                                    <strong style="color: #155724;">
+                                                        <i class="fa fa-check-double"></i> OS + OC Completadas
+                                                    </strong>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
                                         <?php }
                                     }
                                     ?>
@@ -976,7 +1010,7 @@ $monedas = MostrarMoneda();
                             <div class="tab-pane fade show active" id="ordenes" role="tabpanel">
                                 <div class="table-responsive mt-2">
                                     <table class="table table-striped table-bordered" style="font-size: 12px;">
-                                        <thead style="background-color: #f8f9fa;">
+                                        <thead style="background-color: #007bff; color: white;">
                                             <tr>
                                                 <th style="width: 15%;">N° Orden</th>
                                                 <th style="width: 20%;">Proveedor</th>
@@ -1133,7 +1167,7 @@ $monedas = MostrarMoneda();
                             <div class="tab-pane fade" id="salidas" role="tabpanel">
                                 <div class="table-responsive mt-2">
                                     <table class="table table-striped table-bordered" style="font-size: 12px;">
-                                        <thead style="background-color: #f0f8ff;">
+                                        <thead style="background-color: #28a745; color: white;">
                                             <tr>
                                                 <th style="width: 12%;">N° Salida</th>
                                                 <th style="width: 18%;">Destino</th>
@@ -1144,103 +1178,96 @@ $monedas = MostrarMoneda();
                                             </tr>
                                         </thead>
                                         <tbody id="tbody-salidas">
-                                            <?php if (!empty($pedido_salidas)) { ?>
-                                                <?php foreach ($pedido_salidas as $salida) {
-                                                    // Verificar si está recepcionada
-                                                    $tiene_recepcion = !empty($salida['id_personal_aprueba_salida']);
-                                                    
-                                                    $estado_salida_texto = '';
-                                                    $estado_salida_clase = '';
+                                        <?php if (!empty($pedido_salidas)) { ?>
+                                            <?php foreach ($pedido_salidas as $salida) {
 
-                                                    if ($salida['est_salida'] == 0) {
-                                                        $estado_salida_texto = 'Anulada';
-                                                        $estado_salida_clase = 'danger';
-                                                    } elseif ($tiene_recepcion) {
-                                                        $estado_salida_texto = 'Recepcionada';
-                                                        $estado_salida_clase = 'success';
-                                                    } elseif ($salida['est_salida'] == 1) {
-                                                        $estado_salida_texto = 'Pendiente';
-                                                        $estado_salida_clase = 'warning';
-                                                    } else {
-                                                        $estado_salida_texto = 'Desconocido';
-                                                        $estado_salida_clase = 'secondary';
-                                                    }
+                                                // Estado
+                                                if ($salida['est_salida'] == 0) {
+                                                    $estado_salida_texto = 'Anulada';
+                                                    $estado_salida_clase = 'danger';
+                                                } elseif ($salida['est_salida'] == 2) {
+                                                    $estado_salida_texto = 'Recepcionada';
+                                                    $estado_salida_clase = 'success';
+                                                } elseif ($salida['est_salida'] == 1) {
+                                                    $estado_salida_texto = 'Pendiente Recepción';
+                                                    $estado_salida_clase = 'warning';
+                                                } else {
+                                                    $estado_salida_texto = 'Desconocido';
+                                                    $estado_salida_clase = 'secondary';
+                                                }
 
-                                                    $fecha_salida = date('d/m/Y', strtotime($salida['fec_req_salida']));
-                                                ?>
-                                                    <tr>
-                                                        <td><strong>S00<?php echo $salida['id_salida']; ?></strong></td>
-                                                        <td><?php echo htmlspecialchars($salida['nom_ubicacion_destino']); ?></td>
-                                                        <td><?php echo $fecha_salida; ?></td>
-                                                        <td>
-                                                            <?php 
-                                                            if ($tiene_recepcion) {
-                                                                // Usar el dato que ya viene de la consulta
-                                                                echo htmlspecialchars($salida['nom_personal_recepciona']);
-                                                                if (!empty($salida['fec_aprueba_salida'])) {
-                                                                    echo '<br><small class="text-muted">' . 
-                                                                        date('d/m/Y H:i', strtotime($salida['fec_aprueba_salida'])) . 
-                                                                        '</small>';
-                                                                }
-                                                            } else {
-                                                                echo '<span class="text-muted">-</span>';
-                                                            }
-                                                            ?>
-                                                        </td>
-                                                        <td>
-                                                            <span class="badge badge-<?php echo $estado_salida_clase; ?>">
-                                                                <?php echo $estado_salida_texto; ?>
-                                                            </span>
-                                                        </td>
-                                                        <td>
-                                                            <!-- Botón Ver Detalles -->
-                                                            <button class="btn btn-info btn-xs btn-ver-salida"
-                                                                    title="Ver Detalles"
+                                                $fecha_salida = date('d/m/Y', strtotime($salida['fec_req_salida']));
+                                            ?>
+                                                <tr>
+                                                    <td><strong>S00<?php echo $salida['id_salida']; ?></strong></td>
+                                                    <td><?php echo htmlspecialchars($salida['nom_ubicacion_destino']); ?></td>
+                                                    <td><?php echo $fecha_salida; ?></td>
+
+                                                    <td>
+                                                        <?php if ($salida['est_salida'] == 2) { ?>
+                                                            <?php echo htmlspecialchars($salida['nom_personal_recepciona']); ?>
+                                                            <?php if (!empty($salida['fec_aprueba_salida'])) { ?>
+                                                                <br><small class="text-muted">
+                                                                    <?php echo date('d/m/Y H:i', strtotime($salida['fec_aprueba_salida'])); ?>
+                                                                </small>
+                                                            <?php } ?>
+                                                        <?php } else { ?>
+                                                            <span class="text-muted">-</span>
+                                                        <?php } ?>
+                                                    </td>
+
+                                                    <td>
+                                                        <span class="badge badge-<?php echo $estado_salida_clase; ?>">
+                                                            <?php echo $estado_salida_texto; ?>
+                                                        </span>
+                                                    </td>
+
+                                                    <td>
+                                                        <!-- Botón Ver Detalles -->
+                                                        <button class="btn btn-info btn-xs btn-ver-salida"
+                                                                title="Ver Detalles"
+                                                                data-id-salida="<?php echo $salida['id_salida']; ?>">
+                                                            <i class="fa fa-eye"></i>
+                                                        </button>
+
+                                                        <?php if ($salida['est_salida'] == 1) { ?>
+                                                            <!-- Botón Editar -->
+                                                            <button class="btn btn-warning btn-xs ml-1 btn-editar-salida"
+                                                                    title="Editar Salida"
                                                                     data-id-salida="<?php echo $salida['id_salida']; ?>">
-                                                                <i class="fa fa-eye"></i>
+                                                                <i class="fa fa-edit"></i>
                                                             </button>
 
-                                                            <?php if ($salida['est_salida'] == 1 && !$tiene_recepcion) { ?>
-                                                                <!-- Botón Editar (solo si NO está recepcionada) -->
-                                                                <button class="btn btn-warning btn-xs ml-1 btn-editar-salida"
-                                                                        title="Editar Salida"
-                                                                        data-id-salida="<?php echo $salida['id_salida']; ?>">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </button>
+                                                            <!-- Botón Anular -->
+                                                            <button class="btn btn-danger btn-xs ml-1 btn-anular-salida"
+                                                                    title="Anular Salida"
+                                                                    data-id-salida="<?php echo $salida['id_salida']; ?>">
+                                                                <i class="fa fa-times"></i>
+                                                            </button>
 
-                                                                <!-- Botón Anular (solo si NO está recepcionada) -->
-                                                                <button class="btn btn-danger btn-xs ml-1 btn-anular-salida"
-                                                                        title="Anular Salida"
-                                                                        data-id-salida="<?php echo $salida['id_salida']; ?>">
-                                                                    <i class="fa fa-times"></i>
-                                                                </button>
-                                                            <?php } elseif ($tiene_recepcion) { ?>
-                                                                <!-- Botones deshabilitados si está recepcionada -->
-                                                                <button class="btn btn-outline-secondary btn-xs ml-1 disabled"
-                                                                        title="No se puede editar - Salida recepcionada"
-                                                                        disabled>
-                                                                    <i class="fa fa-edit"></i>
-                                                                </button>
-                                                                <button class="btn btn-outline-secondary btn-xs ml-1 disabled"
-                                                                        title="No se puede anular - Salida recepcionada"
-                                                                        disabled>
-                                                                    <i class="fa fa-times"></i>
-                                                                </button>
-                                                            <?php } ?>
-                                                        </td>
-                                                    </tr>
-                                                <?php } ?>
-                                            <?php } else { ?>
-                                                <tr>
-                                                    <td colspan="6" class="text-center p-3">
-                                                        <i class="fa fa-truck fa-2x text-success mb-2"></i>
-                                                        <h5 class="text-success">Sin salidas registradas</h5>
-                                                        <p class="text-muted" style="font-size: 12px;">
-                                                            Las salidas de almacén aparecerán aquí.
-                                                        </p>
+                                                        <?php } elseif ($salida['est_salida'] == 2) { ?>
+                                                            <!-- Botones deshabilitados -->
+                                                            <button class="btn btn-outline-secondary btn-xs ml-1 disabled">
+                                                                <i class="fa fa-edit"></i>
+                                                            </button>
+                                                            <button class="btn btn-outline-secondary btn-xs ml-1 disabled">
+                                                                <i class="fa fa-times"></i>
+                                                            </button>
+                                                        <?php } ?>
                                                     </td>
                                                 </tr>
                                             <?php } ?>
+                                        <?php } else { ?>
+                                            <tr>
+                                                <td colspan="6" class="text-center p-3">
+                                                    <i class="fa fa-truck fa-2x text-success mb-2"></i>
+                                                    <h5 class="text-success">Sin salidas registradas</h5>
+                                                    <p class="text-muted" style="font-size: 12px;">
+                                                        Las salidas de almacén aparecerán aquí.
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        <?php } ?>
                                         </tbody>
                                     </table>
                                 </div>
@@ -2370,7 +2397,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Cargar salida si está en edición
     if (modoEditarSalida) {
-        //setTimeout(cargarSalidaEdicion, 300);
+        setTimeout(cargarSalidaEdicion, 300);
     }
     
     configurarEventListeners();
@@ -3963,6 +3990,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 100);
     }
 
+    // Actualizar la función cargarSalidaEdicion - Línea ~730
     function cargarSalidaEdicion() {
         if (!modoEditarSalida) return;
         
@@ -3991,6 +4019,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const contenedor = document.getElementById('contenedor-items-salida');
         if (!contenedor) return;
         
+        //  LIMPIAR EL CONTENEDOR ANTES DE AGREGAR NUEVOS ITEMS
+        contenedor.innerHTML = '';
+        
         console.log('🗑️ Contenedor limpiado');
         
         itemsSalidaEditar.forEach(item => {
@@ -3998,16 +4029,20 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const idPedidoDetalle = parseInt(item.id_pedido_detalle) || 0;
             const cantActualEnSalida = parseFloat(item.cant_salida_detalle) || 0;
-            
-            // ✅ CORRECCIÓN: Obtener directamente del PHP (ya calculado)
             const cantidadMaxima = parseFloat(item.cantidad_maxima) || cantActualEnSalida;
             
-            // 🔍 Log de depuración
+            //  Log detallado
             console.log(`  📊 Item: ${item.nom_producto}`, {
+                idSalidaDetalle: item.id_salida_detalle,
                 cantActualEnSalida,
                 cantidadMaximaCalculada: item.cantidad_maxima,
                 cantidadMaximaFinal: cantidadMaxima
             });
+            
+            //  VERIFICAR QUE cantidad_maxima SEA VÁLIDA
+            if (cantidadMaxima <= 0) {
+                console.error(` cantidad_maxima inválida para item ${item.nom_producto}: ${cantidadMaxima}`);
+            }
             
             // ✅ GENERAR HTML CON EL MAX CORRECTO
             const div = document.createElement('div');
@@ -4060,7 +4095,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         console.log('✅ Items cargados en modo edición');
     }
-
     
     // ============================================
     // CONFIGURACIÓN DE EVENT LISTENERS

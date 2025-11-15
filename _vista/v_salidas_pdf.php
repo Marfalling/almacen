@@ -271,18 +271,7 @@ $html = '
             display: table;
             clear: both;
         }
-
-        /* ESTADO */
-        .estado-activo {
-            color: #006600;
-            font-weight: bold;
-        }
-
-        .estado-inactivo {
-            color: #cc0000;
-            font-weight: bold;
-        }
-
+    
     </style>
 </head>
 <body>
@@ -308,7 +297,10 @@ $html = '
             <div class="estado-section">
                 <div class="estado-box">
                     ESTADO:<br>
-                    <span class="' . ($estado_texto == 'ACTIVO' ? 'estado-activo' : 'estado-inactivo') . '">' . $estado_texto . '</span>
+                    <span class="' . 
+                        ($estado_texto == "ACTIVO" ? "estado-activo" :
+                        ($estado_texto == "RECEPCIONADO" ? "estado-recepc" : "estado-desconocido")) 
+                    . '">' . $estado_texto . '</span>
                 </div>
             </div>
 

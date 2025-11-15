@@ -88,10 +88,22 @@ if (!empty($salida['nom_recibe'])) {
 // Estado de la salida
 $estado_texto = '';
 switch($salida['est_salida']) {
-    case 1: $estado_texto = 'ACTIVO'; break;
-    case 0: $estado_texto = 'INACTIVO'; break;
-    default: $estado_texto = 'DESCONOCIDO';
+    case 0:
+        $estado_texto = 'ANULADA';
+        break;
+
+    case 1:
+        $estado_texto = 'PENDIENTE';
+        break;
+
+    case 2:
+        $estado_texto = 'RECEPCIONADA';
+        break;
+
+    default:
+        $estado_texto = 'DESCONOCIDO';
 }
+
 
 // Preparar detalles de la salida
 $detalles_html = '';

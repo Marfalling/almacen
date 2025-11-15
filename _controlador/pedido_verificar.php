@@ -1041,36 +1041,36 @@ if ($id_pedido > 0) {
         // ============================================================
         // CARGAR DETALLE CON STOCK CALCULADO
         // ============================================================
-        $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
-        
-        foreach ($pedido_detalle as &$detalle) {
-            $id_producto  = intval($detalle['id_producto']);
-            $id_almacen   = intval($pedido['id_almacen']);
-            $id_ubicacion = intval($pedido['id_ubicacion']);
+            $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
 
-            // Obtener stock completo
-            $stock = ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion, $id_pedido);
-            $detalle['cantidad_disponible_almacen'] = $stock['stock_fisico'];
-            $detalle['cantidad_disponible_real']   = $stock['stock_disponible'];
-            
-            // Obtener stock por ubicaciones
-            $detalle['stock_ubicacion_destino'] = ObtenerStockEnUbicacion(
-                $id_producto, 
-                $id_almacen, 
-                $id_ubicacion
-            );
-            
-            $detalle['otras_ubicaciones_con_stock'] = ObtenerOtrasUbicacionesConStock(
-                $id_producto,
-                $id_almacen,
-                $id_ubicacion
-            );
-            
-            $detalle['stock_total_almacen'] = ObtenerStockTotalAlmacen(
-                $id_producto,
-                $id_almacen
-            );
-        }
+            foreach ($pedido_detalle as &$detalle) {
+                $id_producto  = intval($detalle['id_producto']);
+                $id_almacen   = intval($pedido['id_almacen']);
+                $id_ubicacion = intval($pedido['id_ubicacion']);
+
+                // 🔹 OBTENER STOCK REAL ACTUALIZADO (sin compromisos de este pedido)
+                $stock = ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion, $id_pedido);
+                $detalle['cantidad_disponible_almacen'] = $stock['stock_fisico'];
+                $detalle['cantidad_disponible_real']   = $stock['stock_disponible'];
+                
+                // 🔹 CRÍTICO: Obtener stock FÍSICO en destino (movimientos reales)
+                $detalle['stock_ubicacion_destino'] = ObtenerStockFisicoEnUbicacion(
+                    $id_producto, 
+                    $id_almacen, 
+                    $id_ubicacion
+                );
+                
+                $detalle['otras_ubicaciones_con_stock'] = ObtenerOtrasUbicacionesConStock(
+                    $id_producto,
+                    $id_almacen,
+                    $id_ubicacion
+                );
+                
+                $detalle['stock_total_almacen'] = ObtenerStockTotalAlmacen(
+                    $id_producto,
+                    $id_almacen
+                );
+            }
         unset($detalle);
         
         // ============================================================

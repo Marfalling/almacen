@@ -140,24 +140,24 @@ function AnularSalida(id_salida) {
                                         </thead>
 
                                         <tbody>
-                                            <?php 
-                                            $contador = 1;
-                                            foreach($salidas as $salida) { 
+                                        <?php 
+                                        $contador = 1;
+                                        foreach($salidas as $salida) { 
                                                 $tiene_aprobacion = !empty($salida['id_personal_aprueba_salida']);
-                                            ?>
-                                                <tr>
-                                                    <td><?php echo $contador; ?></td>
-                                                    <td><?php echo 'S00' . $salida['id_salida']; ?></td>
-                                                    <td><?php echo $salida['ndoc_salida']; ?></td>
-                                                    <td><?php echo $salida['nom_material_tipo']; ?></td>
-                                                    <td><?php echo $salida['nom_almacen_origen']; ?></td>
-                                                    <td><?php echo $salida['nom_ubicacion_origen']; ?></td>
-                                                    <td><?php echo $salida['nom_almacen_destino']; ?></td>
-                                                    <td><?php echo $salida['nom_ubicacion_destino']; ?></td>
-                                                    <td><?php echo date('d/m/Y', strtotime($salida['fec_req_salida'])); ?></td>
-                                                    <td><?php echo date('d/m/Y H:i', strtotime($salida['fec_salida'])); ?></td>
-                                                    <td><?php echo $salida['nom_personal']; ?></td>
-                                                    <td>
+                                        ?>
+                                            <tr>
+                                                <td><?php echo $contador; ?></td>
+                                                <td><?php echo 'S00' . $salida['id_salida']; ?></td>
+                                                <td><?php echo $salida['ndoc_salida']; ?></td>
+                                                <td><?php echo $salida['nom_material_tipo']; ?></td>
+                                                <td><?php echo $salida['nom_almacen_origen']; ?></td>
+                                                <td><?php echo $salida['nom_ubicacion_origen']; ?></td>
+                                                <td><?php echo $salida['nom_almacen_destino']; ?></td>
+                                                <td><?php echo $salida['nom_ubicacion_destino']; ?></td>
+                                                <td><?php echo date('d/m/Y', strtotime($salida['fec_req_salida'])); ?></td>
+                                                <td><?php echo date('d/m/Y H:i', strtotime($salida['fec_salida'])); ?></td>
+                                                <td><?php echo $salida['nom_personal']; ?></td>
+                                                <td>
                                                         <?php 
                                                         if ($tiene_aprobacion) {
                                                             echo $salida['nom_aprueba'];
@@ -165,116 +165,117 @@ function AnularSalida(id_salida) {
                                                             echo '-';
                                                         }
                                                         ?>
-                                                    </td>
-                                                    <td>
-                                                        <center>
-                                                            <?php if ($salida['est_salida'] == 1) { ?>
-                                                                <?php if ($tiene_aprobacion) { ?>
-                                                                    <span class="badge badge-success badge_size">RECEPCIONADO</span>
-                                                                <?php } else { ?>
-                                                                    <span class="badge badge-warning badge_size">PENDIENTE</span>
-                                                                <?php } ?>
-                                                            <?php } else { ?>
-                                                                <span class="badge badge-danger badge_size">ANULADO</span>
-                                                            <?php } ?>
-                                                        </center>
-                                                    </td>
-                                                    <td>
-                                                        <div class="d-flex flex-wrap gap-2">
-                                                            <!-- Botón Ver Detalle -->
-                                                            <button type="button" 
-                                                                    class="btn btn-info btn-sm" 
-                                                                    data-toggle="modal" 
-                                                                    data-target="#modalDetalleSalida<?php echo $salida['id_salida']; ?>" 
-                                                                    title="Ver Detalle">
-                                                                <i class="fa fa-eye"></i>
+                                                </td>
+                                                <td>
+                                                    <center>
+                                                        <?php if ($salida['est_salida'] == 0) { ?>
+                                                            <span class="badge badge-danger badge_size">ANULADA</span>
+                                                        <?php } elseif ($salida['est_salida'] == 1) { ?>
+                                                            <span class="badge badge-warning badge_size">PENDIENTE</span>
+                                                        <?php } elseif ($salida['est_salida'] == 2) { ?>
+                                                            <span class="badge badge-success badge_size">RECEPCIONADA</span>
+                                                        <?php } ?>
+                                                    </center>
+                                                </td>
+
+                                                <!-- Acciones -->
+                                                <td>
+                                                    <div class="d-flex flex-wrap gap-2">
+
+                                                        <!-- Ver detalles -->
+                                                        <button type="button" 
+                                                                class="btn btn-info btn-sm"
+                                                                data-toggle="modal"
+                                                                data-target="#modalDetalleSalida<?php echo $salida['id_salida']; ?>"
+                                                                title="Ver Detalle">
+                                                            <i class="fa fa-eye"></i>
+                                                        </button>
+
+                                                        <?php if ($salida['est_salida'] == 1) { ?>
+                                                                <!-- SALIDA ACTIVA: mostrar botones según estado de aprobación -->
+
+                                                            <!-- Botón Recepcionar -->
+                                                            <button onclick="AprobarSalida(<?php echo $salida['id_salida']; ?>)"
+                                                                    class="btn btn-success btn-sm"
+                                                                    title="Recepcionar Salida">
+                                                                <i class="fa fa-check"></i>
                                                             </button>
 
-                                                            <?php if ($salida['est_salida'] == 1) { ?>
-                                                                <!-- SALIDA ACTIVA: mostrar botones según estado de aprobación -->
-                                                                
-                                                                <!-- Botón Recepcionar -->
-                                                                <a href="#"
-                                                                <?php if ($tiene_aprobacion) { ?>
-                                                                    class="btn btn-outline-secondary btn-sm disabled"
-                                                                    title="Ya recepcionada"
-                                                                    tabindex="-1" aria-disabled="true"
-                                                                <?php } else { ?>
-                                                                    onclick="AprobarSalida(<?php echo $salida['id_salida']; ?>)"
-                                                                    class="btn btn-success btn-sm"
-                                                                    title="Recepcionar Salida"
-                                                                <?php } ?>>
-                                                                    <i class="fa fa-check"></i>
-                                                                </a>
+                                                            <!-- Editar -->
+                                                            <a href="salidas_editar.php?id=<?php echo $salida['id_salida']; ?>" 
+                                                            class="btn btn-warning btn-sm" 
+                                                            title="Editar">
+                                                                <i class="fa fa-edit"></i>
+                                                            </a>
 
-                                                                <!-- Botón Editar - DESHABILITAR SI YA ESTÁ RECEPCIONADA -->
-                                                                <?php if ($tiene_aprobacion) { ?>
-                                                                    <a href="#"
-                                                                    class="btn btn-outline-secondary btn-sm disabled"
-                                                                    title="No se puede editar - Ya recepcionada"
-                                                                    tabindex="-1" aria-disabled="true">
-                                                                        <i class="fa fa-edit"></i>
-                                                                    </a>
-                                                                <?php } else { ?>
-                                                                    <a href="salidas_editar.php?id=<?php echo $salida['id_salida']; ?>" 
-                                                                    class="btn btn-warning btn-sm" 
-                                                                    title="Editar">
-                                                                        <i class="fa fa-edit"></i>
-                                                                    </a>
-                                                                <?php } ?>
+                                                            <!-- PDF -->
+                                                            <a href="salidas_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
+                                                            class="btn btn-secondary btn-sm" 
+                                                            title="Generar PDF"
+                                                            target="_blank">
+                                                                <i class="fa fa-file-pdf-o"></i>
+                                                            </a>
 
-                                                                <!-- Botón PDF -->
-                                                                <a href="salidas_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
-                                                                   class="btn btn-secondary btn-sm" 
-                                                                   title="Generar PDF"
-                                                                   target="_blank">
-                                                                    <i class="fa fa-file-pdf-o"></i>
-                                                                </a>
+                                                            <!-- Anular -->
+                                                            <button class="btn btn-danger btn-sm"
+                                                                    onclick="AnularSalida(<?php echo $salida['id_salida']; ?>)"
+                                                                    title="Anular">
+                                                                <i class="fa fa-times"></i>
+                                                            </button>
 
-                                                                <!-- Botón Anular - DESHABILITAR SI YA ESTÁ RECEPCIONADA -->
-                                                                <?php if ($tiene_aprobacion) { ?>
-                                                                    <a href="#"
-                                                                    class="btn btn-outline-secondary btn-sm disabled"
-                                                                    title="No se puede anular - Ya recepcionada"
-                                                                    tabindex="-1" aria-disabled="true">
-                                                                        <i class="fa fa-times"></i>
-                                                                    </a>
-                                                                <?php } else { ?>
-                                                                    <button class="btn btn-danger btn-sm" 
-                                                                            title="Anular salida"
-                                                                            onclick="AnularSalida(<?php echo $salida['id_salida']; ?>)">
-                                                                        <i class="fa fa-times"></i>
-                                                                    </button>
-                                                                <?php } ?>
+                                                        <?php } elseif ($salida['est_salida'] == 2) { ?>
 
-                                                            <?php } else { ?>
-                                                                <!-- SALIDA ANULADA: todos los botones deshabilitados -->
-                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Recepcionar" tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-check"></i>
-                                                                </a>
-                                                                <a href="#"
-                                                                class="btn btn-outline-secondary btn-sm disabled"
-                                                                title="No editable - Anulada"
-                                                                tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>
-                                                                <a href="salidas_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
-                                                                   class="btn btn-secondary btn-sm" 
-                                                                   title="Generar PDF"
-                                                                   target="_blank">
-                                                                    <i class="fa fa-file-pdf-o"></i>
-                                                                </a>
-                                                                <button class="btn btn-outline-secondary btn-sm" title="Ya anulada" disabled>
-                                                                    <i class="fa fa-times"></i>
-                                                                </button>
-                                                            <?php } ?>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            <?php 
-                                                $contador++;
-                                            } 
-                                            ?>
+                                                            <!-- TODO DESHABILITADO -->
+                                                            <button class="btn btn-outline-secondary btn-sm disabled">
+                                                                <i class="fa fa-check"></i>
+                                                            </button>
+
+                                                            <button class="btn btn-outline-secondary btn-sm disabled">
+                                                                <i class="fa fa-edit"></i>
+                                                            </button>
+
+                                                            <a href="salidas_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
+                                                            class="btn btn-secondary btn-sm"
+                                                            title="PDF"
+                                                            target="_blank">
+                                                                <i class="fa fa-file-pdf-o"></i>
+                                                            </a>
+
+                                                            <button class="btn btn-outline-secondary btn-sm disabled">
+                                                                <i class="fa fa-times"></i>
+                                                            </button>
+
+                                                        <?php } else { ?>
+                                                            <!-- Anulada: bloquear todo excepto PDF -->
+                                                            <button class="btn btn-outline-secondary btn-sm disabled">
+                                                                <i class="fa fa-check"></i>
+                                                            </button>
+
+                                                            <button class="btn btn-outline-secondary btn-sm disabled">
+                                                                <i class="fa fa-edit"></i>
+                                                            </button>
+
+                                                            <a href="salidas_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
+                                                            class="btn btn-secondary btn-sm"
+                                                            title="PDF"
+                                                            target="_blank">
+                                                                <i class="fa fa-file-pdf-o"></i>
+                                                            </a>
+
+                                                            <button class="btn btn-outline-secondary btn-sm disabled">
+                                                                <i class="fa fa-times"></i>
+                                                            </button>
+
+                                                        <?php } ?>
+
+                                                    </div>
+                                                </td>
+                                            </tr>
+
+                                        <?php 
+                                        $contador++;
+                                        } 
+                                        ?>
                                         </tbody>
                                     </table>
                                 </div>
