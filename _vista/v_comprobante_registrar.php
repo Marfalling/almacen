@@ -566,7 +566,7 @@ require_once("../_modelo/m_detraccion.php");
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Total a Pagar <span class="text-danger">*</span></label>
+                            <label>Total a Pagar</label>
                             <input type="number" step="0.01" name="total_pagar" id="total_pagar" class="form-control" placeholder="0.00" required readonly style="background-color: #e9ecef;">
                         </div>
                     </div>
@@ -576,7 +576,7 @@ require_once("../_modelo/m_detraccion.php");
                 <div class="row">
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label>Medio de Pago</label>
+                            <label>Medio de Pago <span class="text-danger">*</span></label>
                             <select name="id_medio_pago" id="id_medio_pago" class="form-control">
                                 <option value="">Seleccionar...</option>
                                 <?php foreach($medios_pago as $mp) { ?>
@@ -619,7 +619,7 @@ require_once("../_modelo/m_detraccion.php");
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Archivo PDF</label>
+                            <label>Archivo PDF <span class="text-danger">*</span></label>
                             <input type="file" name="archivo_pdf" class="form-control" accept=".pdf">
                             <small class="form-text text-muted">Máximo 5MB</small>
                         </div>
@@ -875,7 +875,7 @@ require_once("../_modelo/m_detraccion.php");
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Total a Pagar <span class="text-danger">*</span></label>
+                            <label>Total a Pagar</label>
                             <input type="number" step="0.01" name="total_pagar" id="edit_total_pagar" class="form-control" placeholder="0.00" required readonly style="background-color: #e9ecef;">
                         </div>
                     </div>
@@ -884,7 +884,7 @@ require_once("../_modelo/m_detraccion.php");
                 <div class="row">
                     <div class="col-md-3">
                         <div class="form-group">
-                            <label>Medio de Pago</label>
+                            <label>Medio de Pago <span class="text-danger">*</span></label>
                             <select name="id_medio_pago" id="edit_id_medio_pago" class="form-control">
                                 <option value="">Seleccionar...</option>
                                 <?php foreach($medios_pago as $mp) { ?>
@@ -927,7 +927,7 @@ require_once("../_modelo/m_detraccion.php");
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Archivo PDF</label>
+                            <label>Archivo PDF <span class="text-danger">*</span></label>
                             <div id="pdf_actual" class="mb-2"></div>
                             <input type="file" name="archivo_pdf" class="form-control" accept=".pdf">
                         </div>

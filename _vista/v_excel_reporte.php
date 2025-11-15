@@ -45,7 +45,8 @@ header("content-disposition: attachment;filename=RptInspeccionesAmbiente.xls");
            $doi_tipo = $row['doi_tipo'];
            $doi_numero = $row['doi_numero'];
            $tipo_abono = $row['tipo_abono'];
-           $nro_cuenta = $row['nro_cuenta'];
+           //$nro_cuenta = $row['nro_cuenta'];
+           $nro_cuenta = str_replace(' ', '', $row['nro_cuenta']);
            $beneficiario = $row['beneficiario'];
            $importe_abonar = $row['importe_abonar'];
            $tipo_recibo = $row['tipo_recibo'];
@@ -66,9 +67,10 @@ header("content-disposition: attachment;filename=RptInspeccionesAmbiente.xls");
         <td><?php echo $doi_tipo; ?></td>   
         <td><?php echo $doi_numero; ?></td>  
         <td><?php echo $tipo_abono; ?></td>  
-        <td><?php echo $nro_cuenta; ?></td>
+        <td style="mso-number-format:'\@';"><?php echo $nro_cuenta; ?></td>
         <td><?php echo $beneficiario; ?></td>  
-        <td><?php echo $importe_abonar; ?></td>
+        <!--<td><?php /*echo $importe_abonar;*/ ?></td>-->
+        <td style="mso-number-format:'0.00';"><?php echo number_format($importe_abonar, 2, '.', ''); ?></td>
         <td><?php echo $tipo_recibo; ?></td>
         <td><?php echo $numero_documento; ?></td>  
         <td><?php echo $abono_agrupado; ?></td>  
