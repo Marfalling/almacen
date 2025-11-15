@@ -17,4 +17,5 @@ $consulta = obtenerComprobantesEstado1();
 require_once('../_vista/v_excel_reporte.php');
 
 ActualizarComprobantesEstado();
+
 ?>

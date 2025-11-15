@@ -290,6 +290,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         $mensaje_alerta = 'Debe seleccionar un archivo de voucher.';
         $error_archivo = true;
     }
+    
 
     if (!$error_archivo) {
         $resultado = SubirVoucherComprobante(

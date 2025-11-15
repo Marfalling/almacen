@@ -1771,4 +1771,5 @@ async function procesarArchivos() {
     .table-hover tbody tr:hover {
         background-color: #f8f9fa;
     }
+    
 </style>

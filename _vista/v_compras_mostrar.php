@@ -997,6 +997,7 @@ function EliminarDocumento(id_doc) {
                             </div>
                         </div>
                         
+                        
                         <!-- Items de la orden -->
                         <div class="card">
                             <div class="card-header" style="background-color: #e8f5e8; padding: 8px 12px;">

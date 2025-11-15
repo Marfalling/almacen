@@ -181,6 +181,7 @@ function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $id_personal
         mysqli_close($con);
         return "Error al subir el voucher: $error";
     }
+    
 
     // ================================================================
     // CALCULAR TOTAL REAL DE LA COMPRA DESDE DETALLE

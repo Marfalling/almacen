@@ -14,10 +14,6 @@ header("content-disposition: attachment;filename=RptInspeccionesAmbiente.xls");
 <!-- ------------------------------------------------------------------------------------------------------------------------------- -->
 
 <div class="table-responsive">
-
-	<!-- 
-    <h1 style="color:#006;">ENEL - Encuestas</h1>
-	-->
     
     <table border="0" class="table table-bordered table-hover table-condensed " >
     
