@@ -96,7 +96,6 @@ for ($i = 0; $i < count($archivos['name']); $i++) {
     }
 }
 
-
 echo json_encode([
     'success' => true,
     'exitosos' => $exitosos,

@@ -16,6 +16,7 @@
             </div>
           </div>';
     return;
+    
 }*/
 
 require_once("../_modelo/m_detraccion.php");

@@ -10,7 +10,6 @@ require_once('../_modelo/m_comprobante.php');
 //---------------------------------------------------------
 //$consulta = MostrarReporteGeneralFecha($fd,$fh);
 
-
 $consulta = obtenerComprobantesEstado1();
 
 //---------------------------------------------------------

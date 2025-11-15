@@ -2522,7 +2522,6 @@ function limpiarFormularioProveedorEditar() {
     }
 }
 
-
 function descargarExcel() {
     Swal.fire({
         title: "Generando Excel...",

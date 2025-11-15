@@ -1179,7 +1179,6 @@ function obtenerComprobantesEstado1()
             $comprobantes[] = $row;
         }
     }
-
     return $comprobantes;
 }
 

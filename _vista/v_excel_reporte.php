@@ -17,7 +17,6 @@ header("content-disposition: attachment;filename=RptInspeccionesAmbiente.xls");
     
     <table border="0" class="table table-bordered table-hover table-condensed " >
     
-    
     <tr>
         <th bgcolor="#D8D8FC" style="text-align: center">#</th>
         <th bgcolor="#D8D8FC" style="text-align: center">DOI Tipo</th>
