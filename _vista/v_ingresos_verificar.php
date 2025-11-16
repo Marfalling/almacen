@@ -1,12 +1,19 @@
 <?php
-// Vista para verificar ingreso de productos - v_ingresos_verificar.php
+// Vista para verificar ingreso de productos/servicios - v_ingresos_verificar.php
 ?>
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
         <div class="page-title">
             <div class="title_left">
-                <h3>Verificar Ingreso<small> - Orden de Compra <strong>#<?php echo $comprax['id_compra']; ?></strong></small></h3>
+                <!-- 🆕 TÍTULO DINÁMICO -->
+                <h3>
+                    <?php if ($es_servicio): ?>
+                        Verificar Servicio<small> - Orden de Servicio <strong>#<?php echo $comprax['id_compra']; ?></strong></small>
+                    <?php else: ?>
+                        Verificar Ingreso<small> - Orden de Compra <strong>#<?php echo $comprax['id_compra']; ?></strong></small>
+                    <?php endif; ?>
+                </h3>
             </div>
             <div class="title_right">
                 <div class="pull-right">
@@ -24,7 +31,14 @@
                 <!-- Panel de Información de la Orden -->
                <div class="x_panel shadow-sm">
                     <div class="x_title">
-                        <h2>Información de la Orden de Compra</h2>
+                        <!-- 🆕 SUBTÍTULO DINÁMICO -->
+                        <h2>
+                            <?php if ($es_servicio): ?>
+                                Información de la Orden de Servicio
+                            <?php else: ?>
+                                Información de la Orden de Compra
+                            <?php endif; ?>
+                        </h2>
                         <div class="clearfix"></div>
                     </div>
                     <div class="x_content">
@@ -106,17 +120,27 @@
                 </div>
 
                 <?php if (!empty($productos_pendientes)) { ?>
-                <!-- Panel de Productos Pendientes -->
+                <!-- Panel de Productos/Servicios Pendientes -->
                 <div class="x_panel">
                     <div class="x_title">
                         <div class="row">
                             <div class="col-sm-8">
-                                <h2>Productos Pendientes de Ingreso <small>(<?php echo count($productos_pendientes); ?> productos)</small></h2>
+                                <!-- 🆕 TÍTULO DINÁMICO -->
+                                <h2>
+                                    <?php if ($es_servicio): ?>
+                                        Servicios Pendientes de Validación
+                                    <?php else: ?>
+                                        Productos Pendientes de Ingreso
+                                    <?php endif; ?>
+                                    <small>(<?php echo count($productos_pendientes); ?> <?php echo $es_servicio ? 'servicios' : 'productos'; ?>)</small>
+                                </h2>
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-4 text-right">
+                                <!-- 🆕 BOTÓN DINÁMICO -->
                                 <button type="button" onclick="procesarIngreso()" class="btn btn-success btn-sm">
-                                    <i class="fa fa-plus-circle"></i> Agregar a Stock
+                                    <i class="fa fa-<?php echo $es_servicio ? 'check-circle' : 'plus-circle'; ?>"></i> 
+                                    <?php echo $es_servicio ? 'Validar Servicio' : 'Agregar a Stock'; ?>
                                 </button>
                             </div>
                         </div>
@@ -133,13 +157,21 @@
                                                 <tr>
                                                     <th style="width: 5%; text-align: center;">#</th>
                                                     <th style="width: 15%;">Código</th>
-                                                    <th style="width: 25%;">Producto</th>
-                                                    <th style="width: 8%;">Unidad</th>
-                                                    <th style="width: 10%; text-align: center;">Compra</th>
+                                                    <th style="width: <?php echo $es_servicio ? '45%' : '25%'; ?>;">
+                                                        <?php echo $es_servicio ? 'Servicio' : 'Producto'; ?>
+                                                    </th>
+                                                    <th style="width: <?php echo $es_servicio ? '10%' : '8%'; ?>;">Unidad</th>
+                                                    <th style="width: <?php echo $es_servicio ? '15%' : '10%'; ?>; text-align: center;">
+                                                        <?php echo $es_servicio ? 'Cantidad' : 'Compra'; ?>
+                                                    </th>
+                                                    
+                                                    <?php if (!$es_servicio): ?>
+                                                    <!-- COLUMNAS SOLO PARA MATERIALES -->
                                                     <th style="width: 10%; text-align: center;">Ingresado</th>
                                                     <th style="width: 10%; text-align: center;">Pendiente</th>
                                                     <th style="width: 12%; text-align: center;">Cantidad a Ingresar</th>
                                                     <th style="width: 5%; text-align: center;">Sel.</th>
+                                                    <?php endif; ?>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -148,20 +180,30 @@
                                                 foreach ($productos_pendientes as $producto) { 
                                                 ?>
                                                 <tr>
-                                                    <td style="text-align: center; font-weight: bold; font-size: 16px;"><?php echo $contador; ?></td>
+                                                    <td style="text-align: center; font-weight: bold; font-size: 16px;">
+                                                        <?php echo $contador; ?>
+                                                    </td>
                                                     <td><strong><?php echo $producto['cod_material']; ?></strong></td>
                                                     <td><?php echo $producto['nom_producto']; ?></td>
                                                     <td style="text-align: center;"><?php echo $producto['nom_unidad_medida']; ?></td>
                                                     <td style="text-align: center;">
-                                                        <span class="badge badge-secondary badge_size"><?php echo number_format($producto['cant_compra_detalle'], 2); ?></span>
-                                                    </td>
-                                                    <td style="text-align: center;">
-                                                        <span class="badge badge-success badge_size"><?php echo number_format($producto['cantidad_ingresada'], 2); ?></span>
-                                                    </td>
-                                                    <td style="text-align: center;">
-                                                        <span class="badge badge-warning badge_size"><?php echo number_format($producto['cantidad_pendiente'], 2); ?></span>
+                                                        <span class="badge badge-secondary badge_size">
+                                                            <?php echo number_format($producto['cant_compra_detalle'], 2); ?>
+                                                        </span>
                                                     </td>
                                                     
+                                                    <?php if (!$es_servicio): ?>
+                                                    <!-- COLUMNAS SOLO PARA MATERIALES -->
+                                                    <td style="text-align: center;">
+                                                        <span class="badge badge-success badge_size">
+                                                            <?php echo number_format($producto['cantidad_ingresada'], 2); ?>
+                                                        </span>
+                                                    </td>
+                                                    <td style="text-align: center;">
+                                                        <span class="badge badge-warning badge_size">
+                                                            <?php echo number_format($producto['cantidad_pendiente'], 2); ?>
+                                                        </span>
+                                                    </td>
                                                     <td style="text-align: center;">
                                                         <input type="number" 
                                                             name="cantidades[<?php echo $producto['id_producto']; ?>]"
@@ -185,6 +227,15 @@
                                                             </label>
                                                         </div>
                                                     </td>
+                                                    <?php else: ?>
+                                                    <!-- 🆕 HIDDEN INPUTS PARA SERVICIOS (auto-validación completa) -->
+                                                    <input type="hidden" 
+                                                           name="cantidades[<?php echo $producto['id_producto']; ?>]" 
+                                                           value="<?php echo $producto['cantidad_pendiente']; ?>">
+                                                    <input type="hidden" 
+                                                           name="productos_seleccionados[]" 
+                                                           value="<?php echo $producto['id_producto']; ?>">
+                                                    <?php endif; ?>
                                                 </tr>
                                                 <?php 
                                                 $contador++;
@@ -201,7 +252,7 @@
                 </div>
 
                 <?php } else { ?>
-                <!-- Panel cuando no hay productos pendientes -->
+                <!-- Panel cuando no hay productos/servicios pendientes -->
                 <div class="x_panel">
                     <div class="x_title">
                         <h2>Estado de la Orden</h2>
@@ -210,8 +261,21 @@
                     <div class="x_content">
                         <br>
                         <div class="alert alert-success text-center">
-                            <h4><i class="fa fa-check-circle"></i> Todos los productos han sido ingresados</h4>
-                            <p>No hay productos pendientes de ingreso para esta orden de compra.</p>
+                            <h4>
+                                <i class="fa fa-check-circle"></i> 
+                                <?php if ($es_servicio): ?>
+                                    Todos los servicios han sido validados
+                                <?php else: ?>
+                                    Todos los productos han sido ingresados
+                                <?php endif; ?>
+                            </h4>
+                            <p>
+                                <?php if ($es_servicio): ?>
+                                    No hay servicios pendientes de validación para esta orden.
+                                <?php else: ?>
+                                    No hay productos pendientes de ingreso para esta orden de compra.
+                                <?php endif; ?>
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -219,104 +283,107 @@
             </div>
 
             <!-- SECCIÓN: DOCUMENTOS OBLIGATORIOS -->
-                <div class="x_panel">
-                    <div class="x_title">
-                        <h2>
-                            <i class="fa fa-file-text-o"></i> Documentos del Ingreso 
-                            <span class="text-danger">*Obligatorio</span>
-                        </h2>
-                        <div class="clearfix"></div>
+            <div class="x_panel">
+                <div class="x_title">
+                    <h2>
+                        <i class="fa fa-file-text-o"></i> Documentos del Ingreso 
+                        <span class="text-danger">*Obligatorio</span>
+                    </h2>
+                    <div class="clearfix"></div>
+                </div>
+                <div class="x_content">
+                    <div class="alert alert-info">
+                        <i class="fa fa-info-circle"></i> 
+                        <strong>Importante:</strong> Debe adjuntar al menos un documento (guía) para poder procesar el ingreso.
                     </div>
-                    <div class="x_content">
-                        <div class="alert alert-info">
-                            <i class="fa fa-info-circle"></i> 
-                            <strong>Importante:</strong> Debe adjuntar al menos un documento (guía) para poder procesar el ingreso.
+                    
+                    <!-- Formulario de Carga -->
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label><strong>Seleccionar Documento:</strong></label>
+                            <input type="file" id="documento_ingreso" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+                            <small class="text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, DOCX (Máx. 5MB)</small>
                         </div>
-                        
-                        <!-- Formulario de Carga -->
-                        <div class="row mb-3">
-                            <div class="col-md-8">
-                                <label><strong>Seleccionar Documento:</strong></label>
-                                <input type="file" id="documento_ingreso" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
-                                <small class="text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, DOCX (Máx. 5MB)</small>
-                            </div>
-                            <div class="col-md-4">
-                                <label>&nbsp;</label>
-                                <button type="button" onclick="subirDocumentoIngreso()" class="btn btn-primary btn-block">
-                                    <i class="fa fa-upload"></i> Subir Documento
-                                </button>
-                            </div>
+                        <div class="col-md-4">
+                            <label>&nbsp;</label>
+                            <button type="button" onclick="subirDocumentoIngreso()" class="btn btn-primary btn-block">
+                                <i class="fa fa-upload"></i> Subir Documento
+                            </button>
                         </div>
+                    </div>
 
-                        <!-- Lista de Documentos Subidos -->
-                        <div id="lista-documentos-ingreso">
-                            <h5><i class="fa fa-folder-open"></i> Documentos Cargados:</h5>
-                            <div id="contenedor-documentos" class="mt-2">
-                                <?php if (empty($documentos_ingreso)) { ?>
-                                    <div class="alert alert-warning text-center">
-                                        <i class="fa fa-exclamation-triangle"></i> 
-                                        Aún no se han cargado documentos
-                                    </div>
-                                <?php } else { ?>
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered table-striped table-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th style="width: 8%;">#</th>
-                                                    <th style="width: 62%;">Archivo</th>
-                                                    <th style="width: 20%;">Fecha</th>
-                                                    <th style="width: 10%;">Acciones</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php 
-                                                foreach ($documentos_ingreso as $index => $doc) { 
-                                                    $extension = strtolower(pathinfo($doc['documento'], PATHINFO_EXTENSION));
-                                                    $icono = 'fa-file-o';
-                                                    if ($extension == 'pdf') $icono = 'fa-file-pdf-o';
-                                                    elseif (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) $icono = 'fa-file-image-o';
-                                                    elseif (in_array($extension, ['doc', 'docx'])) $icono = 'fa-file-word-o';
-                                                    elseif (in_array($extension, ['xls', 'xlsx'])) $icono = 'fa-file-excel-o';
-                                                ?>
-                                                <tr>
-                                                    <td class="text-center font-weight-bold"><?php echo $index + 1; ?></td>
-                                                    <td>
-                                                        <a href="../uploads/ingresos/<?php echo $doc['documento']; ?>" target="_blank" class="text-primary">
-                                                            <i class="fa <?php echo $icono; ?>"></i> <?php echo $doc['documento']; ?>
-                                                        </a>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($doc['fec_subida'])); ?></small>
-                                                    </td>
-                                                    <td class="text-center">
-                                                        <button type="button" class="btn btn-danger btn-xs" 
-                                                                onclick="eliminarDocumentoIngreso(<?php echo $doc['id_doc']; ?>)">
-                                                            <i class="fa fa-trash"></i>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                                <?php } ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    
-                                    <div class="alert alert-success mt-2 mb-0" style="display: flex; align-items: center; justify-content: center;">
-                                        <i class="fa fa-check-circle" style="font-size: 18px; margin-right: 8px;"></i> 
-                                        <span style="font-size: 14px;">
-                                            <strong><?php echo count($documentos_ingreso); ?></strong> documento(s) adjuntado(s) correctamente
-                                        </span>
-                                    </div>
-                                <?php } ?>
-                            </div>
+                    <!-- Lista de Documentos Subidos -->
+                    <div id="lista-documentos-ingreso">
+                        <h5><i class="fa fa-folder-open"></i> Documentos Cargados:</h5>
+                        <div id="contenedor-documentos" class="mt-2">
+                            <?php if (empty($documentos_ingreso)) { ?>
+                                <div class="alert alert-warning text-center">
+                                    <i class="fa fa-exclamation-triangle"></i> 
+                                    Aún no se han cargado documentos
+                                </div>
+                            <?php } else { ?>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 8%;">#</th>
+                                                <th style="width: 62%;">Archivo</th>
+                                                <th style="width: 20%;">Fecha</th>
+                                                <th style="width: 10%;">Acciones</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php 
+                                            foreach ($documentos_ingreso as $index => $doc) { 
+                                                $extension = strtolower(pathinfo($doc['documento'], PATHINFO_EXTENSION));
+                                                $icono = 'fa-file-o';
+                                                if ($extension == 'pdf') $icono = 'fa-file-pdf-o';
+                                                elseif (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) $icono = 'fa-file-image-o';
+                                                elseif (in_array($extension, ['doc', 'docx'])) $icono = 'fa-file-word-o';
+                                                elseif (in_array($extension, ['xls', 'xlsx'])) $icono = 'fa-file-excel-o';
+                                            ?>
+                                            <tr>
+                                                <td class="text-center font-weight-bold"><?php echo $index + 1; ?></td>
+                                                <td>
+                                                    <a href="../uploads/ingresos/<?php echo $doc['documento']; ?>" target="_blank" class="text-primary">
+                                                        <i class="fa <?php echo $icono; ?>"></i> <?php echo $doc['documento']; ?>
+                                                    </a>
+                                                </td>
+                                                <td class="text-center">
+                                                    <small class="text-muted"><?php echo date('d/m/Y H:i', strtotime($doc['fec_subida'])); ?></small>
+                                                </td>
+                                                <td class="text-center">
+                                                    <button type="button" class="btn btn-danger btn-xs" 
+                                                            onclick="eliminarDocumentoIngreso(<?php echo $doc['id_doc']; ?>)">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <?php } ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="alert alert-success mt-2 mb-0" style="display: flex; align-items: center; justify-content: center;">
+                                    <i class="fa fa-check-circle" style="font-size: 18px; margin-right: 8px;"></i> 
+                                    <span style="font-size: 14px;">
+                                        <strong><?php echo count($documentos_ingreso); ?></strong> documento(s) adjuntado(s) correctamente
+                                    </span>
+                                </div>
+                            <?php } ?>
                         </div>
                     </div>
                 </div>
+            </div>
         </div>
     </div>
 </div>
 <!-- /page content -->
 
 <script>
+//  VARIABLE GLOBAL
+const ES_SERVICIO = <?php echo $es_servicio ? 'true' : 'false'; ?>;
+
 // ============================================
 // FUNCIONES PARA MANEJO DE PRODUCTOS
 // ============================================
@@ -354,8 +421,7 @@ function validarCantidad(input, maxCantidad) {
         });
         input.value = 0.01;
     }
-    // Auto-marcar el checkbox si hay cantidad
-
+    
     const productId = input.name.match(/\[(\d+)\]/)[1];
     const checkbox = document.querySelector(`input[data-producto="${productId}"]`);
     checkbox.checked = value > 0;
@@ -385,7 +451,26 @@ function procesarIngreso() {
         return false;
     }
     
-    // VALIDACIÓN 2: Productos seleccionados
+    // 🆕 PARA SERVICIOS: Validación automática (sin checkboxes)
+    if (ES_SERVICIO) {
+        Swal.fire({
+            title: '¿Confirmar validación?',
+            text: `¿Está seguro de que desea validar todos los servicios?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, validar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                enviarFormularioAjax();
+            }
+        });
+        return;
+    }
+    
+    // VALIDACIÓN 2: Productos seleccionados (SOLO MATERIALES)
     const checkboxesSeleccionados = document.querySelectorAll('.producto-checkbox:checked');
     
     if (checkboxesSeleccionados.length === 0) {
@@ -397,7 +482,7 @@ function procesarIngreso() {
         return false;
     }
     
-    // VALIDACIÓN 3: Cantidades válidas
+    // VALIDACIÓN 3: Cantidades válidas (SOLO MATERIALES)
     let cantidadesValidas = true;
     
     checkboxesSeleccionados.forEach(checkbox => {
@@ -450,19 +535,38 @@ function enviarFormularioAjax() {
     
     const formData = new FormData();
     formData.append('id_compra', <?php echo $id_compra; ?>);
+    formData.append('es_servicio', ES_SERVICIO ? '1' : '0'); // 🆕
     
-    const checkboxesSeleccionados = document.querySelectorAll('.producto-checkbox:checked');
-    
-    checkboxesSeleccionados.forEach(checkbox => {
-        const productId = checkbox.dataset.producto;
-        const cantidadInput = document.querySelector(`input[name="cantidades[${productId}]"]`);
-        const cantidad = parseFloat(cantidadInput.value) || 0;
+    if (ES_SERVICIO) {
+        // 🆕 PARA SERVICIOS: Enviar todos los hidden inputs automáticamente
+        const hiddenProductos = document.querySelectorAll('input[name="productos_seleccionados[]"]');
+        const hiddenCantidades = document.querySelectorAll('input[name^="cantidades["]');
         
-        if (cantidad > 0) {
-            formData.append(`productos_seleccionados[]`, productId);
-            formData.append(`cantidades[${productId}]`, cantidad);
-        }
-    });
+        hiddenProductos.forEach(input => {
+            formData.append('productos_seleccionados[]', input.value);
+        });
+        
+        hiddenCantidades.forEach(input => {
+            const matches = input.name.match(/cantidades\[(\d+)\]/);
+            if (matches) {
+                formData.append(input.name, input.value);
+            }
+        });
+    } else {
+        // PARA MATERIALES: Enviar solo los seleccionados
+        const checkboxesSeleccionados = document.querySelectorAll('.producto-checkbox:checked');
+        
+        checkboxesSeleccionados.forEach(checkbox => {
+            const productId = checkbox.dataset.producto;
+            const cantidadInput = document.querySelector(`input[name="cantidades[${productId}]"]`);
+            const cantidad = parseFloat(cantidadInput.value) || 0;
+            
+            if (cantidad > 0) {
+                formData.append(`productos_seleccionados[]`, productId);
+                formData.append(`cantidades[${productId}]`, cantidad);
+            }
+        });
+    }
     
     fetch('ingresos_procesar.php', {
         method: 'POST',

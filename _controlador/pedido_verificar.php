@@ -1,7 +1,7 @@
 <?php
 require_once("../_conexion/sesion.php");
 
-if (!verificarPermisoEspecifico('ver_pedidos')) {
+if (!verificarPermisoEspecifico('verificar_pedidos')) {
     require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'VERIFICAR');
     header("location: bienvenido.php?permisos=true");
@@ -1252,18 +1252,41 @@ if ($id_pedido > 0) {
     <?php if (isset($alerta) && !empty($alerta) && !empty($alerta['text'])): ?>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        //  VALIDACIÓN: Solo mostrar si hay contenido real
         const alerta = <?php echo json_encode($alerta, JSON_UNESCAPED_UNICODE); ?>;
         
         if (alerta && alerta.text && alerta.text.trim() !== '') {
+            //  Determinar si debe auto-cerrar
+            const autoClose = alerta.timer && alerta.timer > 0;
+            
             Swal.fire({
                 icon: alerta.icon || 'info',
                 title: alerta.title || 'Aviso',
                 text: alerta.text,
-                showConfirmButton: !alerta.timer,
+                showConfirmButton: !autoClose,
                 timer: alerta.timer || null,
-                allowOutsideClick: false
+                allowOutsideClick: false,
+                didClose: () => {
+                    //  LIMPIAR URL AL CERRAR (manual o automático)
+                    limpiarParametroSuccess();
+                }
             });
+            
+            // Si tiene timer, también limpiar cuando termine
+            if (autoClose) {
+                setTimeout(() => {
+                    limpiarParametroSuccess();
+                }, alerta.timer + 100);
+            }
+        }
+        
+        //  FUNCIÓN PARA LIMPIAR URL
+        function limpiarParametroSuccess() {
+            const url = new URL(window.location);
+            if (url.searchParams.has('success')) {
+                url.searchParams.delete('success');
+                window.history.replaceState({}, document.title, url.pathname + url.search);
+                console.log(' Parámetro success eliminado de la URL');
+            }
         }
     });
     </script>

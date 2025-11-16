@@ -13,6 +13,7 @@ if (!verificarPermisoEspecifico('ver_ingresos')) {
 
 require_once("../_modelo/m_ingreso.php");
 require_once("../_modelo/m_documentos.php");
+
 // Verificar si se recibió el ID de compra
 if (!isset($_GET['id_compra'])) {
     header("location: ingresos_mostrar.php");
@@ -28,10 +29,19 @@ if (!$comprax) {
     exit;
 }
 
-// Obtener productos pendientes de ingreso
+// ============================================
+//  DETERMINAR SI ES SERVICIO   
+// ============================================
+$tipo_producto = ObtenerTipoProductoPedidoPorCompra($id_compra);
+
+$es_servicio = $tipo_producto['es_servicio'];
+$nombre_tipo_pedido = $tipo_producto['nom_producto_tipo'];
+
+// ============================================
+// OBTENER DATOS (MISMO FLUJO PARA AMBOS TIPOS)
+// ============================================
 $productos_pendientes = ObtenerProductosPendientesIngreso($id_compra);
 $documentos_ingreso = MostrarDocumentos('ingresos', $id_compra);
-
 ?>
 
 <!DOCTYPE html>
@@ -42,7 +52,9 @@ $documentos_ingreso = MostrarDocumentos('ingresos', $id_compra);
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
-    <title>Verificar Ingreso - Orden #<?php echo $id_compra; ?></title>
+    <title>
+        <?php echo $es_servicio ? 'Verificar Servicio' : 'Verificar Ingreso'; ?> - Orden #<?php echo $id_compra; ?>
+    </title>
     
     <?php require_once("../_vista/v_estilo.php"); ?>
 </head>
@@ -53,7 +65,9 @@ $documentos_ingreso = MostrarDocumentos('ingresos', $id_compra);
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
             
+            // 🆕 PASAR VARIABLE A LA VISTA
             require_once("../_vista/v_ingresos_verificar.php");
+            
             require_once("../_vista/v_footer.php");
             ?>
         </div>
@@ -65,7 +79,13 @@ $documentos_ingreso = MostrarDocumentos('ingresos', $id_compra);
     ?>
 
     <script>
-    // JavaScript para manejo de ingresos con AJAX
+    // 🆕 VARIABLE GLOBAL SOLO PARA UI
+    const ES_SERVICIO = <?php echo $es_servicio ? 'true' : 'false'; ?>;
+    const TIPO_ORDEN = '<?php echo $es_servicio ? 'servicio' : 'compra'; ?>';
+    
+    // ============================================
+    // FUNCIONES PARA MANEJO DE PRODUCTOS/SERVICIOS
+    // ============================================
     function toggleProducto(checkbox) {
         const productId = checkbox.dataset.producto;
         const cantidadInput = document.querySelector(`input[name="cantidades[${productId}]"]`);
@@ -108,17 +128,46 @@ $documentos_ingreso = MostrarDocumentos('ingresos', $id_compra);
     }
 
     function procesarIngreso() {
+        // VALIDACIÓN 1: Verificar que hay documentos
+        const contenedorDocs = document.getElementById('contenedor-documentos');
+        const hayDocumentos = contenedorDocs.querySelector('table') !== null;
+        
+        if (!hayDocumentos) {
+            const textoTipo = ES_SERVICIO ? 'VALIDACIÓN DE SERVICIO' : 'INGRESO';
+            const textoDocumento = ES_SERVICIO ? 'acta de conformidad, informe de servicio u otro documento' : 'guía de remisión, factura, etc.';
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Documentos requeridos',
+                html: `<p><strong>NO PUEDE PROCESAR ${textoTipo} SIN DOCUMENTOS.</strong></p>` +
+                      `<p>Debe adjuntar al menos un documento (${textoDocumento}) antes de continuar.</p>` +
+                      '<p>Por favor, use el botón <strong>"Subir Documento"</strong> en la sección correspondiente.</p>',
+                confirmButtonColor: '#dc3545',
+            });
+            
+            // Scroll a la sección de documentos
+            document.querySelector('#lista-documentos-ingreso').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+            
+            return false;
+        }
+        
+        // VALIDACIÓN 2: Productos/Servicios seleccionados
         const checkboxesSeleccionados = document.querySelectorAll('.producto-checkbox:checked');
+        const textoItem = ES_SERVICIO ? 'servicio' : 'producto';
         
         if (checkboxesSeleccionados.length === 0) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Selección requerida',
-                text: 'Debe marcar al menos un producto para ingresar',
+                text: `Debe marcar al menos un ${textoItem} para procesar`,
             });
             return false;
         }
         
+        // VALIDACIÓN 3: Cantidades válidas
         let cantidadesValidas = true;
         
         checkboxesSeleccionados.forEach(checkbox => {
@@ -135,20 +184,24 @@ $documentos_ingreso = MostrarDocumentos('ingresos', $id_compra);
             Swal.fire({
                 icon: 'error',
                 title: 'Cantidades inválidas',
-                text: 'Todos los productos seleccionados deben tener una cantidad válida mayor a 0',
+                text: `Todos los ${textoItem}s seleccionados deben tener una cantidad válida mayor a 0`,
             });
             return false;
         }
         
-        // Confirmación antes de procesar
+        // CONFIRMACIÓN
+        const textoAccion = ES_SERVICIO ? 'validar' : 'agregar al stock';
+        const textoItemPlural = ES_SERVICIO ? 'servicio(s)' : 'producto(s)';
+        const tituloConfirmacion = ES_SERVICIO ? '¿Confirmar validación de servicio?' : '¿Confirmar ingreso?';
+        
         Swal.fire({
-            title: '¿Confirmar ingreso?',
-            text: `¿Está seguro de que desea agregar ${checkboxesSeleccionados.length} producto(s) al stock?`,
+            title: tituloConfirmacion,
+            text: `¿Está seguro de que desea ${textoAccion} ${checkboxesSeleccionados.length} ${textoItemPlural}?`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#28a745',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Sí, procesar ingreso',
+            confirmButtonText: ES_SERVICIO ? 'Sí, validar servicio' : 'Sí, procesar ingreso',
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
@@ -158,10 +211,12 @@ $documentos_ingreso = MostrarDocumentos('ingresos', $id_compra);
     }
 
     function enviarFormularioAjax() {
+        const textoAccion = ES_SERVICIO ? 'validación' : 'ingreso';
+        
         // Mostrar loading
         Swal.fire({
-            title: 'Procesando ingreso...',
-            text: 'Por favor espere mientras se procesan los productos',
+            title: `Procesando ${textoAccion}...`,
+            text: ES_SERVICIO ? 'Validando servicios prestados' : 'Agregando productos al stock',
             allowOutsideClick: false,
             allowEscapeKey: false,
             showConfirmButton: false,
@@ -173,6 +228,7 @@ $documentos_ingreso = MostrarDocumentos('ingresos', $id_compra);
         // Recopilar datos del formulario
         const formData = new FormData(document.getElementById('form-ingreso'));
         formData.append('id_compra', <?php echo $id_compra; ?>);
+        // 🆕 NO ENVIAR 'es_servicio' - el backend usa la misma función para ambos
         
         $.ajax({
             url: 'ingresos_procesar.php',
@@ -185,7 +241,7 @@ $documentos_ingreso = MostrarDocumentos('ingresos', $id_compra);
                 if (response.tipo_mensaje === 'success') {
                     Swal.fire({
                         icon: 'success',
-                        title: '¡Ingreso exitoso!',
+                        title: ES_SERVICIO ? '¡Validación exitosa!' : '¡Ingreso exitoso!',
                         text: response.mensaje,
                         confirmButtonColor: '#28a745',
                     }).then(() => {
@@ -194,7 +250,7 @@ $documentos_ingreso = MostrarDocumentos('ingresos', $id_compra);
                 } else if (response.tipo_mensaje === 'warning') {
                     Swal.fire({
                         icon: 'warning',
-                        title: 'Ingreso parcial',
+                        title: ES_SERVICIO ? 'Validación parcial' : 'Ingreso parcial',
                         text: response.mensaje,
                         confirmButtonColor: '#ffc107',
                     }).then(() => {
@@ -203,7 +259,7 @@ $documentos_ingreso = MostrarDocumentos('ingresos', $id_compra);
                 } else {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Error en el ingreso',
+                        title: ES_SERVICIO ? 'Error en la validación' : 'Error en el ingreso',
                         text: response.mensaje,
                         confirmButtonColor: '#dc3545',
                     });

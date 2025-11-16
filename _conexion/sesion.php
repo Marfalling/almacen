@@ -94,11 +94,16 @@ function verificarAccesoControlador($nombre_controlador) {
         'pedidos_mostrar' => 'ver_pedidos',
         'pedidos_nuevo' => 'crear_pedidos',
         'pedidos_editar' => 'editar_pedidos',
+        'pedidos_anular' => 'anular_pedidos',
+        'pedidos_aprobar' => 'aprobar_pedidos',
+        'pedidos_verificar' => 'verificar_pedidos',
         
         // ==================== COMPRAS ====================
         'compras_mostrar' => 'ver_compras',
         'compras_nuevo' => 'crear_compras',
         'compras_editar' => 'editar_compras',
+        'compras_anular' => 'anular_compras',
+        'compras_aprobar' => 'aprobar_compras',
         
         // ==================== INGRESOS ====================
         'ingresos_mostrar' => 'ver_ingresos',
@@ -109,6 +114,8 @@ function verificarAccesoControlador($nombre_controlador) {
         'salidas_mostrar' => 'ver_salidas',
         'salidas_nuevo' => 'crear_salidas',
         'salidas_editar' => 'editar_salidas',
+        'salidas_anular' => 'anular_salidas',
+        'salidas_aprobar' => 'aprobar_salidas',
         
         // ==================== DEVOLUCIONES ====================
         'devoluciones_mostrar' => 'ver_devoluciones',
@@ -187,7 +194,22 @@ function verificarAccesoControlador($nombre_controlador) {
         // ==================== CENTRO DE COSTO ====================
         'centro_costo_mostrar' => 'ver_centro de costo',
         'centro_costo_nuevo' => 'crear_centro de costo',
-        'centro_costo_editar' => 'editar_centro de costo'
+        'centro_costo_editar' => 'editar_centro de costo',
+        
+        // ==================== BANCO (NUEVO) ====================
+        'banco_mostrar' => 'ver_banco',
+        'banco_nuevo' => 'crear_banco',
+        'banco_editar' => 'editar_banco',
+        
+        // ==================== TIPO DE DOCUMENTO (NUEVO) ====================
+        'tipo_documento_mostrar' => 'ver_tipo de documento',
+        'tipo_documento_nuevo' => 'crear_tipo de documento',
+        'tipo_documento_editar' => 'editar_tipo de documento',
+        
+        // ==================== MEDIO DE PAGO (NUEVO) ====================
+        'medio_pago_mostrar' => 'ver_medio de pago',
+        'medio_pago_nuevo' => 'crear_medio de pago',
+        'medio_pago_editar' => 'editar_medio de pago'
     ];
     
     if (isset($mapeo_permisos[$nombre_controlador])) {
@@ -255,7 +277,11 @@ function verificarPermiso($modulo, $accion) {
         str_replace(' ', '_', $accion . '_' . $modulo),
         'ver_' . $modulo,
         'crear_' . $modulo,
-        'editar_' . $modulo
+        'editar_' . $modulo,
+        'importar_' . $modulo,
+        'anular_' . $modulo,
+        'aprobar_' . $modulo,
+        'verificar_' . $modulo
     ];
     
     foreach ($formatos as $formato) {
@@ -294,5 +320,39 @@ function verificarPermisoConEspacios($permiso_buscado) {
     }
     
     return false;
+}
+
+/**
+ * Función para verificar si un usuario es Administrador (por ROL, no por ID)
+ * @param int $id_usuario ID del usuario a verificar
+ * @return bool True si es Super Administrador o Administrador
+ */
+function esAdministrador($id_usuario) {
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT r.nom_rol 
+            FROM usuario_rol ur
+            INNER JOIN rol r ON ur.id_rol = r.id_rol
+            WHERE ur.id_usuario = ? 
+            AND ur.est_usuario_rol = 1 
+            AND r.est_rol = 1";
+    
+    $stmt = mysqli_prepare($con, $sql);
+    mysqli_stmt_bind_param($stmt, "i", $id_usuario);
+    mysqli_stmt_execute($stmt);
+    $resultado = mysqli_stmt_get_result($stmt);
+    
+    $es_admin = false;
+    while ($row = mysqli_fetch_array($resultado)) {
+        $rol = strtolower(trim($row['nom_rol']));
+        // Considerar como administrador: Super Administrador o Administrador
+        if ($rol === 'super administrador' || $rol === 'administrador') {
+            $es_admin = true;
+            break;
+        }
+    }
+    
+    mysqli_close($con);
+    return $es_admin;
 }
 ?>

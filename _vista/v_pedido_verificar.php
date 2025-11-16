@@ -209,11 +209,19 @@ $monedas = MostrarMoneda();
                                 // Determinar estado según ubicaciones
                                 if ($esAutoOrden) {
                                     // SERVICIOS 
-                                    //$colorFondo = '#e3f2fd';
-                                    $colorBorde = '#2196f3';
-                                    $claseTexto = 'text-primary';
-                                    $icono = 'fa-cog';
-                                    $estadoTexto = 'Auto-Orden';
+                                    if ($detalle['est_pedido_detalle'] == 2) {
+                                        // Cerrado manualmente
+                                        $colorBorde = '#dc3545';
+                                        $claseTexto = 'text-danger';
+                                        $icono = 'fa-times-circle';
+                                        $estadoTexto = 'Servicio - Cerrado';
+                                    } else {
+                                        // Normal
+                                        $colorBorde = '#2196f3';
+                                        $claseTexto = 'text-primary';
+                                        $icono = 'fa-wrench';
+                                        $estadoTexto = 'Servicio';
+                                    }
                                 } else if ($detalle['est_pedido_detalle'] == 2) {
                                     // Cerrado manualmente
                                     //$colorFondo = '#f8d7da';
@@ -405,7 +413,8 @@ $monedas = MostrarMoneda();
                                 
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="<?php echo $claseTexto; ?>" style="font-weight: 600; font-size: 14px;">
-                                        <i class="fa <?php echo $icono; ?>"></i> Producto <?php echo $contador_detalle; ?> - <?php echo $estadoTexto; ?>
+                                        <i class="fa <?php echo $icono; ?>"></i> 
+                                        <?php echo $esAutoOrden ? 'Servicio' : 'Producto'; ?> <?php echo $contador_detalle; ?> - <?php echo $estadoTexto; ?>
                                     </span>
 
                                     <!-- a evaluar si se muestra 
@@ -487,7 +496,40 @@ $monedas = MostrarMoneda();
                                         $cantidad_ya_ordenada_real = isset($detalle['cantidad_ya_ordenada']) ? floatval($detalle['cantidad_ya_ordenada']) : 0;
                                         $cantidad_pendiente_real = $cantidad_para_ordenar - $cantidad_ya_ordenada_real;
                                         
-                                        if ($detalle['est_pedido_detalle'] != 2 && !$modo_editar && !$pedidoAnulado && $cantidad_pendiente_real > 0) { 
+                                        //  VERIFICAR SI ESTÁ CERRADO MANUALMENTE
+                                        $esta_cerrado = ($detalle['est_pedido_detalle'] == 2);
+                                        
+                                        if ($esta_cerrado) {
+                                            // ============================================
+                                            //  CASO 1: SERVICIO CERRADO MANUALMENTE
+                                            // ============================================
+                                    ?>
+                                            <span class="badge badge-danger" style="font-size: 11px; padding: 4px 8px;">
+                                                <i class="fa fa-times-circle"></i> Cerrado
+                                            </span>
+                                    <?php
+                                        } elseif ($cantidad_pendiente_real <= 0) {
+                                            // ============================================
+                                            //  CASO 2: TODO ORDENADO (COMPLETADO)
+                                            // ============================================
+                                    ?>
+                                            <span class="badge badge-success" style="font-size: 11px; padding: 4px 8px;">
+                                                <i class="fa fa-check-circle"></i> Todo Ordenado
+                                            </span>
+                                    <?php
+                                        } elseif ($enOrdenActual) {
+                                            // ============================================
+                                            //  CASO 3: EN ORDEN ACTUAL
+                                            // ============================================
+                                    ?>
+                                            <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px;">
+                                                <i class="fa fa-check"></i> En Orden
+                                            </span>
+                                    <?php
+                                        } elseif (!$modo_editar && !$pedidoAnulado && $cantidad_pendiente_real > 0) {
+                                            // ============================================
+                                            //  CASO 4: PUEDE AGREGAR (MODO NORMAL)
+                                            // ============================================
                                     ?>
                                             <button type="button" 
                                                     class="btn btn-primary btn-xs btn-agregarOrden" 
@@ -501,8 +543,11 @@ $monedas = MostrarMoneda();
                                                     style="padding: 2px 8px; font-size: 11px;">
                                                 <i class="fa fa-check"></i> Agregar a Orden
                                             </button>
-                                    <?php 
-                                        } elseif ($modo_editar && !$enOrdenActual && !$pedidoAnulado && $cantidad_pendiente_real > 0) { 
+                                    <?php
+                                        } elseif ($modo_editar && !$enOrdenActual && !$pedidoAnulado && $cantidad_pendiente_real > 0) {
+                                            // ============================================
+                                            //  CASO 5: PUEDE AGREGAR (MODO EDICIÓN)
+                                            // ============================================
                                     ?>
                                             <button type="button" 
                                                     class="btn btn-primary btn-xs btn-agregarOrden" 
@@ -515,7 +560,7 @@ $monedas = MostrarMoneda();
                                                     style="padding: 2px 8px; font-size: 11px;">
                                                 <i class="fa fa-plus"></i> Agregar
                                             </button>
-                                    <?php 
+                                    <?php
                                         } elseif ($enOrdenActual) { 
                                     ?>
                                             <span class="badge badge-info" style="font-size: 10px; padding: 2px 6px;">
@@ -928,53 +973,41 @@ $monedas = MostrarMoneda();
                                 <?php endif; ?>
 
                                 
-
-                                <!-- Botón Nueva Salida Modificado-->
                                 
-                                <?php if (!$modo_editar_salida && !$pedido_anulado): ?>
-                                    <?php
-                                    // VALIDAR ITEMS DISPONIBLES PARA SALIDA
-                                    $tiene_items_para_salida = false;
-                                    
-                                    foreach ($pedido_detalle as $detalle_validacion) {
-
-                                        $detalle_validacion['cantidad_ya_ordenada_os'] = ObtenerCantidadYaOrdenadaOSPorDetalle($detalle_validacion['id_pedido_detalle']);
-                                        $detalle_validacion['cantidad_pendiente_os'] = floatval($detalle_validacion['cant_os_pedido_detalle']) - $detalle_validacion['cantidad_ya_ordenada_os'];
-
-                                        // validar MATERIALES
-                                        if ($pedido['id_producto_tipo'] != 2) {
-                                            $cant_os_verificada = floatval($detalle_validacion['cant_os_pedido_detalle']);
+                                <!-- Botón Nueva Salida - Solo para MATERIALES -->
+                                <?php if ($pedido['id_producto_tipo'] != 2 && !$modo_editar_salida && !$pedido_anulado): ?>
+                                <?php
+                                // VALIDAR ITEMS DISPONIBLES PARA SALIDA
+                                $tiene_items_para_salida = false;
+                                
+                                foreach ($pedido_detalle as $detalle_validacion) {
+                                    // Solo evaluar MATERIALES
+                                    if ($pedido['id_producto_tipo'] != 2) {
+                                        $cant_os_verificada = floatval($detalle_validacion['cant_os_pedido_detalle']);
+                                        
+                                        if ($cant_os_verificada > 0) {
+                                            $detalle_validacion['cantidad_ya_ordenada_os'] = ObtenerCantidadYaOrdenadaOSPorDetalle($detalle_validacion['id_pedido_detalle']);
+                                            $pendiente_os = $cant_os_verificada - $detalle_validacion['cantidad_ya_ordenada_os'];
                                             
-                                            // Si se verificó alguna cantidad para OS
-                                            if ($cant_os_verificada > 0) {
-
-                                                $pendiente_os = isset($detalle_validacion['cantidad_pendiente_os']) ? floatval($detalle_validacion['cantidad_pendiente_os']) : 0;
-                                                
-                                                // Si hay cantidad pendiente de OS
-                                                if ($pendiente_os > 0) {
-                                                    $tiene_items_para_salida = true;
-                                                    break; 
-                                                }
+                                            if ($pendiente_os > 0) {
+                                                $tiene_items_para_salida = true;
+                                                break; 
                                             }
                                         }
                                     }
-                                    ?>
-                                    
-                                    <?php if ($tiene_items_para_salida): ?>
-                                        <!--HAY ITEMS -->
-                                        <button type="button" class="btn btn-success btn-sm" id="btn-nueva-salida" 
-                                                style="padding: 4px 8px; font-size: 12px;">
-                                            <i class="fa fa-truck"></i> Nueva Salida
-                                        </button>
-                                    <?php else: ?>
-                                        <!--NO HAY ITEMS-->
-                                        <button type="button" class="btn btn-secondary btn-sm" disabled 
-                                                title="No hay items disponibles para generar salida" 
-                                                style="padding: 4px 8px; font-size: 12px;">
-                                            <i class="fa fa-ban"></i> Nueva Salida
-                                        </button>
-                                    <?php endif; ?>
-                                <?php endif;?>
+                                }
+                                ?>
+                                
+                                <!--  SIEMPRE RENDERIZAR EL BOTÓN (solo cambiar estado) -->
+                                <button type="button" 
+                                        class="btn btn-<?php echo $tiene_items_para_salida ? 'success' : 'secondary'; ?> btn-sm" 
+                                        id="btn-nueva-salida" 
+                                        <?php echo !$tiene_items_para_salida ? 'disabled' : ''; ?>
+                                        title="<?php echo !$tiene_items_para_salida ? 'No hay items disponibles para generar salida' : ''; ?>"
+                                        style="padding: 4px 8px; font-size: 12px;">
+                                    <i class="fa fa-<?php echo $tiene_items_para_salida ? 'truck' : 'ban'; ?>"></i> Nueva Salida
+                                </button>
+                            <?php endif; ?>
 
                                 <!-- Fin Modificado -->
 
@@ -997,13 +1030,18 @@ $monedas = MostrarMoneda();
                                     <span><?php echo count($pedido_compra); ?></span>
                                 </a>
                             </li>
+                            
+                            <!--  SOLO MOSTRAR TAB DE SALIDAS SI NO ES SERVICIO -->
+                            <?php if ($pedido['id_producto_tipo'] != 2): ?>
                             <li class="nav-item">
                                 <a class="nav-link" id="salidas-tab" data-toggle="tab" href="#salidas" role="tab">
                                     <i class="fa fa-truck"></i> Salidas 
                                     <span><?php echo count($pedido_salidas); ?></span>
                                 </a>
                             </li>
+                            <?php endif; ?>
                         </ul>
+
 
                         <div class="tab-content" id="myTabContent" <?php echo ($modo_editar || $modo_editar_salida) ? 'style="display: none;"' : 'style="display: block;"'; ?>>
                             <!-- TAB: ÓRDENES DE COMPRA -->
@@ -2281,6 +2319,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
     
+    //  DETECTAR SI VIENE DE GUARDAR
+    const urlParams = new URLSearchParams(window.location.search);
+    const debeValidar = urlParams.get('validate') === '1';
+    
+    if (debeValidar) {
+        console.log(' Recarga después de guardar - Activando validación forzada');
+    }
+    
     // Variables globales
     const esOrdenServicio = <?php echo ($pedido['id_producto_tipo'] == 2) ? 'true' : 'false'; ?>;
     const pedidoAnulado = <?php echo ($pedido['est_pedido'] == 0) ? 'true' : 'false'; ?>;
@@ -2382,8 +2428,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Escuchar cambios en cantidad OC
-    document.getElementById('fin_cant_pedido_detalle').addEventListener('input', actualizarTotalVerificado);
-    
+    const inputFinCant = document.getElementById('fin_cant_pedido_detalle');
+    if (inputFinCant) {
+        inputFinCant.addEventListener('input', actualizarTotalVerificado);
+    } 
     // ============================================
     // INICIALIZACIÓN
     // ============================================
@@ -2456,26 +2504,53 @@ document.addEventListener('DOMContentLoaded', function() {
     function validarItemsDisponiblesParaSalida() {
         const itemsPendientes = document.querySelectorAll('.item-pendiente');
         let hayDisponibles = false;
+        let itemsDisponiblesDetalle = [];
         
+        //  OBTENER IDS DE ITEMS YA AGREGADOS AL FORMULARIO (NO GUARDADOS)
+        const itemsEnFormulario = new Set();
+        const itemsFormularioSalida = document.querySelectorAll('#contenedor-items-salida [id^="item-salida-"]');
+        
+        itemsFormularioSalida.forEach(item => {
+            const idProductoInput = item.querySelector('input[name*="[id_producto]"]');
+            if (idProductoInput) {
+                itemsEnFormulario.add(idProductoInput.value);
+            }
+        });
+                
         itemsPendientes.forEach(function(item) {
             // 🔹 BUSCAR BOTÓN DE SALIDA DENTRO DEL ITEM
             const btnAgregarSalida = item.querySelector('.btn-agregarSalida');
             
-            if (btnAgregarSalida && !btnAgregarSalida.disabled) {
-                // Si el botón existe y NO está deshabilitado = hay cantidad disponible
+            if (btnAgregarSalida) {
+                const idProducto = btnAgregarSalida.dataset.idProducto;
+                const idDetalle = btnAgregarSalida.dataset.idDetalle;
                 const cantidadDisponible = parseFloat(btnAgregarSalida.dataset.cantidadDisponible) || 0;
                 
-                if (cantidadDisponible > 0) {
+                // 🔹 ITEM DISPONIBLE SI:
+                // 1. No está deshabilitado Y tiene cantidad > 0
+                // 2. Está deshabilitado PERO está en formulario temporal
+                
+                const estaEnFormulario = itemsEnFormulario.has(idProducto);
+                const estaHabilitado = !btnAgregarSalida.disabled;
+                
+                if ((estaHabilitado && cantidadDisponible > 0) || (estaEnFormulario && !estaHabilitado)) {
                     hayDisponibles = true;
-                    console.log('✅ Item con salida disponible:', {
-                        idProducto: btnAgregarSalida.dataset.idProducto,
-                        cantidad: cantidadDisponible
+                    itemsDisponiblesDetalle.push({
+                        idProducto: idProducto,
+                        idDetalle: idDetalle,
+                        cantidad: cantidadDisponible,
+                        estado: estaEnFormulario ? 'EN_FORMULARIO' : 'DISPONIBLE'
                     });
                 }
             }
         });
         
-        console.log('🔍 Resultado validación salidas:', hayDisponibles);
+        console.log(' Resultado validación salidas:', {
+            hayDisponibles: hayDisponibles,
+            totalDisponibles: itemsDisponiblesDetalle.length,
+            detalle: itemsDisponiblesDetalle
+        });
+        
         return hayDisponibles;
     }
     
@@ -2490,9 +2565,23 @@ document.addEventListener('DOMContentLoaded', function() {
         
         btnNuevaSalida = document.getElementById('btn-nueva-salida');
         if (btnNuevaSalida) {
+            //  VALIDAR SI AÚN HAY ITEMS DISPONIBLES
+            const hayItemsDisponibles = validarItemsDisponiblesParaSalida();
+            
+            
+            //  SOLO CAMBIAR A "VER SALIDAS" SIN DESHABILITAR
             btnNuevaSalida.innerHTML = '<i class="fa fa-list"></i> Ver Salidas';
             btnNuevaSalida.classList.remove('btn-success');
             btnNuevaSalida.classList.add('btn-secondary');
+            
+            //  MANTENER HABILITADO SI HAY ITEMS
+            if (hayItemsDisponibles) {
+                btnNuevaSalida.disabled = false;
+                btnNuevaSalida.title = 'Ver lista de salidas';
+            } else {
+                btnNuevaSalida.disabled = true;
+                btnNuevaSalida.title = 'No hay más items disponibles';
+            }
         }
         
         validarUbicacionesSalida();
@@ -2509,9 +2598,26 @@ document.addEventListener('DOMContentLoaded', function() {
         
         btnNuevaSalida = document.getElementById('btn-nueva-salida');
         if (btnNuevaSalida) {
-            btnNuevaSalida.innerHTML = '<i class="fa fa-truck"></i> Nueva Salida';
-            btnNuevaSalida.classList.remove('btn-secondary');
-            btnNuevaSalida.classList.add('btn-success');
+            //  RE-VALIDAR DISPONIBILIDAD CADA VEZ
+            const hayItemsDisponibles = validarItemsDisponiblesParaSalida();
+            
+            console.log(' Actualizando botón Nueva Salida:', {
+                hayDisponibles: hayItemsDisponibles
+            });
+            
+            if (hayItemsDisponibles) {
+                btnNuevaSalida.innerHTML = '<i class="fa fa-truck"></i> Nueva Salida';
+                btnNuevaSalida.classList.remove('btn-secondary');
+                btnNuevaSalida.classList.add('btn-success');
+                btnNuevaSalida.disabled = false;
+                btnNuevaSalida.title = '';
+            } else {
+                btnNuevaSalida.innerHTML = '<i class="fa fa-ban"></i> Nueva Salida';
+                btnNuevaSalida.classList.remove('btn-success');
+                btnNuevaSalida.classList.add('btn-secondary');
+                btnNuevaSalida.disabled = true;
+                btnNuevaSalida.title = 'No hay items disponibles para generar salida';
+            }
         }
         
         const salidasTab = document.getElementById('salidas-tab');
@@ -2637,8 +2743,7 @@ document.addEventListener('DOMContentLoaded', function() {
         contenedorItemsSalida.appendChild(itemElement);
         console.log('Item agregado al DOM');
         
-        // Deshabilitar botón original
-        if (item.botonOriginal) {
+            if (item.botonOriginal) {
             item.botonOriginal.disabled = true;
             item.botonOriginal.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
             item.botonOriginal.classList.remove('btn-success');
@@ -2648,11 +2753,36 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Event listener para remover
         const btnRemover = itemElement.querySelector('.btn-remover-item-salida');
-        btnRemover.addEventListener('click', function() {
-            removerItemDeSalida(itemId, item.botonOriginal);
-        });
+        if (btnRemover) {  // ← AGREGAR VALIDACIÓN
+            btnRemover.addEventListener('click', function() {
+                removerItemDeSalida(itemId, item.botonOriginal);
+            });
+        }
         
-        console.log('agregarItemASalida COMPLETADO');
+        //  RE-VALIDAR DISPONIBILIDAD DESPUÉS DE AGREGAR
+        setTimeout(() => {
+            const hayMasDisponibles = validarItemsDisponiblesParaSalida();
+            const btnNuevaSalida = document.getElementById('btn-nueva-salida');
+            
+            console.log('🔍 Re-validación después de agregar:', {
+                hayMasDisponibles: hayMasDisponibles,
+                estadoBoton: btnNuevaSalida ? btnNuevaSalida.disabled : 'no existe'
+            });
+            
+            if (btnNuevaSalida) {
+                if (hayMasDisponibles) {
+                    btnNuevaSalida.disabled = false;
+                    btnNuevaSalida.title = 'Ver lista de salidas';
+                    console.log('✅ Botón Nueva Salida mantiene habilitado');
+                } else {
+                    btnNuevaSalida.disabled = true;
+                    btnNuevaSalida.title = 'No hay más items disponibles';
+                    console.log('🔒 Botón Nueva Salida deshabilitado - sin items');
+                }
+            }
+        }, 100);
+        
+        console.log('✅ agregarItemASalida COMPLETADO');
     }
     
     function removerItemDeSalida(idDetalle, botonOriginal) {
@@ -2666,6 +2796,20 @@ document.addEventListener('DOMContentLoaded', function() {
             botonOriginal.innerHTML = '<i class="fa fa-truck"></i> Agregar a Salida';
             botonOriginal.classList.remove('btn-secondary');
             botonOriginal.classList.add('btn-success');
+        }
+        
+        // 🔹 RE-VALIDAR SI EL BOTÓN NUEVA SALIDA DEBE ESTAR HABILITADO
+        const btnNuevaSalida = document.getElementById('btn-nueva-salida');
+        if (btnNuevaSalida && btnNuevaSalida.classList.contains('btn-secondary')) {
+            const hayItemsDisponibles = validarItemsDisponiblesParaSalida();
+            
+            if (hayItemsDisponibles) {
+                btnNuevaSalida.innerHTML = '<i class="fa fa-truck"></i> Nueva Salida';
+                btnNuevaSalida.classList.remove('btn-secondary');
+                btnNuevaSalida.classList.add('btn-success');
+                btnNuevaSalida.disabled = false;
+                btnNuevaSalida.title = '';
+            }
         }
     }
     
@@ -2970,7 +3114,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ============================================
     // FUNCIONES DE VERIFICACIÓN
     // ============================================
-        function verificarSiGenerarSalida() {
+    function verificarSiGenerarSalida() {
         const itemsPendientes = document.querySelectorAll('.item-pendiente');
         let tieneItems = false;
         let todosConStockCompleto = true;
@@ -2994,8 +3138,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (tieneSalidaActiva) {
-            console.log('Este pedido ya tiene una salida activa registrada');
-            return;
+            console.log(' Este pedido tiene salidas registradas');
+            return; // ← SOLO RETORNAR, NO OCULTAR NADA
         }
 
         /*if (tieneItems && todosConStockCompleto) {
@@ -3892,9 +4036,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                     ${data.message}
                                 </div>
                                 <hr>
-                                <p style="margin-bottom: 0; padding: 10px; background-color: #d4edda; border-radius: 5px; border-left: 4px solid #28a745;">
-                                    Las cantidades del pedido han sido <strong>re-verificadas automáticamente</strong> según el stock disponible actual.
-                                </p>
                             </div>
                         `,
                         confirmButtonText: '<i class="fa fa-sync"></i> Ver Cambios',
@@ -3907,19 +4048,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     return;
                 }
                 
-                // ✅ ÉXITO
+                //  ÉXITO
                 if (data.success) {
+                    const idPedido = document.querySelector('input[name="id_pedido"]').value;
                     const successParam = `success=${modoEditarSalida ? 'salida_actualizada' : 'salida_creada'}`;
-                    Swal.fire({
-                        icon: 'success',
-                        title: modoEditarSalida ? '¡Salida Actualizada!' : '¡Salida Generada!',
-                        text: modoEditarSalida ? 'La salida se actualizó correctamente' : 'La salida se generó correctamente',
-                        confirmButtonColor: '#28a745'
-                    }).then(() => {
-                        const idPedido = document.querySelector('input[name="id_pedido"]').value;
-                        window.location.href = `pedido_verificar.php?id=${idPedido}&${successParam}`;
-                    });
-                } else {
+                    window.location.href = `pedido_verificar.php?id=${idPedido}&${successParam}&validate=1`;
+                }else {
                     // ❌ OTRO ERROR
                     Swal.fire({
                         icon: 'error',
@@ -4110,24 +4244,47 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.preventDefault();
                 e.stopPropagation();
                 
-                const contenedorNuevaSalida = document.getElementById('contenedor-nueva-salida');
-                if (contenedorNuevaSalida && contenedorNuevaSalida.style.display !== 'none') {
-                    mostrarListaSalidas();
-                    return;
-                }
+                console.log('🔘 Botón Nueva Salida clickeado');
                 
-                const hayItemsDisponibles = validarItemsDisponiblesParaSalida();
-                
-                if (!hayItemsDisponibles) {
+                // 🔹 NO PERMITIR EN SERVICIOS
+                if (esOrdenServicio) {
                     Swal.fire({
-                        icon: 'warning',
-                        title: 'Sin items disponibles',
-                        text: 'No hay items con stock completo disponibles para generar una salida.',
+                        icon: 'info',
+                        title: 'No disponible',
+                        text: 'Las salidas no aplican para órdenes de servicio.',
                         confirmButtonColor: '#3085d6'
                     });
                     return;
                 }
                 
+                const contenedorNuevaSalida = document.getElementById('contenedor-nueva-salida');
+                
+                // 🔹 TOGGLE: Si está mostrando formulario, volver a lista
+                if (contenedorNuevaSalida && contenedorNuevaSalida.style.display === 'block') {
+                    console.log('🔙 Volviendo a lista de salidas');
+                    mostrarListaSalidas();
+                    return;
+                }
+                
+                // 🔹 VALIDAR DISPONIBILIDAD ANTES DE MOSTRAR FORMULARIO
+                const hayItemsDisponibles = validarItemsDisponiblesParaSalida();
+                
+                console.log(' Validación antes de mostrar formulario:', {
+                    hayDisponibles: hayItemsDisponibles,
+                    botonDisabled: this.disabled
+                });
+                
+                if (!hayItemsDisponibles) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Sin items disponibles',
+                        text: 'No hay items disponibles para generar una salida.',
+                        confirmButtonColor: '#3085d6'
+                    });
+                    return;
+                }
+                
+                console.log(' Mostrando formulario de nueva salida');
                 mostrarFormularioNuevaSalida();
             });
         }
@@ -5781,7 +5938,7 @@ if (btnReverificar) {
     }
 
 
-    // Datos para edición de salida
+   // Datos para edición de salida
     <?php if ($modo_editar_salida && $salida_data): ?>
     const salidaEditar = {
         id: <?php echo $salida_data['id_salida']; ?>,
@@ -5796,5 +5953,47 @@ if (btnReverificar) {
     const itemsSalidaEditar = <?php echo json_encode($salida_detalle); ?>;
     <?php endif; ?>
     
-});
+    //  VALIDACIÓN INICIAL - SOLO UNA VEZ
+    if (!esOrdenServicio && !pedidoAnulado && !modoEditar && !modoEditarSalida) {
+        const tiempoEspera = debeValidar ? 1500 : 1000;
+        
+        setTimeout(() => {
+            console.log('🔄 Validando estado inicial de botones (ejecución única)...');
+            
+            const btnNuevaSalida = document.getElementById('btn-nueva-salida');
+            if (btnNuevaSalida) {
+                const hayItemsDisponibles = validarItemsDisponiblesParaSalida();
+                
+                console.log('📊 Validación inicial salidas:', {
+                    hayDisponibles: hayItemsDisponibles,
+                    estadoActualBoton: btnNuevaSalida.disabled,
+                    vieneDeGuardar: debeValidar
+                });
+                
+                if (hayItemsDisponibles && btnNuevaSalida.disabled) {
+                    console.log('⚠️ CORRECCIÓN: Habilitando botón');
+                    btnNuevaSalida.disabled = false;
+                    btnNuevaSalida.classList.remove('btn-secondary');
+                    btnNuevaSalida.classList.add('btn-success');
+                    btnNuevaSalida.innerHTML = '<i class="fa fa-truck"></i> Nueva Salida';
+                    btnNuevaSalida.title = '';
+                } else if (!hayItemsDisponibles && !btnNuevaSalida.disabled) {
+                    console.log('⚠️ CORRECCIÓN: Deshabilitando botón');
+                    btnNuevaSalida.disabled = true;
+                    btnNuevaSalida.classList.remove('btn-success');
+                    btnNuevaSalida.classList.add('btn-secondary');
+                    btnNuevaSalida.innerHTML = '<i class="fa fa-ban"></i> Nueva Salida';
+                    btnNuevaSalida.title = 'No hay items disponibles';
+                } else {
+                    console.log('✅ Estado del botón correcto');
+                }
+            } else {
+                console.warn('⚠️ No se encontró el botón Nueva Salida (verificar renderizado PHP)');
+            }
+            
+            recalcularEstadoItems();
+        }, tiempoEspera);
+    }
+    
+}); // ← FIN DOMContentLoaded - ASEGÚRATE QUE SOLO HAY UNO
 </script>

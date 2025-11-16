@@ -1609,15 +1609,38 @@ function verificarSiNecesitaReverificacion($materiales, $id_salida, $id_pedido) 
 function ObtenerCantidadEnSalidasAnuladasPorDetalle($id_pedido_detalle) {
     include("../_conexion/conexion.php");
     
+    // ✅ VALIDACIÓN: Asegurar que sea un entero válido
+    $id_pedido_detalle = intval($id_pedido_detalle);
+    
+    if ($id_pedido_detalle <= 0) {
+        mysqli_close($con);
+        return 0.0;
+    }
+    
     $sql = "SELECT COALESCE(SUM(sd.cant_salida_detalle), 0) as total_anulado
             FROM salida_detalle sd
             INNER JOIN salida s ON sd.id_salida = s.id_salida
             WHERE sd.id_pedido_detalle = $id_pedido_detalle
-            AND s.est_salida = 0  --  SOLO SALIDAS ANULADAS
+            AND s.est_salida = 0  /* SOLO SALIDAS ANULADAS */
             AND sd.est_salida_detalle = 1";
     
     $resultado = mysqli_query($con, $sql);
+    
+    // ✅ VALIDACIÓN: Verificar si la consulta fue exitosa
+    if (!$resultado) {
+        error_log("❌ ERROR en ObtenerCantidadEnSalidasAnuladasPorDetalle: " . mysqli_error($con));
+        mysqli_close($con);
+        return 0.0;
+    }
+    
     $row = mysqli_fetch_assoc($resultado);
+    
+    // ✅ VALIDACIÓN: Verificar que se obtuvo una fila
+    if (!$row) {
+        error_log("⚠️ No se obtuvo resultado en ObtenerCantidadEnSalidasAnuladasPorDetalle para detalle $id_pedido_detalle");
+        mysqli_close($con);
+        return 0.0;
+    }
     
     mysqli_close($con);
     return floatval($row['total_anulado']);

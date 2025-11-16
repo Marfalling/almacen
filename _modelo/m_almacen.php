@@ -199,6 +199,7 @@ function ConsultarAlmacenTotal()
         INNER JOIN {$bd_complemento}.subestacion obr ON alm.id_obra       = obr.id_subestacion
     INNER JOIN ubicacion  ubi ON mov.id_ubicacion  = ubi.id_ubicacion
     WHERE mov.est_movimiento = 1
+      AND pro.id_producto_tipo <> 2  --  EXCLUIR SERVICIOS (tipo_producto_tipo = 2)
     GROUP BY 
         pro.id_producto,
         cli.id_cliente,
@@ -283,6 +284,7 @@ function ConsultarAlmacenArce()
         INNER JOIN {$bd_complemento}.subestacion obr ON alm.id_obra       = obr.id_subestacion
     INNER JOIN ubicacion  ubi ON mov.id_ubicacion  = ubi.id_ubicacion
     WHERE mov.est_movimiento = 1
+      AND pro.id_producto_tipo <> 2  -- EXCLUIR SERVICIOS
     GROUP BY 
         pro.id_producto
     ORDER BY 
@@ -300,6 +302,7 @@ function ConsultarAlmacenArce()
     
     return $resultado;
 }
+
 function ConsultarAlmacenClientes($id_cliente)
 {
     include("../_conexion/conexion.php");
@@ -372,6 +375,7 @@ function ConsultarAlmacenClientes($id_cliente)
         INNER JOIN {$bd_complemento}.subestacion obr ON alm.id_obra       = obr.id_subestacion
     INNER JOIN ubicacion  ubi ON mov.id_ubicacion  = ubi.id_ubicacion
     WHERE mov.est_movimiento = 1
+      AND pro.id_producto_tipo <> 2  -- EXCLUIR SERVICIOS
     $filtro_cliente
     GROUP BY 
         pro.id_producto,

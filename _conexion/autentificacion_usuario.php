@@ -146,6 +146,15 @@ function obtenerPermisosUsuario($id_usuario) {
                 if($accion == 'ver') {
                     $permisos_formateados[0]['ver_pedidos'] = 1;
                 }
+                if($accion == 'anular') {
+                    $permisos_formateados[0]['anular_pedidos'] = 1;
+                }
+                if($accion == 'aprobar') {
+                    $permisos_formateados[0]['aprobar_pedidos'] = 1;
+                }
+                if($accion == 'verificar') {
+                    $permisos_formateados[0]['verificar_pedidos'] = 1;
+                }
                 break;
 
             case 'compras':
@@ -159,6 +168,12 @@ function obtenerPermisosUsuario($id_usuario) {
                 }
                 if($accion == 'ver') {
                     $permisos_formateados[0]['ver_compras'] = 1;
+                }
+                if($accion == 'anular') {
+                    $permisos_formateados[0]['anular_compras'] = 1;
+                }
+                if($accion == 'aprobar') {
+                    $permisos_formateados[0]['aprobar_compras'] = 1;
                 }
                 break;
 
@@ -176,7 +191,7 @@ function obtenerPermisosUsuario($id_usuario) {
                 }
                 break;
 
-            case 'salidas': // NUEVO MÓDULO
+            case 'salidas':
                 if($accion == 'crear') {
                     $permisos_formateados[0]['crear_salidas'] = 1;
                     $permisos_formateados[0]['reg_salidas'] = 1;
@@ -187,6 +202,12 @@ function obtenerPermisosUsuario($id_usuario) {
                 }
                 if($accion == 'ver') {
                     $permisos_formateados[0]['ver_salidas'] = 1;
+                }
+                if($accion == 'anular') {
+                    $permisos_formateados[0]['anular_salidas'] = 1;
+                }
+                if($accion == 'aprobar') {
+                    $permisos_formateados[0]['aprobar_salidas'] = 1;
                 }
                 break;
 
@@ -447,6 +468,9 @@ function obtenerPermisosUsuario($id_usuario) {
                 if($accion == 'ver') {
                     $permisos_formateados[0]['ver_proveedor'] = 1;
                 }
+                if($accion == 'importar') {
+                    $permisos_formateados[0]['importar_proveedor'] = 1;
+                }
                 break;
 
             case 'moneda':
@@ -462,6 +486,36 @@ function obtenerPermisosUsuario($id_usuario) {
                     $permisos_formateados[0]['ver_moneda'] = 1;
                 }
                 break;
+
+            case 'detraccion':
+                if($accion == 'crear') {
+                    $permisos_formateados[0]['crear_detraccion'] = 1;
+                    $permisos_formateados[0]['reg_detraccion'] = 1;
+                }
+                if($accion == 'editar') {
+                    $permisos_formateados[0]['editar_detraccion'] = 1;
+                    $permisos_formateados[0]['edi_detraccion'] = 1;
+                }
+                if($accion == 'ver') {
+                    $permisos_formateados[0]['ver_detraccion'] = 1;
+                }
+                break;
+
+            case 'centro de costo':
+                if($accion == 'crear') {
+                    $permisos_formateados[0]['crear_centro de costo'] = 1;
+                    $permisos_formateados[0]['reg_centro de costo'] = 1;
+                }
+                if($accion == 'editar') {
+                    $permisos_formateados[0]['editar_centro de costo'] = 1;
+                    $permisos_formateados[0]['edi_centro de costo'] = 1;
+                }
+                if($accion == 'ver') {
+                    $permisos_formateados[0]['ver_centro de costo'] = 1;
+                }
+                break;
+            
+            // ==================== NUEVOS MÓDULOS ====================
             
             case 'banco':
                 if($accion == 'crear') {
@@ -479,15 +533,15 @@ function obtenerPermisosUsuario($id_usuario) {
 
             case 'tipo de documento':
                 if($accion == 'crear') {
-                    $permisos_formateados[0]['crear_tipo de pago'] = 1;
-                    $permisos_formateados[0]['reg_tipo de pago'] = 1;
+                    $permisos_formateados[0]['crear_tipo de documento'] = 1;
+                    $permisos_formateados[0]['reg_tipo de documento'] = 1;
                 }
                 if($accion == 'editar') {
-                    $permisos_formateados[0]['editar_tipo de pago'] = 1;
-                    $permisos_formateados[0]['edi_tipo de pago'] = 1;
+                    $permisos_formateados[0]['editar_tipo de documento'] = 1;
+                    $permisos_formateados[0]['edi_tipo de documento'] = 1;
                 }
                 if($accion == 'ver') {
-                    $permisos_formateados[0]['ver_tipo de pago'] = 1;
+                    $permisos_formateados[0]['ver_tipo de documento'] = 1;
                 }
                 break;
 

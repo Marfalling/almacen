@@ -35,14 +35,18 @@ if (isset($_GET['fecha_inicio']) && isset($_GET['fecha_fin'])) {
     $fecha_fin    = date('Y-m-d');  // Fecha actual
 }
 
-// Determinar filtro por rol
-$usuarios_admin = [1]; // IDs de administradores que ven TODOS los pedidos
-
-if (in_array($id_personal_actual, $usuarios_admin)) {
-    $id_personal_filtro = null; // Admin: ve todos
+// ========================================================================
+// Determinar alcance de visualización según rol del usuario
+// Admin: Ve todos los pedidos del sistema
+// Usuario: Solo ve sus propios pedidos
+// ========================================================================
+// Determinar si el usuario es admin
+if (esAdministrador($id)) {
+    $id_personal_filtro = null; // Ve TODOS los registros
 } else {
-    $id_personal_filtro = $id_personal_actual; // Usuario: solo sus pedidos
+    $id_personal_filtro = $id_personal_actual; // Solo sus registros
 }
+
 
 // Obtener pedidos
 $pedidos = MostrarPedidosFecha($fecha_inicio, $fecha_fin, $id_personal_filtro);

@@ -162,12 +162,12 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                         
                         if ($resultado === "SI" || (is_array($resultado) && isset($resultado['success']) && $resultado['success'] === true)) {
 
-                            // ======================================
-                            // NUEVO: SUBIDA DE DOCUMENTOS
-                            // ======================================
-                            $id_salida = is_array($resultado) ? $resultado['id_salida'] : mysqli_insert_id($con ?? null);
+                            //  CORRECCIÓN: Obtener id_salida del resultado
+                            $id_salida = is_array($resultado) && isset($resultado['id_salida']) 
+                                        ? $resultado['id_salida'] 
+                                        : 0;
                             
-                            if (isset($_FILES['documento']) && count($_FILES['documento']['name']) > 0) {
+                            if ($id_salida > 0 && isset($_FILES['documento']) && count($_FILES['documento']['name']) > 0) {
                                 include_once("../_modelo/m_documentos.php");
 
                                 $entidad = "salidas";
@@ -178,16 +178,14 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
 
                                 foreach ($_FILES['documento']['name'] as $i => $nombre_original) {
                                     if (!empty($nombre_original)) {
-                                        // --- Normalización del nombre ---
                                         $nombre_limpio = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $nombre_original);
                                         if ($nombre_limpio === false || trim($nombre_limpio) === '') {
-                                            $nombre_limpio = $nombre_original; // si iconv falla, usa el original
+                                            $nombre_limpio = $nombre_original;
                                         }
 
-                                        // reemplazar caracteres raros y espacios
                                         $nombre_limpio = preg_replace('/[^A-Za-z0-9._-]/', '_', $nombre_limpio);
                                         $nombre_limpio = trim($nombre_limpio, '_');
-            
+
                                         $nombre_archivo = $entidad . "_" . $id_salida . "_" . time() . "_" . basename($nombre_limpio);
                                         $target_file = $target_dir . $nombre_archivo;
 
@@ -197,6 +195,7 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                                     }
                                 }
                             }
+                            
                             // ======================================
 
                             $id_pedido_origen = isset($_REQUEST['id_pedido_origen']) ? intval($_REQUEST['id_pedido_origen']) : 0;

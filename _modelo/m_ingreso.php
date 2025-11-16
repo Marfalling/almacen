@@ -1238,3 +1238,59 @@ function ActualizarCompromisoPedido($id_compra, $id_producto, $cantidad_ingresad
     mysqli_close($con);
     return ['success' => true];
 }
+
+//-----------------------------------------------------------------------
+/**
+ * Obtener el tipo de producto de un pedido asociado a una compra
+ * @param int $id_compra ID de la compra
+ * @return array Información del tipo de producto ['id_producto_tipo' => int, 'nom_producto_tipo' => string, 'es_servicio' => bool]
+ */
+function ObtenerTipoProductoPedidoPorCompra($id_compra)
+{
+    include("../_conexion/conexion.php");
+    
+    $id_compra = intval($id_compra);
+    
+    $sql = "SELECT 
+                pt.id_producto_tipo, 
+                pt.nom_producto_tipo
+            FROM compra c 
+            INNER JOIN pedido p ON c.id_pedido = p.id_pedido 
+            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
+            WHERE c.id_compra = $id_compra
+            LIMIT 1";
+    
+    $resultado = mysqli_query($con, $sql);
+    
+    if (!$resultado) {
+        error_log("Error en ObtenerTipoProductoPedidoPorCompra: " . mysqli_error($con));
+        mysqli_close($con);
+        return array(
+            'id_producto_tipo' => 1,
+            'nom_producto_tipo' => 'Material',
+            'es_servicio' => false
+        );
+    }
+    
+    if ($row = mysqli_fetch_assoc($resultado)) {
+        $id_tipo = intval($row['id_producto_tipo']);
+        $es_servicio = ($id_tipo == 2); // 2 = SERVICIO/AUTO-ORDEN
+        
+        mysqli_close($con);
+        
+        return array(
+            'id_producto_tipo' => $id_tipo,
+            'nom_producto_tipo' => $row['nom_producto_tipo'],
+            'es_servicio' => $es_servicio
+        );
+    }
+    
+    mysqli_close($con);
+    
+    // Valor por defecto si no se encuentra
+    return array(
+        'id_producto_tipo' => 1,
+        'nom_producto_tipo' => 'Material',
+        'es_servicio' => false
+    );
+}

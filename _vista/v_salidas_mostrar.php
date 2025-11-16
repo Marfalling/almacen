@@ -2,6 +2,12 @@
 //=======================================================================
 // VISTA: v_salidas_mostrar.php
 //=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_aprobar = verificarPermisoEspecifico('aprobar_salidas');
+$tiene_permiso_anular = verificarPermisoEspecifico('anular_salidas');
 ?>
 
 <script>
@@ -143,7 +149,7 @@ function AnularSalida(id_salida) {
                                         <?php 
                                         $contador = 1;
                                         foreach($salidas as $salida) { 
-                                                $tiene_aprobacion = !empty($salida['id_personal_aprueba_salida']);
+                                            $tiene_aprobacion = !empty($salida['id_personal_aprueba_salida']);
                                         ?>
                                             <tr>
                                                 <td><?php echo $contador; ?></td>
@@ -158,13 +164,13 @@ function AnularSalida(id_salida) {
                                                 <td><?php echo date('d/m/Y H:i', strtotime($salida['fec_salida'])); ?></td>
                                                 <td><?php echo $salida['nom_personal']; ?></td>
                                                 <td>
-                                                        <?php 
-                                                        if ($tiene_aprobacion) {
-                                                            echo $salida['nom_aprueba'];
-                                                        } else {
-                                                            echo '-';
-                                                        }
-                                                        ?>
+                                                    <?php 
+                                                    if ($tiene_aprobacion) {
+                                                        echo $salida['nom_aprueba'];
+                                                    } else {
+                                                        echo '-';
+                                                    }
+                                                    ?>
                                                 </td>
                                                 <td>
                                                     <center>
@@ -178,7 +184,9 @@ function AnularSalida(id_salida) {
                                                     </center>
                                                 </td>
 
-                                                <!-- Acciones -->
+                                                <!-- ============================================ -->
+                                                <!-- ACCIONES CON VALIDACIÓN DE PERMISOS -->
+                                                <!-- ============================================ -->
                                                 <td>
                                                     <div class="d-flex flex-wrap gap-2">
 
@@ -192,77 +200,124 @@ function AnularSalida(id_salida) {
                                                         </button>
 
                                                         <?php if ($salida['est_salida'] == 1) { ?>
-                                                                <!-- SALIDA ACTIVA: mostrar botones según estado de aprobación -->
+                                                            <!-- ============================================ -->
+                                                            <!-- SALIDA ACTIVA: Validar permisos -->
+                                                            <!-- ============================================ -->
 
                                                             <!-- Botón Recepcionar -->
-                                                            <button onclick="AprobarSalida(<?php echo $salida['id_salida']; ?>)"
-                                                                    class="btn btn-success btn-sm"
-                                                                    title="Recepcionar Salida">
-                                                                <i class="fa fa-check"></i>
-                                                            </button>
+                                                            <?php if (!$tiene_permiso_aprobar) { ?>
+                                                                <!-- SIN PERMISO - Rojo outline danger -->
+                                                                <button class="btn btn-outline-danger btn-sm disabled"
+                                                                        title="No tienes permiso para recepcionar salidas"
+                                                                        tabindex="-1" 
+                                                                        aria-disabled="true">
+                                                                    <i class="fa fa-check"></i>
+                                                                </button>
+                                                            <?php } else { ?>
+                                                                <!-- CON PERMISO - Verde activo -->
+                                                                <button onclick="AprobarSalida(<?php echo $salida['id_salida']; ?>)"
+                                                                        class="btn btn-success btn-sm"
+                                                                        title="Recepcionar Salida">
+                                                                    <i class="fa fa-check"></i>
+                                                                </button>
+                                                            <?php } ?>
 
                                                             <!-- Editar -->
                                                             <a href="salidas_editar.php?id=<?php echo $salida['id_salida']; ?>" 
-                                                            class="btn btn-warning btn-sm" 
-                                                            title="Editar">
+                                                               class="btn btn-warning btn-sm" 
+                                                               title="Editar">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
 
                                                             <!-- PDF -->
                                                             <a href="salidas_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
-                                                            class="btn btn-secondary btn-sm" 
-                                                            title="Generar PDF"
-                                                            target="_blank">
+                                                               class="btn btn-secondary btn-sm" 
+                                                               title="Generar PDF"
+                                                               target="_blank">
                                                                 <i class="fa fa-file-pdf-o"></i>
                                                             </a>
 
-                                                            <!-- Anular -->
-                                                            <button class="btn btn-danger btn-sm"
-                                                                    onclick="AnularSalida(<?php echo $salida['id_salida']; ?>)"
-                                                                    title="Anular">
-                                                                <i class="fa fa-times"></i>
-                                                            </button>
+                                                            <!-- Botón Anular -->
+                                                            <?php if (!$tiene_permiso_anular) { ?>
+                                                                <!-- SIN PERMISO - Rojo outline danger -->
+                                                                <button class="btn btn-outline-danger btn-sm disabled"
+                                                                        title="No tienes permiso para anular salidas"
+                                                                        tabindex="-1" 
+                                                                        aria-disabled="true">
+                                                                    <i class="fa fa-times"></i>
+                                                                </button>
+                                                            <?php } else { ?>
+                                                                <!-- CON PERMISO - Rojo activo -->
+                                                                <button class="btn btn-danger btn-sm"
+                                                                        onclick="AnularSalida(<?php echo $salida['id_salida']; ?>)"
+                                                                        title="Anular">
+                                                                    <i class="fa fa-times"></i>
+                                                                </button>
+                                                            <?php } ?>
 
                                                         <?php } elseif ($salida['est_salida'] == 2) { ?>
+                                                            <!-- ============================================ -->
+                                                            <!-- RECEPCIONADA - Todo deshabilitado por proceso -->
+                                                            <!-- ============================================ -->
 
-                                                            <!-- TODO DESHABILITADO -->
-                                                            <button class="btn btn-outline-secondary btn-sm disabled">
+                                                            <button class="btn btn-outline-secondary btn-sm disabled"
+                                                                    title="Salida ya recepcionada"
+                                                                    tabindex="-1" 
+                                                                    aria-disabled="true">
                                                                 <i class="fa fa-check"></i>
                                                             </button>
 
-                                                            <button class="btn btn-outline-secondary btn-sm disabled">
+                                                            <button class="btn btn-outline-secondary btn-sm disabled"
+                                                                    title="No se puede editar - Salida recepcionada"
+                                                                    tabindex="-1" 
+                                                                    aria-disabled="true">
                                                                 <i class="fa fa-edit"></i>
                                                             </button>
 
                                                             <a href="salidas_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
-                                                            class="btn btn-secondary btn-sm"
-                                                            title="PDF"
-                                                            target="_blank">
+                                                               class="btn btn-secondary btn-sm"
+                                                               title="Generar PDF"
+                                                               target="_blank">
                                                                 <i class="fa fa-file-pdf-o"></i>
                                                             </a>
 
-                                                            <button class="btn btn-outline-secondary btn-sm disabled">
+                                                            <button class="btn btn-outline-secondary btn-sm disabled"
+                                                                    title="No se puede anular - Salida recepcionada"
+                                                                    tabindex="-1" 
+                                                                    aria-disabled="true">
                                                                 <i class="fa fa-times"></i>
                                                             </button>
 
                                                         <?php } else { ?>
-                                                            <!-- Anulada: bloquear todo excepto PDF -->
-                                                            <button class="btn btn-outline-secondary btn-sm disabled">
+                                                            <!-- ============================================ -->
+                                                            <!-- ANULADA - Todo deshabilitado por proceso -->
+                                                            <!-- ============================================ -->
+
+                                                            <button class="btn btn-outline-secondary btn-sm disabled"
+                                                                    title="Salida anulada"
+                                                                    tabindex="-1" 
+                                                                    aria-disabled="true">
                                                                 <i class="fa fa-check"></i>
                                                             </button>
 
-                                                            <button class="btn btn-outline-secondary btn-sm disabled">
+                                                            <button class="btn btn-outline-secondary btn-sm disabled"
+                                                                    title="No se puede editar - Salida anulada"
+                                                                    tabindex="-1" 
+                                                                    aria-disabled="true">
                                                                 <i class="fa fa-edit"></i>
                                                             </button>
 
                                                             <a href="salidas_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
-                                                            class="btn btn-secondary btn-sm"
-                                                            title="PDF"
-                                                            target="_blank">
+                                                               class="btn btn-secondary btn-sm"
+                                                               title="Generar PDF"
+                                                               target="_blank">
                                                                 <i class="fa fa-file-pdf-o"></i>
                                                             </a>
 
-                                                            <button class="btn btn-outline-secondary btn-sm disabled">
+                                                            <button class="btn btn-outline-secondary btn-sm disabled"
+                                                                    title="Salida ya anulada"
+                                                                    tabindex="-1" 
+                                                                    aria-disabled="true">
                                                                 <i class="fa fa-times"></i>
                                                             </button>
 
@@ -427,8 +482,8 @@ foreach($salidas as $salida) {
                                         <td><?= date('d/m/Y H:i', strtotime($doc['fec_subida'])); ?></td>
                                         <td>
                                             <a href="../uploads/salidas/<?= urlencode($doc['documento']); ?>" 
-                                            target="_blank" 
-                                            class="btn btn-sm btn-outline-info">
+                                               target="_blank" 
+                                               class="btn btn-sm btn-outline-info">
                                                 <i class="fa fa-download"></i> Ver / Descargar
                                             </a>
                                         </td>

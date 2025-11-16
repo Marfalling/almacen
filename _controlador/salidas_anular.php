@@ -8,6 +8,12 @@ if (!verificarPermisoEspecifico('anular_salidas')) {
     echo json_encode(['success' => false, 'message' => 'No tienes permiso para anular salidas.']);
     exit;
 }*/
+if (!verificarPermisoEspecifico('anular_salidas')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'SALIDAS', 'ANULAR');
+    header("location: bienvenido.php?permisos=true");
+    exit;
+}
 
 if (!isset($_POST['id'])) {
     echo json_encode(['success' => false, 'message' => 'ID de salida no recibido.']);

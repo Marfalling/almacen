@@ -3,6 +3,13 @@ header('Content-Type: application/json; charset=utf-8');
 require_once("../_conexion/sesion.php");
 require_once("../_modelo/m_salidas.php");
 
+if (!verificarPermisoEspecifico('aprobar_salidas')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'SALIDAS', 'APROBAR');
+    header("location: bienvenido.php?permisos=true");
+    exit;
+}
+
 $id_salida = isset($_POST['id_salida']) ? intval($_POST['id_salida']) : null;
 
 if ($id_salida) {

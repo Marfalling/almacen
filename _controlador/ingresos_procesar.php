@@ -91,7 +91,7 @@ try {
         throw new Exception("Función ProcesarIngresoProducto no encontrada");
     }
 
-    // Procesar productos
+    // Procesar productos (MISMO FLUJO PARA SERVICIOS Y MATERIALES)
     $resultados_exitosos = 0;
     $total_productos = 0;
     $errores = array();
@@ -109,13 +109,11 @@ try {
                 continue;
             }
             
+            // ✅ MISMA FUNCIÓN PARA TODO
             $resultado = ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_personal);
 
             if ($resultado['success']) {
                 $resultados_exitosos++;
-                //Comprometer stock que ingresa sea parcial o total del pedido
-                //Y actualizar estado de pedido a INGRESADO si se ingresó el total
-                //ActualizarCompromisoPedido($id_compra, $id_producto, $cantidad, $id_personal);
             } else {
                 $errores[] = "Producto ID $id_producto: " . ($resultado['message'] ?? 'Error desconocido');
             }
@@ -172,11 +170,11 @@ try {
                     if ($total_ingresado >= $total_requerido && $total_requerido > 0) {
                         $sql_update_pedido = "UPDATE pedido SET est_pedido = 4 WHERE id_pedido = $id_pedido_asociado";
                         mysqli_query($con, $sql_update_pedido);
-                        
                     }
                 }
             }
-            //EVALUAR ACTUALIZAR ESTADO A COMPLETADO
+            
+            // EVALUAR ACTUALIZAR ESTADO A COMPLETADO
             require_once("../_modelo/m_pedidos.php");
             ActualizarEstadoPedido($id_pedido_asociado);
         }

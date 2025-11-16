@@ -3,6 +3,14 @@ header('Content-Type: application/json; charset=utf-8');
 require_once("../_conexion/sesion.php");
 require_once("../_modelo/m_compras.php");
 
+if (!verificarPermisoEspecifico('aprobar_compras')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'COMPRAS', 'APROBAR');
+    header("location: bienvenido.php?permisos=true");
+    exit;
+}
+
+
 $id_compra = isset($_POST['id_compra']) ? intval($_POST['id_compra']) : null;
 
 if ($id_compra) {
