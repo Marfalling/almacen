@@ -1070,7 +1070,7 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
         $whereDirectos  = " AND DATE(i.fec_ingreso) = CURDATE() ";
     }
 
-        $sql = "SELECT 
+    $sql = "SELECT 
                 'COMPRA' AS tipo,
                 c.id_compra AS id_orden,
                 (
@@ -1086,11 +1086,17 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
                 p.cod_pedido,
                 pr.nom_proveedor AS origen,
                 pe1.nom_personal AS registrado_por,
-                /*pe2.nom_personal AS aprobado_tecnica_por,*/
                 pe3.nom_personal AS aprobado_financiera_por,
                 al.nom_almacen,
                 ub.nom_ubicacion,
                 mon.nom_moneda,
+                -- NUEVA COLUMNA: TIPO DE PEDIDO
+                CASE 
+                    WHEN pt.id_producto_tipo = 1 THEN 'ORDEN DE COMPRA'
+                    WHEN pt.id_producto_tipo = 2 THEN 'ORDEN DE SERVICIO'
+                    ELSE 'DESCONOCIDO'
+                END AS tipo_pedido_texto,
+                pt.id_producto_tipo,
                 (SELECT COUNT(*) 
                 FROM compra_detalle cd 
                 WHERE cd.id_compra = c.id_compra 
@@ -1118,8 +1124,8 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
                     AND id2.est_ingreso_detalle = 1
                 ), 0) AS productos_ingresados
             FROM compra c
-            -- 🔹 quitamos el LEFT JOIN ingreso para evitar duplicados
             INNER JOIN pedido p ON c.id_pedido = p.id_pedido
+            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo --  JOIN NUEVO
             INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
             INNER JOIN almacen al ON p.id_almacen = al.id_almacen
             INNER JOIN ubicacion ub ON p.id_ubicacion = ub.id_ubicacion
@@ -1146,11 +1152,12 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
                 CAST(NULL AS CHAR) as cod_pedido, 
                 CONCAT(cl.nom_cliente, ' - ', ob.nom_subestacion) as origen,
                 pe.nom_personal as registrado_por,
-                /*NULL as aprobado_tecnica_por,*/
                 NULL as aprobado_financiera_por,
                 al.nom_almacen,
                 ub.nom_ubicacion,
                 'N/A' as nom_moneda,
+                'INGRESO DIRECTO' AS tipo_pedido_texto, -- ✅ NUEVO
+                NULL AS id_producto_tipo, -- ✅ NUEVO
                 COALESCE((SELECT COUNT(*) FROM ingreso_detalle id WHERE id.id_ingreso = i.id_ingreso), 0) as total_productos,
                 0 as cantidad_total_pedida,
                 COALESCE((SELECT SUM(id2.cant_ingreso_detalle) FROM ingreso_detalle id2 WHERE id2.id_ingreso = i.id_ingreso), 0) as cantidad_total_ingresada,
@@ -1162,8 +1169,8 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
             INNER JOIN {$bd_complemento}.cliente cl ON al.id_cliente = cl.id_cliente
             LEFT JOIN {$bd_complemento}.personal pe ON i.id_personal = pe.id_personal
             WHERE i.id_compra IS NULL
-              AND i.est_ingreso IN (0, 1)
-              $whereDirectos
+            AND i.est_ingreso IN (0, 1)
+            $whereDirectos
 
             ORDER BY fecha DESC";
 

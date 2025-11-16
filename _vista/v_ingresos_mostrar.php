@@ -8,7 +8,7 @@
     <div class="">
         <div class="page-title">
             <div class="title_left">
-                <h3>Gestión de Ingresos <small>Órdenes de Compra e Ingresos Directos</small></h3>
+                <h3>Gestión de Ingresos <small>Órdenes de Compra, Servicios e Ingresos Directos</small></h3>
             </div>
             <div class="title_right">
                 <div class="pull-right">
@@ -63,13 +63,35 @@
                             <li role="presentation">
                                 <a href="#ordenes-compra" aria-controls="ordenes-compra" role="tab" data-toggle="tab">
                                     <i class="fa fa-shopping-cart"></i> Órdenes de Compra 
-                                    <span class="badge badge-warning badge_size"><?php echo count(array_filter($ingresos, function($ing) { return $ing['tipo'] == 'COMPRA' || !isset($ing['tipo']); })); ?></span>
+                                    <span class="badge badge-warning badge_size"><?php 
+                                        echo count(array_filter($ingresos, function($ing) { 
+                                            return (isset($ing['tipo']) && $ing['tipo'] == 'COMPRA' && 
+                                                   isset($ing['id_producto_tipo']) && $ing['id_producto_tipo'] == 1) || 
+                                                   (!isset($ing['tipo'])); 
+                                        })); 
+                                    ?></span>
                                 </a>
                             </li>
                             <li role="presentation">
                                 <a href="#ingresos-directos" aria-controls="ingresos-directos" role="tab" data-toggle="tab">
                                     <i class="fa fa-plus-circle"></i> Ingresos Directos
-                                    <span class="badge badge-info badge_size"><?php echo count(array_filter($ingresos, function($ing) { return isset($ing['tipo']) && $ing['tipo'] == 'DIRECTO'; })); ?></span>
+                                    <span class="badge badge-info badge_size"><?php 
+                                        echo count(array_filter($ingresos, function($ing) { 
+                                            return isset($ing['tipo']) && $ing['tipo'] == 'DIRECTO'; 
+                                        })); 
+                                    ?></span>
+                                </a>
+                            </li>
+                             <!--  ÓRDENES DE SERVICIO -->
+                            <li role="presentation">
+                                <a href="#ordenes-servicio" aria-controls="ordenes-servicio" role="tab" data-toggle="tab">
+                                    <i class="fa fa-wrench"></i> Órdenes de Servicio
+                                    <span class="badge badge-success badge_size"><?php 
+                                        echo count(array_filter($ingresos, function($ing) { 
+                                            return isset($ing['tipo']) && $ing['tipo'] == 'COMPRA' && 
+                                                   isset($ing['id_producto_tipo']) && $ing['id_producto_tipo'] == 2; 
+                                        })); 
+                                    ?></span>
                                 </a>
                             </li>
                         </ul>
@@ -88,6 +110,7 @@
                                                     <tr>
                                                         <th>#</th>
                                                         <th>Código Ingreso</th>
+                                                        <th>Tipo</th>
                                                         <th>Código Orden</th>
                                                         <th>Código Pedido</th>
                                                         <!-- <th>Proveedor/Origen</th> -->
@@ -110,7 +133,10 @@
                                                         $fec_compra = isset($ingreso['fec_compra']) ? $ingreso['fec_compra'] : (isset($ingreso['fecha']) ? $ingreso['fecha'] : '');
                                                         $nom_proveedor = isset($ingreso['nom_proveedor']) ? $ingreso['nom_proveedor'] : (isset($ingreso['origen']) ? $ingreso['origen'] : '');
                                                         
-                                                        //  CALCULAR SI HAY PRODUCTOS PENDIENTES (LÓGICA DEL SEGUNDO CÓDIGO)
+                                                        //  OBTENER TIPO DE PEDIDO EN TEXTO
+                                                        $tipo_pedido_texto = isset($ingreso['tipo_pedido_texto']) ? $ingreso['tipo_pedido_texto'] : 'N/A';
+                                                        
+                                                        // Calcular pendientes
                                                         $cantidad_pedida = isset($ingreso['cantidad_total_pedida']) ? floatval($ingreso['cantidad_total_pedida']) : 0;
                                                         $cantidad_ingresada = isset($ingreso['cantidad_total_ingresada']) ? floatval($ingreso['cantidad_total_ingresada']) : 0;
                                                         $hay_pendientes = ($cantidad_ingresada < $cantidad_pedida);
@@ -121,7 +147,12 @@
                                                             <td><?php echo $contador; ?></td>
                                                             <!-- COLUMNA: CÓDIGO ORDEN -->
                                                             <td><?php echo $ingreso['cod_ingreso']; ?></td>
-                                                           
+                                                            
+                                                            <!-- COLUMNA: TIPO  -->
+                                                            <td>
+                                                                <?php echo $tipo_pedido_texto; ?>
+                                                            </td>
+                                                            
                                                             <td>
                                                                 <?php 
                                                                 if(isset($ingreso['id_orden']))
@@ -281,7 +312,9 @@
                                                     <?php
                                                     $contador = 1;
                                                     foreach ($ingresos as $ingreso) {
-                                                        if (isset($ingreso['tipo']) && $ingreso['tipo'] != 'COMPRA') continue;
+                                                        // Solo tipo COMPRA con id_producto_tipo = 1
+                                                        if (!isset($ingreso['tipo']) || $ingreso['tipo'] != 'COMPRA') continue;
+                                                        if (isset($ingreso['id_producto_tipo']) && $ingreso['id_producto_tipo'] != 1) continue;
                                                         
                                                         $id_compra = isset($ingreso['id_compra']) ? $ingreso['id_compra'] : (isset($ingreso['id_orden']) ? $ingreso['id_orden'] : '');
                                                         $est_compra = isset($ingreso['est_compra']) ? $ingreso['est_compra'] : (isset($ingreso['estado']) ? $ingreso['estado'] : 0);
@@ -435,6 +468,97 @@
                                                                         </span>
                                                                     <?php } ?>
                                                                 </div>
+                                                            </td>
+                                                        </tr>
+                                                    <?php 
+                                                        $contador++;
+                                                    } 
+                                                    ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ============================================ -->
+                            <!--  NUEVO TAB 3: ÓRDENES DE SERVICIO -->
+                            <!-- ============================================ -->
+                            <div role="tabpanel" class="tab-pane" id="ordenes-servicio">
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <div class="card-box table-responsive">
+                                            <table id="datatable-servicios" class="table table-striped table-bordered" style="width:100%">
+                                                <thead>
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>Código Orden</th>
+                                                        <th>Código Pedido</th>
+                                                        <th>Proveedor</th>
+                                                        <th>Almacén</th>
+                                                        <th>Ubicación</th>
+                                                        <th>Fecha Registro</th>
+                                                        <th>Registrado Por</th>
+                                                        <th>Estado</th>
+                                                        <th>Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php
+                                                    $contador = 1;
+                                                    foreach ($ingresos as $ingreso) {
+                                                        //  Solo tipo COMPRA con id_producto_tipo = 2 (SERVICIO)
+                                                        if (!isset($ingreso['tipo']) || $ingreso['tipo'] != 'COMPRA') continue;
+                                                        if (!isset($ingreso['id_producto_tipo']) || $ingreso['id_producto_tipo'] != 2) continue;
+                                                        
+                                                        $id_compra = isset($ingreso['id_compra']) ? $ingreso['id_compra'] : (isset($ingreso['id_orden']) ? $ingreso['id_orden'] : '');
+                                                        $est_compra = isset($ingreso['est_compra']) ? $ingreso['est_compra'] : (isset($ingreso['estado']) ? $ingreso['estado'] : 0);
+                                                        $fec_compra = isset($ingreso['fec_compra']) ? $ingreso['fec_compra'] : (isset($ingreso['fecha']) ? $ingreso['fecha'] : '');
+                                                        $nom_proveedor = isset($ingreso['nom_proveedor']) ? $ingreso['nom_proveedor'] : (isset($ingreso['origen']) ? $ingreso['origen'] : '');
+                                                    ?>
+                                                        <tr>
+                                                            <td><?php echo $contador; ?></td>
+                                                            <td>
+                                                                <a class="btn btn-sm btn-outline-secondary" target="_blank" href="compras_pdf.php?id=<?php echo $id_compra; ?>">
+                                                                    C00<?php echo $id_compra; ?>
+                                                                </a>
+                                                            </td>
+                                                            <td>
+                                                                <?php if (isset($ingreso['id_pedido']) && isset($ingreso['cod_pedido'])) { ?>
+                                                                <a class="btn btn-sm btn-outline-secondary" target="_blank" href="pedido_pdf.php?id=<?php echo $ingreso['id_pedido']; ?>">
+                                                                    <?php echo $ingreso['cod_pedido']; ?>
+                                                                </a>
+                                                                <?php } else { ?>
+                                                                    -
+                                                                <?php } ?>
+                                                            </td>
+                                                            <td><?php echo $nom_proveedor; ?></td>
+                                                            <td><?php echo $ingreso['nom_almacen']; ?></td>
+                                                            <td><?php echo $ingreso['nom_ubicacion']; ?></td>
+                                                            <td><?php echo date('d/m/Y H:i', strtotime($fec_compra)); ?></td>
+                                                            <td><?php echo $ingreso['registrado_por'] ?? '-'; ?></td>
+                                                            <td>
+                                                                <?php 
+                                                                $est_compra = intval($est_compra);
+                                                                
+                                                                if ($est_compra == 0) { ?>
+                                                                    <span class="badge badge-danger badge_size">Anulado</span>
+                                                                <?php } elseif ($est_compra == 1) { ?>
+                                                                    <span class="badge badge-warning badge_size">Pendiente</span>
+                                                                <?php } elseif ($est_compra == 2) { ?>
+                                                                    <span class="badge badge-success badge_size">Aprobado</span>
+                                                                <?php } elseif ($est_compra == 3) { ?>
+                                                                    <span class="badge badge-info badge_size">Cerrada</span>
+                                                                <?php } elseif ($est_compra == 4) { ?>
+                                                                    <span class="badge badge-primary badge_size">Pagada</span>
+                                                                <?php } ?>
+                                                            </td>
+                                                            <td>
+                                                                <a href="compras_detalle.php?id_compra=<?php echo $id_compra; ?>" 
+                                                                   class="btn btn-secondary btn-sm"
+                                                                   title="Ver detalles de orden de servicio">
+                                                                    <i class="fa fa-eye"></i>
+                                                                </a>
                                                             </td>
                                                         </tr>
                                                     <?php 
@@ -637,15 +761,22 @@ document.addEventListener('DOMContentLoaded', function() {
             }));
         }
 
+        // DataTable para Órdenes de Servicio
+        if ($('#datatable-servicios').length) {
+            $('#datatable-servicios').DataTable($.extend({}, datatableConfig, {
+                "order": [[ 6, 'desc' ]]
+            }));
+        }
+
         if ($('#datatable-directos').length) {
             $('#datatable-directos').DataTable($.extend({}, datatableConfig, {
-                "order": [[ 5, 'desc' ]]
+                "order": [[ 4, 'desc' ]]
             }));
         }
 
         if ($('#datatable-todos').length) {
             $('#datatable-todos').DataTable($.extend({}, datatableConfig, {
-                "order": [[ 6, 'desc' ]]
+                "order": [[ 7, 'desc' ]]
             }));
         }
 
