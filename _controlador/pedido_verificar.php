@@ -1,6 +1,10 @@
 <?php
 require_once("../_conexion/sesion.php");
-
+// ============================================
+// CONFIGURAR ZONA HORARIA 
+// ============================================
+date_default_timezone_set('America/Lima');
+// ============================================
 if (!verificarPermisoEspecifico('verificar_pedidos')) {
     require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'VERIFICAR');

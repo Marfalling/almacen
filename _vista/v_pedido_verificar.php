@@ -794,7 +794,8 @@ $monedas = MostrarMoneda();
                                         $cant_ordenada_item = isset($detalle['cantidad_ya_ordenada']) ? floatval($detalle['cantidad_ya_ordenada']) : 0;
                                         $cant_pendiente_item = $cant_original_item - $cant_ordenada_item;
                                         
-                                        if ($cant_ordenada_item > 0 || $cant_pendiente_item > 0) { ?>
+                                        //  SOLO MOSTRAR SI HAY ALGO ORDENADO
+                                        if ($cant_ordenada_item > 0 || $cant_pendiente_item < $cant_original_item) { ?>
                                             <div style="padding: 3px 0; border-top: 1px solid #e0e0e0;">
                                                 <?php if ($cant_ordenada_item > 0) { ?>
                                                     <strong style="color: #333;">Ordenado:</strong> 
@@ -1343,6 +1344,7 @@ $monedas = MostrarMoneda();
                                                 <label style="font-size: 11px; font-weight: bold;">Fecha: <span class="text-danger">*</span></label>
                                                 <input type="date" class="form-control form-control-sm" id="fecha_orden" name="fecha_orden" 
                                                     value="<?php echo $modo_editar && $orden_data ? date('Y-m-d', strtotime($orden_data['fec_compra'])) : date('Y-m-d'); ?>" 
+                                                    min="<?php echo date('Y-m-d'); ?>"
                                                     style="font-size: 12px;" required>
                                             </div>
 
@@ -4352,8 +4354,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Establecer fecha actual
                     const fechaOrden = document.getElementById('fecha_orden');
-                    if (fechaOrden) {
-                        fechaOrden.value = new Date().toISOString().split('T')[0];
+                    if (fechaOrden && !fechaOrden.value) {
+                        fechaOrden.value = '<?php echo date('Y-m-d'); ?>';
                     }
                     
                     console.log('✅ Formulario mostrado correctamente');
@@ -4908,11 +4910,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             <strong>Descripción:</strong> ${item.descripcion}
                             ${badgeTipo}
                         </div>
-                        <small class="text-muted" style="font-size: 11px;">
-                            ${etiquetaCantidad}: ${cantidadVerificada.toFixed(2)} | 
-                            Ya ordenado: ${cantidadOrdenada.toFixed(2)} | 
-                            <strong class="text-warning">Pendiente: ${cantidadPendiente.toFixed(2)}</strong>
-                        </small>
+                    <small class="text-muted" style="font-size: 11px;">
+                        ${etiquetaCantidad}: ${cantidadVerificada.toFixed(2)} | 
+                        Ya ordenado: ${cantidadOrdenada.toFixed(2)} | 
+                        <strong class="text-warning">Pendiente: ${cantidadPendiente.toFixed(2)}</strong>
+                    </small>
                     </div>
                     <div class="col-md-1 text-right">
                         <button type="button" class="btn btn-danger btn-sm btn-remover-item" data-id-detalle="${itemId}">
