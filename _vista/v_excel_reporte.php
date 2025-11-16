@@ -2,7 +2,7 @@
 header("Content-Type: application/vnd.ms-excel");
 header("Expires: 0");
 header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
-header("content-disposition: attachment;filename=RptInspeccionesAmbiente.xls");
+header("content-disposition: attachment;filename=" . $filename);
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -20,20 +20,20 @@ header("content-disposition: attachment;filename=RptInspeccionesAmbiente.xls");
     <tr>
         <th bgcolor="#D8D8FC" style="text-align: center">#</th>
         <th bgcolor="#D8D8FC" style="text-align: center">DOI Tipo</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">DOI Número</th>
+        <th bgcolor="#D8D8FC" style="text-align: center">DOI Numero</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Tipo Abono</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">N° Cuentas a Abonar</th>
+        <th bgcolor="#D8D8FC" style="text-align: center">Nro Cuentas a Abonar</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Nombre de Beneficiario</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Importe Abonar</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Tipo Recibo</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">N° Documento</th>
+        <th bgcolor="#D8D8FC" style="text-align: center">Nro Documento</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Abono agrupado</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Referencia Orden</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Referencia Comprobante</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Indicador Aviso</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Medio de aviso</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Persona Contacto</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Validación</th>
+        <th bgcolor="#D8D8FC" style="text-align: center">Validacion</th>
         
     </tr>
     
@@ -46,7 +46,7 @@ header("content-disposition: attachment;filename=RptInspeccionesAmbiente.xls");
            $doi_numero = $row['doi_numero'];
            $tipo_abono = $row['tipo_abono'];
            //$nro_cuenta = $row['nro_cuenta'];
-           $nro_cuenta = str_replace(' ', '', $row['nro_cuenta']);
+           $nro_cuenta = str_replace([' ', '-'], '', $row['nro_cuenta']);
            $beneficiario = $row['beneficiario'];
            $importe_abonar = $row['importe_abonar'];
            $tipo_recibo = $row['tipo_recibo'];

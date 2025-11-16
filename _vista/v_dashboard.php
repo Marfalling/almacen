@@ -51,6 +51,20 @@
                     </select>
                   </div>
                 </div>
+                <div class="col-md-4">
+                  <div class="form-group">
+                    <label>Centro de Costo:</label>
+                    <select class="form-control" id="centro_costo" name="centro_costo">
+                      <option value="">Todos</option>
+                      <?php foreach($lista_centros_costo as $cc): ?>
+                        <option value="<?php echo $cc['id_area']; ?>"
+                          <?php echo ($centro_costo == $cc['id_area']) ? 'selected' : ''; ?>>
+                          <?php echo $cc['nom_area']; ?>
+                        </option>
+                      <?php endforeach; ?>
+                    </select>
+                  </div>
+                </div>
               </div>
               <div class="row">
                 <div class="col-md-12 text-right">
@@ -62,6 +76,7 @@
                   </button>
                 </div>
               </div>
+              
             </form>
           </div>
         </div>
@@ -184,7 +199,7 @@
     </div>
 
     <!-- Dashboard 3.b: Ordenes de Compra por Almacén -->
-    <div class="row">
+    <!--<div class="row">
       <div class="col-md-12 col-sm-12">
         <div class="x_panel">
           <div class="x_title">
@@ -233,14 +248,14 @@
           </div>
         </div>
       </div>
-    </div>
+    </div>-->
 
-    <!-- Dashboard 3.c: Pagos por Almacén -->
+    <!-- Dashboard 3.b: Órdenes de Compra por Centro de Costo -->
     <div class="row">
       <div class="col-md-12 col-sm-12">
         <div class="x_panel">
           <div class="x_title">
-            <h2>Estado de Pagos por Almacén <small>Análisis Financiero</small></h2>
+            <h2>Órdenes de Compra Por Centro de Costo <small>Distribución</small></h2>
             <div class="clearfix"></div>
           </div>
           <div class="x_content">
@@ -250,6 +265,58 @@
                   <tr>
                     <th>Almacén</th>
                     <th>Total Órdenes</th>
+                    <th>Atendidas</th>
+                    <th>Pendientes</th>
+                    <th>% Cumplimiento</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php if (!empty($ordenes_por_cc)): ?>
+                    <?php foreach($ordenes_por_cc as $cc): 
+                      $porcentaje = $cc['total_ordenes'] > 0 ?
+                        round(($cc['atendidas'] / $cc['total_ordenes']) * 100, 2) : 0;
+                    ?>
+                    <tr>
+                      <td><?php echo $cc['centro_costo']; ?></td>
+                      <td><?php echo $cc['total_ordenes']; ?></td>
+                      <td><span class="badge badge-success"><?php echo $cc['atendidas']; ?></span></td>
+                      <td><span class="badge badge-warning"><?php echo $cc['pendientes']; ?></span></td>
+                      <td>
+                        <div class="progress" style="margin:0">
+                          <div class="progress-bar bg-green" style="width:<?php echo $porcentaje; ?>%">
+                            <?php echo $porcentaje; ?>%
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                    <?php endforeach; ?>
+                  <?php else: ?>
+                    <tr><td colspan="5" class="text-center">No hay datos para el período seleccionado</td></tr>
+                  <?php endif; ?>
+                </tbody>
+              </table>
+            </div>
+            <div id="chart_almacen" style="width:100%; height:400px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard 3.c: Pagos por Almacén -->
+    <!--<div class="row">
+      <div class="col-md-12 col-sm-12">
+        <div class="x_panel">
+          <div class="x_title">
+            <h2>Estado de Comprobantes por Almacén <small>Análisis Financiero</small></h2>
+            <div class="clearfix"></div>
+          </div>
+          <div class="x_content">
+            <div class="table-responsive">
+              <table class="table table-striped jambo_table">
+                <thead>
+                  <tr>
+                    <th>Almacén</th>
+                    <th>Total Comprobantes</th>
                     <th>Pagadas</th>
                     <th>Pendientes</th>
                     <th>Monto Soles (S/)</th>
@@ -278,6 +345,51 @@
           </div>
         </div>
       </div>
+    </div>-->
+
+    <!-- Dashboard 3.c: Pagos por Centro de Costo -->
+    <div class="row">
+      <div class="col-md-12 col-sm-12">
+        <div class="x_panel">
+          <div class="x_title">
+            <h2>Estado de Pagos por Centro de Costo <small>Análisis Financiero</small></h2>
+            <div class="clearfix"></div>
+          </div>
+          <div class="x_content">
+            <div class="table-responsive">
+              <table class="table table-striped jambo_table">
+                <thead>
+                  <tr>
+                    <th>Almacén</th>
+                    <th>Total Órdenes</th>
+                    <th>Pagadas</th>
+                    <th>Pendientes</th>
+                    <th>Monto Pagado</th>
+                    <th>Monto Pendiente</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php if (!empty($pagos_por_cc)): ?>
+                    <?php foreach($pagos_por_cc as $pago): ?>
+                    <tr>
+                      <td><?php echo $pago['centro_costo']; ?></td>
+                      <td><?php echo $pago['total_ordenes']; ?></td>
+                      <td><span class="badge badge-success"><?php echo $pago['pagadas']; ?></span></td>
+                      <td><span class="badge badge-danger"><?php echo $pago['pendientes_pago']; ?></span></td>
+                      <td><strong>S/ <?php echo number_format($pago['monto_pagado'], 2); ?></strong></td>
+                      <td><strong>S/ <?php echo number_format($pago['monto_pendiente'], 2); ?></strong></td>
+                    </tr>
+                    <?php endforeach; ?>
+                  <?php else: ?>
+                    <tr><td colspan="6" class="text-center">No hay datos para el período seleccionado</td></tr>
+                  <?php endif; ?>
+                </tbody>
+              </table>
+            </div>
+            <div id="chart_pagos_almacen" style="width:100%; height:400px;"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Dashboard 3.d: Pagos por Proveedor -->
@@ -294,23 +406,23 @@
                 <thead>
                   <tr>
                     <th>Proveedor</th>
-                    <th>Total Órdenes</th>
+                    <th>Total órdenes</th>
                     <th>Pagadas</th>
                     <th>Pendientes</th>
-                    <th>Monto Soles (S/)</th>
-                    <th>Monto Dólares ($)</th>
+                    <th>Monto Pagado</th>
+                    <th>Monto Pendiente</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <?php if (!empty($pagos_proveedor)): ?>
-                    <?php foreach($pagos_proveedor as $pago): ?>
+                  <?php if (!empty($pagos_por_proveedor)): ?>
+                    <?php foreach($pagos_por_proveedor as $pago): ?>
                     <tr>
                       <td><?php echo $pago['proveedor']; ?></td>
                       <td><?php echo $pago['total_ordenes']; ?></td>
-                      <td><span class="badge badge-success"><?php echo $pago['ordenes_pagadas']; ?></span></td>
+                      <td><span class="badge badge-success"><?php echo $pago['pagadas']; ?></span></td>
                       <td><span class="badge badge-danger"><?php echo $pago['pendientes_pago']; ?></span></td>
-                      <td><strong>S/ <?php echo number_format($pago['monto_total_soles'], 2); ?></strong></td>
-                      <td><strong>$ <?php echo number_format($pago['monto_total_dolares'], 2); ?></strong></td>
+                      <td><strong>S/ <?php echo number_format($pago['monto_pagado'], 2); ?></strong></td>
+                      <td><strong>S/ <?php echo number_format($pago['monto_pendiente'], 2); ?></strong></td>
                     </tr>
                     <?php endforeach; ?>
                   <?php else: ?>
@@ -398,11 +510,72 @@ function limpiarFiltros() {
 
 function drawAllCharts() {
   drawOrdenesGeneralesChart();
-  drawAlmacenChart();
-  drawPagosAlmacenChart();
+  //drawAlmacenChart();
+  drawCentroCostoChart();
+  //drawPagosAlmacenChart();
+  drawPagosCentroCostoChart();
   drawPagosProveedorChart();
   drawVencidasMesChart();
 }
+
+//NUEVO GRÁFICO Órdenes por Centro de Costo
+
+function drawCentroCostoChart() {
+  var data = google.visualization.arrayToDataTable([
+    ['Centro Costo', 'Atendidas', 'Pendientes']
+    <?php if (!empty($ordenes_por_cc)): ?>
+      <?php foreach($ordenes_por_cc as $cc): ?>
+        ,['<?php echo addslashes($cc['centro_costo']); ?>',
+         <?php echo $cc['atendidas']; ?>,
+         <?php echo $cc['pendientes']; ?>]
+      <?php endforeach; ?>
+    <?php else: ?>
+      ,['Sin datos', 0, 0]
+    <?php endif; ?>
+  ]);
+
+  var options = {
+    title: 'Órdenes por Centro de Costo',
+    chartArea: {width: '70%'},
+    hAxis: { title: 'Centro de Costo' },
+    vAxis: { title: 'Cantidad de Órdenes' },
+    colors: ['#26B99A', '#E74C3C'],
+    isStacked: true
+  };
+
+  var chart = new google.visualization.ColumnChart(document.getElementById('chart_almacen'));
+  chart.draw(data, options);
+}
+
+//NUEVO GRÁFICO Pagos por Centro de Costo
+
+function drawPagosCentroCostoChart() {
+  var data = google.visualization.arrayToDataTable([
+    ['Centro Costo', 'Pagadas', 'Pendientes']
+    <?php if (!empty($pagos_por_cc)): ?>
+      <?php foreach($pagos_por_cc as $pago): ?>
+        ,['<?php echo addslashes($pago['centro_costo']); ?>',
+         <?php echo $pago['pagadas']; ?>,
+         <?php echo $pago['pendientes_pago']; ?>]
+      <?php endforeach; ?>
+    <?php else: ?>
+      ,['Sin datos', 0, 0]
+    <?php endif; ?>
+  ]);
+
+  var options = {
+    title: 'Pagos por Centro de Costo',
+    chartArea: {width: '70%'},
+    hAxis: { title: 'Centro de Costo' },
+    vAxis: { title: 'Cantidad de Órdenes' },
+    isStacked: true
+  };
+
+  var chart = new google.visualization.ColumnChart(document.getElementById('chart_pagos_almacen'));
+  chart.draw(data, options);
+}
+
+//GRAFICOS ANTERIORES
 
 function drawOrdenesGeneralesChart() {
   var data = google.visualization.arrayToDataTable([
@@ -480,10 +653,10 @@ function drawPagosAlmacenChart() {
 function drawPagosProveedorChart() {
   var data = google.visualization.arrayToDataTable([
     ['Proveedor', 'Pagadas', 'Pendientes']
-    <?php if (!empty($pagos_proveedor)): ?>
-      <?php foreach($pagos_proveedor as $pago): ?>
+    <?php if (!empty($pagos_por_proveedor)): ?>
+      <?php foreach($pagos_por_proveedor as $pago): ?>
         ,['<?php echo addslashes($pago['proveedor']); ?>', 
-         <?php echo $pago['ordenes_pagadas']; ?>, 
+         <?php echo $pago['pagadas']; ?>, 
          <?php echo $pago['pendientes_pago']; ?>]
       <?php endforeach; ?>
     <?php else: ?>
@@ -492,7 +665,7 @@ function drawPagosProveedorChart() {
   ]);
 
   var options = {
-    title: 'Estado de Pagos por Proveedor',
+    title: 'Pagos por Proveedor',
     chartArea: {width: '70%'},
     hAxis: { title: 'Proveedor' },
     vAxis: { title: 'Cantidad de Órdenes' },

@@ -1,5 +1,5 @@
 <?php
-require_once("../_conexion/sesion.php");
+/*require_once("../_conexion/sesion.php");
 require_once("../_modelo/m_dashboard.php");
 
 // Verificar permisos
@@ -66,8 +66,114 @@ foreach($vencidas as $row) {
         $proveedores_mes[$prov] = array_fill(1, 12, 0);
     }
     $proveedores_mes[$prov][$mes] = $row['ordenes_vencidas'];
+}*/
+
+require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_dashboard.php");
+
+// Verificar permisos
+if (!verificarPermisoEspecifico('ver_dashboard')) {
+    header("location: bienvenido.php?permisos=true");
+    exit;
 }
+
+// ========================================================================
+// OBTENER FILTROS
+// ========================================================================
+$fecha_inicio  = $_GET['fecha_inicio']  ?? null;
+$fecha_fin     = $_GET['fecha_fin']     ?? null;
+$proveedor     = $_GET['proveedor']     ?? null;
+$centro_costo  = $_GET['centro_costo']  ?? null;
+
+// Si no hay fechas, usar valores por defecto (último mes)
+if (!$fecha_inicio && !$fecha_fin) {
+    $fecha_inicio = date('Y-m-01');
+    $fecha_fin    = date('Y-m-d');
+}
+
+// ========================================================================
+// OBTENER DATOS PARA FILTROS
+// ========================================================================
+$lista_proveedores = obtenerListaProveedores($con);
+// (si quieres lista centro costo:)
+$lista_centros_costo = obtenerListaCentros($con);
+
+// ========================================================================
+// CARDS PRINCIPALES
+// ========================================================================
+$cantidad_productos   = obtenerTotalProductos($con);
+$cantidad_almacenes   = obtenerTotalAlmacenes($con);
+$cantidad_proveedores = obtenerTotalProveedores($con);
+
+// Estos sí dependen de fecha
+$cantidad_pedidos = obtenerTotalPedidos($con, $fecha_inicio, $fecha_fin);
+$cantidad_compras = obtenerTotalCompras($con, $fecha_inicio, $fecha_fin);
+
+// ========================================================================
+// DATOS PARA LOS REPORTES PRINCIPALES
+// ========================================================================
+
+// 1. Órdenes generadas, atendidas y pendientes
+$resumen_ordenes = obtenerResumenOrdenes(
+    $con, 
+    $proveedor, 
+    $centro_costo, 
+    $fecha_inicio, 
+    $fecha_fin
+);
+
+// 2. Órdenes atendidas y pendientes POR centro de costo
+$ordenes_por_cc = obtenerOrdenesPorCentroCosto(
+    $con,
+    $proveedor,
+    $centro_costo,
+    $fecha_inicio,
+    $fecha_fin
+);
+
+// 3. Órdenes pagadas y pendientes POR centro de costo
+$pagos_por_cc = obtenerPagosPorCentroCosto(
+    $con,
+    $proveedor,
+    $centro_costo,
+    $fecha_inicio,
+    $fecha_fin
+);
+
+// 4. Órdenes pagadas y pendientes POR proveedor
+$pagos_por_proveedor = obtenerPagosPorProveedor(
+    $con,
+    $proveedor,
+    $centro_costo,
+    $fecha_inicio,
+    $fecha_fin
+);
+
+// 5. Órdenes vencidas por proveedor por mes
+$año_actual = date('Y');
+
+$vencidas = obtenerOrdenesVencidasPorProveedorMes(
+    $con,
+    $proveedor,
+    $centro_costo,
+    $fecha_inicio,
+    $fecha_fin,
+    $año_actual
+);
+
+// Organizar para la tabla
+$proveedores_mes = [];
+foreach ($vencidas as $row) {
+    $prov = $row['proveedor'];
+    $mes  = $row['mes'];
+    if (!isset($proveedores_mes[$prov])) {
+        $proveedores_mes[$prov] = array_fill(1, 12, 0);
+    }
+    $proveedores_mes[$prov][$mes] = $row['ordenes_vencidas'];
+}
+
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>

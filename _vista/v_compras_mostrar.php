@@ -366,8 +366,11 @@ function EliminarDocumento(id_doc) {
                                 <h2>Listado de Compras</h2>
                             </div>
                             <div class="col-sm-6 text-right">
-                                <a href="generar_excel.php" class="btn btn-success btn-sm">
-                                    <i class="fa fa-file-excel-o"></i> Excel
+                                <a href="generar_excel.php?moneda=1" class="btn btn-success btn-sm">
+                                    <i class="fa fa-file-excel-o"></i> Excel Soles
+                                </a>
+                                <a href="generar_excel.php?moneda=2" class="btn btn-success btn-sm">
+                                    <i class="fa fa-file-excel-o"></i> Excel Dólares
                                 </a>
                                 <button type="button" class="btn btn-primary btn-sm" onclick="abrirModalMasivo()">
                                     <i class="fa fa-cloud-upload"></i> Vouchers Masivo
@@ -531,25 +534,52 @@ function EliminarDocumento(id_doc) {
                                                         }
                                                         ?>
                                                     </td>
+
+                                                    <?php
+                                                    $estado_final = '';
+                                                    $badge_class = '';
+
+                                                    if ($compra['est_compra'] == 2 && $compra['pagado'] == 1) {
+                                                        $estado_final = 'PAGADO';
+                                                        $badge_class = 'badge-primary';
+
+                                                    } elseif ($compra['est_compra'] == 3 && $compra['pagado'] == 1) {
+                                                        $estado_final = 'CERRADO';
+                                                        $badge_class = 'badge-dark';
+
+                                                    } elseif ($compra['est_compra'] == 2) {
+                                                        $estado_final = 'APROBADO';
+                                                        $badge_class = 'badge-primary';
+
+                                                    } elseif ($compra['est_compra'] == 3) {
+                                                        $estado_final = 'INGRESADO';
+                                                        $badge_class = 'badge-success';
+
+                                                    } elseif ($compra['est_compra'] == 1) {
+
+                                                        if ($tiene_financiera && !$tiene_tecnica) {
+                                                            $estado_final = 'APROBADO FINANCIERA';
+                                                            $badge_class = 'badge-info';
+
+                                                        } elseif ($tiene_tecnica && !$tiene_financiera) {
+                                                            $estado_final = 'APROBADO TÉCNICO';
+                                                            $badge_class = 'badge-info';
+
+                                                        } else {
+                                                            $estado_final = 'PENDIENTE';
+                                                            $badge_class = 'badge-warning';
+                                                        }
+
+                                                    } else {
+                                                        $estado_final = 'ANULADO';
+                                                        $badge_class = 'badge-danger';
+                                                    }
+                                                    ?>
                                                     <td>
                                                         <center>
-                                                            <?php if ($compra['est_compra'] == 1) { ?>
-                                                            <?php if ($tiene_financiera && !$tiene_tecnica) { ?>
-                                                                <span class="badge badge-info badge_size">APROBADO FINANCIERA</span>
-                                                            <?php } elseif ($tiene_tecnica && !$tiene_financiera) { ?>
-                                                                <span class="badge badge-info badge_size">APROBADO TÉCNICO</span>
-                                                            <?php } elseif (!$tiene_tecnica && !$tiene_financiera) { ?>
-                                                                <span class="badge badge-warning badge_size">PENDIENTE</span>
-                                                            <?php } ?>
-                                                            <?php } elseif ($compra['est_compra'] == 2) { ?>
-                                                                <span class="badge badge-success badge_size">APROBADO</span>
-                                                            <?php } elseif ($compra['est_compra'] == 3) { ?>
-                                                                <span class="badge badge-success badge_size">APROBADO</span>
-                                                            <?php } elseif ($compra['est_compra'] == 4) { ?>
-                                                                <span class="badge badge-primary badge_size">PAGADO</span>
-                                                            <?php } else { ?>
-                                                                <span class="badge badge-danger badge_size">ANULADO</span>
-                                                            <?php } ?>
+                                                            <span class="badge <?php echo $badge_class; ?> badge_size">
+                                                                <?php echo $estado_final; ?>
+                                                            </span>
                                                         </center>
                                                     </td>
                                                     <td>

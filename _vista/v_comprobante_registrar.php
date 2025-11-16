@@ -76,17 +76,33 @@ require_once("../_modelo/m_detraccion.php");
                                 </td>
                             </tr>
                             
-                            <!-- Mostrar Detracción si existe -->
-                            <?php if (!empty($oc['monto_detraccion']) && $oc['monto_detraccion'] > 0): ?>
+                            <?php if (!empty($oc['monto_detraccion']) && $oc['monto_detraccion'] != 0): ?>
+
+                            <?php 
+                                // Definir signo según el tipo
+                                $signo = ($oc['tipo_afectacion'] === 'percepcion') ? '+' : '-';
+
+                                // Definir clase CSS
+                                $clase = ($oc['tipo_afectacion'] === 'percepcion') 
+                                            ? 'text-success' 
+                                            : 'text-danger';
+                            ?>
+
                             <tr>
                                 <td colspan="2">
-                                    <strong>📊 Detracción (<?php echo $oc['nombre_detraccion']; ?> - <?php echo $oc['porcentaje_detraccion']; ?>%):</strong>
-                                    <br>
+                                    <strong>
+                                        📊 <?php echo ucfirst($oc['tipo_afectacion']); ?>
+                                                (<?php echo $oc['nombre_detraccion']; ?> 
+                                                <?php echo $signo; ?> 
+                                                <?php echo $oc['porcentaje_detraccion']; ?>%)
+                                    </strong>
                                 </td>
-                                <td colspan="2" class="text-danger" style="font-weight: bold;">
-                                    -<?php echo ($oc['simbolo_moneda'] ?? 'S/.') . ' ' . number_format($oc['monto_detraccion'], 2); ?>
+
+                                <td colspan="2" class="<?php echo $clase; ?>" style="font-weight: bold;">
+                                    <?php echo $signo . ($oc['simbolo_moneda'] ?? 'S/.') . ' ' . number_format($oc['monto_detraccion'], 2); ?>
                                 </td>
                             </tr>
+
                             <?php endif; ?>
                             
                             <!--  TOTAL A PAGAR AL PROVEEDOR (más destacado) -->
@@ -124,8 +140,8 @@ require_once("../_modelo/m_detraccion.php");
                         <div class="pull-right">
                             <button type="button" class="btn btn-primary" onclick="abrirModalMasivo()">📤 Subir vouchers masivo</button>
                             <button
-                                class="btn btn-sm <?php echo ($oc['est_compra'] == 4 || $oc['est_compra'] == 3) ? 'btn-outline-secondary disabled' : 'btn-outline-success'; ?>"
-                                <?php echo ($oc['est_compra'] == 4 || $oc['est_compra'] == 3) ? 'disabled title="Esta compra está cerrada"' : 'data-toggle="modal" data-target="#modalRegistrarComprobante"'; ?>>
+                                class="btn btn-sm <?php echo ($oc['pagado'] == 1 ) ? 'btn-outline-secondary disabled' : 'btn-outline-success'; ?>"
+                                <?php echo ($oc['pagado'] == 1) ? 'disabled title="Esta compra está pagada"' : 'data-toggle="modal" data-target="#modalRegistrarComprobante"'; ?>>
                                 <i class="fa fa-plus"></i> Registrar Comprobante
                             </button>
                         </div>

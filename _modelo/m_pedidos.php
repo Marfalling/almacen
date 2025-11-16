@@ -371,7 +371,7 @@ function ConsultarPedido($id_pedido)
             LEFT JOIN {$bd_complemento}.personal pr 
                 ON p.id_personal = pr.id_personal AND pr.act_personal = 1
             LEFT JOIN {$bd_complemento}.area ar 
-                ON pr.id_area = ar.id_area AND ar.act_area = 1
+                ON p.id_centro_costo = ar.id_area AND ar.act_area = 1
             LEFT JOIN producto_tipo pt 
                 ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
             WHERE p.id_pedido = ?";

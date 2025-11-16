@@ -10,11 +10,29 @@ require_once('../_modelo/m_comprobante.php');
 //---------------------------------------------------------
 //$consulta = MostrarReporteGeneralFecha($fd,$fh);
 
-$consulta = obtenerComprobantesEstado1();
+// Obtener moneda
+$moneda = isset($_GET['moneda']) ? intval($_GET['moneda']) : 0;
 
-//---------------------------------------------------------
-require_once('../_vista/v_excel_reporte.php');
+// Nombre dinámico según tipo de moneda
+switch ($moneda) {
+    case 1:
+        $filename = "Reporte_Comprobantes_Soles.xls";
+        break;
+    case 2:
+        $filename = "Reporte_Comprobantes_Dolares.xls";
+        break;
+    default:
+        $filename = "Reporte_Comprobantes.xls";
+        break;
+}
 
-ActualizarComprobantesEstado();
+// Ejecutar consulta
+$consulta = obtenerComprobantesEstado1($moneda);
+
+// Pasar $filename a la vista
+require('../_vista/v_excel_reporte.php');
+
+// Actualizar registros
+ActualizarComprobantesEstado($moneda);
 
 ?>

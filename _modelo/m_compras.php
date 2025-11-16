@@ -24,6 +24,7 @@ function MostrarCompras()
 
     $resultado = [];
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $rowc['pagado'] = esCompraPagada($rowc['id_compra']);
         $resultado[] = $rowc;
     }
 
@@ -62,6 +63,7 @@ function MostrarComprasFecha($fecha_inicio = null, $fecha_fin = null)
 
     $resultado = [];
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $rowc['pagado'] = esCompraPagada($rowc['id_compra']);
         $resultado[] = $rowc;
     }
 
@@ -499,4 +501,53 @@ function ObtenerComprasProximasVencer($dias_anticipacion = 3)
     
     mysqli_close($con);
     return $compras;
+}
+
+function esCompraPagada($id_compra)
+{
+    include("../_conexion/conexion.php");
+
+    $id_compra = intval($id_compra);
+
+    // ================================================================
+    // 1. CALCULAR TOTAL REAL DE LA COMPRA (cantidad * precio * IGV)
+    // ================================================================
+    $sql_total_compra = "
+        SELECT 
+            COALESCE(
+                SUM(
+                    cd.cant_compra_detalle 
+                    * cd.prec_compra_detalle 
+                    * (1 + (cd.igv_compra_detalle / 100))
+                ), 
+            0) AS total_compra
+        FROM compra_detalle cd
+        WHERE cd.id_compra = $id_compra
+          AND cd.est_compra_detalle = 1
+    ";
+
+    $res_total = mysqli_query($con, $sql_total_compra);
+    $row_total = mysqli_fetch_assoc($res_total);
+    $total_compra = round(floatval($row_total['total_compra']), 2);
+
+
+    // ================================================================
+    // 2. CALCULAR TOTAL PAGADO (comprobantes con estado = 3)
+    // ================================================================
+    $sql_total_pagado = "
+        SELECT COALESCE(SUM(monto_total_igv), 0) AS total_pagado
+        FROM comprobante
+        WHERE id_compra = $id_compra
+          AND est_comprobante = 3
+    ";
+
+    $res_pagado = mysqli_query($con, $sql_total_pagado);
+    $row_pagado = mysqli_fetch_assoc($res_pagado);
+    $total_pagado = round(floatval($row_pagado['total_pagado']), 2);
+
+
+    // ================================================================
+    // 3. RETORNAR SI LA COMPRA ESTÁ PAGADA
+    // ================================================================
+    return $total_pagado >= $total_compra;
 }

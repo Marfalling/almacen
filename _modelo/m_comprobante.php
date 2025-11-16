@@ -186,10 +186,19 @@ function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $id_personal
     // ================================================================
     // CALCULAR TOTAL REAL DE LA COMPRA DESDE DETALLE
     // ================================================================
-    $sql_total_compra = "SELECT COALESCE(SUM(cd.cant_compra_detalle), 0) as total_compra
-                         FROM compra_detalle cd
-                         WHERE cd.id_compra = $id_compra
-                         AND cd.est_compra_detalle = 1";
+    $sql_total_compra = "
+                        SELECT 
+                            COALESCE(
+                                SUM(
+                                    cd.cant_compra_detalle 
+                                    * cd.prec_compra_detalle 
+                                    * (1 + (cd.igv_compra_detalle / 100))
+                                ), 
+                            0) AS total_compra
+                        FROM compra_detalle cd
+                        WHERE cd.id_compra = $id_compra
+                        AND cd.est_compra_detalle = 1
+                    ";
     
     $res_total_compra = mysqli_query($con, $sql_total_compra);
     $row_total_compra = mysqli_fetch_assoc($res_total_compra);
@@ -216,10 +225,10 @@ function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $id_personal
         // Si el total pagado es igual o mayor al total de la compra
         if ($total_pagado >= $total_compra) {
             // Cambiar estado de la compra a 4 (PAGADO)
-            $sql_update_compra = "UPDATE compra 
+            /*$sql_update_compra = "UPDATE compra 
                                   SET est_compra = 4 
                                   WHERE id_compra = $id_compra";
-            mysqli_query($con, $sql_update_compra);
+            mysqli_query($con, $sql_update_compra);*/
             
             error_log("✅ COMPRA #$id_compra MARCADA COMO PAGADA → Total: $total_compra | Pagado: $total_pagado");
         } else {
@@ -884,15 +893,14 @@ function ConsultarMediosPago() {
 //-----------------------------------------------------------------------
 // Consultar compra por ID (para gestión de comprobantes)
 //-----------------------------------------------------------------------
-//-----------------------------------------------------------------------
-// Consultar compra por ID (para gestión de comprobantes)
-//-----------------------------------------------------------------------
 function ConsultarCompraCom($id_compra)
 {
     include("../_conexion/conexion.php");
-    
+    global $bd_complemento;
+
     $id_compra = intval($id_compra);
-    
+
+    // === 1. Datos generales de la compra ===
     $sql = "SELECT c.*,
                    p.nom_proveedor, 
                    p.ruc_proveedor,
@@ -901,116 +909,122 @@ function ConsultarCompraCom($id_compra)
                        WHEN m.id_moneda = 1 THEN 'S/.'
                        WHEN m.id_moneda = 2 THEN 'US$'
                        ELSE 'S/.'
-                   END as simbolo_moneda,
-                   det.nombre_detraccion,
-                   det.porcentaje as porcentaje_detraccion,
-                   per.nom_personal as nom_personal_crea,
-                   -- Personal que aprobó financieramente
-                   per_fin.nom_personal as nom_personal_aprueba_financiera,
+                   END AS simbolo_moneda,
+                   -- ÚNICA afectación (detracción / retención / percepción)
+                    COALESCE(d_det.nombre_detraccion, d_ret.nombre_detraccion, d_per.nombre_detraccion)
+                        AS nombre_detraccion,
+                    COALESCE(d_det.porcentaje, d_ret.porcentaje, d_per.porcentaje)
+                        AS porcentaje_detraccion,
+                   per.nom_personal AS nom_personal_crea,
+                   per_fin.nom_personal AS nom_personal_aprueba_financiera,
                    pc.banco_proveedor,
-                   pc.nro_cuenta_corriente     
+                   pc.nro_cuenta_corriente
             FROM compra c
             INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor
-            LEFT JOIN proveedor_cuenta pc ON p.id_proveedor = pc.id_proveedor
+            LEFT JOIN proveedor_cuenta pc ON pc.id_proveedor = p.id_proveedor
             INNER JOIN moneda m ON c.id_moneda = m.id_moneda
-            LEFT JOIN detraccion det ON c.id_detraccion = det.id_detraccion
-            LEFT JOIN {$bd_complemento}.personal per ON c.id_personal = per.id_personal
-            LEFT JOIN {$bd_complemento}.personal per_fin ON c.id_personal_aprueba_financiera = per_fin.id_personal
-            WHERE c.id_compra = $id_compra";
-    
-    $res = mysqli_query($con, $sql);
-    
-    if (!$res) {
-        error_log("Error en ConsultarCompra: " . mysqli_error($con));
-        mysqli_close($con);
-        return false;
-    }
-    
-    $compra = mysqli_num_rows($res) > 0 ? mysqli_fetch_assoc($res) : false;
+            -- Solo unimos, pero luego devolvemos un solo valor
+            LEFT JOIN detraccion d_det ON d_det.id_detraccion = c.id_detraccion
+            LEFT JOIN detraccion d_ret ON d_ret.id_detraccion = c.id_retencion
+            LEFT JOIN detraccion d_per ON d_per.id_detraccion = c.id_percepcion
 
-    //  CALCULAR SUBTOTAL E IGV
-    $sql_detalle = "SELECT 
-                        COALESCE(SUM(cd.cant_compra_detalle * cd.prec_compra_detalle), 0) as subtotal,
-                        COALESCE(SUM((cd.cant_compra_detalle * cd.prec_compra_detalle) * (cd.igv_compra_detalle / 100)), 0) as total_igv
-                    FROM compra_detalle cd
-                    WHERE cd.id_compra = $id_compra
-                    AND cd.est_compra_detalle = 1";
-    
+            LEFT JOIN {$bd_complemento}.personal per ON per.id_personal = c.id_personal
+            LEFT JOIN {$bd_complemento}.personal per_fin ON per_fin.id_personal = c.id_personal_aprueba_financiera
+            WHERE c.id_compra = $id_compra";
+
+    $res = mysqli_query($con, $sql);
+    if (!$res) return false;
+
+    $compra = mysqli_fetch_assoc($res);
+    if (!$compra) return false;
+
+    // === 2. Subtotal + IGV ===
+    $sql_detalle = "
+        SELECT 
+            SUM(cd.cant_compra_detalle * cd.prec_compra_detalle) AS subtotal,
+            SUM((cd.cant_compra_detalle * cd.prec_compra_detalle)*(cd.igv_compra_detalle/100)) AS total_igv
+        FROM compra_detalle cd
+        WHERE cd.id_compra = $id_compra
+          AND cd.est_compra_detalle = 1
+    ";
+
     $res_detalle = mysqli_query($con, $sql_detalle);
-    
-    if (!$res_detalle) {
-        error_log("ERROR SQL detalle: " . mysqli_error($con));
-        mysqli_close($con);
-        return false;
-    }
-    
-    $fila_detalle = mysqli_fetch_assoc($res_detalle);
-    
-    $subtotal = floatval($fila_detalle['subtotal']);
-    $total_igv = floatval($fila_detalle['total_igv']);
+    $fila = mysqli_fetch_assoc($res_detalle);
+
+    $subtotal = floatval($fila['subtotal']);
+    $total_igv = floatval($fila['total_igv']);
     $total_con_igv = $subtotal + $total_igv;
 
-    //CALCULAR AFECTACIONES
+    // === 3. Determinar AFECTACIONES SEGÚN id_detraccion ===
+    $porcentaje = floatval($compra['porcentaje_detraccion']); // viene del SQL
+
+    $tipo_afectacion = '';
+
+    if (!empty($compra['id_detraccion'])) {
+        $tipo_afectacion = 'detraccion';
+    }
+    elseif (!empty($compra['id_retencion'])) {
+        $tipo_afectacion = 'retencion';
+    }
+    elseif (!empty($compra['id_percepcion'])) {
+        $tipo_afectacion = 'percepcion';
+    }
+
+    // Calcular monto en base al tipo
     $monto_detraccion = 0;
     $monto_retencion = 0;
     $monto_percepcion = 0;
-    
-    if (!empty($compra['porcentaje_detraccion'])) {
-        $monto_detraccion = ($total_con_igv * floatval($compra['porcentaje_detraccion'])) / 100;
+
+    $monto_afectacion = 0;
+
+    if ($tipo_afectacion === 'detraccion') {
+        $monto_detraccion = ($total_con_igv * $porcentaje) / 100;
+        $monto_afectacion = $monto_detraccion;
     }
-    
-    if (!empty($compra['porcentaje_retencion'])) {
-        $monto_retencion = ($total_con_igv * floatval($compra['porcentaje_retencion'])) / 100;
+    elseif ($tipo_afectacion === 'retencion') {
+        $monto_retencion = ($total_con_igv * $porcentaje) / 100;
+        $monto_afectacion = $monto_retencion;
     }
-    
-    if (!empty($compra['porcentaje_percepcion'])) {
-        $monto_percepcion = ($total_con_igv * floatval($compra['porcentaje_percepcion'])) / 100;
+    elseif ($tipo_afectacion === 'percepcion') {
+        $monto_percepcion = ($total_con_igv * $porcentaje) / 100;
+        $monto_afectacion = $monto_percepcion;
     }
 
-    // 🔹 TOTAL A PAGAR
-    $monto_total = $total_con_igv;
-    
-    if ($monto_detraccion > 0) {
-        $monto_total -= $monto_detraccion;
-    }
-    if ($monto_retencion > 0) {
-        $monto_total -= $monto_retencion;
-    }
-    if ($monto_percepcion > 0) {
-        $monto_total += $monto_percepcion;
-    }
+    // === 4. TOTAL A PAGAR ===
+    $monto_total = $total_con_igv - $monto_detraccion - $monto_retencion + $monto_percepcion;
 
-    // 3️⃣ Calcular TOTAL PAGADO (comprobantes con voucher)
-    $sql_pagado = "SELECT 
-                    COALESCE(SUM(total_pagar), 0) as total_pagado_comprobantes,
-                    COUNT(*) as cantidad_comprobantes_pagados
-                   FROM comprobante
-                   WHERE id_compra = $id_compra
-                   AND est_comprobante = 3";  // ← ESTADO 3 = PAGADO
-    
-    $res_pagado = mysqli_query($con, $sql_pagado);
-    $row_pagado = mysqli_fetch_assoc($res_pagado);
-    
-    $total_pagado = floatval($row_pagado['total_pagado_comprobantes']);
-    $cantidad_pagados = intval($row_pagado['cantidad_comprobantes_pagados']);
-    
-    // 4️⃣ Calcular SALDO PENDIENTE
-    $saldo_pendiente = $total_con_igv - $total_pagado;
+    // === 5. TOTAL PAGADO ===
+    $sql_pagado = "
+        SELECT COALESCE(SUM(total_pagar),0) AS total_pagado
+        FROM comprobante
+        WHERE id_compra = $id_compra
+          AND est_comprobante = 3
+    ";
+    $res_pag = mysqli_query($con, $sql_pagado);
+    $row_pag = mysqli_fetch_assoc($res_pag);
 
-    //  ARMAR ARRAY COMPLETO
+    $total_pagado = floatval($row_pag['total_pagado']);
+
+    // === 6. SALDO ===
+    $saldo = $monto_total - $total_pagado;
+
+    // === 7. Construir respuesta ===
     $compra['subtotal'] = round($subtotal, 2);
     $compra['total_igv'] = round($total_igv, 2);
     $compra['total_con_igv'] = round($total_con_igv, 2);
-    $compra['monto_detraccion'] = round($monto_detraccion, 2);
-    $compra['monto_retencion'] = round($monto_retencion, 2);
-    $compra['monto_percepcion'] = round($monto_percepcion, 2);
-    $compra['monto_total'] = round($monto_total, 2);
 
+    $compra['tipo_afectacion'] = $tipo_afectacion;
+    $compra['porcentaje_detraccion'] = $porcentaje;
+    $compra['monto_detraccion'] = round($monto_afectacion, 2);
+
+    $compra['monto_total']  = round($monto_total, 2);
     $compra['monto_pagado'] = round($total_pagado, 2);
-    $compra['saldo'] = round($saldo_pendiente, 2);
+    $compra['saldo']        = round($saldo, 2);
+
+    $compra['pagado'] = ($compra['monto_pagado'] >= $compra['monto_total']) ? 1 : 0;
 
     $compra['cuentas'] = ConsultarCuentasPorCompra($id_compra);
-    
+
     mysqli_close($con);
     return $compra;
 }
@@ -1047,14 +1061,15 @@ function ConsultarCuentasPorCompra($id_compra)
     return $cuentas;
 }
 
-function ActualizarComprobantesEstado()
+function ActualizarComprobantesEstado($id_moneda)
 {
     include("../_conexion/conexion.php");
 
     // Actualizar todos los comprobantes con est_comprobante = 1 a est_comprobante = 2
     $sql = "UPDATE comprobante 
             SET est_comprobante = 2 
-            WHERE est_comprobante = 1";
+            WHERE est_comprobante = 1
+                AND id_moneda = $id_moneda";
 
     $res = mysqli_query($con, $sql);
 
@@ -1070,7 +1085,7 @@ function ActualizarComprobantesEstado()
     return "SI|$filas_actualizadas";
 }
 
-function obtenerComprobantesEstado1()
+function obtenerComprobantesEstado1($id_moneda)
 {
     include("../_conexion/conexion.php");
 
@@ -1167,6 +1182,7 @@ function obtenerComprobantesEstado1()
     INNER JOIN tipo_documento td
         ON td.id_tipo_documento = c.id_tipo_documento
     WHERE c.est_comprobante = 1
+        AND c.id_moneda = $id_moneda
     ORDER BY c.id_comprobante ASC
     ";
 
