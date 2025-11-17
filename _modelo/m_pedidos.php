@@ -3755,21 +3755,42 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
         $oc_completada = true; // Si no requiere, se considera completo
     }
     
-    // ¿Está ingresado el stock? (existe al menos un ingreso)
-    $stock_ingresado = false;
+    // ¿Está ingresado TODO el stock? 
+    $stock_ingresado_completo = false;
     if ($requiere_oc) {
-        $sql_ingreso = "SELECT COUNT(*) as total_ingresos
-                        FROM ingreso i
-                        INNER JOIN compra c ON i.id_compra = c.id_compra
-                        WHERE c.id_pedido = $id_pedido
-                        AND i.est_ingreso = 1";
+        // Verificar si se completó el 100% del ingreso
+        $sql_verificar = "
+            SELECT 
+                COALESCE(SUM(cd.cant_compra_detalle), 0) as total_requerido,
+                COALESCE(
+                    (SELECT SUM(id2.cant_ingreso_detalle) 
+                    FROM compra c2 
+                    INNER JOIN ingreso i2 ON c2.id_compra = i2.id_compra 
+                    INNER JOIN ingreso_detalle id2 ON i2.id_ingreso = id2.id_ingreso 
+                    WHERE c2.id_pedido = $id_pedido
+                    AND i2.est_ingreso = 1 
+                    AND id2.est_ingreso_detalle = 1
+                    ), 0
+                ) as total_ingresado
+            FROM compra c
+            INNER JOIN compra_detalle cd ON c.id_compra = cd.id_compra
+            WHERE c.id_pedido = $id_pedido
+            AND c.est_compra != 0
+            AND cd.est_compra_detalle = 1
+        ";
         
-        $res_ing = mysqli_query($con, $sql_ingreso);
-        $row_ing = mysqli_fetch_assoc($res_ing);
+        $res_verificar = mysqli_query($con, $sql_verificar);
         
-        $stock_ingresado = ($row_ing['total_ingresos'] > 0);
+        if ($res_verificar && mysqli_num_rows($res_verificar) > 0) {
+            $row = mysqli_fetch_assoc($res_verificar);
+            $total_requerido = floatval($row['total_requerido']);
+            $total_ingresado = floatval($row['total_ingresado']);
+            
+            // Solo está completo si se ingresó el 100%
+            $stock_ingresado_completo = ($total_ingresado >= $total_requerido && $total_requerido > 0);
+        }
     } else {
-        $stock_ingresado = true; // Si no requiere OC, no aplica
+        $stock_ingresado_completo = true; // Si no requiere OC, no aplica
     }
     
     // ============================================
@@ -3793,7 +3814,7 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
                               WHERE id_pedido = $id_pedido 
                               AND est_salida = 1"; // Solo pendientes (no recepcionadas)
         
-        $res_os_pend = mysqli_query($con, $sql_os_pendientes);
+        $res_os_pend = mysqli_query($con, $sql_os_pend);
         $row_os_pend = mysqli_fetch_assoc($res_os_pend);
         
         $os_completada = ($row_os_pend['total_pendientes'] == 0);
@@ -3807,38 +3828,39 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
     
     $nuevo_estado = $estado_actual; // Por defecto mantener
     
-    // 🔹 CASO 1: TODO COMPLETADO (OC + OS)
-    if ($oc_completada && $stock_ingresado && $os_completada) {
+    // 🔹 CASO 1: TODO COMPLETADO (OC ingresada al 100% + OS completadas)
+    if ($oc_completada && $stock_ingresado_completo && $os_completada) {
         $nuevo_estado = 2; // ATENDIDO
     }
-    // 🔹 CASO 2: OC completa e ingresada, pero OS pendiente
-    elseif ($oc_completada && $stock_ingresado && !$os_completada) {
+    // 🔹 CASO 2: OC completa e ingresada al 100%, pero OS pendiente
+    elseif ($oc_completada && $stock_ingresado_completo && !$os_completada) {
         $nuevo_estado = 4; // INGRESADO (esperando salidas)
     }
-    // 🔹 CASO 3: OC aprobada pero sin ingresar
-    elseif ($oc_completada && !$stock_ingresado) {
-        $nuevo_estado = 3; // APROBADO (esperando ingreso)
+    // 🔹 CASO 3: OC aprobada pero ingreso incompleto
+    elseif ($oc_completada && !$stock_ingresado_completo) {
+        $nuevo_estado = 3; // APROBADO (esperando ingreso completo)
     }
     // 🔹 CASO 4: Hay pendientes
     else {
-        // Solo volver a PENDIENTE si:
-        // - Todas las órdenes están en estado 1 (pendientes)
-        // - O no hay órdenes creadas
-        
+        // Solo volver a PENDIENTE si NO hay ninguna orden procesada
         $sql_check_ordenes = "SELECT 
-                                (SELECT COUNT(*) FROM compra WHERE id_pedido = $id_pedido AND est_compra = 2) as oc_aprobadas,
-                                (SELECT COUNT(*) FROM salida WHERE id_pedido = $id_pedido AND est_salida = 2) as os_recepcionadas";
+                                (SELECT COUNT(*) FROM compra 
+                                 WHERE id_pedido = $id_pedido 
+                                 AND est_compra IN (2, 3)) as oc_procesadas,
+                                (SELECT COUNT(*) FROM salida 
+                                 WHERE id_pedido = $id_pedido 
+                                 AND est_salida = 2) as os_recepcionadas";
         $res_check = mysqli_query($con, $sql_check_ordenes);
         $row_check = mysqli_fetch_assoc($res_check);
         
         // Si hay al menos una orden procesada, no volver a PENDIENTE
-        if ($row_check['oc_aprobadas'] == 0 && $row_check['os_recepcionadas'] == 0) {
+        if ($row_check['oc_procesadas'] == 0 && $row_check['os_recepcionadas'] == 0) {
             $nuevo_estado = 1; // PENDIENTE
         }
         // Si hay progreso, mantener el estado más alto alcanzado
-        elseif ($estado_actual > 1) {
-            // Mantener el estado actual (3 o 4)
-            $nuevo_estado = $estado_actual;
+        elseif ($estado_actual >= 3) {
+            // Mantener estado 3 (Aprobado) mientras se completan los ingresos
+            $nuevo_estado = 3;
         }
     }
     
