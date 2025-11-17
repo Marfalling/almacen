@@ -713,34 +713,34 @@ $monedas = MostrarMoneda();
                                     <?php
                                     }
                                         // CASO 9: Ambos verificados y pendientes
-                                        elseif ($se_verifico_os && $se_verifico_oc && $pendiente_os > 0 && $pendiente_oc > 0 && !$pedidoAnulado) {
+                                    elseif ($se_verifico_os && $se_verifico_oc && $pendiente_os > 0 && $pendiente_oc > 0 && !$pedidoAnulado) {
                                         // CALCULAR CANTIDAD YA ORDENADA
                                         $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                     ?>
-                                    <button type="button" 
-                                            class="btn btn-success btn-sm btn-agregarSalida" 
-                                            data-id-detalle="<?php echo $id_detalle; ?>"
-                                            data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                            data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
-                                            data-cantidad-disponible="<?php echo $pendiente_os; ?>"
-                                            data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
-                                            data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
-                                            data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
-                                            style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
-                                        <i class="fa fa-truck"></i> OS (<?php echo number_format($pendiente_os, 2); ?>)
-                                    </button>
-                                    
-                                    <button type="button" 
-                                            class="btn btn-primary btn-sm btn-agregarOrden" 
-                                            data-id-detalle="<?php echo $id_detalle; ?>"
-                                            data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                            data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
-                                            data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
-                                            data-cantidad-ordenada="<?php echo $cant_oc_ordenada; ?>"
-                                            data-cantidad-pendiente="<?php echo $pendiente_oc; ?>"
-                                            style="padding: 2px 8px; font-size: 11px;">
-                                        <i class="fa fa-shopping-cart"></i> OC (<?php echo number_format($pendiente_oc, 2); ?>)
-                                    </button>
+                                        <button type="button" 
+                                                class="btn btn-success btn-sm btn-agregarSalida" 
+                                                data-id-detalle="<?php echo $id_detalle; ?>"
+                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                                                data-cantidad-disponible="<?php echo $pendiente_os; ?>"
+                                                data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
+                                                data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
+                                                data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
+                                                style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
+                                            <i class="fa fa-truck"></i> OS (<?php echo number_format($pendiente_os, 2); ?>)
+                                        </button>
+                                        
+                                        <button type="button" 
+                                                class="btn btn-primary btn-sm btn-agregarOrden" 
+                                                data-id-detalle="<?php echo $id_detalle; ?>"
+                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                                                data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
+                                                data-cantidad-ordenada="<?php echo $ya_ordenado_oc; ?>"
+                                                data-cantidad-pendiente="<?php echo $pendiente_oc; ?>"
+                                                style="padding: 2px 8px; font-size: 11px;">
+                                            <i class="fa fa-shopping-cart"></i> OC (<?php echo number_format($pendiente_oc, 2); ?>)
+                                        </button>
                                     <?php
                                     }
                                         // CASO 10: Pendiente verificar
@@ -963,7 +963,7 @@ $monedas = MostrarMoneda();
                                     ?>
                                     
                                     <?php if ($tiene_items_disponibles): ?>
-                                        <button type="button" class="btn btn-primary btn-sm" id="btn-nueva-orden" style="padding: 4px 8px; font-size: 12px;">
+                                        <button type="button" class="btn btn-primary btn-sm" id="btn-nueva-orden" style="padding: 4px 8px; font-size: 12px;" title="Crear una nueva orden de compra con los items verificados">
                                             <i class="fa fa-shopping-cart"></i> Nueva Orden
                                         </button>
                                     <?php else: ?>
@@ -1004,7 +1004,13 @@ $monedas = MostrarMoneda();
                                         class="btn btn-<?php echo $tiene_items_para_salida ? 'success' : 'secondary'; ?> btn-sm" 
                                         id="btn-nueva-salida" 
                                         <?php echo !$tiene_items_para_salida ? 'disabled' : ''; ?>
-                                        title="<?php echo !$tiene_items_para_salida ? 'No hay items disponibles para generar salida' : ''; ?>"
+                                        title="<?php 
+                                            if ($tiene_items_para_salida) {
+                                                echo 'Crear una nueva orden de salida ';
+                                            } else {
+                                                echo 'No hay items disponibles para generar salida';
+                                            }
+                                        ?>"
                                         style="padding: 4px 8px; font-size: 12px;">
                                     <i class="fa fa-<?php echo $tiene_items_para_salida ? 'truck' : 'ban'; ?>"></i> Nueva Salida
                                 </button>
@@ -1107,7 +1113,7 @@ $monedas = MostrarMoneda();
                                                         <td>
                                                             <!-- Botón Ver Detalles -->
                                                             <button class="btn btn-info btn-xs btn-ver-detalle"
-                                                                    title="Ver Detalles"
+                                                                    title="Ver detalles completos de esta orden"
                                                                     data-id-compra="<?php echo $compra['id_compra']; ?>">
                                                                 <i class="fa fa-eye"></i>
                                                             </button>
@@ -1124,7 +1130,7 @@ $monedas = MostrarMoneda();
                                                             if ($puede_editar) { ?>
                                                                 <!-- Botón Editar HABILITADO -->
                                                                 <button class="btn btn-warning btn-xs ml-1 btn-editar-orden"
-                                                                        title="Editar Orden"
+                                                                        title="Editar esta orden de compra"
                                                                         data-id-compra="<?php echo $compra['id_compra']; ?>">
                                                                     <i class="fa fa-edit"></i>
                                                                 </button>
@@ -1264,7 +1270,7 @@ $monedas = MostrarMoneda();
                                                     <td>
                                                         <!-- Botón Ver Detalles -->
                                                         <button class="btn btn-info btn-xs btn-ver-salida"
-                                                                title="Ver Detalles"
+                                                                title="Ver detalles completos de esta salida"
                                                                 data-id-salida="<?php echo $salida['id_salida']; ?>">
                                                             <i class="fa fa-eye"></i>
                                                         </button>
@@ -1272,7 +1278,7 @@ $monedas = MostrarMoneda();
                                                         <?php if ($salida['est_salida'] == 1) { ?>
                                                             <!-- Botón Editar -->
                                                             <button class="btn btn-warning btn-xs ml-1 btn-editar-salida"
-                                                                    title="Editar Salida"
+                                                                    title="Editar esta orden de salida"
                                                                     data-id-salida="<?php echo $salida['id_salida']; ?>">
                                                                 <i class="fa fa-edit"></i>
                                                             </button>
@@ -2484,7 +2490,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 btnNuevaOrden.disabled = false;
                 btnNuevaOrden.classList.remove('btn-secondary');
                 btnNuevaOrden.classList.add('btn-primary');
-                btnNuevaOrden.title = '';
+                btnNuevaOrden.title = 'Crear una nueva orden de compra con los items verificados';
                 btnNuevaOrden.innerHTML = '<i class="fa fa-shopping-cart"></i> Nueva Orden';
             } else {
                 btnNuevaOrden.disabled = true;
@@ -2612,7 +2618,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 btnNuevaSalida.classList.remove('btn-secondary');
                 btnNuevaSalida.classList.add('btn-success');
                 btnNuevaSalida.disabled = false;
-                btnNuevaSalida.title = '';
+                btnNuevaSalida.title = 'Crear una nueva orden de salida';
             } else {
                 btnNuevaSalida.innerHTML = '<i class="fa fa-ban"></i> Nueva Salida';
                 btnNuevaSalida.classList.remove('btn-success');

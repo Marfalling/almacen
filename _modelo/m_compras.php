@@ -452,24 +452,19 @@ function ObtenerComprasProximasVencer($dias_anticipacion = 3)
                 DATEDIFF(DATE_ADD(c.fec_compra, INTERVAL c.plaz_compra DAY), CURDATE()) as dias_restantes,
                 p.nom_proveedor,
                 pe.cod_pedido,
-                -- Calcular totales y saldo
+                -- Calcular total de la compra
                 (
-                    SELECT COALESCE(SUM(cd.cant_compra_detalle * cd.prec_compra_detalle), 0)
+                    SELECT COALESCE(SUM(cd.cant_compra_detalle * cd.prec_compra_detalle * (1 + (cd.igv_compra_detalle / 100))), 0)
                     FROM compra_detalle cd
                     WHERE cd.id_compra = c.id_compra
                     AND cd.est_compra_detalle = 1
-                ) as subtotal,
+                ) as total_compra,
+                -- Calcular total pagado (comprobantes con estado 3)
                 (
-                    SELECT COALESCE(SUM((cd.cant_compra_detalle * cd.prec_compra_detalle) * (cd.igv_compra_detalle / 100)), 0)
-                    FROM compra_detalle cd
-                    WHERE cd.id_compra = c.id_compra
-                    AND cd.est_compra_detalle = 1
-                ) as total_igv,
-                (
-                    SELECT COALESCE(SUM(monto), 0)
-                    FROM pago
+                    SELECT COALESCE(SUM(total_pagar), 0)
+                    FROM comprobante
                     WHERE id_compra = c.id_compra
-                    AND est_pago = 1
+                    AND est_comprobante = 3
                 ) as monto_pagado
             FROM compra c
             LEFT JOIN proveedor p ON c.id_proveedor = p.id_proveedor
@@ -478,7 +473,7 @@ function ObtenerComprasProximasVencer($dias_anticipacion = 3)
             AND c.plaz_compra IS NOT NULL 
             AND c.plaz_compra >= 1
             AND DATEDIFF(DATE_ADD(c.fec_compra, INTERVAL c.plaz_compra DAY), CURDATE()) BETWEEN 0 AND $dias_anticipacion
-            HAVING (subtotal + total_igv - monto_pagado) > 0
+            HAVING (total_compra - monto_pagado) > 0
             ORDER BY fecha_vencimiento ASC";
     
     $resultado = mysqli_query($con, $sql);
@@ -492,9 +487,9 @@ function ObtenerComprasProximasVencer($dias_anticipacion = 3)
     $compras = array();
     while ($row = mysqli_fetch_assoc($resultado)) {
         // Calcular el saldo pendiente
-        $total_con_igv = floatval($row['subtotal']) + floatval($row['total_igv']);
+        $total_compra = floatval($row['total_compra']);
         $monto_pagado = floatval($row['monto_pagado']);
-        $row['saldo'] = round($total_con_igv - $monto_pagado, 2);
+        $row['saldo'] = round($total_compra - $monto_pagado, 2);
         
         $compras[] = $row;
     }
