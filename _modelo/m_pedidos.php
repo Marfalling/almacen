@@ -3814,7 +3814,7 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
                               WHERE id_pedido = $id_pedido 
                               AND est_salida = 1"; // Solo pendientes (no recepcionadas)
         
-        $res_os_pend = mysqli_query($con, $sql_os_pend);
+        $res_os_pend = mysqli_query($con, $sql_os_pendientes);
         $row_os_pend = mysqli_fetch_assoc($res_os_pend);
         
         $os_completada = ($row_os_pend['total_pendientes'] == 0);
