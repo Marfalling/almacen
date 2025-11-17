@@ -6,6 +6,7 @@ require_once("../_conexion/sesion.php");
 require_once("../_conexion/conexion.php");
 require_once("../_modelo/m_comprobante.php");
 
+
 // ====================================================================
 // VALIDAR QUE SE RECIBIÓ ID DE COMPRA
 // ====================================================================

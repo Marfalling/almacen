@@ -443,6 +443,26 @@ function ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_person
                 error_log(" Compra $id_compra actualizada a estado 3 (Cerrada)");
             }
         }
+
+        // ==========================================================
+        // NUEVO PASO: Verificar si la compra ya está completamente pagada
+        // ==========================================================
+        /*require_once("../_modelo/m_comprobante.php");
+
+        if ($row_completo && $row_completo['total_productos'] == $row_completo['productos_completos']) {
+
+            // Si ya se puso en estado 3, preguntar si también está pagada
+            if (esCompraPagada($id_compra)) {
+                $sql_update_compra_pagada = "UPDATE compra SET est_compra = 4 WHERE id_compra = '$id_compra'";
+
+                if (!mysqli_query($con, $sql_update_compra_pagada)) {
+                    error_log("Advertencia: No se pudo actualizar estado de compra a 4 (Cerrada y pagada): " . mysqli_error($con));
+                } else {
+                    error_log("Compra $id_compra actualizada a estado 4 (Cerrada y Pagada)");
+                }
+
+            }
+        }*/
         
         mysqli_commit($con);
         mysqli_close($con);

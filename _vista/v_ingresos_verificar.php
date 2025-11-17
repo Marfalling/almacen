@@ -51,7 +51,7 @@
                                 </label>
                                 <div class="col-md-3 col-sm-3">
                                     <p class="form-control-plaintext fw-bold mb-0">
-                                        <?php echo $comprax['id_compra']; ?>
+                                        C00<?php echo $comprax['id_compra']; ?>
                                     </p>
                                 </div>
 

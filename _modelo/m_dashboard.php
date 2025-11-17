@@ -400,7 +400,7 @@ function _buildFiltroProveedorCentro(&$whereClauses, $proveedor, $centro_costo) 
 // - Devuelve: total_ordenes, ordenes_atendidas, ordenes_pendientes
 // ============================================
 function obtenerResumenOrdenes($con, $proveedor = null, $centro_costo = null, $fecha_inicio = null, $fecha_fin = null) {
-    // Map de estados: atendidas = est_compra IN (2,4) (según uso en BD)
+    // Map de estados: atendidas = est_compra IN (2,4)
     $where = ["c.est_compra != 0"];
     _buildFiltroProveedorCentro($where, $proveedor, $centro_costo);
     _buildFiltroFecha($where, $fecha_inicio, $fecha_fin, "DATE(c.fec_compra)");
@@ -408,7 +408,7 @@ function obtenerResumenOrdenes($con, $proveedor = null, $centro_costo = null, $f
 
     $sql = "SELECT
                 COUNT(DISTINCT c.id_compra) AS total_ordenes,
-                SUM(CASE WHEN c.est_compra = 3 THEN 1 ELSE 0 END) AS ordenes_atendidas,
+                SUM(CASE WHEN c.est_compra IN (3,4) THEN 1 ELSE 0 END) AS ordenes_atendidas,
                 SUM(CASE WHEN c.est_compra IN (1,2) THEN 1 ELSE 0 END) AS ordenes_pendientes
             FROM compra c
             LEFT JOIN pedido p ON c.id_pedido = p.id_pedido
@@ -440,7 +440,7 @@ function obtenerOrdenesPorCentroCosto($con, $proveedor = null, $centro_costo = n
                 COALESCE(cc.nom_area, 'SIN CENTRO') AS centro_costo,
                 cc.id_area,
                 COUNT(DISTINCT c.id_compra) AS total_ordenes,
-                SUM(CASE WHEN c.est_compra = 3 THEN 1 ELSE 0 END) AS atendidas,
+                SUM(CASE WHEN c.est_compra IN (3,4) THEN 1 ELSE 0 END) AS atendidas,
                 SUM(CASE WHEN c.est_compra IN (1,2) THEN 1 ELSE 0 END) AS pendientes
             FROM compra c
             INNER JOIN pedido p ON c.id_pedido = p.id_pedido

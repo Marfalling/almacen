@@ -130,6 +130,7 @@ require_once("../_modelo/m_detraccion.php");
                         </table>
                     </div>
                 </div>
+                
 
                 <!-- ============================================================ -->
                 <!-- LISTADO DE COMPROBANTES -->

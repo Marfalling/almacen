@@ -1075,12 +1075,12 @@ $monedas = MostrarMoneda();
                                                             break;
                                                         case 2:
                                                             $estado_texto = 'Aprobada';
-                                                            $estado_clase = 'success';
+                                                            $estado_clase = 'info';
                                                             $puede_agregar_pago = true;
                                                             break;
                                                         case 3:
-                                                            $estado_texto = 'Cerrada';
-                                                            $estado_clase = 'info';
+                                                            $estado_texto = 'Ingresada';
+                                                            $estado_clase = 'success';
                                                             $puede_agregar_pago = true;
                                                             break;
                                                         case 4:

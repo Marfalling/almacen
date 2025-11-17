@@ -549,7 +549,7 @@ function EliminarDocumento(id_doc) {
 
                                                     } elseif ($compra['est_compra'] == 2) {
                                                         $estado_final = 'APROBADO';
-                                                        $badge_class = 'badge-primary';
+                                                        $badge_class = 'badge-info';
 
                                                     } elseif ($compra['est_compra'] == 3) {
                                                         $estado_final = 'INGRESADO';
