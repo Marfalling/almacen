@@ -207,8 +207,8 @@ $total_alertas_productos = count($productos_por_vencer);
                                 // Estado PENDIENTE → Abrir modal de edición
                                 $href_alerta = "compras_mostrar.php?abrir_modal=" . $compra['id_compra'];
                             } else {
-                                // Estados APROBADA (2), COMPLETADA (3) o PAGADA (4) → Página de pagos
-                                $href_alerta = "pago_registrar.php?id_compra=" . $compra['id_compra'];
+                                // Estados APROBADA (2), COMPLETADA (3) o PAGADA (4) → Página de comrpobante de pagos
+                                $href_alerta = "comprobante_registrar.php?id_compra=" . $compra['id_compra'];
                             }
                         ?>
                         <li class="nav-item alerta-item">
