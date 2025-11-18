@@ -135,6 +135,13 @@
 
                             <div class="ln_solid"></div>
 
+                            <div class="form-group">
+                                <label>Subir Documento</label>
+                                <input type="file" name="documento[]" id="documento" class="form-control" multiple required>
+                            </div>
+
+                            <div class="ln_solid"></div>
+
                             <!-- Sección dividida en dos columnas: ORIGEN y DESTINO -->
                             <div class="row">
                                 <!-- COLUMNA IZQUIERDA - ORIGEN -->
@@ -345,14 +352,7 @@
                                 <?php endif; ?>
                             </div>
 
-                            <div class="ln_solid"></div>
 
-                            <div class="form-group">
-                                <label>Subir Documento (opcional)</label>
-                                <input type="file" name="documento[]" id="documento" class="form-control" multiple>
-                            </div>
-
-                            <div class="ln_solid"></div>
 
                             <!-- BOTONES -->
                             <div class="form-group">

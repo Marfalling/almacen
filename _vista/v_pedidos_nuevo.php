@@ -887,13 +887,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         aplicarCentroCostoATodosMateriales(centroCostoSeleccionado);
                         
                         // Mensaje de confirmación
-                        Swal.fire({
+                        /*Swal.fire({
                             icon: 'success',
                             title: 'Aplicado',
                             text: 'El centro de costo se aplicará a todos los materiales actuales y futuros',
                             timer: 2000,
                             showConfirmButton: false
-                        });
+                        });*/
                     } else {
                         aplicarCentroCostoAutomaticamente = false;
                     }
@@ -903,7 +903,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (confirmar) {
                     aplicarCentroCostoAutomaticamente = true;
                     aplicarCentroCostoATodosMateriales(centroCostoSeleccionado);
-                    alert('El centro de costo se aplicará a todos los materiales actuales y futuros');
+                    /*alert('El centro de costo se aplicará a todos los materiales actuales y futuros');*/
                 } else {
                     aplicarCentroCostoAutomaticamente = false;
                 }

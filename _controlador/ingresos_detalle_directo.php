@@ -2,6 +2,7 @@
 require_once("../_conexion/sesion.php");
 
 require_once("../_modelo/m_ingreso.php");
+require_once("../_modelo/m_documentos.php");
 
 ?>
 
@@ -29,6 +30,9 @@ require_once("../_modelo/m_ingreso.php");
             
             // Obtener datos del ingreso directo
             $detalle_ingreso_directo = ObtenerDetalleIngresoDirecto($id_ingreso);
+            
+            // OBTENER DOCUMENTOS DEL INGRESO DIRECTO
+            $documentos_ingreso = MostrarDocumentos('ingreso_directo', $id_ingreso);
             
             // Verificar si el ingreso existe
             if ($detalle_ingreso_directo && !empty($detalle_ingreso_directo['ingreso'])) {

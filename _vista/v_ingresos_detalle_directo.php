@@ -221,7 +221,63 @@
                                 </div>
                             </div>
                         </div>
-
+                        
+                        <!-- Documentos Adjuntos -->
+                        <?php if (!empty($documentos_ingreso)) { ?>
+                        <div class="row no-print">
+                            <div class="col-md-12">
+                                <div class="x_panel">
+                                    <div class="x_title">
+                                        <h2><i class="fa fa-paperclip"></i> Documentos Adjuntos</h2>
+                                        <div class="clearfix"></div>
+                                    </div>
+                                    <div class="x_content">
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-bordered">
+                                                <thead>
+                                                    <tr>
+                                                        <th width="5%">#</th>
+                                                        <th width="60%">Archivo</th>
+                                                        <th width="20%">Fecha de Subida</th>
+                                                        <th width="15%">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <?php 
+                                                    $contador_doc = 1;
+                                                    foreach ($documentos_ingreso as $doc) { 
+                                                    ?>
+                                                    <tr>
+                                                        <td class="text-center"><?php echo $contador_doc++; ?></td>
+                                                        <td>
+                                                            <i class="fa fa-file-pdf text-danger"></i> 
+                                                            <?php echo basename($doc['documento']); ?>
+                                                        </td>
+                                                        <td><?php echo date('d/m/Y H:i', strtotime($doc['fec_subida'])); ?></td>
+                                                        <td class="text-center">
+                                                            <a href="../uploads/ingreso_directo/<?php echo $doc['documento']; ?>" 
+                                                            target="_blank" 
+                                                            class="btn btn-info btn-xs" 
+                                                            title="Ver documento">
+                                                                <i class="fa fa-eye"></i> Ver
+                                                            </a>
+                                                            <a href="../uploads/ingreso_directo/<?php echo $doc['documento']; ?>" 
+                                                            download 
+                                                            class="btn btn-success btn-xs"
+                                                            title="Descargar">
+                                                                <i class="fa fa-download"></i> Descargar
+                                                            </a>
+                                                        </td>
+                                                    </tr>
+                                                    <?php } ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php } ?>
                         <!-- Información Adicional -->
                         <div class="row">
                             <div class="col-md-12">

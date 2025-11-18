@@ -21,7 +21,7 @@
                     </div>
                     <div class="x_content">
                         <br>
-                        <form class="form-horizontal form-label-left" action="ingresos_directo_nuevo.php" method="post" id="form-ingreso-directo">
+                        <form class="form-horizontal form-label-left" action="ingresos_directo_nuevo.php" method="post" id="form-ingreso-directo" enctype="multipart/form-data">
                             
                             <!-- Información básica del ingreso -->
                             <div class="form-group row">
@@ -69,6 +69,25 @@
 
                             <div class="ln_solid"></div>
 
+                            <!-- Sección de documentos adjuntos -->
+                            <div class="x_title">
+                                <h4>Documentos Adjuntos</h4>
+                                <div class="clearfix"></div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Adjuntar Documentos <span class="text-danger">*</span>:</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="file" name="documento[]" class="form-control" multiple required
+                                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
+                                    <small class="form-text text-muted">
+                                        Formatos permitidos: PDF, JPG, PNG, DOC, XLS. Máximo 5MB por archivo.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="ln_solid"></div>
+
                             <!-- Sección de productos -->
                             <div class="x_title">
                                 <h4>Productos a Ingresar</h4>
@@ -110,6 +129,10 @@
                                     </div>
                                 </div>
                             </div>
+
+
+
+                            <div class="ln_solid"></div>
 
                             <div class="form-group">
                                 <button type="button" id="agregar-producto" class="btn btn-info btn-sm">
@@ -368,6 +391,41 @@ function actualizarEventosEliminar() {
     });
 }
 
+// Validación de tamaño de archivos
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form[action="ingresos_directo_nuevo.php"]');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            let archivosInvalidos = false;
+            let mensajeError = '';
+            const archivosInputs = form.querySelectorAll('input[type="file"][name="documento[]"]');
+            
+            archivosInputs.forEach(input => {
+                for (let i = 0; i < input.files.length; i++) {
+                    if (input.files[i].size > 5 * 1024 * 1024) { // 5MB
+                        archivosInvalidos = true;
+                        mensajeError = 'Uno o más archivos superan el límite de 5MB. Por favor seleccione archivos más pequeños.';
+                        break;
+                    }
+                }
+            });
+            
+            if (archivosInvalidos) {
+                e.preventDefault();
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Archivo demasiado grande',
+                        text: mensajeError
+                    });
+                } else {
+                    alert(mensajeError);
+                }
+                return false;
+            }
+        });
+    }
+});
 // Limpiar referencia cuando se cierre modal
 $('#buscar_material').on('hidden.bs.modal', function () {
     currentSearchButton = null;

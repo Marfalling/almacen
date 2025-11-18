@@ -102,6 +102,44 @@ if (!verificarPermisoEspecifico('crear_ingresos')) {
                         $resultado = ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal_ingreso, $productos);
                         
                         if ($resultado['success']) {
+                            $id_ingreso = $resultado['id_ingreso'];
+                            
+                            // 🔹 PROCESAR DOCUMENTOS ADJUNTOS (igual que en salidas)
+                            if (isset($_FILES['documento']) && !empty($_FILES['documento']['name'][0])) {
+                                include_once("../_modelo/m_documentos.php");
+
+                                $entidad = "ingreso_directo";
+                                $target_dir = __DIR__ . "/../uploads/" . $entidad . "/";
+                                
+                                if (!is_dir($target_dir)) {
+                                    mkdir($target_dir, 0777, true);
+                                }
+
+                                foreach ($_FILES['documento']['name'] as $i => $nombre_original) {
+                                    if (!empty($nombre_original) && $_FILES['documento']['error'][$i] == 0) {
+                                        // Validar tamaño (5MB máximo)
+                                        if ($_FILES['documento']['size'][$i] > 5242880) {
+                                            continue; // Saltar archivos muy grandes
+                                        }
+                                        
+                                        $nombre_limpio = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $nombre_original);
+                                        if ($nombre_limpio === false || trim($nombre_limpio) === '') {
+                                            $nombre_limpio = $nombre_original;
+                                        }
+
+                                        $nombre_limpio = preg_replace('/[^A-Za-z0-9._-]/', '_', $nombre_limpio);
+                                        $nombre_limpio = trim($nombre_limpio, '_');
+
+                                        $nombre_archivo = $entidad . "_" . $id_ingreso . "_" . time() . "_" . basename($nombre_limpio);
+                                        $target_file = $target_dir . $nombre_archivo;
+
+                                        if (move_uploaded_file($_FILES["documento"]["tmp_name"][$i], $target_file)) {
+                                            GuardarDocumento($entidad, $id_ingreso, $nombre_archivo, $_SESSION['id_personal']);
+                                        }
+                                    }
+                                }
+                            }
+                            
                             ?>
                             <script Language="JavaScript">
                                 location.href = 'ingresos_mostrar.php?tab=todos-ingresos&registrado=true';
