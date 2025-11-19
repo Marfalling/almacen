@@ -130,7 +130,7 @@ require_once("../_modelo/m_detraccion.php");
                         </table>
                     </div>
                 </div>
-                
+
 
                 <!-- ============================================================ -->
                 <!-- LISTADO DE COMPROBANTES -->
@@ -404,7 +404,14 @@ require_once("../_modelo/m_detraccion.php");
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Monto Total con IGV <span class="text-danger">*</span></label>
-                            <input name="monto_total_igv" id="monto_total_igv" class="form-control" placeholder="0.00" required>
+                            <input 
+                                type="number"
+                                step="0.01"
+                                class="form-control"
+                                name="monto_total_igv"
+                                id="monto_total_igv"
+                                value="<?php echo number_format($oc['total_con_igv'], 2, '.', ''); ?>"
+                                required>
                         </div>
                     </div>
 
@@ -435,156 +442,45 @@ require_once("../_modelo/m_detraccion.php");
                 
                 <div class="row">
                     <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Afectaciones Tributarias (Opcional)</label>
-                            <div class="card" style="border: 1px solid #dee2e6;">
-                                <div class="card-header" style="background-color: #f8f9fa; padding: 8px 12px; cursor: pointer;" 
-                                    data-toggle="collapse" 
-                                    data-target="#afectacionesCollapse"
-                                    aria-expanded="false">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0" style="font-size: 13px;">
-                                            <i class="fa fa-percent text-info"></i> 
-                                            Detracción, Retención y Percepción
-                                        </h6>
-                                        <i class="fa fa-chevron-down"></i>
-                                    </div>
-                                </div>
-                                
-                                <div class="collapse" id="afectacionesCollapse">
-                                    <div class="card-body" style="padding: 12px;">
-                                        <!-- DETRACCIÓN -->
-                                        <div class="mb-3">
-                                            <label style="font-size: 11px; font-weight: bold;">Detracción:</label>
-                                            <div id="contenedor-detracciones" style="padding: 8px; background-color: #fff3cd; border-radius: 4px; border: 1px solid #ffc107;">
-                                                <?php
-                                                $detracciones_lista = ObtenerDetraccionesPorTipo('DETRACCION');
-                                                
-                                                if (!empty($detracciones_lista)) {
-                                                    foreach ($detracciones_lista as $detraccion) {
-                                                        $id_det = $detraccion['id_detraccion'];
-                                                        $porcentaje = $detraccion['porcentaje'];
-                                                        $nombre = htmlspecialchars($detraccion['nombre_detraccion'], ENT_QUOTES);
-                                                        ?>
-                                                        <div class="form-check" style="margin-bottom: 5px;">
-                                                            <input class="form-check-input detraccion-checkbox" 
-                                                                type="checkbox" 
-                                                                name="id_detraccion[]" 
-                                                                value="<?php echo $id_det; ?>" 
-                                                                data-porcentaje="<?php echo $porcentaje; ?>" 
-                                                                data-nombre="<?php echo $nombre; ?>"
-                                                                data-tipo="DETRACCION"
-                                                                
-                                                                id="detraccion_<?php echo $id_det; ?>">
-                                                            <label class="form-check-label" 
-                                                                for="detraccion_<?php echo $id_det; ?>" 
-                                                                style="font-size: 12px; cursor: pointer;">
-                                                                <?php echo $nombre; ?> 
-                                                                <strong>(<?php echo $porcentaje; ?>%)</strong>
-                                                            </label>
-                                                        </div>
-                                                        <?php
-                                                    }
-                                                } else {
-                                                    echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay detracciones configuradas</p>';
-                                                }
-                                                ?>
-                                            </div>
-                                            <small class="form-text text-muted">Se descuenta del total con IGV</small>
-                                        </div>
+                        <label>Detracción</label>
 
-                                        <!-- RETENCIÓN -->
-                                        <div class="mb-3">
-                                            <label style="font-size: 11px; font-weight: bold;">Retención:</label>
-                                            <div id="contenedor-retenciones" style="padding: 8px; background-color: #e7f3ff; border-radius: 4px; border: 1px solid #2196f3;">
-                                                <?php
-                                                $retenciones_lista = ObtenerDetraccionesPorTipo('RETENCION');
-                                                
-                                                if (!empty($retenciones_lista)) {
-                                                    foreach ($retenciones_lista as $retencion) {
-                                                        $id_ret = $retencion['id_detraccion'];
-                                                        $porcentaje = $retencion['porcentaje'];
-                                                        $nombre = htmlspecialchars($retencion['nombre_detraccion'], ENT_QUOTES);
-                                                        ?>
-                                                        <div class="form-check" style="margin-bottom: 5px;">
-                                                            <input class="form-check-input retencion-checkbox" 
-                                                                type="checkbox" 
-                                                                name="id_retencion[]" 
-                                                                value="<?php echo $id_ret; ?>" 
-                                                                data-porcentaje="<?php echo $porcentaje; ?>" 
-                                                                data-nombre="<?php echo $nombre; ?>"
-                                                                data-tipo="RETENCION"
-                                                                
-                                                                id="retencion_<?php echo $id_ret; ?>">
-                                                            <label class="form-check-label" 
-                                                                for="retencion_<?php echo $id_ret; ?>" 
-                                                                style="font-size: 12px; cursor: pointer;">
-                                                                <?php echo $nombre; ?> 
-                                                                <strong>(<?php echo $porcentaje; ?>%)</strong>
-                                                            </label>
-                                                        </div>
-                                                        <?php
-                                                    }
-                                                } else {
-                                                    echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay retenciones configuradas</p>';
-                                                }
-                                                ?>
-                                            </div>
-                                            <small class="form-text text-muted">Se descuenta del total con IGV</small>
-                                        </div>
+                        <?php 
+                        foreach($monedas as $mon) { 
+                            if($mon['id_moneda'] == $oc['id_moneda']) {
+                                if($mon['id_moneda']==1){
+                                    $simbolo_moneda='S/.';
+                                }
+                                else if($mon['id_moneda']==2){
+                                    $simbolo_moneda='US$';
+                                }
+                            }
+                        } 
+                        ?>
 
-                                        <!-- PERCEPCIÓN -->
-                                        <div class="mb-2">
-                                            <label style="font-size: 11px; font-weight: bold;">Percepción:</label>
-                                            <div id="contenedor-percepciones" style="padding: 8px; background-color: #e8f5e9; border-radius: 4px; border: 1px solid #4caf50;">
-                                                <?php
-                                                $percepciones_lista = ObtenerDetraccionesPorTipo('PERCEPCION');
-                                                
-                                                if (!empty($percepciones_lista)) {
-                                                    foreach ($percepciones_lista as $percepcion) {
-                                                        $id_per = $percepcion['id_detraccion'];
-                                                        $porcentaje = $percepcion['porcentaje'];
-                                                        $nombre = htmlspecialchars($percepcion['nombre_detraccion'], ENT_QUOTES);
-                                                        ?>
-                                                        <div class="form-check" style="margin-bottom: 5px;">
-                                                            <input class="form-check-input percepcion-checkbox" 
-                                                                type="checkbox" 
-                                                                name="id_percepcion[]" 
-                                                                value="<?php echo $id_per; ?>" 
-                                                                data-porcentaje="<?php echo $porcentaje; ?>" 
-                                                                data-nombre="<?php echo $nombre; ?>"
-                                                                data-tipo="PERCEPCION"
-                                                                
-                                                                id="percepcion_<?php echo $id_per; ?>">
-                                                            <label class="form-check-label" 
-                                                                for="percepcion_<?php echo $id_per; ?>" 
-                                                                style="font-size: 12px; cursor: pointer;">
-                                                                <?php echo $nombre; ?> 
-                                                                <strong>(<?php echo $porcentaje; ?>%)</strong>
-                                                            </label>
-                                                        </div>
-                                                        <?php
-                                                    }
-                                                } else {
-                                                    echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay percepciones configuradas</p>';
-                                                }
-                                                ?>
-                                            </div>
-                                            <small class="form-text text-muted">Se suma al total con IGV</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Campo visible deshabilitado -->
+                        <input 
+                            type="text" 
+                            class="form-control"
+                            id="monto_detraccion_visible"
+                            value="<?php echo '('. $oc['porcentaje_detraccion'].'%)'.' '.$simbolo_moneda.$oc['monto_detraccion']  ; ?>" 
+                            disabled
+                        >
+
                     </div>
 
                     <!-- Campo oculto para enviar la afectación seleccionada -->
-                    <input type="hidden" name="afectacion_seleccionada" id="afectacion_seleccionada" value="">
+                    <input type="hidden" name="afectacion_seleccionada" id="afectacion_seleccionada" value="<?php echo $oc['id_afectacion']; ?>">
+                    <!-- Hidden para id_afectacion -->
+                    <input type="hidden" id="id_afectacion" name="id_afectacion" value="<?php echo $oc['id_afectacion']; ?>">
+                    <!-- Hidden para monto_detraccion -->
+                    <input type="hidden" id="monto_detraccion" name="monto_detraccion" value="">
+                    <input type="hidden" id="porcentaje_detraccion" value="<?php echo $oc['porcentaje_detraccion']; ?>">
 
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Total a Pagar</label>
-                            <input type="number" step="0.01" name="total_pagar" id="total_pagar" class="form-control" placeholder="0.00" required readonly style="background-color: #e9ecef;">
+                            <input value="<?php echo $oc['monto_total']; ?>" 
+                            type="number" step="0.01" name="total_pagar" id="total_pagar" class="form-control" placeholder="0.00" required readonly style="background-color: #e9ecef;">
                         </div>
                     </div>
                     
@@ -637,7 +533,7 @@ require_once("../_modelo/m_detraccion.php");
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Archivo PDF <span class="text-danger">*</span></label>
-                            <input type="file" name="archivo_pdf" class="form-control" accept=".pdf">
+                            <input type="file" name="archivo_pdf" class="form-control" accept=".pdf" required>
                             <small class="form-text text-muted">Máximo 5MB</small>
                         </div>
                     </div>
@@ -711,8 +607,15 @@ require_once("../_modelo/m_detraccion.php");
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Monto Total con IGV <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" name="monto_total_igv" id="edit_monto_total_igv" class="form-control" placeholder="0.00" required>
+                            <label>Monto Total con IGV</label>
+                            <input 
+                                type="number"
+                                step="0.01"
+                                class="form-control"
+                                name="monto_total_igv"
+                                id="edit_monto_total_igv"
+                                value=""
+                                required>
                         </div>
                     </div>
 
@@ -744,156 +647,45 @@ require_once("../_modelo/m_detraccion.php");
                 
                 <div class="row">
                     <div class="col-md-6">
-                        <div class="form-group">
-                            <label>Afectaciones Tributarias (Opcional)</label>
-                            <div class="card" style="border: 1px solid #dee2e6;">
-                                <div class="card-header" style="background-color: #f8f9fa; padding: 8px 12px; cursor: pointer;" 
-                                    data-toggle="collapse" 
-                                    data-target="#afectacionesCollapse"
-                                    aria-expanded="false">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0" style="font-size: 13px;">
-                                            <i class="fa fa-percent text-info"></i> 
-                                            Detracción, Retención y Percepción
-                                        </h6>
-                                        <i class="fa fa-chevron-down"></i>
-                                    </div>
-                                </div>
-                                
-                                <div class="collapse" id="afectacionesCollapse">
-                                    <div class="card-body" style="padding: 12px;">
-                                        <!-- DETRACCIÓN -->
-                                        <div class="mb-3">
-                                            <label style="font-size: 11px; font-weight: bold;">Detracción:</label>
-                                            <div id="contenedor-detracciones" style="padding: 8px; background-color: #fff3cd; border-radius: 4px; border: 1px solid #ffc107;">
-                                                <?php
-                                                $detracciones_lista = ObtenerDetraccionesPorTipo('DETRACCION');
-                                                
-                                                if (!empty($detracciones_lista)) {
-                                                    foreach ($detracciones_lista as $detraccion) {
-                                                        $id_det = $detraccion['id_detraccion'];
-                                                        $porcentaje = $detraccion['porcentaje'];
-                                                        $nombre = htmlspecialchars($detraccion['nombre_detraccion'], ENT_QUOTES);
-                                                        ?>
-                                                        <div class="form-check" style="margin-bottom: 5px;">
-                                                            <input class="form-check-input detraccion-checkbox-edit" 
-                                                                type="checkbox" 
-                                                                name="id_detraccion[]" 
-                                                                value="<?php echo $id_det; ?>" 
-                                                                data-porcentaje="<?php echo $porcentaje; ?>" 
-                                                                data-nombre="<?php echo $nombre; ?>"
-                                                                data-tipo="DETRACCION"
-                                                                
-                                                                id="edit_detraccion_<?php echo $id_det; ?>">
-                                                            <label class="form-check-label" 
-                                                                for="edit_detraccion_<?php echo $id_det; ?>" 
-                                                                style="font-size: 12px; cursor: pointer;">
-                                                                <?php echo $nombre; ?> 
-                                                                <strong>(<?php echo $porcentaje; ?>%)</strong>
-                                                            </label>
-                                                        </div>
-                                                        <?php
-                                                    }
-                                                } else {
-                                                    echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay detracciones configuradas</p>';
-                                                }
-                                                ?>
-                                            </div>
-                                            <small class="form-text text-muted">Se descuenta del total con IGV</small>
-                                        </div>
+                        <label>Detracción</label>
 
-                                        <!-- RETENCIÓN -->
-                                        <div class="mb-3">
-                                            <label style="font-size: 11px; font-weight: bold;">Retención:</label>
-                                            <div id="contenedor-retenciones" style="padding: 8px; background-color: #e7f3ff; border-radius: 4px; border: 1px solid #2196f3;">
-                                                <?php
-                                                $retenciones_lista = ObtenerDetraccionesPorTipo('RETENCION');
-                                                
-                                                if (!empty($retenciones_lista)) {
-                                                    foreach ($retenciones_lista as $retencion) {
-                                                        $id_ret = $retencion['id_detraccion'];
-                                                        $porcentaje = $retencion['porcentaje'];
-                                                        $nombre = htmlspecialchars($retencion['nombre_detraccion'], ENT_QUOTES);
-                                                        ?>
-                                                        <div class="form-check" style="margin-bottom: 5px;">
-                                                            <input class="form-check-input retencion-checkbox-edit" 
-                                                                type="checkbox" 
-                                                                name="id_retencion[]" 
-                                                                value="<?php echo $id_ret; ?>" 
-                                                                data-porcentaje="<?php echo $porcentaje; ?>" 
-                                                                data-nombre="<?php echo $nombre; ?>"
-                                                                data-tipo="RETENCION"
-                                                                
-                                                                id="edit_retencion_<?php echo $id_ret; ?>">
-                                                            <label class="form-check-label" 
-                                                                for="edit_retencion_<?php echo $id_ret; ?>" 
-                                                                style="font-size: 12px; cursor: pointer;">
-                                                                <?php echo $nombre; ?> 
-                                                                <strong>(<?php echo $porcentaje; ?>%)</strong>
-                                                            </label>
-                                                        </div>
-                                                        <?php
-                                                    }
-                                                } else {
-                                                    echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay retenciones configuradas</p>';
-                                                }
-                                                ?>
-                                            </div>
-                                            <small class="form-text text-muted">Se descuenta del total con IGV</small>
-                                        </div>
+                        <?php 
+                        foreach($monedas as $mon) { 
+                            if($mon['id_moneda'] == $oc['id_moneda']) {
+                                if($mon['id_moneda']==1){
+                                    $simbolo_moneda='S/.';
+                                }
+                                else if($mon['id_moneda']==2){
+                                    $simbolo_moneda='US$';
+                                }
+                            }
+                        } 
+                        ?>
 
-                                        <!-- PERCEPCIÓN -->
-                                        <div class="mb-2">
-                                            <label style="font-size: 11px; font-weight: bold;">Percepción:</label>
-                                            <div id="contenedor-percepciones" style="padding: 8px; background-color: #e8f5e9; border-radius: 4px; border: 1px solid #4caf50;">
-                                                <?php
-                                                $percepciones_lista = ObtenerDetraccionesPorTipo('PERCEPCION');
-                                                
-                                                if (!empty($percepciones_lista)) {
-                                                    foreach ($percepciones_lista as $percepcion) {
-                                                        $id_per = $percepcion['id_detraccion'];
-                                                        $porcentaje = $percepcion['porcentaje'];
-                                                        $nombre = htmlspecialchars($percepcion['nombre_detraccion'], ENT_QUOTES);
-                                                        ?>
-                                                        <div class="form-check" style="margin-bottom: 5px;">
-                                                            <input class="form-check-input percepcion-checkbox-edit" 
-                                                                type="checkbox" 
-                                                                name="id_percepcion[]" 
-                                                                value="<?php echo $id_per; ?>" 
-                                                                data-porcentaje="<?php echo $porcentaje; ?>" 
-                                                                data-nombre="<?php echo $nombre; ?>"
-                                                                data-tipo="PERCEPCION"
-                                                                
-                                                                id="edit_percepcion_<?php echo $id_per; ?>">
-                                                            <label class="form-check-label" 
-                                                                for="edit_percepcion_<?php echo $id_per; ?>" 
-                                                                style="font-size: 12px; cursor: pointer;">
-                                                                <?php echo $nombre; ?> 
-                                                                <strong>(<?php echo $porcentaje; ?>%)</strong>
-                                                            </label>
-                                                        </div>
-                                                        <?php
-                                                    }
-                                                } else {
-                                                    echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay percepciones configuradas</p>';
-                                                }
-                                                ?>
-                                            </div>
-                                            <small class="form-text text-muted">Se suma al total con IGV</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <!-- Campo visible deshabilitado -->
+                        <input 
+                            type="text" 
+                            class="form-control"
+                            id="edit_monto_detraccion_visible"
+                            value="" 
+                            disabled
+                        >
+
                     </div>
 
                     <!-- Campo oculto para enviar la afectación seleccionada -->
                     <input type="hidden" name="afectacion_seleccionada" id="edit_afectacion_seleccionada" value="">
+                    <!-- Hidden para id_afectacion -->
+                    <input type="hidden" id="edit_id_afectacion" name="id_afectacion" value="">
+                    <!-- Hidden para monto_detraccion -->
+                    <input type="hidden" id="edit_monto_detraccion" name="monto_detraccion" value="">
+                    <input type="hidden" id="edit_porcentaje_detraccion" value="">
 
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Total a Pagar</label>
-                            <input type="number" step="0.01" name="total_pagar" id="edit_total_pagar" class="form-control" placeholder="0.00" required readonly style="background-color: #e9ecef;">
+                            <input value="" 
+                            type="number" step="0.01" name="total_pagar" id="edit_total_pagar" class="form-control" placeholder="0.00" required readonly style="background-color: #e9ecef;">
                         </div>
                     </div>
                 </div>
@@ -992,7 +784,7 @@ require_once("../_modelo/m_detraccion.php");
 
                     <br>
 
-                    <label>Fecha de Emisión <span class="text-danger">*</span></label>
+                    <label>Fecha de Pago <span class="text-danger">*</span></label>
                     <input type="date" name="fec_voucher" id="fec_voucher" class="form-control" required>
                 </div>
 
@@ -1074,7 +866,7 @@ let archivosSeleccionados = [];
 // ====================================================================
 // ESPERAR A QUE JQUERY ESTÉ LISTO
 // ====================================================================
-(function() {
+/*(function() {
     'use strict';
     
     console.log('🚀 Iniciando sistema...');
@@ -1322,6 +1114,171 @@ let archivosSeleccionados = [];
         inicializar();
     }
 
+})();*/
+
+(function() {
+    'use strict';
+    
+    console.log('🚀 Iniciando sistema...');
+
+    // ====================================================================
+    // FUNCIÓN: CALCULAR TOTAL A PAGAR
+    // ====================================================================
+    // ================================================================
+    // FUNCIÓN: CALCULAR TOTAL A PAGAR (solo con id_afectacion y monto_detraccion)
+    // ================================================================
+    window.calcularTotalPagar = function(isEditMode) {
+
+        const prefix = isEditMode ? 'edit_' : '';
+
+        const inputMonto        = document.getElementById(prefix + 'monto_total_igv');
+        const inputTotal        = document.getElementById(prefix + 'total_pagar');
+        const inputAfectacion   = document.getElementById(prefix + 'id_afectacion');
+        const inputDetraccion   = document.getElementById(prefix + 'monto_detraccion');
+        const inputPorcentaje   = document.getElementById(prefix + 'porcentaje_detraccion') 
+                                || document.getElementById('porcentaje_detraccion');
+
+        const inputVisible      = document.getElementById(prefix + 'monto_detraccion_visible');
+
+        if (!inputMonto || !inputTotal || !inputAfectacion || !inputDetraccion || !inputPorcentaje || !inputVisible) {
+            console.error("❌ Faltan campos para el cálculo");
+            return;
+        }
+
+        const montoConIGV   = parseFloat(inputMonto.value) || 0;
+        const idAfectacion  = parseInt(inputAfectacion.value) || 0;
+        const porcDetrac    = parseFloat(inputPorcentaje.value) || 0;
+
+        if (montoConIGV <= 0) {
+            inputDetraccion.value = "0.00";
+            inputVisible.value = `(0%) S/. 0.00`;
+            inputTotal.value = "";
+            return;
+        }
+
+        // ------------------------------------------------------
+        // Cálculo de monto de detracción/retención/percepción
+        // ------------------------------------------------------
+        let montoAfectacion = 0;
+
+        if (porcDetrac > 0) {
+            montoAfectacion = (montoConIGV * porcDetrac / 100);
+        }
+
+        // Guardar valores
+        inputDetraccion.value = montoAfectacion.toFixed(2);
+
+        // Actualizar input visible
+        inputVisible.value = `(${porcDetrac}%) S/. ${montoAfectacion.toFixed(2)}`;
+
+        // ------------------------------------------------------
+        // TOTAL A PAGAR
+        // Regla:
+        // id_afectacion != 13 → RESTA (detracción/retención)
+        // id_afectacion == 13 → SUMA (percepción)
+        // ------------------------------------------------------
+        let total = montoConIGV;
+
+        if (idAfectacion === 13) {
+            total = montoConIGV + montoAfectacion;
+        } else if (idAfectacion > 0) {
+            total = montoConIGV - montoAfectacion;
+        }
+
+        inputTotal.value = total.toFixed(2);
+    };
+
+
+    // ================================================================
+    // EVENTOS: Solo reaccionan al cambio del monto_total_igv
+    // ================================================================
+    function inicializar() {
+        console.log("✅ Inicializando eventos...");
+
+        const campos = [
+            { id: "monto_total_igv", modo: false },
+            { id: "edit_monto_total_igv", modo: true }
+        ];
+
+        campos.forEach(c => {
+            const input = document.getElementById(c.id);
+            if (input) {
+                input.addEventListener("input", function() {
+                    calcularTotalPagar(c.modo);
+                });
+            }
+        });
+        // --- CONTROL CUENTA (inicializar y manejar cambios) ---
+        function setupCuentaControl() {
+            const medio = document.getElementById('id_medio_pago') || document.querySelector('select[name="id_medio_pago"]');
+            const cuenta = document.getElementById('id_cuenta_proveedor');
+            if (!medio || !cuenta) return false;
+
+            function aplicarEstado() {
+                if ((medio.value || '').toString().trim() === '2') {
+                    cuenta.disabled = false;
+                    cuenta.required = true;
+                    cuenta.style.backgroundColor = '#ffffff';
+                } else {
+                    cuenta.disabled = true;
+                    cuenta.required = false;
+                    cuenta.value = '';
+                    cuenta.style.backgroundColor = '#e9ecef';
+                }
+            }
+
+            // aplicar ahora y en cambios
+            aplicarEstado();
+            medio.removeEventListener('change', aplicarEstado);
+            medio.addEventListener('change', aplicarEstado);
+
+            // exponer por si lo necesitamos llamar desde fuera (ej. after AJAX)
+            window.setupCuentaControl = setupCuentaControl;
+            return true;
+        }
+
+        // --- CONTROL CUENTA en modo EDICIÓN ---
+        function setupCuentaControlEdit() {
+            const medio = document.getElementById('edit_id_medio_pago');
+            const cuenta = document.getElementById('edit_id_cuenta_proveedor');
+            if (!medio || !cuenta) return false;
+
+            function aplicarEstadoEdit() {
+                if ((medio.value || '').toString().trim() === '2') {
+                    cuenta.disabled = false;
+                    cuenta.required = true;
+                    cuenta.style.backgroundColor = '#ffffff';
+                } else {
+                    cuenta.disabled = true;
+                    cuenta.required = false;
+                    cuenta.value = '';
+                    cuenta.style.backgroundColor = '#e9ecef';
+                }
+            }
+
+            aplicarEstadoEdit(); // aplicar al cargar
+            medio.removeEventListener('change', aplicarEstadoEdit);
+            medio.addEventListener('change', aplicarEstadoEdit);
+
+            // expone la función si la necesitas luego
+            window.setupCuentaControlEdit = setupCuentaControlEdit;
+            return true;
+        }
+
+        // llamar en inicializar
+        setupCuentaControl();
+        setupCuentaControlEdit();
+        
+        console.log('✅ Eventos configurados correctamente');
+    }
+
+    // Ejecutar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', inicializar);
+    } else {
+        inicializar();
+    }
+
 })();
 
 // ====================================================================
@@ -1411,6 +1368,24 @@ function CargarModalEditar(id_comprobante) {
             if (data.fec_pago) {
                 document.getElementById('edit_fec_pago').value = data.fec_pago;
             }
+
+            let simbolo = (data.id_moneda == 1) ? "S/." : "US$";
+
+            // Calcular la detracción dinámicamente
+            let montoDetraccion = 0;
+            if (data.porcentaje_detraccion > 0) {
+                montoDetraccion = (data.monto_total_igv * data.porcentaje_detraccion) / 100;
+            }
+
+            document.getElementById('edit_monto_detraccion_visible').value =
+                data.porcentaje_detraccion > 0
+                ? '(' + data.porcentaje_detraccion + '%) ' + simbolo + montoDetraccion.toFixed(2)
+                : 'Sin detracción';
+
+            // Asignar valores ocultos
+            document.getElementById('edit_porcentaje_detraccion').value = data.porcentaje_detraccion;
+            document.getElementById('edit_id_afectacion').value = data.id_detraccion; 
+            document.getElementById('edit_afectacion_seleccionada').value = data.id_detraccion;
             
             // Marcar checkbox si existe
             if (data.id_detraccion) {
@@ -1788,6 +1763,17 @@ async function procesarArchivos() {
 
     .table-hover tbody tr:hover {
         background-color: #f8f9fa;
+    }
+
+    /* Forzar alineación exacta del checkbox específico */
+    #chk_editar_monto {
+    transform: translateY(0) !important;   /* elimina la corrección de bootstrap */
+    margin-top: 0 !important;
+    vertical-align: middle !important;
+    align-self: center !important;
+    /* opcional: tamaño para uniformar si se ve distinto en navegadores */
+    width: 1.05em;
+    height: 1.05em;
     }
     
 </style>

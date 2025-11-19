@@ -26,6 +26,7 @@ switch ($moneda) {
         break;
 }
 
+/*
 // Ejecutar consulta
 $consulta = obtenerComprobantesEstado1($moneda);
 
@@ -34,5 +35,28 @@ require('../_vista/v_excel_reporte.php');
 
 // Actualizar registros
 ActualizarComprobantesEstado($moneda);
+*/
+
+if ($moneda === 0) {
+    
+    // Obtener todos los comprobantes sin filtro
+    $consulta = obtenerComprobantesGeneral();
+
+    // Mostrar vista Excel
+    require('../_vista/v_excel_reporte.php');
+
+    // NO ejecutar ActualizarComprobantesEstado()
+
+} else {
+
+    // Obtener comprobantes filtrados por moneda
+    $consulta = obtenerComprobantesEstado1($moneda);
+
+    // Mostrar vista Excel
+    require('../_vista/v_excel_reporte.php');
+
+    // Actualizar estados
+    ActualizarComprobantesEstado($moneda);
+}
 
 ?>

@@ -33,18 +33,32 @@ function GrabarComprobante($datos)
         return "Compra no encontrada.";
     }
 
-    // Validar que no exista el mismo comprobante (serie-número)
-    $sql_existe = "SELECT id_comprobante 
-                   FROM comprobante 
-                   WHERE serie = '$serie' 
-                   AND numero = '$numero' 
-                   AND id_tipo_documento = $id_tipo_documento
-                   AND est_comprobante = 1";
-    $res_existe = mysqli_query($con, $sql_existe);
+    $sql_prov = "SELECT id_proveedor FROM compra WHERE id_compra = $id_compra";
+    $res_prov = mysqli_query($con, $sql_prov);
+    $row_prov = mysqli_fetch_assoc($res_prov);
+    $id_proveedor = intval($row_prov['id_proveedor']);
+
+    // Validar que no exista el mismo comprobante (serie-número-proveedor)
+    $sql_existe = "SELECT c.id_comprobante
+               FROM comprobante c
+               INNER JOIN compra co ON co.id_compra = c.id_compra
+               WHERE c.serie = '$serie'
+               AND c.numero = '$numero'
+               AND c.id_tipo_documento = $id_tipo_documento
+               AND co.id_proveedor = $id_proveedor
+               AND c.est_comprobante = 1";
     
+    $res_existe = mysqli_query($con, $sql_existe);
+
+    if (!$res_existe) {
+        $error = mysqli_error($con);
+        mysqli_close($con);
+        return "Error al validar comprobante duplicado: $error";
+    }
+
     if (mysqli_num_rows($res_existe) > 0) {
         mysqli_close($con);
-        return "Ya existe un comprobante con la serie y número ingresados.";
+        return "Ya existe un comprobante con esa serie y número para este proveedor.";
     }
 
     // Insertar comprobante (SIN voucher_pago)
@@ -155,6 +169,70 @@ function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $id_personal
 
     $comprobante = mysqli_fetch_assoc($res_check);
 
+    
+    // -----------------------------
+    // DECIDIR TIPO DE PAGO (1 o 2)
+    // -----------------------------
+    // $comprobante ya fue obtenido con mysqli_fetch_assoc($res_check)
+
+    $tiene_detraccion = false;
+    if (isset($comprobante['id_detraccion'])) {
+        // ajusta el nombre del campo según tu esquema real: puede ser 'monto_detraccion', 'detraccion', 'id_detraccion'...
+        $tiene_detraccion = floatval($comprobante['id_detraccion']) > 0 && floatval($comprobante['id_detraccion']) != 0;
+    }
+
+    // Obtener conteo de pagos activos existentes por tipo (1 = monto, 2 = impuesto)
+    $sql_pagos = "
+        SELECT 
+            COALESCE(SUM(CASE WHEN fg_comprobante_pago = 1 AND est_comprobante_pago = 1 THEN 1 ELSE 0 END),0) AS cnt_monto,
+            COALESCE(SUM(CASE WHEN fg_comprobante_pago = 2 AND est_comprobante_pago = 1 THEN 1 ELSE 0 END),0) AS cnt_impuesto
+        FROM comprobante_pago
+        WHERE id_comprobante = $id_comprobante
+    ";
+    $res_pagos = mysqli_query($con, $sql_pagos);
+    if (!$res_pagos) {
+        error_log("❌ ERROR al consultar comprobante_pago: " . mysqli_error($con));
+        mysqli_close($con);
+        return "Error al verificar pagos existentes.";
+    }
+    $row_pagos = mysqli_fetch_assoc($res_pagos);
+    $cnt_monto = intval($row_pagos['cnt_monto']);
+    $cnt_impuesto = intval($row_pagos['cnt_impuesto']);
+
+    // Decidir qué tipo de pago corresponde ahora
+    $fg_comprobante_pago = null;
+
+    if ($tiene_detraccion) {
+        // Caso: comprobante con detracción -> puede haber hasta 2 pagos (monto + impuesto)
+        if ($cnt_monto == 0) {
+            // aún no hay pago al proveedor -> este voucher debe ser el pago principal
+            $fg_comprobante_pago = 1;
+        } elseif ($cnt_monto >= 1 && $cnt_impuesto == 0) {
+            // ya hay pago al proveedor, falta la detracción -> ahora es pago impuesto
+            $fg_comprobante_pago = 2;
+        } else {
+            // ya existen ambos pagos activos -> no permitir más
+            error_log("⚠️ Comprobante $id_comprobante ya tiene ambos pagos registrados (monto e impuesto).");
+            mysqli_close($con);
+            return "El comprobante ya tiene registrados los pagos permitidos.";
+        }
+    } else {
+        // Caso: sin detracción -> solo permitido 1 pago (monto)
+        if ($cnt_monto == 0) {
+            $fg_comprobante_pago = 1;
+        } else {
+            // ya existe pago monto para comprobante sin detracción -> no permitir otro
+            error_log("⚠️ Comprobante $id_comprobante ya tiene pago registrado y no aplica detracción.");
+            mysqli_close($con);
+            return "El comprobante ya tiene el pago registrado.";
+        }
+    }
+
+    // A estas alturas $fg_comprobante_pago será 1 o 2
+    error_log("Decisión: fg_comprobante_pago = $fg_comprobante_pago (cnt_monto=$cnt_monto, cnt_impuesto=$cnt_impuesto, has_detraccion=" . ($tiene_detraccion?1:0) . ")");
+
+    
+    
     // Extraer id_compra del array asociativo
     $id_compra = intval($comprobante['id_compra']);
 
@@ -166,14 +244,28 @@ function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $id_personal
 
     $archivo_voucher_escaped = mysqli_real_escape_string($con, $archivo_voucher);
 
-    // Actualizar el voucher
-    $sql = "UPDATE comprobante 
-            SET voucher_pago = '$archivo_voucher_escaped',
-                id_personal_voucher = $id_personal_voucher,
-                fecha_voucher = '$fec_voucher',
-                fec_registro_voucher = NOW(),
-                est_comprobante = 3
-            WHERE id_comprobante = $id_comprobante";
+    // -----------------------------
+    // INSERTAR EN comprobante_pago
+    // -----------------------------
+    $fec_pago_sql = $fec_voucher ? "'$fec_voucher'" : "NULL";
+
+    $sql = "
+        INSERT INTO comprobante_pago(
+            id_comprobante,
+            id_personal_registra,
+            fec_pago,
+            vou_comprobante_pago,
+            fg_comprobante_pago,
+            est_comprobante_pago
+        ) VALUES (
+            $id_comprobante,
+            $id_personal_voucher,
+            $fec_pago_sql,
+            '$archivo_voucher_escaped',
+            $fg_comprobante_pago,
+            1
+        )
+    ";
     
     $res = mysqli_query($con, $sql);
 
@@ -181,6 +273,28 @@ function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $id_personal
         $error = mysqli_error($con);
         mysqli_close($con);
         return "Error al subir el voucher: $error";
+    }
+
+    // ================================================
+    // 🔥 ACTUALIZAR ESTADO DEL COMPROBANTE (est_comprobante = 3)
+    // ================================================
+
+    // Tiene detracción y se acaba de registrar el pago 2 (impuesto)
+    if ($tiene_detraccion && $fg_comprobante_pago == 2) {
+
+        $sql_upd = "UPDATE comprobante SET est_comprobante = 3 WHERE id_comprobante = $id_comprobante";
+        mysqli_query($con, $sql_upd);
+
+        error_log("🔵 Comprobante $id_comprobante actualizado a estado 3 (pago final con detracción).");
+    }
+
+    // Sin detracción o percepción → pago único fg = 1
+    if (!$tiene_detraccion && $fg_comprobante_pago == 1) {
+
+        $sql_upd = "UPDATE comprobante SET est_comprobante = 3 WHERE id_comprobante = $id_comprobante";
+        mysqli_query($con, $sql_upd);
+
+        error_log("🟢 Comprobante $id_comprobante actualizado a estado 3 (pago único sin detracción).");
     }
     
 
@@ -960,54 +1074,128 @@ function ConsultarCompraCom($id_compra)
     $porcentaje = floatval($compra['porcentaje_detraccion']); // viene del SQL
 
     $tipo_afectacion = '';
+    $id_afectacion = '';
 
     if (!empty($compra['id_detraccion'])) {
         $tipo_afectacion = 'detraccion';
+        $id_afectacion = $compra['id_detraccion'];
     }
     elseif (!empty($compra['id_retencion'])) {
         $tipo_afectacion = 'retencion';
+        $id_afectacion = $compra['id_retencion'];
     }
     elseif (!empty($compra['id_percepcion'])) {
         $tipo_afectacion = 'percepcion';
+        $id_afectacion = $compra['id_percepcion'];
     }
 
     // Calcular monto en base al tipo
-    $monto_detraccion = 0;
-    $monto_retencion = 0;
-    $monto_percepcion = 0;
-
-    $monto_afectacion = 0;
-
-    if ($tipo_afectacion === 'detraccion') {
-        $monto_detraccion = ($total_con_igv * $porcentaje) / 100;
-        $monto_afectacion = $monto_detraccion;
-    }
-    elseif ($tipo_afectacion === 'retencion') {
-        $monto_retencion = ($total_con_igv * $porcentaje) / 100;
-        $monto_afectacion = $monto_retencion;
-    }
-    elseif ($tipo_afectacion === 'percepcion') {
-        $monto_percepcion = ($total_con_igv * $porcentaje) / 100;
-        $monto_afectacion = $monto_percepcion;
-    }
-
+    $monto_afectacion = ($total_con_igv * $porcentaje) / 100;
+    
     // === 4. TOTAL A PAGAR ===
-    $monto_total = $total_con_igv - $monto_detraccion - $monto_retencion + $monto_percepcion;
+    if ($tipo_afectacion === 'percepcion') {
+        $monto_total = $total_con_igv + $monto_afectacion;
+    }
+    else {
+        $monto_total = $total_con_igv - $monto_afectacion;
+    }
 
-    // === 5. TOTAL PAGADO ===
-    $sql_pagado = "
+    // ============================================================
+    // 5. OBTENER TODOS LOS COMPROBANTES DE LA COMPRA Y SI TIENEN VOUCHER PAGADO (fg=1/fg=2)
+    //    NOTA: comprobante_pago NO TIENE monto, por eso inferimos lo pagado por comprobante
+    // ============================================================
+    /*$sql_pagado = "
         SELECT COALESCE(SUM(total_pagar),0) AS total_pagado
         FROM comprobante
         WHERE id_compra = $id_compra
           AND est_comprobante = 3
+    ";*/
+    $sql_comprobantes = "
+        SELECT 
+            c.id_comprobante,
+            c.monto_total_igv AS monto_total_igv_comprobante,
+            c.total_pagar AS total_pagar_comprobante,
+            c.id_detraccion AS id_detraccion_comprobante,
+            -- existen vouchers aprobados (est_comprobante_pago = 1) por fg
+            MAX(CASE WHEN cp.fg_comprobante_pago = 1 AND cp.est_comprobante_pago = 1 THEN 1 ELSE 0 END) AS has_fg1_paid,
+            MAX(CASE WHEN cp.fg_comprobante_pago = 2 AND cp.est_comprobante_pago = 1 THEN 1 ELSE 0 END) AS has_fg2_paid,
+            COUNT(cp.id_comprobante_pago) AS total_vouchers
+        FROM comprobante c
+        LEFT JOIN comprobante_pago cp ON cp.id_comprobante = c.id_comprobante
+        WHERE c.id_compra = $id_compra
+        GROUP BY c.id_comprobante, c.monto_total_igv, c.total_pagar, c.id_detraccion
     ";
-    $res_pag = mysqli_query($con, $sql_pagado);
-    $row_pag = mysqli_fetch_assoc($res_pag);
 
-    $total_pagado = floatval($row_pag['total_pagado']);
+    $res_comp = mysqli_query($con, $sql_comprobantes);
+    if (!$res_comp) {
+        // en caso de error, retornamos error
+        mysqli_close($con);
+        return false;
+    }
+
+    $total_pagado = 0.0;
+
+    // identificación de percepción por id específico:
+    $ID_PERCEPCION_DEF = 13; 
+
+    while ($rowC = mysqli_fetch_assoc($res_comp)) {
+        $c_id = intval($rowC['id_comprobante']);
+        $monto_total_comprobante = floatval($rowC['monto_total_igv_comprobante']); // siempre el valor real del comprobante
+        $total_pagar_comprobante = floatval($rowC['total_pagar_comprobante']);   // lo que el proveedor debe recibir para este comprobante
+        $id_det_comprobante = $rowC['id_detraccion_comprobante']; // puede ser NULL o un id
+
+        $has_fg1 = intval($rowC['has_fg1_paid']) === 1;
+        $has_fg2 = intval($rowC['has_fg2_paid']) === 1;
+
+        // ======= LÓGICA DE PAGO POR COMPROBANTE =======
+        // Si este comprobante es percepción (id == id_percepcion de la compra o id == constante),
+        // se considera que solo se usa fg=1 y que fg=1 paga TOTAL_PAGAR (que incluye la percepción).
+        $es_percepcion = false;
+        if (!empty($id_det_comprobante)) {
+            // si id_det_comprobante coincide con id_percepcion de la compra (si tu tabla compra guarda id_percepcion)
+            if (!empty($compra['id_percepcion']) && $id_det_comprobante == $compra['id_percepcion']) {
+                $es_percepcion = true;
+            }
+            // o si tu sistema usa un id fijo para percepción (por ejemplo 13), lo consideramos también
+            if ($id_det_comprobante == $ID_PERCEPCION_DEF) {
+                $es_percepcion = true;
+            }
+        }
+
+        if ($es_percepcion) {
+            // Si existe voucher (fg=1) aprobado => se considera pagado el total_pagar_comprobante (que incluye percepción)
+            if ($has_fg1) {
+                $total_pagado += $total_pagar_comprobante;
+            }
+            // si no hay voucher, no se considera pagado
+        } else {
+            // Sin percepción: puede ser sin afectación o con detracción/retención
+            // Regla:
+            //  - si hay fg1 pagado => se considera pagado el total_pagar_comprobante (la parte al proveedor)
+            //  - si además hay fg2 pagado => se considera pagada la parte restante: (monto_total_comprobante - total_pagar_comprobante)
+            if ($has_fg1) {
+                $total_pagado += $total_pagar_comprobante;
+            }
+
+            if ($has_fg2) {
+                // la segunda parte (detracción/retención) = diferencia entre el total de la factura y lo entregado al proveedor
+                $monto_second = $monto_total_comprobante - $total_pagar_comprobante;
+                // por seguridad: no sumar negativo
+                if ($monto_second > 0) {
+                    $total_pagado += $monto_second;
+                }
+            }
+        }
+    }
 
     // === 6. SALDO ===
-    $saldo = $monto_total - $total_pagado;
+    if ($tipo_afectacion === 'percepcion') {
+        $saldo = $monto_total - $total_pagado;
+    }
+    else {
+        $saldo = $total_con_igv - $total_pagado;
+    }
+    
 
     // === 7. Construir respuesta ===
     $compra['subtotal'] = round($subtotal, 2);
@@ -1017,6 +1205,7 @@ function ConsultarCompraCom($id_compra)
     $compra['tipo_afectacion'] = $tipo_afectacion;
     $compra['porcentaje_detraccion'] = $porcentaje;
     $compra['monto_detraccion'] = round($monto_afectacion, 2);
+    $compra['id_afectacion'] = $id_afectacion;
 
     $compra['monto_total']  = round($monto_total, 2);
     $compra['monto_pagado'] = round($total_pagado, 2);
@@ -1101,6 +1290,7 @@ function obtenerComprobantesEstado1($id_moneda)
         c.total_pagar,
         c.fec_registro,
         c.est_comprobante,
+        c.id_moneda,
 
         -- Datos del proveedor
         p.id_proveedor,
@@ -1184,6 +1374,119 @@ function obtenerComprobantesEstado1($id_moneda)
         ON td.id_tipo_documento = c.id_tipo_documento
     WHERE c.est_comprobante = 1
         AND c.id_moneda = $id_moneda
+    ORDER BY c.id_comprobante ASC
+    ";
+
+    $res = mysqli_query($con, $sql);
+
+    $comprobantes = [];
+
+    if ($res && mysqli_num_rows($res) > 0) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $comprobantes[] = $row;
+        }
+    }
+    return $comprobantes;
+}
+
+function obtenerComprobantesGeneral()
+{
+    include("../_conexion/conexion.php");
+
+    $sql = "
+    SELECT 
+        c.id_comprobante,
+        c.id_compra,
+        c.id_tipo_documento,
+        td.nom_tipo_documento,
+        c.serie,
+        c.numero,
+        c.total_pagar,
+        c.fec_registro,
+        c.est_comprobante,
+        c.id_moneda,
+
+        -- Datos del proveedor
+        p.id_proveedor,
+        p.nom_proveedor,
+        p.ruc_proveedor,
+        p.cont_proveedor,
+
+        -- Datos de cuenta
+        pc.banco_proveedor,
+        pc.nro_cuenta_corriente,
+
+        -- =====================
+        -- CAMPOS CALCULADOS
+        -- =====================
+
+        -- DOI TIPO (reglas según longitud y formato)
+        CASE 
+            WHEN LENGTH(p.ruc_proveedor) = 11 THEN 'R'
+            WHEN LENGTH(p.ruc_proveedor) = 8 AND p.ruc_proveedor REGEXP '^[0-9]+$' THEN 'L'
+            WHEN LENGTH(p.ruc_proveedor) = 9 THEN 'E'
+            WHEN p.ruc_proveedor REGEXP '^[A-Za-z][0-9A-Za-z]{7}$' THEN 'P'
+            ELSE 'M'
+        END AS doi_tipo,
+
+        p.ruc_proveedor AS doi_numero,
+
+        -- Tipo abono (BBVA = 'P', otros bancos = 'I')
+        CASE
+            WHEN pc.banco_proveedor LIKE '%BBVA%' THEN 'P'
+            ELSE 'I'
+        END AS tipo_abono,
+
+        CASE
+            WHEN pc.banco_proveedor LIKE '%BBVA%' 
+                THEN pc.nro_cuenta_corriente
+            ELSE pc.nro_cuenta_interbancaria
+        END AS nro_cuenta,
+
+        -- Beneficiario
+        p.nom_proveedor AS beneficiario,
+
+        -- Importe con 2 decimales
+        FORMAT(c.total_pagar, 2) AS importe_abonar,
+
+         -- Tipo recibo (F = factura, B = boleta, R = recibo/honorario, fallback = primera letra)
+        CASE
+            WHEN LOWER(td.nom_tipo_documento) LIKE '%factura%' THEN 'F'
+            WHEN LOWER(td.nom_tipo_documento) LIKE '%boleta%' THEN 'B'
+            WHEN LOWER(td.nom_tipo_documento) LIKE '%recibo%' THEN 'R'
+            WHEN LOWER(td.nom_tipo_documento) LIKE '%honorario%' THEN 'R'
+            ELSE UPPER(LEFT(td.nom_tipo_documento,1))
+        END AS tipo_recibo,
+
+        -- N° Documento (PENDIENTE)
+        '' AS numero_documento,
+
+        -- Abono agrupado
+        'N' AS abono_agrupado,
+
+        -- Referencia servicio/compra
+        CONCAT('C00', c.id_compra) AS ref_orden_compra,
+
+        -- Referencia comprobante
+        CONCAT(c.serie, '-', c.numero) AS ref_comprobante,
+
+        -- Indicador aviso
+        'E' AS indicador_aviso,
+
+        -- Medio aviso
+        'contabilidad@arceperu.pe' AS medio_aviso,
+
+        -- Persona contacto
+        p.cont_proveedor AS persona_contacto
+
+    FROM comprobante c
+    INNER JOIN proveedor_cuenta pc 
+        ON pc.id_proveedor_cuenta = c.id_cuenta_proveedor
+    INNER JOIN proveedor p 
+        ON p.id_proveedor = pc.id_proveedor
+    INNER JOIN tipo_documento td
+        ON td.id_tipo_documento = c.id_tipo_documento
+    WHERE c.est_comprobante != 0
     ORDER BY c.id_comprobante ASC
     ";
 

@@ -28,11 +28,13 @@ header("content-disposition: attachment;filename=" . $filename);
         <th bgcolor="#D8D8FC" style="text-align: center">Tipo Recibo</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Nro Documento</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Abono agrupado</th>
+        <th bgcolor="#D8D8FC" style="text-align: center">Moneda</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Referencia Orden</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Referencia Comprobante</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Indicador Aviso</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Medio de aviso</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Persona Contacto</th>
+        <th bgcolor="#D8D8FC" style="text-align: center">Estado</th>
         <th bgcolor="#D8D8FC" style="text-align: center">Validacion</th>
         
     </tr>
@@ -50,13 +52,34 @@ header("content-disposition: attachment;filename=" . $filename);
            $beneficiario = $row['beneficiario'];
            $importe_abonar = $row['importe_abonar'];
            $tipo_recibo = $row['tipo_recibo'];
-           $numero_documento = $row['numero_documento'];
+           $numero_documento = $row['numero'];
            $abono_agrupado = $row['abono_agrupado'];
+
+           $id_moneda = $row['id_moneda'];
+           // Asignar nombre de moneda según id_moneda
+           if ($id_moneda == 1) {
+               $nom_moneda = 'SOLES';
+           } elseif ($id_moneda == 2) {
+               $nom_moneda = 'DOLARES';
+           } else {
+               $nom_moneda = 'OTROS';
+           }
+
            $ref_orden_compra = $row['ref_orden_compra'];
            $ref_comprobante = $row['ref_comprobante'];
            $indicador_aviso = $row['indicador_aviso'];
            $medio_aviso = $row['medio_aviso'];
            $persona_contacto = $row['persona_contacto'];
+
+           $est_comp = $row['est_comprobante'];
+           // Asignar nombre de ESTADO según est_comprobante
+           if ($est_comp == 1) {
+               $nom_estado = 'PENDIENTE';
+           } elseif ($est_comp == 2) {
+               $nom_estado = 'POR PAGAR';
+           } else {
+               $nom_estado = 'PAGADO';
+           }
 
 	?>
     
@@ -69,16 +92,19 @@ header("content-disposition: attachment;filename=" . $filename);
         <td><?php echo $tipo_abono; ?></td>  
         <td style="mso-number-format:'\@';"><?php echo $nro_cuenta; ?></td>
         <td><?php echo $beneficiario; ?></td>  
-        <!--<td><?php /*echo $importe_abonar;*/ ?></td>-->
-        <td style="mso-number-format:'0.00';"><?php echo number_format($importe_abonar, 2, '.', ''); ?></td>
+        <td><?php echo $importe_abonar; ?></td>
+        <!--<td style="mso-number-format:'0.00';"><?php echo number_format($importe_abonar, 2, '.', ''); ?></td>-->
         <td><?php echo $tipo_recibo; ?></td>
-        <td><?php echo $numero_documento; ?></td>  
-        <td><?php echo $abono_agrupado; ?></td>  
+        <!--<td><?php echo $numero_documento; ?></td>  -->
+        <td style="mso-number-format:'\@';"><?php echo $numero_documento; ?></td>
+        <td><?php echo $abono_agrupado; ?></td>
+        <td><?php echo $nom_moneda; ?></td>   
         <td><?php echo $ref_orden_compra; ?></td>    
         <td><?php echo $ref_comprobante; ?></td>  
         <td><?php echo $indicador_aviso; ?></td>  
-        <td><?php echo $medio_aviso; ?></td>  
+        <td><?php echo $medio_aviso; ?></td>
         <td><?php echo $persona_contacto; ?></td>
+        <td><?php echo $nom_estado; ?></td> 
          
     </tr>
     

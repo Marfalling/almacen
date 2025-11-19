@@ -362,15 +362,18 @@ function EliminarDocumento(id_doc) {
                 <div class="x_panel">
                     <div class="x_title">
                         <div class="row align-items-center">
-                            <div class="col-sm-6">
+                            <div class="col-sm-4">
                                 <h2>Listado de Compras</h2>
                             </div>
-                            <div class="col-sm-6 text-right">
+                            <div class="col-sm-8 text-right">
+                                <a href="generar_excel.php" class="btn btn-success btn-sm">
+                                    <i class="fa fa-file-excel-o"></i> Excel General
+                                </a>
                                 <a href="generar_excel.php?moneda=1" class="btn btn-success btn-sm">
-                                    <i class="fa fa-file-excel-o"></i> Excel Soles
+                                    <i class="fa fa-file-excel-o"></i> Pendiente Soles
                                 </a>
                                 <a href="generar_excel.php?moneda=2" class="btn btn-success btn-sm">
-                                    <i class="fa fa-file-excel-o"></i> Excel Dólares
+                                    <i class="fa fa-file-excel-o"></i> Pendiente Dólares
                                 </a>
                                 <button type="button" class="btn btn-primary btn-sm" onclick="abrirModalMasivo()">
                                     <i class="fa fa-cloud-upload"></i> Vouchers Masivo

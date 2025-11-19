@@ -126,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             'serie' => trim($_POST['serie']),
             'numero' => trim($_POST['numero']),
             'monto_total_igv' => $_POST['monto_total_igv'],
-            'id_detraccion' => !empty($_POST['id_detraccion']) ? $_POST['id_detraccion'] : null,
+            'id_detraccion' => !empty($_POST['id_afectacion']) ? $_POST['id_afectacion'] : null,
             'id_moneda' => $_POST['id_moneda'],
             'total_pagar' => $_POST['total_pagar'],
             'id_medio_pago' => !empty($_POST['id_medio_pago']) ? $_POST['id_medio_pago'] : null,
@@ -217,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 'serie' => trim($_POST['serie']),
                 'numero' => trim($_POST['numero']),
                 'monto_total_igv' => $_POST['monto_total_igv'],
-                'id_detraccion' => !empty($_POST['id_detraccion']) ? $_POST['id_detraccion'] : null,
+                'id_detraccion' => !empty($_POST['id_afectacion']) ? $_POST['id_afectacion'] : null,
                 'id_moneda' => $_POST['id_moneda'],
                 'total_pagar' => $_POST['total_pagar'],
                 'id_medio_pago' => !empty($_POST['id_medio_pago']) ? $_POST['id_medio_pago'] : null,
@@ -267,7 +267,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
     $enviar_proveedor = isset($_POST['enviar_proveedor']) ? true : false;
     $enviar_contabilidad = isset($_POST['enviar_contabilidad']) ? true : false;
     $enviar_tesoreria = isset($_POST['enviar_tesoreria']) ? true : false;
-    $fec_voucher = isset($_POST['fec_voucher']);
+    $fec_voucher = !empty($_POST['fec_voucher']) ? $_POST['fec_voucher'] : null;
 
     $error_archivo = false;
     $voucher_pago = null;
