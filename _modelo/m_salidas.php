@@ -177,14 +177,23 @@ function AprobarSalidaConMovimientos($id_salida, $id_personal_aprueba)
         
         //  VALIDAR ESTADO
         if ($row_check['est_salida'] != 1) {
-            $estado_texto = match($row_check['est_salida']) {
-                0 => 'anulada',
-                2 => 'recepcionada',
-                3 => 'aprobada',
-                default => 'en estado desconocido'
-            };
+            switch ($row_check['est_salida']) {
+                case 0:
+                    $estado_texto = 'anulada';
+                    break;
+                case 2:
+                    $estado_texto = 'recepcionada';
+                    break;
+                case 3:
+                    $estado_texto = 'aprobada';
+                    break;
+                default:
+                    $estado_texto = 'en estado desconocido';
+            }
+
             throw new Exception("Esta salida ya está {$estado_texto}");
         }
+
         
         //  VALIDAR QUE NO TENGA APROBACIÓN PREVIA
         if (!empty($row_check['id_personal_aprueba_salida'])) {
