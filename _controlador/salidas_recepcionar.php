@@ -1,16 +1,16 @@
 <?php
 //=======================================================================
-// CONTROLADOR: salidas_aprobar.php
-// Aprueba la salida y genera movimientos
+// CONTROLADOR: salidas_recepcionar.php
+// Recepciona una salida aprobada (cambia estado 3 → 2)
 //=======================================================================
 
 header('Content-Type: application/json; charset=utf-8');
 require_once("../_conexion/sesion.php");
 require_once("../_modelo/m_salidas.php");
 
-if (!verificarPermisoEspecifico('aprobar_salidas')) {
+if (!verificarPermisoEspecifico('recepcionar_salidas')) {
     require_once("../_modelo/m_auditoria.php");
-    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'SALIDAS', 'APROBAR');
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'SALIDAS', 'RECEPCIONAR');
     
     echo json_encode([
         "success" => false,
@@ -29,26 +29,18 @@ if (!$id_salida) {
     exit;
 }
 
-$resultado = AprobarSalidaConMovimientos($id_salida, $id_personal);
+//  Llamar a la función de recepción
+$resultado = RecepcionarSalida($id_salida, $id_personal);
 
-if (is_array($resultado)) {
-    
-    // Salida anulada por falta de stock
-    if (isset($resultado['anulada']) && $resultado['anulada'] === true) {
-        echo json_encode([
-            "success" => false,
-            "anulada" => true,
-            "message" => $resultado['message']
-        ]);
-        exit;
-    }
-    
-    echo json_encode($resultado);
+if ($resultado) {
+    echo json_encode([
+        "success" => true,
+        "message" => "✅ Salida recepcionada exitosamente."
+    ]);
 } else {
-    //  Respuesta inesperada
     echo json_encode([
         "success" => false,
-        "message" => "Error inesperado al procesar la aprobación."
+        "message" => "❌ Error al recepcionar. La salida podría estar en un estado no válido."
     ]);
 }
 

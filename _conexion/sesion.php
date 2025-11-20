@@ -116,6 +116,7 @@ function verificarAccesoControlador($nombre_controlador) {
         'salidas_editar' => 'editar_salidas',
         'salidas_anular' => 'anular_salidas',
         'salidas_aprobar' => 'aprobar_salidas',
+        'salidas_recepcionar' => 'recepcionar_salidas',
         
         // ==================== DEVOLUCIONES ====================
         'devoluciones_mostrar' => 'ver_devoluciones',

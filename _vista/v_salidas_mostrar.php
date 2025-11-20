@@ -1,40 +1,100 @@
 <?php 
 //=======================================================================
-// VISTA: v_salidas_mostrar.php
+// VISTA ACTUALIZADA: v_salidas_mostrar.php
 //=======================================================================
 
-// ========================================================================
-// VERIFICAR PERMISOS AL INICIO
-// ========================================================================
 $tiene_permiso_aprobar = verificarPermisoEspecifico('aprobar_salidas');
+$tiene_permiso_recepcionar = verificarPermisoEspecifico('recepcionar_salidas');
 $tiene_permiso_anular = verificarPermisoEspecifico('anular_salidas');
 ?>
 
 <script>
-// Función para aprobar/recepcionar salida
+//  Función para APROBAR salida
 function AprobarSalida(id_salida) {
     Swal.fire({
-        title: '¿Deseas recepcionar esta salida?',
-        text: "Esta acción registrará la fecha y hora de recepción.",
+        title: '¿Aprobar esta salida?',
+        html: `
+            <div class="text-left">
+                <p><strong>IMPORTANTE:</strong></p>
+                <ul style="text-align: left;">
+                    <li>Se validará el stock disponible</li>
+                    <li>Se generarán los movimientos de inventario</li>
+                    <li>Si no hay stock, la salida será <strong>ANULADA automáticamente</strong></li>
+                </ul>
+            </div>
+        `,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#28a745',
         cancelButtonColor: '#d33',
-        confirmButtonText: 'Sí, recepcionar',
+        confirmButtonText: 'Sí, aprobar',
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
+            // Mostrar loading
+            Swal.fire({
+                title: 'Procesando...',
+                html: 'Validando stock y generando movimientos',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
             $.ajax({
                 url: '../_controlador/salidas_aprobar.php',
                 type: 'POST',
                 data: { id_salida: id_salida },
                 dataType: 'json',
                 success: function(response) {
-                    if (response.tipo_mensaje === 'success') {
-                        Swal.fire('¡Recepcionado!', response.mensaje, 'success')
+                    if (response.success) {
+                        Swal.fire(' Aprobada!', response.message, 'success')
+                        .then(() => { location.reload(); });
+                    } else if (response.anulada) {
+                        // Anulada por falta de stock
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Salida Anulada',
+                            html: response.message,
+                            confirmButtonText: 'Entendido',
+                            confirmButtonColor: '#dc3545'
+                        }).then(() => { location.reload(); });
+                    } else {
+                        Swal.fire(' Error', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire(' Error', 'No se pudo conectar con el servidor.', 'error');
+                }
+            });
+        }
+    });
+}
+
+// Función para RECEPCIONAR salida
+function RecepcionarSalida(id_salida) {
+    Swal.fire({
+        title: '¿Recepcionar esta salida?',
+        text: "Esta acción registrará la confirmación de recepción.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#007bff',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: ' Sí, recepcionar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: '../_controlador/salidas_recepcionar.php',
+                type: 'POST',
+                data: { id_salida: id_salida },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire('Recepcionada!', response.message, 'success')
                         .then(() => { location.reload(); });
                     } else {
-                        Swal.fire('Error', response.mensaje, 'error');
+                        Swal.fire('Error', response.message, 'error');
                     }
                 },
                 error: function() {
@@ -139,6 +199,7 @@ function AnularSalida(id_salida) {
                                                 <th>Fecha Requerida</th>
                                                 <th>Fecha Registro</th>
                                                 <th>Registrado por</th>
+                                                <th>Aprobado por</th>
                                                 <th>Recepcionado por</th>
                                                 <th>Estado</th>
                                                 <th>Acciones</th>
@@ -149,11 +210,10 @@ function AnularSalida(id_salida) {
                                         <?php 
                                         $contador = 1;
                                         foreach($salidas as $salida) { 
-                                            $tiene_aprobacion = !empty($salida['id_personal_aprueba_salida']);
                                         ?>
                                             <tr>
                                                 <td><?php echo $contador; ?></td>
-                                                <td><?php echo 'S00' . $salida['id_salida']; ?></td>
+                                                <td><strong><?php echo 'S00' . $salida['id_salida']; ?></strong></td>
                                                 <td><?php echo $salida['ndoc_salida']; ?></td>
                                                 <td><?php echo $salida['nom_material_tipo']; ?></td>
                                                 <td><?php echo $salida['nom_almacen_origen']; ?></td>
@@ -162,11 +222,26 @@ function AnularSalida(id_salida) {
                                                 <td><?php echo $salida['nom_ubicacion_destino']; ?></td>
                                                 <td><?php echo date('d/m/Y', strtotime($salida['fec_req_salida'])); ?></td>
                                                 <td><?php echo date('d/m/Y H:i', strtotime($salida['fec_salida'])); ?></td>
-                                                <td><?php echo $salida['nom_personal']; ?></td>
+                                                <td><small><?php echo $salida['nom_personal']; ?></small></td>
                                                 <td>
                                                     <?php 
-                                                    if ($tiene_aprobacion) {
-                                                        echo $salida['nom_aprueba'];
+                                                    if (!empty($salida['id_personal_aprueba_salida'])) {
+                                                        echo '<small>' . $salida['nom_aprueba'] . '</small>';
+                                                        if (!empty($salida['fec_aprueba_salida'])) {
+                                                            echo '<br><small class="text-muted">' . date('d/m/Y H:i', strtotime($salida['fec_aprueba_salida'])) . '</small>';
+                                                        }
+                                                    } else {
+                                                        echo '<span class="badge badge-secondary">Pendiente</span>';
+                                                    }
+                                                    ?>
+                                                </td>
+                                                <td>
+                                                    <?php 
+                                                    if (!empty($salida['id_personal_recepciona_salida'])) {
+                                                        echo '<small>' . $salida['nom_recepciona'] . '</small>';
+                                                        if (!empty($salida['fec_recepciona_salida'])) {
+                                                            echo '<br><small class="text-muted">' . date('d/m/Y H:i', strtotime($salida['fec_recepciona_salida'])) . '</small>';
+                                                        }
                                                     } else {
                                                         echo '-';
                                                     }
@@ -174,13 +249,22 @@ function AnularSalida(id_salida) {
                                                 </td>
                                                 <td>
                                                     <center>
-                                                        <?php if ($salida['est_salida'] == 0) { ?>
-                                                            <span class="badge badge-danger badge_size">ANULADA</span>
-                                                        <?php } elseif ($salida['est_salida'] == 1) { ?>
-                                                            <span class="badge badge-warning badge_size">PENDIENTE</span>
-                                                        <?php } elseif ($salida['est_salida'] == 2) { ?>
-                                                            <span class="badge badge-success badge_size">RECEPCIONADA</span>
-                                                        <?php } ?>
+                                                        <?php 
+                                                        switch($salida['est_salida']) {
+                                                            case 0:
+                                                                echo '<span class="badge badge-danger badge_size">ANULADA</span>';
+                                                                break;
+                                                            case 1:
+                                                                echo '<span class="badge badge-warning badge_size">PENDIENTE</span>';
+                                                                break;
+                                                            case 2:
+                                                                echo '<span class="badge badge-info badge_size">RECEPCIONADA</span>';
+                                                                break;
+                                                            case 3:
+                                                                echo '<span class="badge badge-success badge_size">APROBADA</span>';
+                                                                break;
+                                                        }
+                                                        ?>
                                                     </center>
                                                 </td>
 
@@ -190,7 +274,7 @@ function AnularSalida(id_salida) {
                                                 <td>
                                                     <div class="d-flex flex-wrap gap-2">
 
-                                                        <!-- Ver detalles -->
+                                                        <!-- Botón Ver Detalle -->
                                                         <button type="button" 
                                                                 class="btn btn-info btn-sm"
                                                                 data-toggle="modal"
@@ -199,128 +283,169 @@ function AnularSalida(id_salida) {
                                                             <i class="fa fa-eye"></i>
                                                         </button>
 
-                                                        <?php if ($salida['est_salida'] == 1) { ?>
-                                                            <!-- ============================================ -->
-                                                            <!-- SALIDA ACTIVA: Validar permisos -->
-                                                            <!-- ============================================ -->
+                                                        <!-- ============================================ -->
+                                                        <!-- BOTÓN APROBAR SALIDA -->
+                                                        <!-- ============================================ -->
+                                                        <?php
+                                                        if (!$tiene_permiso_aprobar) {
+                                                            // SIN PERMISO - Botón rojo outline danger
+                                                            ?>
+                                                            <a href="#"
+                                                               class="btn btn-outline-danger btn-sm disabled"
+                                                               title="No tienes permiso para aprobar salidas"
+                                                               tabindex="-1" aria-disabled="true">
+                                                                <i class="fa fa-check"></i>
+                                                            </a>
+                                                        <?php } elseif ($salida['est_salida'] == 3 || $salida['est_salida'] == 2) { ?>
+                                                            <!-- YA APROBADA - Gris por proceso -->
+                                                            <a href="#"
+                                                               class="btn btn-outline-secondary btn-sm disabled"
+                                                               title="Salida ya aprobada"
+                                                               tabindex="-1" aria-disabled="true">
+                                                                <i class="fa fa-check"></i>
+                                                            </a>
+                                                        <?php } elseif ($salida['est_salida'] == 0) { ?>
+                                                            <!-- ANULADA - Gris por proceso -->
+                                                            <a href="#"
+                                                               class="btn btn-outline-secondary btn-sm disabled"
+                                                               title="Salida anulada"
+                                                               tabindex="-1" aria-disabled="true">
+                                                                <i class="fa fa-check"></i>
+                                                            </a>
+                                                        <?php } else { ?>
+                                                            <!-- PUEDE APROBAR - Verde activo -->
+                                                            <a href="#"
+                                                               onclick="AprobarSalida(<?php echo $salida['id_salida']; ?>)"
+                                                               class="btn btn-success btn-sm"
+                                                               title="Aprobar Salida (Genera Movimientos)">
+                                                                <i class="fa fa-check"></i>
+                                                            </a>
+                                                        <?php } ?>
 
-                                                            <!-- Botón Recepcionar -->
-                                                            <?php if (!$tiene_permiso_aprobar) { ?>
-                                                                <!-- SIN PERMISO - Rojo outline danger -->
-                                                                <button class="btn btn-outline-danger btn-sm disabled"
-                                                                        title="No tienes permiso para recepcionar salidas"
-                                                                        tabindex="-1" 
-                                                                        aria-disabled="true">
-                                                                    <i class="fa fa-check"></i>
-                                                                </button>
-                                                            <?php } else { ?>
-                                                                <!-- CON PERMISO - Verde activo -->
-                                                                <button onclick="AprobarSalida(<?php echo $salida['id_salida']; ?>)"
-                                                                        class="btn btn-success btn-sm"
-                                                                        title="Recepcionar Salida">
-                                                                    <i class="fa fa-check"></i>
-                                                                </button>
-                                                            <?php } ?>
+                                                        <!-- ============================================ -->
+                                                        <!-- BOTÓN RECEPCIONAR SALIDA -->
+                                                        <!-- ============================================ -->
+                                                        <?php
+                                                        if (!$tiene_permiso_recepcionar) {
+                                                            // SIN PERMISO - Botón rojo outline danger
+                                                            ?>
+                                                            <a href="#"
+                                                               class="btn btn-outline-danger btn-sm disabled"
+                                                               title="No tienes permiso para recepcionar salidas"
+                                                               tabindex="-1" aria-disabled="true">
+                                                                <i class="fa fa-check"></i>
+                                                            </a>
+                                                        <?php } elseif ($salida['est_salida'] == 2) { ?>
+                                                            <!-- YA RECEPCIONADA - Gris por proceso -->
+                                                            <a href="#"
+                                                               class="btn btn-outline-secondary btn-sm disabled"
+                                                               title="Salida ya recepcionada"
+                                                               tabindex="-1" aria-disabled="true">
+                                                                <i class="fa fa-check"></i>
+                                                            </a>
+                                                        <?php } elseif ($salida['est_salida'] == 3) { ?>
+                                                            <!-- PUEDE RECEPCIONAR - Azul activo -->
+                                                            <a href="#"
+                                                               onclick="RecepcionarSalida(<?php echo $salida['id_salida']; ?>)"
+                                                               class="btn btn-primary btn-sm"
+                                                               title="Recepcionar Salida">
+                                                                <i class="fa fa-check"></i>
+                                                            </a>
+                                                        <?php } else { ?>
+                                                            <!-- OTROS ESTADOS - Gris por proceso -->
+                                                            <a href="#"
+                                                               class="btn btn-outline-secondary btn-sm disabled"
+                                                               title="Requiere aprobación previa"
+                                                               tabindex="-1" aria-disabled="true">
+                                                                <i class="fa fa-check"></i>
+                                                            </a>
+                                                        <?php } ?>
 
-                                                            <!-- Editar -->
+                                                        <!-- ============================================ -->
+                                                        <!-- BOTÓN EDITAR SALIDA -->
+                                                        <!-- ============================================ -->
+                                                        <?php
+                                                        $puede_editar = false;
+                                                        $titulo_editar = '';
+
+                                                        if ($salida['est_salida'] == 0) {
+                                                            $titulo_editar = "No se puede editar - Salida anulada";
+                                                        } elseif ($salida['est_salida'] == 2) {
+                                                            $titulo_editar = "No se puede editar - Salida recepcionada";
+                                                        } elseif ($salida['est_salida'] == 3) {
+                                                            $titulo_editar = "No se puede editar - Salida aprobada";
+                                                        } else {
+                                                            $puede_editar = true;
+                                                        }
+
+                                                        if ($puede_editar) { ?>
                                                             <a href="salidas_editar.php?id=<?php echo $salida['id_salida']; ?>" 
                                                                class="btn btn-warning btn-sm" 
-                                                               title="Editar">
+                                                               title="Editar Salida">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
-
-                                                            <!-- PDF -->
-                                                            <a href="salidas_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
-                                                               class="btn btn-secondary btn-sm" 
-                                                               title="Generar PDF"
-                                                               target="_blank">
-                                                                <i class="fa fa-file-pdf-o"></i>
+                                                        <?php } else { ?>
+                                                            <a href="#" class="btn btn-outline-secondary btn-sm disabled" 
+                                                               title="<?php echo $titulo_editar; ?>" tabindex="-1" aria-disabled="true">
+                                                                <i class="fa fa-edit"></i>
                                                             </a>
+                                                        <?php } ?>
 
-                                                            <!-- Botón Anular -->
-                                                            <?php if (!$tiene_permiso_anular) { ?>
-                                                                <!-- SIN PERMISO - Rojo outline danger -->
-                                                                <button class="btn btn-outline-danger btn-sm disabled"
-                                                                        title="No tienes permiso para anular salidas"
+                                                        <!-- Botón PDF -->
+                                                        <a href="salidas_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
+                                                           class="btn btn-secondary btn-sm" 
+                                                           title="Generar PDF"
+                                                           target="_blank">
+                                                            <i class="fa fa-file-pdf-o"></i>
+                                                        </a>
+
+                                                        <!-- ============================================ -->
+                                                        <!-- BOTÓN ANULAR SALIDA -->
+                                                        <!-- ============================================ -->
+                                                        <?php 
+                                                        $puede_anular = false;
+                                                        $titulo_anular = '';
+
+                                                        if (!$tiene_permiso_anular) {
+                                                            // SIN PERMISO - Botón rojo outline danger
+                                                            $titulo_anular = "No tienes permiso para anular salidas";
+                                                            ?>
+                                                            <button class="btn btn-outline-danger btn-sm disabled"
+                                                                    title="<?php echo $titulo_anular; ?>"
+                                                                    tabindex="-1" 
+                                                                    aria-disabled="true">
+                                                                <i class="fa fa-times"></i>
+                                                            </button>
+                                                        <?php } else {
+                                                            // CON PERMISO - Validar estado
+                                                            if ($salida['est_salida'] == 0) {
+                                                                $titulo_anular = "Salida ya anulada";
+                                                            } elseif ($salida['est_salida'] == 2) {
+                                                                $titulo_anular = "No se puede anular - Salida recepcionada";
+                                                            } else {
+                                                                $puede_anular = ($salida['est_salida'] == 1 || $salida['est_salida'] == 3);
+                                                                if (!$puede_anular) {
+                                                                    $titulo_anular = "Solo se pueden anular salidas pendientes o aprobadas";
+                                                                } else {
+                                                                    $titulo_anular = $salida['est_salida'] == 3 ? "Anular (Revertirá movimientos)" : "Anular";
+                                                                }
+                                                            }
+
+                                                            if ($puede_anular) { 
+                                                            ?>
+                                                                <button class="btn btn-danger btn-sm" 
+                                                                        onclick="AnularSalida(<?php echo $salida['id_salida']; ?>)"
+                                                                        title="<?php echo $titulo_anular; ?>">
+                                                                    <i class="fa fa-times"></i>
+                                                                </button>
+                                                            <?php } else { ?>
+                                                                <button class="btn btn-outline-secondary btn-sm disabled"
+                                                                        title="<?php echo $titulo_anular; ?>"
                                                                         tabindex="-1" 
                                                                         aria-disabled="true">
                                                                     <i class="fa fa-times"></i>
                                                                 </button>
-                                                            <?php } else { ?>
-                                                                <!-- CON PERMISO - Rojo activo -->
-                                                                <button class="btn btn-danger btn-sm"
-                                                                        onclick="AnularSalida(<?php echo $salida['id_salida']; ?>)"
-                                                                        title="Anular">
-                                                                    <i class="fa fa-times"></i>
-                                                                </button>
                                                             <?php } ?>
-
-                                                        <?php } elseif ($salida['est_salida'] == 2) { ?>
-                                                            <!-- ============================================ -->
-                                                            <!-- RECEPCIONADA - Todo deshabilitado por proceso -->
-                                                            <!-- ============================================ -->
-
-                                                            <button class="btn btn-outline-secondary btn-sm disabled"
-                                                                    title="Salida ya recepcionada"
-                                                                    tabindex="-1" 
-                                                                    aria-disabled="true">
-                                                                <i class="fa fa-check"></i>
-                                                            </button>
-
-                                                            <button class="btn btn-outline-secondary btn-sm disabled"
-                                                                    title="No se puede editar - Salida recepcionada"
-                                                                    tabindex="-1" 
-                                                                    aria-disabled="true">
-                                                                <i class="fa fa-edit"></i>
-                                                            </button>
-
-                                                            <a href="salidas_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
-                                                               class="btn btn-secondary btn-sm"
-                                                               title="Generar PDF"
-                                                               target="_blank">
-                                                                <i class="fa fa-file-pdf-o"></i>
-                                                            </a>
-
-                                                            <button class="btn btn-outline-secondary btn-sm disabled"
-                                                                    title="No se puede anular - Salida recepcionada"
-                                                                    tabindex="-1" 
-                                                                    aria-disabled="true">
-                                                                <i class="fa fa-times"></i>
-                                                            </button>
-
-                                                        <?php } else { ?>
-                                                            <!-- ============================================ -->
-                                                            <!-- ANULADA - Todo deshabilitado por proceso -->
-                                                            <!-- ============================================ -->
-
-                                                            <button class="btn btn-outline-secondary btn-sm disabled"
-                                                                    title="Salida anulada"
-                                                                    tabindex="-1" 
-                                                                    aria-disabled="true">
-                                                                <i class="fa fa-check"></i>
-                                                            </button>
-
-                                                            <button class="btn btn-outline-secondary btn-sm disabled"
-                                                                    title="No se puede editar - Salida anulada"
-                                                                    tabindex="-1" 
-                                                                    aria-disabled="true">
-                                                                <i class="fa fa-edit"></i>
-                                                            </button>
-
-                                                            <a href="salidas_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
-                                                               class="btn btn-secondary btn-sm"
-                                                               title="Generar PDF"
-                                                               target="_blank">
-                                                                <i class="fa fa-file-pdf-o"></i>
-                                                            </a>
-
-                                                            <button class="btn btn-outline-secondary btn-sm disabled"
-                                                                    title="Salida ya anulada"
-                                                                    tabindex="-1" 
-                                                                    aria-disabled="true">
-                                                                <i class="fa fa-times"></i>
-                                                            </button>
-
                                                         <?php } ?>
 
                                                     </div>

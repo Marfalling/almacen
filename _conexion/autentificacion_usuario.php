@@ -209,6 +209,9 @@ function obtenerPermisosUsuario($id_usuario) {
                 if($accion == 'aprobar') {
                     $permisos_formateados[0]['aprobar_salidas'] = 1;
                 }
+                if($accion == 'recepcionar') { 
+                    $permisos_formateados[0]['recepcionar_salidas'] = 1;
+                }
                 break;
 
             case 'devoluciones':
