@@ -1241,19 +1241,35 @@ function EliminarDocumento(id_doc) {
 
 <script>
 
-//SUBIDA MASIVA DE VOUCHERS
-
 // Variables globales
 let archivosSeleccionados = [];
 
-// Abrir / cerrar modal
+// ============================================================
+// 4️⃣ FUNCIONES DE SUBIDA MASIVA
+// ============================================================
+
+// ✅ INICIALIZAR SOLO UNA VEZ
+function inicializarModalMasivo() {
+    const inputArchivos = document.getElementById("inputArchivos");
+    
+    if (!inputArchivos) {
+        console.error("❌ Input de archivos no encontrado");
+        return;
+    }
+    
+    // ✅ Remover listener anterior (evita duplicados)
+    inputArchivos.removeEventListener("change", manejarCambioArchivos);
+    inputArchivos.addEventListener("change", manejarCambioArchivos);
+    
+    console.log("✅ Modal masivo inicializado");
+}
+
 function abrirModalMasivo() {
     const modal = document.getElementById("modalSubidaMasivo");
     if (modal) {
         modal.style.display = "flex";
-        console.log("✅ Modal abierto");
         
-        // Reinicializar el input cuando se abre el modal
+        // ✅ Inicializar SOLO cuando se abre
         setTimeout(() => {
             inicializarModalMasivo();
         }, 200);
@@ -1271,57 +1287,7 @@ function cerrarModalMasivo() {
     }
 }
 
-// Esperar a que el DOM esté listo
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inicializarModalMasivo);
-} else {
-    inicializarModalMasivo();
-}
-
-function inicializarModalMasivo() {
-    console.log("🚀 Inicializando modal masivo...");
-    
-    // Esperar un momento para que el DOM esté completamente listo
-    setTimeout(() => {
-        const inputArchivos = document.getElementById("inputArchivos");
-        
-        if (!inputArchivos) {
-            console.error("❌ Input de archivos no encontrado");
-            return;
-        }
-        
-        console.log("✅ Input encontrado:", inputArchivos);
-        
-        // Remover listeners anteriores y agregar uno nuevo
-        inputArchivos.removeEventListener("change", manejarCambioArchivos);
-        inputArchivos.addEventListener("change", manejarCambioArchivos);
-        
-        console.log("✅ Listener agregado correctamente");
-    }, 100);
-}
-
 function manejarCambioArchivos(e) {
-    /*console.log("📂 ¡¡¡CAMBIO DETECTADO!!!");
-    console.log("Archivos seleccionados:", e.target.files.length);
-    
-    if (e.target.files.length === 0) {
-        console.log("⚠️ No hay archivos");
-        return;
-    }
-    
-    const nuevosArchivos = Array.from(e.target.files);
-    console.log("Array creado:", nuevosArchivos);
-    
-    nuevosArchivos.forEach((archivo) => {
-        console.log("Procesando:", archivo.name, archivo.size, "bytes");
-        if (!archivosSeleccionados.find(a => a.name === archivo.name)) {
-            archivosSeleccionados.push(archivo);
-            console.log("✅ Agregado a la lista");
-        } else {
-            console.log("⚠️ Duplicado, ignorado");
-        }
-    });*/
-
     console.log("📂 ¡¡¡CAMBIO DETECTADO!!!");
     const nuevosArchivos = Array.from(e.target.files);
     if (nuevosArchivos.length === 0) return;
@@ -1330,38 +1296,34 @@ function manejarCambioArchivos(e) {
         const nombre = archivo.name.trim();
         const tamañoMB = archivo.size / (1024 * 1024);
 
-        // 1️⃣ Validar tamaño (máximo 5 MB)
         if (tamañoMB > 5) {
-            mostrarAlerta(
-                'error',
-                'Archivo demasiado grande',
-                `El archivo "${nombre}" pesa ${(tamañoMB).toFixed(2)} MB. El máximo permitido es 5 MB.`
-            );
+            Swal.fire({
+                icon: 'error',
+                title: 'Archivo demasiado grande',
+                text: `El archivo "${nombre}" pesa ${tamañoMB.toFixed(2)} MB. El máximo permitido es 5 MB.`
+            });
             return;
         }
 
-        // 2️⃣ Validar formato de nombre (0000-00000000)
-        const regexNombre = /^[A-Z0-9]{4}-\d{2,8}\.[A-Za-z0-9]+$/i; // permite letras o números antes del guion
+        const regexNombre = /^[A-Z0-9]{4}-\d{2,8}\.[A-Za-z0-9]+$/i;
         if (!regexNombre.test(nombre)) {
-            mostrarAlerta(
-                'warning',
-                'Formato inválido',
-                `El archivo "${nombre}" no cumple el formato "SERIE-NUMERO", por ejemplo: "F001-00012345.pdf"`
-            );
+            Swal.fire({
+                icon: 'warning',
+                title: 'Formato inválido',
+                text: `El archivo "${nombre}" no cumple el formato "SERIE-NUMERO", por ejemplo: "F001-00012345.pdf"`
+            });
             return;
         }
 
-        // 3️⃣ Evitar duplicados y agregar
         if (!archivosSeleccionados.find(a => a.name === nombre)) {
             archivosSeleccionados.push(archivo);
             console.log("✅ Archivo agregado:", nombre);
         } else {
-            mostrarAlerta(
-                'info',
-                'Archivo duplicado',
-                `El archivo "${nombre}" ya fue agregado.`
-            );
-            console.log("⚠️ Duplicado, ignorado:", nombre);
+            Swal.fire({
+                icon: 'info',
+                title: 'Archivo duplicado',
+                text: `El archivo "${nombre}" ya fue agregado.`
+            });
         }
     });
 
@@ -1371,8 +1333,6 @@ function manejarCambioArchivos(e) {
 }
 
 function actualizarListaArchivos() {
-    console.log("📋 Actualizando lista, total:", archivosSeleccionados.length);
-    
     const listaArchivos = document.getElementById("listaArchivos");
     
     if (archivosSeleccionados.length === 0) {
@@ -1409,7 +1369,7 @@ function actualizarListaArchivos() {
         `;
     });
 
-    html += `</tbody></table></div>`;
+    html += `</tbody></table>`;
     listaArchivos.innerHTML = html;
 }
 
@@ -1418,60 +1378,266 @@ function eliminarArchivo(index) {
     actualizarListaArchivos();
 }
 
+
 async function procesarArchivos() {
     if (archivosSeleccionados.length === 0) {
         Swal.fire('Advertencia', 'Selecciona al menos un archivo', 'warning');
         return;
     }
 
-    const formData = new FormData();
-    archivosSeleccionados.forEach((archivo) => {
-        formData.append('archivos[]', archivo);
+    const conflictos = [];
+    let exitosos = 0;
+    let todosLosErrores = []; // 🔥 NUEVO: Acumular errores de todos los archivos
+
+    Swal.fire({
+        title: 'Procesando...',
+        html: `<b>0</b> / ${archivosSeleccionados.length} archivos procesados`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
     });
 
+    for (let i = 0; i < archivosSeleccionados.length; i++) {
+        const archivo = archivosSeleccionados[i];
+        const formData = new FormData();
+        formData.append('archivos[]', archivo);
+        formData.append('enviar_proveedor', document.getElementById('enviarProveedor').checked ? 1 : 0);
+        formData.append('enviar_contabilidad', document.getElementById('enviarContabilidad').checked ? 1 : 0);
+        formData.append('enviar_tesoreria', document.getElementById('enviarTesoreria').checked ? 1 : 0);
+
+        try {
+            const response = await fetch('../_controlador/comprobante_subida_masiva.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.conflicto) {
+                conflictos.push(data);
+            } else if (data.success) {
+                exitosos += data.exitosos;
+                
+                // 🔥 NUEVO: Acumular errores
+                if (data.errores && data.errores.length > 0) {
+                    todosLosErrores = todosLosErrores.concat(data.errores);
+                }
+            }
+
+            Swal.update({
+                html: `<b>${i + 1}</b> / ${archivosSeleccionados.length} archivos procesados`
+            });
+
+        } catch (error) {
+            console.error('Error procesando archivo:', archivo.name, error);
+            todosLosErrores.push({
+                archivo: archivo.name,
+                motivo: 'Error de conexión con el servidor'
+            });
+        }
+    }
+
+    Swal.close();
+
+    // 🔥 NUEVO: Mostrar resultados detallados
+    if (conflictos.length > 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Conflictos detectados',
+            html: `<b>${conflictos.length}</b> archivo(s) tienen múltiples coincidencias.<br>
+                   <b>${exitosos}</b> exitosos | <b>${todosLosErrores.length}</b> fallidos`,
+            confirmButtonText: 'Resolver conflictos'
+        }).then(() => {
+            procesarConflictos(conflictos);
+        });
+    } else if (todosLosErrores.length > 0) {
+        mostrarErroresDetallados(exitosos, todosLosErrores);
+    } else {
+        Swal.fire({
+            icon: 'success',
+            title: 'Proceso completado',
+            html: `<b>${exitosos}</b> archivo(s) procesado(s) exitosamente`,
+            confirmButtonText: 'Aceptar'
+        }).then(() => {
+            cerrarModalMasivo();
+            location.reload();
+        });
+    }
+}
+
+// 🔥 NUEVA FUNCIÓN: Mostrar errores detallados
+function mostrarErroresDetallados(exitosos, errores) {
+    let htmlErrores = '<div style="max-height:350px; overflow-y:auto; text-align:left; margin-top:10px;">';
+    
+    errores.forEach((error, index) => {
+        htmlErrores += `
+            <div style="
+                display:flex; 
+                align-items:center; 
+                gap:8px;
+                padding:6px 10px; 
+                margin-bottom:4px;
+                background:#f8f9fa;
+                border-radius:4px;
+                border-left:3px solid #dc3545;
+                transition: all 0.2s;
+            " onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">
+                <i class="fa fa-file-o" style="color:#dc3545; font-size:12px;"></i>
+                <span style="font-size:12px; color:#495057; flex:1; min-width:0;">
+                    ${error.archivo}
+                </span>
+                <span 
+                    style="
+                        background:#dc3545;
+                        color:white;
+                        width:18px;
+                        height:18px;
+                        border-radius:50%;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        font-size:10px;
+                        cursor:help;
+                        flex-shrink:0;
+                    "
+                    title="${error.motivo}"
+                    data-toggle="tooltip"
+                    data-placement="left"
+                >
+                    <i class="fa fa-info"></i>
+                </span>
+            </div>
+        `;
+    });
+    
+    htmlErrores += '</div>';
+
+    Swal.fire({
+        icon: 'warning',
+        title: 'Proceso con errores',
+        html: `
+            <div style="text-align:center; margin:8px 0 12px 0;">
+                <span class="badge badge-success" style="font-size:12px; padding:4px 10px;">
+                    ${exitosos} exitosos
+                </span>
+                <span class="badge badge-danger" style="font-size:12px; padding:4px 10px;">
+                    ${errores.length} fallidos
+                </span>
+            </div>
+            ${htmlErrores}
+        `,
+        width: '500px',
+        confirmButtonText: 'Cerrar',
+        confirmButtonColor: '#6c757d',
+        didOpen: () => {
+            $('[data-toggle="tooltip"]').tooltip();
+        },
+        willClose: () => {
+            $('[data-toggle="tooltip"]').tooltip('dispose');
+        }
+    }).then(() => {
+        if (exitosos > 0) {
+            cerrarModalMasivo();
+            location.reload();
+        }
+    });
+}
+
+function procesarConflictos(conflictos) {
+    let indice = 0;
+
+    function mostrarSiguienteConflicto() {
+        if (indice >= conflictos.length) {
+            Swal.fire('Completado', 'Todos los conflictos resueltos', 'success').then(() => {
+                location.reload();
+            });
+            return;
+        }
+
+        const conflicto = conflictos[indice];
+        mostrarModalConflicto(
+            conflicto.archivo,
+            conflicto.serie,
+            conflicto.numero,
+            conflicto.opciones
+        );
+
+        window.resolverConflictoCallback = () => {
+            indice++;
+            mostrarSiguienteConflicto();
+        };
+    }
+
+    mostrarSiguienteConflicto();
+}
+
+function mostrarModalConflicto(archivo, serie, numero, opciones) {
+    document.getElementById("conflicto_archivo").value = archivo;
+    document.getElementById("conflicto_serie_numero").innerHTML = serie + "-" + numero;
+
+    let html = "";
+    opciones.forEach(op => {
+        html += `
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="conflictoProveedor" value="${op.id_comprobante}">
+            <label class="form-check-label">
+                ${op.nom_proveedor} <small>(RUC: ${op.ruc_proveedor})</small>
+            </label>
+        </div>`;
+    });
+
+    document.getElementById("conflicto_opciones").innerHTML = html;
+    $("#modalConflicto").modal("show");
+}
+
+function resolverConflicto() {
+    let id_comprobante = document.querySelector('input[name="conflictoProveedor"]:checked');
+    if (!id_comprobante) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Selección requerida',
+            text: 'Debes seleccionar un proveedor o cancelar',
+            showCancelButton: true,
+            confirmButtonText: 'Entendido',
+            cancelButtonText: 'Omitir archivo'
+        }).then((result) => {
+            if (result.isDismissed && window.resolverConflictoCallback) {
+                window.resolverConflictoCallback();
+            }
+        });
+        return;
+    }
+
+    id_comprobante = id_comprobante.value;
+    let archivo = document.getElementById("conflicto_archivo").value;
+
+    const formData = new FormData();
+    formData.append("id_comprobante", id_comprobante);
+    formData.append("archivo", archivo);
     formData.append('enviar_proveedor', document.getElementById('enviarProveedor').checked ? 1 : 0);
     formData.append('enviar_contabilidad', document.getElementById('enviarContabilidad').checked ? 1 : 0);
     formData.append('enviar_tesoreria', document.getElementById('enviarTesoreria').checked ? 1 : 0);
 
-    try {
-        Swal.fire({
-            title: 'Procesando...',
-            text: 'Subiendo vouchers, por favor espera...',
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading()
-        });
-
-        // 👇 ruta relativa (sube una carpeta y entra a _controlador)
-        const response = await fetch('../_controlador/comprobante_subida_masiva.php', {
-            method: 'POST',
-            body: formData
-        });
-
-        console.log("🔍 Estado HTTP:", response.status);
-        if (!response.ok) {
-            throw new Error(`Error HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log("📥 Respuesta del servidor:", data);
-
-        if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Subida completada',
-                html: `<b>${data.exitosos}</b> archivos subidos correctamente.<br>
-                       <b>${data.fallidos}</b> archivos fallaron.`,
-                confirmButtonText: 'Aceptar'
-            }).then(() => {
-                cerrarModalMasivo();
-            });
+    fetch("../_controlador/voucher_asignar_manual.php", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(resp => {
+        if (resp.success) {
+            Swal.fire("Asignado", "Voucher asignado correctamente", "success");
+            $("#modalConflicto").modal("hide");
+            
+            if (window.resolverConflictoCallback) {
+                window.resolverConflictoCallback();
+            }
         } else {
-            Swal.fire('Error', data.mensaje || 'Ocurrió un error en el servidor', 'error');
+            Swal.fire("Error", resp.mensaje || "Ocurrió un error", "error");
         }
-    } catch (error) {
-        console.error('❌ Error al enviar archivos:', error);
-        Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
-    }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire("Error", "No se pudo conectar con el servidor", "error");
+    });
 }
 
 // ============================================================================

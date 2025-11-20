@@ -57,6 +57,14 @@ if (!$oc) {
     exit;
 }
 
+$total_oc      = floatval($oc['total_con_igv']);
+$registrado    = ObtenerTotalComprobantesRegistrados($id_compra);
+$pendiente     = $total_oc - $registrado;
+
+if ($pendiente < 0) { $pendiente = 0; } // seguridad
+
+$oc['monto_pendiente'] = $pendiente;
+
 // ====================================================================
 // CARGAR COMPROBANTES DE ESTA COMPRA
 // ====================================================================

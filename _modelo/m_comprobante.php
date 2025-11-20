@@ -1502,4 +1502,17 @@ function obtenerComprobantesGeneral()
     return $comprobantes;
 }
 
+function ObtenerTotalComprobantesRegistrados($id_compra) {
+    include __DIR__ . "/../_conexion/conexion.php";
+
+    $sql = "SELECT SUM(monto_total_igv) AS total_registrado
+            FROM comprobante
+            WHERE id_compra = $id_compra AND est_comprobante != 0"; // solo activos
+
+    $res = mysqli_query($con, $sql);
+    $row = mysqli_fetch_assoc($res);
+
+    return floatval($row['total_registrado']);
+}
+
 ?>

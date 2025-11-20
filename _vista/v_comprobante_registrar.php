@@ -140,9 +140,25 @@ require_once("../_modelo/m_detraccion.php");
                         <h2><i class="fa fa-file-text"></i> Comprobantes Registrados</h2>
                         <div class="pull-right">
                             <button type="button" class="btn btn-primary" onclick="abrirModalMasivo()">📤 Subir vouchers masivo</button>
-                            <button
+                            <!--<button
                                 class="btn btn-sm <?php echo ($oc['pagado'] == 1 ) ? 'btn-outline-secondary disabled' : 'btn-outline-success'; ?>"
                                 <?php echo ($oc['pagado'] == 1) ? 'disabled title="Esta compra está pagada"' : 'data-toggle="modal" data-target="#modalRegistrarComprobante"'; ?>>
+                                <i class="fa fa-plus"></i> Registrar Comprobante
+                            </button>-->
+                            <button
+                                class="btn btn-sm 
+                                    <?php 
+                                        echo ($oc['pagado'] == 1 || $oc['monto_pendiente'] <= 0) 
+                                            ? 'btn-outline-secondary disabled' 
+                                            : 'btn-outline-success'; 
+                                    ?>"
+                                <?php 
+                                    echo ($oc['pagado'] == 1) 
+                                            ? 'disabled title="Esta compra está pagada"' 
+                                        : (($oc['monto_pendiente'] <= 0) 
+                                            ? 'disabled title="No hay monto pendiente por registrar"' 
+                                            : 'data-toggle="modal" data-target="#modalRegistrarComprobante"'); 
+                                ?>>
                                 <i class="fa fa-plus"></i> Registrar Comprobante
                             </button>
                         </div>
@@ -410,8 +426,9 @@ require_once("../_modelo/m_detraccion.php");
                                 class="form-control"
                                 name="monto_total_igv"
                                 id="monto_total_igv"
-                                value="<?php echo number_format($oc['total_con_igv'], 2, '.', ''); ?>"
+                                value="<?php echo number_format($oc['monto_pendiente'], 2, '.', ''); ?>"
                                 required>
+                            <input type="hidden" id="monto_maximo_permitido" value="<?php echo number_format($oc['monto_pendiente'], 2, '.', ''); ?>">
                         </div>
                     </div>
 
@@ -616,6 +633,7 @@ require_once("../_modelo/m_detraccion.php");
                                 id="edit_monto_total_igv"
                                 value=""
                                 required>
+                            <input type="hidden" id="edit_monto_maximo_permitido" value="">
                         </div>
                     </div>
 
@@ -853,437 +871,393 @@ require_once("../_modelo/m_detraccion.php");
     </div>
 </div>
 
+<div class="modal fade" id="modalConflicto" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title">Conflicto de asignación</h5>
+        <button type="button" class="close" data-dismiss="modal">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p class="mb-1">Se encontraron varios comprobantes con la serie y número:</p>
+        <p><strong id="conflicto_serie_numero"></strong></p>
+        <p>Seleccione a qué proveedor pertenece el archivo:</p>
+        <div id="conflicto_opciones"></div>
+        <input type="hidden" id="conflicto_archivo">
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+        <button class="btn btn-primary" onclick="resolverConflicto()">Asignar</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 
 <!-- ============================================================ -->
 <!-- SCRIPTS -->
 <!-- ============================================================ -->
+<!-- ============================================ -->
+<!-- CARGAR JQUERY PRIMERO (INDEPENDIENTE) -->
+<!-- ============================================ -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
 
+console.log('🚀 === SCRIPT INICIADO ===');
 
-// Variables globales
+console.log('🔍 Verificando dependencias...');
+console.log('jQuery disponible:', typeof jQuery !== 'undefined' ? '✅' : '❌');
+console.log('$ disponible:', typeof $ !== 'undefined' ? '✅' : '❌');
+console.log('Swal disponible:', typeof Swal !== 'undefined' ? '✅' : '❌');
+
+if (typeof jQuery === 'undefined') {
+    console.error('❌ CRÍTICO: jQuery NO está cargado');
+    alert('Error: jQuery no está cargado. Contacte al administrador.');
+}
+
+// ============================================================
+// 1️⃣ VARIABLES GLOBALES
+// ============================================================
 let archivosSeleccionados = [];
-// ====================================================================
-// ESPERAR A QUE JQUERY ESTÉ LISTO
-// ====================================================================
-/*(function() {
-    'use strict';
+let modalRegistrarInicializado = false;
+let modalEditarInicializado = false;
+
+console.log('✅ Variables globales declaradas');
+
+// ============================================================
+// 2️⃣ FUNCIONES DE CÁLCULO
+// ============================================================
+
+function calcularTotalPagar(isEditMode) {
+    console.log(`🔢 calcularTotalPagar llamada (${isEditMode ? 'EDIT' : 'NEW'})`);
     
-    console.log('🚀 Iniciando sistema...');
+    const prefix = isEditMode ? 'edit_' : '';
+    const inputMonto = document.getElementById(prefix + 'monto_total_igv');
+    const inputTotal = document.getElementById(prefix + 'total_pagar');
+    const inputAfectacion = document.getElementById(prefix + 'id_afectacion');
+    const inputDetraccion = document.getElementById(prefix + 'monto_detraccion');
+    const inputPorcentaje = document.getElementById(prefix + 'porcentaje_detraccion') 
+                          || document.getElementById('porcentaje_detraccion');
+    const inputVisible = document.getElementById(prefix + 'monto_detraccion_visible');
 
-    // ====================================================================
-    // FUNCIÓN: CALCULAR TOTAL A PAGAR
-    // ====================================================================
-    window.calcularTotalPagar = function(isEditMode) {
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-        console.log('💰 CALCULANDO - Modo:', isEditMode ? 'EDICIÓN' : 'REGISTRO');
-        
-        const prefix = isEditMode ? 'edit_' : '';
-        const suffix = isEditMode ? '-edit' : '';
-        
-        const inputMonto = document.getElementById(prefix + 'monto_total_igv');
-        const inputTotal = document.getElementById(prefix + 'total_pagar');
-        
-        if (!inputMonto || !inputTotal) {
-            console.error('❌ ERROR: Campos no encontrados');
-            return;
+    console.log('📋 Elementos encontrados:', {
+        inputMonto: !!inputMonto,
+        inputTotal: !!inputTotal,
+        inputAfectacion: !!inputAfectacion,
+        inputDetraccion: !!inputDetraccion,
+        inputPorcentaje: !!inputPorcentaje,
+        inputVisible: !!inputVisible
+    });
+
+    if (!inputMonto || !inputTotal || !inputAfectacion || !inputDetraccion || !inputPorcentaje || !inputVisible) {
+        console.error("❌ Faltan campos para el cálculo");
+        return;
+    }
+
+    const montoConIGV = parseFloat(inputMonto.value) || 0;
+    const idAfectacion = parseInt(inputAfectacion.value) || 0;
+    const porcDetrac = parseFloat(inputPorcentaje.value) || 0;
+
+    console.log(`📊 Valores:`, {montoConIGV, idAfectacion, porcDetrac});
+
+    if (montoConIGV <= 0) {
+        inputDetraccion.value = "0.00";
+        inputVisible.value = `(0%) S/. 0.00`;
+        inputTotal.value = "";
+        console.log('⚠️ Monto <= 0, campos limpiados');
+        return;
+    }
+
+    let montoAfectacion = 0;
+    if (porcDetrac > 0) {
+        montoAfectacion = (montoConIGV * porcDetrac / 100);
+    }
+
+    inputDetraccion.value = montoAfectacion.toFixed(2);
+    inputVisible.value = `(${porcDetrac}%) S/. ${montoAfectacion.toFixed(2)}`;
+
+    let total = montoConIGV;
+    if (idAfectacion === 13) {
+        total = montoConIGV + montoAfectacion;
+    } else if (idAfectacion > 0) {
+        total = montoConIGV - montoAfectacion;
+    }
+
+    inputTotal.value = total.toFixed(2);
+    console.log(`✅ Total calculado: ${total.toFixed(2)}`);
+}
+
+function validarMontoMaximo(isEditMode, valor) {
+    console.log(`🔍 validarMontoMaximo: ${valor} (${isEditMode ? 'EDIT' : 'NEW'})`);
+    
+    const prefix = isEditMode ? 'edit_' : '';
+    const hiddenId = prefix + "monto_maximo_permitido";
+    const fallbackHiddenId = "monto_maximo_permitido";
+    const hiddenNow = document.getElementById(hiddenId) || document.getElementById(fallbackHiddenId);
+    const montoMax = hiddenNow ? parseFloat(hiddenNow.value) : NaN;
+
+    console.log(`💰 Monto máximo permitido: ${montoMax}`);
+
+    if (isNaN(montoMax)) {
+        if (valor <= 0) {
+            Swal.fire('Error', 'El monto debe ser mayor a 0', 'error');
+            return false;
         }
+        return true;
+    }
+
+    if (Math.round(valor * 100) > Math.round(montoMax * 100)) {
+        Swal.fire('Error', `El monto no puede ser mayor a S/. ${montoMax.toFixed(2)}`, 'error');
+        return false;
+    }
+    
+    return true;
+}
+
+function setupCuentaControl(isEditMode) {
+    console.log(`🏦 setupCuentaControl (${isEditMode ? 'EDIT' : 'NEW'})`);
+    
+    const prefix = isEditMode ? 'edit_' : '';
+    const medio = document.getElementById(prefix + 'id_medio_pago');
+    const cuenta = document.getElementById(prefix + 'id_cuenta_proveedor');
+    
+    console.log('🔍 Elementos cuenta:', {
+        medio: !!medio,
+        cuenta: !!cuenta,
+        medioValue: medio?.value
+    });
+    
+    if (!medio || !cuenta) {
+        console.warn('⚠️ Campos de cuenta control no encontrados');
+        return;
+    }
+
+    const aplicarEstado = () => {
+        console.log(`🔄 Aplicando estado cuenta, medio_pago: "${medio.value}"`);
         
-        const montoConIGV = parseFloat(inputMonto.value) || 0;
-        console.log('📊 Monto con IGV:', montoConIGV);
-        
-        if (montoConIGV <= 0) {
-            console.log('⚠️ Monto vacío - Limpiando total');
-            inputTotal.value = '';
-            return;
-        }
-        
-        let totalPagar = montoConIGV;
-        let tipoAfectacion = null;
-        let porcentaje = 0;
-        let montoAfectacion = 0;
-        
-        // Buscar checkbox marcado
-        const detraccionChecked = document.querySelector('.detraccion-checkbox' + suffix + ':checked');
-        const retencionChecked = document.querySelector('.retencion-checkbox' + suffix + ':checked');
-        const percepcionChecked = document.querySelector('.percepcion-checkbox' + suffix + ':checked');
-        
-        if (detraccionChecked) {
-            tipoAfectacion = 'DETRACCION';
-            porcentaje = parseFloat(detraccionChecked.getAttribute('data-porcentaje')) || 0;
-            montoAfectacion = (montoConIGV * porcentaje) / 100;
-            totalPagar = montoConIGV - montoAfectacion;
-            console.log('🔵 DETRACCIÓN:', porcentaje + '%');
-        } else if (retencionChecked) {
-            tipoAfectacion = 'RETENCION';
-            porcentaje = parseFloat(retencionChecked.getAttribute('data-porcentaje')) || 0;
-            montoAfectacion = (montoConIGV * porcentaje) / 100;
-            totalPagar = montoConIGV - montoAfectacion;
-            console.log('🟡 RETENCIÓN:', porcentaje + '%');
-        } else if (percepcionChecked) {
-            tipoAfectacion = 'PERCEPCION';
-            porcentaje = parseFloat(percepcionChecked.getAttribute('data-porcentaje')) || 0;
-            montoAfectacion = (montoConIGV * porcentaje) / 100;
-            totalPagar = montoConIGV + montoAfectacion;
-            console.log('🟢 PERCEPCIÓN:', porcentaje + '%');
+        if ((medio.value || '').toString().trim() === '2') {
+            cuenta.disabled = false;
+            cuenta.required = true;
+            cuenta.style.backgroundColor = '#ffffff';
+            console.log('✅ Cuenta ACTIVADA');
         } else {
-            console.log('⚪ Sin afectaciones');
+            cuenta.disabled = true;
+            cuenta.required = false;
+            cuenta.value = '';
+            cuenta.style.backgroundColor = '#e9ecef';
+            console.log('🔒 Cuenta DESACTIVADA');
         }
-        
-        inputTotal.value = totalPagar.toFixed(2);
-        
-        console.log('✅ RESULTADO:');
-        console.log('   - Monto IGV:', montoConIGV.toFixed(2));
-        console.log('   - Tipo:', tipoAfectacion || 'Ninguna');
-        console.log('   - Porcentaje:', porcentaje + '%');
-        console.log('   - Afectación:', montoAfectacion.toFixed(2));
-        console.log('   - TOTAL:', totalPagar.toFixed(2));
-        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     };
 
-    // ====================================================================
-    // FUNCIÓN: MANEJAR CHECKBOXES
-    // ====================================================================
-    window.manejarCheckbox = function(checkbox, tipo, isEditMode) {
-        console.log('📌 CLICK ' + tipo + ' - Modo:', isEditMode ? 'EDICIÓN' : 'REGISTRO');
-        
-        const suffix = isEditMode ? '-edit' : '';
-        const prefix = isEditMode ? 'edit_' : '';
-        
-        if (checkbox.checked) {
-            console.log('   ✓ Marcando:', checkbox.value);
-            
-            // Desmarcar todos los demás
-            const allCheckboxes = document.querySelectorAll(
-                '.detraccion-checkbox' + suffix + ', ' +
-                '.retencion-checkbox' + suffix + ', ' +
-                '.percepcion-checkbox' + suffix
-            );
-            
-            allCheckboxes.forEach(function(cb) {
-                if (cb !== checkbox) {
-                    cb.checked = false;
-                }
-            });
-            
-            const hiddenInput = document.getElementById(prefix + 'afectacion_seleccionada');
-            if (hiddenInput) {
-                hiddenInput.value = tipo + ':' + checkbox.value;
-            }
-        } else {
-            console.log('   ✗ Desmarcando');
-            const hiddenInput = document.getElementById(prefix + 'afectacion_seleccionada');
-            if (hiddenInput) {
-                hiddenInput.value = '';
-            }
-        }
-        
-        calcularTotalPagar(isEditMode);
-    };
+    aplicarEstado();
+}
 
-    // ====================================================================
-    // INICIALIZAR CUANDO EL DOM ESTÉ LISTO
-    // ====================================================================
-    function inicializar() {
-        console.log('✅ DOM listo - Configurando eventos...');
+// ✅ FUNCIÓN FALTANTE
+function setupCuentaControlEdit() {
+    console.log('🏦 setupCuentaControlEdit llamada');
+    setupCuentaControl(true);
+}
+
+// ============================================================
+// 3️⃣ INICIALIZACIÓN DE MODALES
+// ============================================================
+
+function inicializarModalRegistrar() {
+    console.log('🚀 inicializarModalRegistrar llamada');
+    console.log('Estado actual:', {modalRegistrarInicializado});
+    
+    if (modalRegistrarInicializado) {
+        console.log('⚠️ Modal REGISTRAR ya inicializado, solo recalculando');
+        calcularTotalPagar(false);
+        setupCuentaControl(false);
+        return;
+    }
+    
+    const modal = document.getElementById('modalRegistrarComprobante');
+    if (!modal) {
+        console.error('❌ Modal REGISTRAR no encontrado');
+        return;
+    }
+    
+    console.log('✅ Modal REGISTRAR encontrado, agregando listeners');
+    
+    // Evento delegado para input
+    modal.addEventListener('input', function(e) {
+        console.log('📝 Input detectado en:', e.target.id);
         
-        // EVENTOS: MONTO REGISTRO
-        const montoRegistro = document.getElementById('monto_total_igv');
-        if (montoRegistro) {
-            montoRegistro.addEventListener('input', function() {
-                console.log('💰 Monto REGISTRO cambiado:', this.value);
+        if (e.target.id === 'monto_total_igv') {
+            const valor = parseFloat(e.target.value) || 0;
+            console.log('💵 Monto ingresado:', valor);
+            
+            if (validarMontoMaximo(false, valor)) {
                 calcularTotalPagar(false);
-            });
-        }
-        
-        // EVENTOS: MONTO EDICIÓN
-        const montoEdicion = document.getElementById('edit_monto_total_igv');
-        if (montoEdicion) {
-            montoEdicion.addEventListener('input', function() {
-                console.log('💰 Monto EDICIÓN cambiado:', this.value);
-                calcularTotalPagar(true);
-            });
-        }
-        
-        // EVENTOS: CHECKBOXES REGISTRO
-        document.querySelectorAll('.detraccion-checkbox').forEach(function(cb) {
-            cb.addEventListener('change', function() {
-                manejarCheckbox(this, 'DETRACCION', false);
-            });
-        });
-        
-        document.querySelectorAll('.retencion-checkbox').forEach(function(cb) {
-            cb.addEventListener('change', function() {
-                manejarCheckbox(this, 'RETENCION', false);
-            });
-        });
-        
-        document.querySelectorAll('.percepcion-checkbox').forEach(function(cb) {
-            cb.addEventListener('change', function() {
-                manejarCheckbox(this, 'PERCEPCION', false);
-            });
-        });
-        
-        // EVENTOS: CHECKBOXES EDICIÓN
-        document.querySelectorAll('.detraccion-checkbox-edit').forEach(function(cb) {
-            cb.addEventListener('change', function() {
-                manejarCheckbox(this, 'DETRACCION', true);
-            });
-        });
-        
-        document.querySelectorAll('.retencion-checkbox-edit').forEach(function(cb) {
-            cb.addEventListener('change', function() {
-                manejarCheckbox(this, 'RETENCION', true);
-            });
-        });
-        
-        document.querySelectorAll('.percepcion-checkbox-edit').forEach(function(cb) {
-            cb.addEventListener('change', function() {
-                manejarCheckbox(this, 'PERCEPCION', true);
-            });
-        });
-
-        // --- CONTROL CUENTA (inicializar y manejar cambios) ---
-        function setupCuentaControl() {
-            const medio = document.getElementById('id_medio_pago') || document.querySelector('select[name="id_medio_pago"]');
-            const cuenta = document.getElementById('id_cuenta_proveedor');
-            if (!medio || !cuenta) return false;
-
-            function aplicarEstado() {
-                if ((medio.value || '').toString().trim() === '2') {
-                    cuenta.disabled = false;
-                    cuenta.required = true;
-                    cuenta.style.backgroundColor = '#ffffff';
-                } else {
-                    cuenta.disabled = true;
-                    cuenta.required = false;
-                    cuenta.value = '';
-                    cuenta.style.backgroundColor = '#e9ecef';
-                }
+            } else {
+                const hiddenId = "monto_maximo_permitido";
+                const hiddenNow = document.getElementById(hiddenId);
+                const montoMax = hiddenNow ? parseFloat(hiddenNow.value) : 0;
+                e.target.value = montoMax > 0 ? montoMax.toFixed(2) : '';
+                calcularTotalPagar(false);
             }
-
-            // aplicar ahora y en cambios
-            aplicarEstado();
-            medio.removeEventListener('change', aplicarEstado);
-            medio.addEventListener('change', aplicarEstado);
-
-            // exponer por si lo necesitamos llamar desde fuera (ej. after AJAX)
-            window.setupCuentaControl = setupCuentaControl;
-            return true;
         }
-
-        // --- CONTROL CUENTA en modo EDICIÓN ---
-        function setupCuentaControlEdit() {
-            const medio = document.getElementById('edit_id_medio_pago');
-            const cuenta = document.getElementById('edit_id_cuenta_proveedor');
-            if (!medio || !cuenta) return false;
-
-            function aplicarEstadoEdit() {
-                if ((medio.value || '').toString().trim() === '2') {
-                    cuenta.disabled = false;
-                    cuenta.required = true;
-                    cuenta.style.backgroundColor = '#ffffff';
-                } else {
-                    cuenta.disabled = true;
-                    cuenta.required = false;
-                    cuenta.value = '';
-                    cuenta.style.backgroundColor = '#e9ecef';
-                }
-            }
-
-            aplicarEstadoEdit(); // aplicar al cargar
-            medio.removeEventListener('change', aplicarEstadoEdit);
-            medio.addEventListener('change', aplicarEstadoEdit);
-
-            // expone la función si la necesitas luego
-            window.setupCuentaControlEdit = setupCuentaControlEdit;
-            return true;
-        }
-
-        // llamar en inicializar
-        setupCuentaControl();
-        setupCuentaControlEdit();
-        
-        console.log('✅ Eventos configurados correctamente');
-    }
-
-    // Ejecutar cuando el DOM esté listo
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', inicializar);
-    } else {
-        inicializar();
-    }
-
-})();*/
-
-(function() {
-    'use strict';
+    });
     
-    console.log('🚀 Iniciando sistema...');
-
-    // ====================================================================
-    // FUNCIÓN: CALCULAR TOTAL A PAGAR
-    // ====================================================================
-    // ================================================================
-    // FUNCIÓN: CALCULAR TOTAL A PAGAR (solo con id_afectacion y monto_detraccion)
-    // ================================================================
-    window.calcularTotalPagar = function(isEditMode) {
-
-        const prefix = isEditMode ? 'edit_' : '';
-
-        const inputMonto        = document.getElementById(prefix + 'monto_total_igv');
-        const inputTotal        = document.getElementById(prefix + 'total_pagar');
-        const inputAfectacion   = document.getElementById(prefix + 'id_afectacion');
-        const inputDetraccion   = document.getElementById(prefix + 'monto_detraccion');
-        const inputPorcentaje   = document.getElementById(prefix + 'porcentaje_detraccion') 
-                                || document.getElementById('porcentaje_detraccion');
-
-        const inputVisible      = document.getElementById(prefix + 'monto_detraccion_visible');
-
-        if (!inputMonto || !inputTotal || !inputAfectacion || !inputDetraccion || !inputPorcentaje || !inputVisible) {
-            console.error("❌ Faltan campos para el cálculo");
-            return;
-        }
-
-        const montoConIGV   = parseFloat(inputMonto.value) || 0;
-        const idAfectacion  = parseInt(inputAfectacion.value) || 0;
-        const porcDetrac    = parseFloat(inputPorcentaje.value) || 0;
-
-        if (montoConIGV <= 0) {
-            inputDetraccion.value = "0.00";
-            inputVisible.value = `(0%) S/. 0.00`;
-            inputTotal.value = "";
-            return;
-        }
-
-        // ------------------------------------------------------
-        // Cálculo de monto de detracción/retención/percepción
-        // ------------------------------------------------------
-        let montoAfectacion = 0;
-
-        if (porcDetrac > 0) {
-            montoAfectacion = (montoConIGV * porcDetrac / 100);
-        }
-
-        // Guardar valores
-        inputDetraccion.value = montoAfectacion.toFixed(2);
-
-        // Actualizar input visible
-        inputVisible.value = `(${porcDetrac}%) S/. ${montoAfectacion.toFixed(2)}`;
-
-        // ------------------------------------------------------
-        // TOTAL A PAGAR
-        // Regla:
-        // id_afectacion != 13 → RESTA (detracción/retención)
-        // id_afectacion == 13 → SUMA (percepción)
-        // ------------------------------------------------------
-        let total = montoConIGV;
-
-        if (idAfectacion === 13) {
-            total = montoConIGV + montoAfectacion;
-        } else if (idAfectacion > 0) {
-            total = montoConIGV - montoAfectacion;
-        }
-
-        inputTotal.value = total.toFixed(2);
-    };
-
-
-    // ================================================================
-    // EVENTOS: Solo reaccionan al cambio del monto_total_igv
-    // ================================================================
-    function inicializar() {
-        console.log("✅ Inicializando eventos...");
-
-        const campos = [
-            { id: "monto_total_igv", modo: false },
-            { id: "edit_monto_total_igv", modo: true }
-        ];
-
-        campos.forEach(c => {
-            const input = document.getElementById(c.id);
-            if (input) {
-                input.addEventListener("input", function() {
-                    calcularTotalPagar(c.modo);
-                });
-            }
-        });
-        // --- CONTROL CUENTA (inicializar y manejar cambios) ---
-        function setupCuentaControl() {
-            const medio = document.getElementById('id_medio_pago') || document.querySelector('select[name="id_medio_pago"]');
-            const cuenta = document.getElementById('id_cuenta_proveedor');
-            if (!medio || !cuenta) return false;
-
-            function aplicarEstado() {
-                if ((medio.value || '').toString().trim() === '2') {
-                    cuenta.disabled = false;
-                    cuenta.required = true;
-                    cuenta.style.backgroundColor = '#ffffff';
-                } else {
-                    cuenta.disabled = true;
-                    cuenta.required = false;
-                    cuenta.value = '';
-                    cuenta.style.backgroundColor = '#e9ecef';
-                }
-            }
-
-            // aplicar ahora y en cambios
-            aplicarEstado();
-            medio.removeEventListener('change', aplicarEstado);
-            medio.addEventListener('change', aplicarEstado);
-
-            // exponer por si lo necesitamos llamar desde fuera (ej. after AJAX)
-            window.setupCuentaControl = setupCuentaControl;
-            return true;
-        }
-
-        // --- CONTROL CUENTA en modo EDICIÓN ---
-        function setupCuentaControlEdit() {
-            const medio = document.getElementById('edit_id_medio_pago');
-            const cuenta = document.getElementById('edit_id_cuenta_proveedor');
-            if (!medio || !cuenta) return false;
-
-            function aplicarEstadoEdit() {
-                if ((medio.value || '').toString().trim() === '2') {
-                    cuenta.disabled = false;
-                    cuenta.required = true;
-                    cuenta.style.backgroundColor = '#ffffff';
-                } else {
-                    cuenta.disabled = true;
-                    cuenta.required = false;
-                    cuenta.value = '';
-                    cuenta.style.backgroundColor = '#e9ecef';
-                }
-            }
-
-            aplicarEstadoEdit(); // aplicar al cargar
-            medio.removeEventListener('change', aplicarEstadoEdit);
-            medio.addEventListener('change', aplicarEstadoEdit);
-
-            // expone la función si la necesitas luego
-            window.setupCuentaControlEdit = setupCuentaControlEdit;
-            return true;
-        }
-
-        // llamar en inicializar
-        setupCuentaControl();
-        setupCuentaControlEdit();
+    // Evento delegado para change
+    modal.addEventListener('change', function(e) {
+        console.log('🔄 Change detectado en:', e.target.id);
         
-        console.log('✅ Eventos configurados correctamente');
+        if (e.target.id === 'id_afectacion') {
+            console.log('📋 Afectación cambiada');
+            calcularTotalPagar(false);
+        }
+        if (e.target.id === 'id_medio_pago') {
+            console.log('💳 Medio de pago cambiado');
+            setupCuentaControl(false);
+        }
+        if (e.target.id === 'monto_total_igv') {
+            const valor = parseFloat(e.target.value);
+            if (isNaN(valor) || valor <= 0) {
+                Swal.fire('Error', 'El monto debe ser mayor a 0', 'error');
+                e.target.value = "";
+            }
+        }
+    });
+    
+    modalRegistrarInicializado = true;
+    setupCuentaControl(false);
+    calcularTotalPagar(false);
+    console.log('✅ Modal REGISTRAR inicializado completamente');
+}
+
+function inicializarModalEditar() {
+    console.log('🚀 inicializarModalEditar llamada');
+    console.log('Estado actual:', {modalEditarInicializado});
+    
+    if (modalEditarInicializado) {
+        console.log('⚠️ Modal EDITAR ya inicializado, solo recalculando');
+        calcularTotalPagar(true);
+        setupCuentaControl(true);
+        return;
     }
-
-    // Ejecutar cuando el DOM esté listo
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', inicializar);
-    } else {
-        inicializar();
+    
+    const modal = document.getElementById('modalEditarComprobante');
+    if (!modal) {
+        console.error('❌ Modal EDITAR no encontrado');
+        return;
     }
+    
+    console.log('✅ Modal EDITAR encontrado, agregando listeners');
+    
+    // Evento delegado para input
+    modal.addEventListener('input', function(e) {
+        console.log('📝 Input detectado en:', e.target.id);
+        
+        if (e.target.id === 'edit_monto_total_igv') {
+            const valor = parseFloat(e.target.value) || 0;
+            console.log('💵 Monto ingresado:', valor);
+            
+            if (validarMontoMaximo(true, valor)) {
+                calcularTotalPagar(true);
+            } else {
+                const hiddenId = "edit_monto_maximo_permitido";
+                const fallbackHiddenId = "monto_maximo_permitido";
+                const hiddenNow = document.getElementById(hiddenId) || document.getElementById(fallbackHiddenId);
+                const montoMax = hiddenNow ? parseFloat(hiddenNow.value) : 0;
+                e.target.value = montoMax > 0 ? montoMax.toFixed(2) : '';
+                calcularTotalPagar(true);
+            }
+        }
+    });
+    
+    // Evento delegado para change
+    modal.addEventListener('change', function(e) {
+        console.log('🔄 Change detectado en:', e.target.id);
+        
+        if (e.target.id === 'edit_id_afectacion') {
+            console.log('📋 Afectación cambiada');
+            calcularTotalPagar(true);
+        }
+        if (e.target.id === 'edit_id_medio_pago') {
+            console.log('💳 Medio de pago cambiado');
+            setupCuentaControl(true);
+        }
+        if (e.target.id === 'edit_monto_total_igv') {
+            const valor = parseFloat(e.target.value);
+            if (isNaN(valor) || valor <= 0) {
+                Swal.fire('Error', 'El monto debe ser mayor a 0', 'error');
+                e.target.value = "";
+            }
+        }
+    });
+    
+    modalEditarInicializado = true;
+    setupCuentaControl(true);
+    calcularTotalPagar(true);
+    console.log('✅ Modal EDITAR inicializado completamente');
+}
 
-})();
+// ============================================================
+// 4️⃣ EVENTOS DE MODALES
+// ============================================================
 
-// ====================================================================
-// FUNCIONES GLOBALES PARA BOTONES
-// ====================================================================
+$(document).ready(function() {
+    console.log('✅ jQuery ready ejecutado');
+    
+    // Modal Registrar
+    $('#modalRegistrarComprobante').on('shown.bs.modal', function() {
+        console.log('🔵 Modal REGISTRAR abierto (evento shown.bs.modal)');
+        
+        setTimeout(() => {
+            if (!modalRegistrarInicializado) {
+                console.log('Inicializando por primera vez...');
+                inicializarModalRegistrar();
+            } else {
+                console.log('Ya inicializado, solo recalculando...');
+                setupCuentaControl(false);
+                calcularTotalPagar(false);
+            }
+        }, 100);
+    });
+    
+    // Modal Editar
+    $('#modalEditarComprobante').on('shown.bs.modal', function() {
+        console.log('🟢 Modal EDITAR abierto (evento shown.bs.modal)');
+        
+        setTimeout(() => {
+            if (!modalEditarInicializado) {
+                console.log('Inicializando por primera vez...');
+                inicializarModalEditar();
+            } else {
+                console.log('Ya inicializado, solo recalculando...');
+                setupCuentaControl(true);
+                calcularTotalPagar(true);
+            }
+        }, 150);
+    });
+    
+    // DataTables
+    if ($.fn.DataTable && $('#tablaComprobantes').length > 0) {
+        $('#tablaComprobantes').DataTable({
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+            },
+            "order": [[0, "desc"]],
+            "pageLength": 25
+        });
+        console.log("✅ DataTable inicializado");
+    }
+    
+    console.log('✅ Todos los eventos jQuery configurados');
+});
+
+// ============================================================
+// 3️⃣ FUNCIONES GLOBALES PARA MODALES (Fuera del IIFE)
+// ============================================================
 
 function AnularComprobante(id_comprobante) {
     Swal.fire({
@@ -1347,11 +1321,6 @@ function CargarModalEditar(id_comprobante) {
             
             console.log('📝 Cargando datos para edición:', data);
             
-            // Limpiar checkboxes
-            document.querySelectorAll('.detraccion-checkbox-edit, .retencion-checkbox-edit, .percepcion-checkbox-edit').forEach(function(cb) {
-                cb.checked = false;
-            });
-            
             // Llenar campos
             document.getElementById('edit_id_comprobante').value = data.id_comprobante;
             document.getElementById('edit_id_tipo_documento').value = data.id_tipo_documento;
@@ -1362,7 +1331,6 @@ function CargarModalEditar(id_comprobante) {
             
             if (data.id_medio_pago) {
                 document.getElementById('edit_id_medio_pago').value = data.id_medio_pago;
-                setupCuentaControlEdit();
             }
             
             if (data.fec_pago) {
@@ -1371,7 +1339,6 @@ function CargarModalEditar(id_comprobante) {
 
             let simbolo = (data.id_moneda == 1) ? "S/." : "US$";
 
-            // Calcular la detracción dinámicamente
             let montoDetraccion = 0;
             if (data.porcentaje_detraccion > 0) {
                 montoDetraccion = (data.monto_total_igv * data.porcentaje_detraccion) / 100;
@@ -1382,22 +1349,14 @@ function CargarModalEditar(id_comprobante) {
                 ? '(' + data.porcentaje_detraccion + '%) ' + simbolo + montoDetraccion.toFixed(2)
                 : 'Sin detracción';
 
-            // Asignar valores ocultos
             document.getElementById('edit_porcentaje_detraccion').value = data.porcentaje_detraccion;
             document.getElementById('edit_id_afectacion').value = data.id_detraccion; 
             document.getElementById('edit_afectacion_seleccionada').value = data.id_detraccion;
+            document.getElementById('edit_monto_maximo_permitido').value = data.monto_maximo_permitido;
             
-            // Marcar checkbox si existe
-            if (data.id_detraccion) {
-                const checkbox = document.getElementById('edit_detraccion_' + data.id_detraccion);
-                if (checkbox) {
-                    checkbox.checked = true;
-                    document.getElementById('edit_afectacion_seleccionada').value = 'DETRACCION:' + data.id_detraccion;
-                }
-            }
-            
-            // Calcular total
+            // ✅ LLAMAR a la función global
             setTimeout(function() {
+                setupCuentaControlEdit();
                 calcularTotalPagar(true);
             }, 100);
             
@@ -1424,6 +1383,12 @@ function CargarModalEditar(id_comprobante) {
 
 function AbrirModalVoucher(id_comprobante) {
     document.getElementById('voucher_id_comprobante').value = id_comprobante;
+    
+    // ✅ Inicializar SOLO cuando se abre el modal
+    setTimeout(() => {
+        inicializarVoucherPago();
+    }, 200);
+    
     $('#modalSubirVoucher').modal('show');
 }
 
@@ -1455,12 +1420,9 @@ function VerDetalleComprobante(id_comprobante) {
                     <tr><th>Medio de Pago:</th><td>${data.nom_medio_pago || 'No especificado'}</td></tr>
                     <tr><th>Fecha de Pago:</th><td>${data.fec_pago || 'Pendiente'}</td></tr>
                     <tr><th>Monto con IGV:</th><td>${data.simbolo_moneda} ${parseFloat(data.monto_total_igv).toFixed(2)}</td></tr>
-                    <tr><th>Detracción:</th><td>${data.simbolo_moneda} ${subtotal.toFixed(2)}</td>
-</tr>
+                    <tr><th>Detracción:</th><td>${data.simbolo_moneda} ${subtotal.toFixed(2)}</td></tr>
                     <tr style="background-color: #d4edda;"><th>TOTAL:</th><td><strong>${data.simbolo_moneda} ${parseFloat(data.total_pagar).toFixed(2)}</strong></td></tr>
                 </table>
-
-                <!-- ARCHIVOS -->
                 <div style="background-color: #f8f9fa; padding: 12px; border-radius: 5px; margin-top: 15px;">
                     <div style="display: flex; align-items: center;">
                         <strong style="margin: 0; min-width: 35%; flex-shrink: 0;">
@@ -1489,30 +1451,32 @@ function VerDetalleComprobante(id_comprobante) {
     });
 }
 
-// ====================================================================
-// DATATABLES (SI EXISTE JQUERY)
-// ====================================================================
-$(document).ready(function() {
-    if ($.fn.DataTable) {
-        $('#tablaComprobantes').DataTable({
-            "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
-            },
-            "order": [[0, "desc"]],
-            "pageLength": 25
-        });
+// ============================================================
+// 4️⃣ FUNCIONES DE SUBIDA MASIVA
+// ============================================================
+
+// ✅ INICIALIZAR SOLO UNA VEZ
+function inicializarModalMasivo() {
+    const inputArchivos = document.getElementById("inputArchivos");
+    
+    if (!inputArchivos) {
+        console.error("❌ Input de archivos no encontrado");
+        return;
     }
-});
+    
+    // ✅ Remover listener anterior (evita duplicados)
+    inputArchivos.removeEventListener("change", manejarCambioArchivos);
+    inputArchivos.addEventListener("change", manejarCambioArchivos);
+    
+    console.log("✅ Modal masivo inicializado");
+}
 
-
-// Abrir / cerrar modal
 function abrirModalMasivo() {
     const modal = document.getElementById("modalSubidaMasivo");
     if (modal) {
         modal.style.display = "flex";
-        console.log("✅ Modal abierto");
         
-        // Reinicializar el input cuando se abre el modal
+        // ✅ Inicializar SOLO cuando se abre
         setTimeout(() => {
             inicializarModalMasivo();
         }, 200);
@@ -1530,57 +1494,7 @@ function cerrarModalMasivo() {
     }
 }
 
-// Esperar a que el DOM esté listo
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', inicializarModalMasivo);
-} else {
-    inicializarModalMasivo();
-}
-
-function inicializarModalMasivo() {
-    console.log("🚀 Inicializando modal masivo...");
-    
-    // Esperar un momento para que el DOM esté completamente listo
-    setTimeout(() => {
-        const inputArchivos = document.getElementById("inputArchivos");
-        
-        if (!inputArchivos) {
-            console.error("❌ Input de archivos no encontrado");
-            return;
-        }
-        
-        console.log("✅ Input encontrado:", inputArchivos);
-        
-        // Remover listeners anteriores y agregar uno nuevo
-        inputArchivos.removeEventListener("change", manejarCambioArchivos);
-        inputArchivos.addEventListener("change", manejarCambioArchivos);
-        
-        console.log("✅ Listener agregado correctamente");
-    }, 100);
-}
-
 function manejarCambioArchivos(e) {
-    /*console.log("📂 ¡¡¡CAMBIO DETECTADO!!!");
-    console.log("Archivos seleccionados:", e.target.files.length);
-    
-    if (e.target.files.length === 0) {
-        console.log("⚠️ No hay archivos");
-        return;
-    }
-    
-    const nuevosArchivos = Array.from(e.target.files);
-    console.log("Array creado:", nuevosArchivos);
-    
-    nuevosArchivos.forEach((archivo) => {
-        console.log("Procesando:", archivo.name, archivo.size, "bytes");
-        if (!archivosSeleccionados.find(a => a.name === archivo.name)) {
-            archivosSeleccionados.push(archivo);
-            console.log("✅ Agregado a la lista");
-        } else {
-            console.log("⚠️ Duplicado, ignorado");
-        }
-    });*/
-
     console.log("📂 ¡¡¡CAMBIO DETECTADO!!!");
     const nuevosArchivos = Array.from(e.target.files);
     if (nuevosArchivos.length === 0) return;
@@ -1589,38 +1503,34 @@ function manejarCambioArchivos(e) {
         const nombre = archivo.name.trim();
         const tamañoMB = archivo.size / (1024 * 1024);
 
-        // 1️⃣ Validar tamaño (máximo 5 MB)
         if (tamañoMB > 5) {
-            mostrarAlerta(
-                'error',
-                'Archivo demasiado grande',
-                `El archivo "${nombre}" pesa ${(tamañoMB).toFixed(2)} MB. El máximo permitido es 5 MB.`
-            );
+            Swal.fire({
+                icon: 'error',
+                title: 'Archivo demasiado grande',
+                text: `El archivo "${nombre}" pesa ${tamañoMB.toFixed(2)} MB. El máximo permitido es 5 MB.`
+            });
             return;
         }
 
-        // 2️⃣ Validar formato de nombre (0000-00000000)
-        const regexNombre = /^[A-Z0-9]{4}-\d{2,8}\.[A-Za-z0-9]+$/i; // permite letras o números antes del guion
+        const regexNombre = /^[A-Z0-9]{4}-\d{2,8}\.[A-Za-z0-9]+$/i;
         if (!regexNombre.test(nombre)) {
-            mostrarAlerta(
-                'warning',
-                'Formato inválido',
-                `El archivo "${nombre}" no cumple el formato "SERIE-NUMERO", por ejemplo: "F001-00012345.pdf"`
-            );
+            Swal.fire({
+                icon: 'warning',
+                title: 'Formato inválido',
+                text: `El archivo "${nombre}" no cumple el formato "SERIE-NUMERO", por ejemplo: "F001-00012345.pdf"`
+            });
             return;
         }
 
-        // 3️⃣ Evitar duplicados y agregar
         if (!archivosSeleccionados.find(a => a.name === nombre)) {
             archivosSeleccionados.push(archivo);
             console.log("✅ Archivo agregado:", nombre);
         } else {
-            mostrarAlerta(
-                'info',
-                'Archivo duplicado',
-                `El archivo "${nombre}" ya fue agregado.`
-            );
-            console.log("⚠️ Duplicado, ignorado:", nombre);
+            Swal.fire({
+                icon: 'info',
+                title: 'Archivo duplicado',
+                text: `El archivo "${nombre}" ya fue agregado.`
+            });
         }
     });
 
@@ -1630,8 +1540,6 @@ function manejarCambioArchivos(e) {
 }
 
 function actualizarListaArchivos() {
-    console.log("📋 Actualizando lista, total:", archivosSeleccionados.length);
-    
     const listaArchivos = document.getElementById("listaArchivos");
     
     if (archivosSeleccionados.length === 0) {
@@ -1668,7 +1576,7 @@ function actualizarListaArchivos() {
         `;
     });
 
-    html += `</tbody></table></div>`;
+    html += `</tbody></table>`;
     listaArchivos.innerHTML = html;
 }
 
@@ -1677,61 +1585,408 @@ function eliminarArchivo(index) {
     actualizarListaArchivos();
 }
 
+/*async function procesarArchivos() {
+    if (archivosSeleccionados.length === 0) {
+        Swal.fire('Advertencia', 'Selecciona al menos un archivo', 'warning');
+        return;
+    }
+
+    const conflictos = [];
+    let exitosos = 0;
+    let fallidos = 0;
+
+    Swal.fire({
+        title: 'Procesando...',
+        html: `<b>0</b> / ${archivosSeleccionados.length} archivos procesados`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    for (let i = 0; i < archivosSeleccionados.length; i++) {
+        const archivo = archivosSeleccionados[i];
+        const formData = new FormData();
+        formData.append('archivos[]', archivo);
+        formData.append('enviar_proveedor', document.getElementById('enviarProveedor').checked ? 1 : 0);
+        formData.append('enviar_contabilidad', document.getElementById('enviarContabilidad').checked ? 1 : 0);
+        formData.append('enviar_tesoreria', document.getElementById('enviarTesoreria').checked ? 1 : 0);
+
+        try {
+            const response = await fetch('../_controlador/comprobante_subida_masiva.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.conflicto) {
+                conflictos.push(data);
+            } else if (data.success) {
+                exitosos += data.exitosos;
+                fallidos += data.fallidos;
+            }
+
+            Swal.update({
+                html: `<b>${i + 1}</b> / ${archivosSeleccionados.length} archivos procesados`
+            });
+
+        } catch (error) {
+            console.error('Error procesando archivo:', archivo.name, error);
+            fallidos++;
+        }
+    }
+
+    Swal.close();
+
+    if (conflictos.length > 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Conflictos detectados',
+            html: `<b>${conflictos.length}</b> archivo(s) tienen múltiples coincidencias.<br>
+                   <b>${exitosos}</b> exitosos | <b>${fallidos}</b> fallidos`,
+            confirmButtonText: 'Resolver conflictos'
+        }).then(() => {
+            procesarConflictos(conflictos);
+        });
+    } else {
+        Swal.fire({
+            icon: 'success',
+            title: 'Proceso completado',
+            html: `<b>${exitosos}</b> exitosos | <b>${fallidos}</b> fallidos`
+        }).then(() => {
+            cerrarModalMasivo();
+            location.reload();
+        });
+    }
+}*/
+
 async function procesarArchivos() {
     if (archivosSeleccionados.length === 0) {
         Swal.fire('Advertencia', 'Selecciona al menos un archivo', 'warning');
         return;
     }
 
-    const formData = new FormData();
-    archivosSeleccionados.forEach((archivo) => {
-        formData.append('archivos[]', archivo);
+    const conflictos = [];
+    let exitosos = 0;
+    let todosLosErrores = []; // 🔥 NUEVO: Acumular errores de todos los archivos
+
+    Swal.fire({
+        title: 'Procesando...',
+        html: `<b>0</b> / ${archivosSeleccionados.length} archivos procesados`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
     });
 
+    for (let i = 0; i < archivosSeleccionados.length; i++) {
+        const archivo = archivosSeleccionados[i];
+        const formData = new FormData();
+        formData.append('archivos[]', archivo);
+        formData.append('enviar_proveedor', document.getElementById('enviarProveedor').checked ? 1 : 0);
+        formData.append('enviar_contabilidad', document.getElementById('enviarContabilidad').checked ? 1 : 0);
+        formData.append('enviar_tesoreria', document.getElementById('enviarTesoreria').checked ? 1 : 0);
+
+        try {
+            const response = await fetch('../_controlador/comprobante_subida_masiva.php', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.conflicto) {
+                conflictos.push(data);
+            } else if (data.success) {
+                exitosos += data.exitosos;
+                
+                // 🔥 NUEVO: Acumular errores
+                if (data.errores && data.errores.length > 0) {
+                    todosLosErrores = todosLosErrores.concat(data.errores);
+                }
+            }
+
+            Swal.update({
+                html: `<b>${i + 1}</b> / ${archivosSeleccionados.length} archivos procesados`
+            });
+
+        } catch (error) {
+            console.error('Error procesando archivo:', archivo.name, error);
+            todosLosErrores.push({
+                archivo: archivo.name,
+                motivo: 'Error de conexión con el servidor'
+            });
+        }
+    }
+
+    Swal.close();
+
+    // 🔥 NUEVO: Mostrar resultados detallados
+    if (conflictos.length > 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Conflictos detectados',
+            html: `<b>${conflictos.length}</b> archivo(s) tienen múltiples coincidencias.<br>
+                   <b>${exitosos}</b> exitosos | <b>${todosLosErrores.length}</b> fallidos`,
+            confirmButtonText: 'Resolver conflictos'
+        }).then(() => {
+            procesarConflictos(conflictos);
+        });
+    } else if (todosLosErrores.length > 0) {
+        mostrarErroresDetallados(exitosos, todosLosErrores);
+    } else {
+        Swal.fire({
+            icon: 'success',
+            title: 'Proceso completado',
+            html: `<b>${exitosos}</b> archivo(s) procesado(s) exitosamente`,
+            confirmButtonText: 'Aceptar'
+        }).then(() => {
+            cerrarModalMasivo();
+            location.reload();
+        });
+    }
+}
+
+// 🔥 NUEVA FUNCIÓN: Mostrar errores detallados
+function mostrarErroresDetallados(exitosos, errores) {
+    let htmlErrores = '<div style="max-height:350px; overflow-y:auto; text-align:left; margin-top:10px;">';
+    
+    errores.forEach((error, index) => {
+        htmlErrores += `
+            <div style="
+                display:flex; 
+                align-items:center; 
+                gap:8px;
+                padding:6px 10px; 
+                margin-bottom:4px;
+                background:#f8f9fa;
+                border-radius:4px;
+                border-left:3px solid #dc3545;
+                transition: all 0.2s;
+            " onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">
+                <i class="fa fa-file-o" style="color:#dc3545; font-size:12px;"></i>
+                <span style="font-size:12px; color:#495057; flex:1; min-width:0;">
+                    ${error.archivo}
+                </span>
+                <span 
+                    style="
+                        background:#dc3545;
+                        color:white;
+                        width:18px;
+                        height:18px;
+                        border-radius:50%;
+                        display:flex;
+                        align-items:center;
+                        justify-content:center;
+                        font-size:10px;
+                        cursor:help;
+                        flex-shrink:0;
+                    "
+                    title="${error.motivo}"
+                    data-toggle="tooltip"
+                    data-placement="left"
+                >
+                    <i class="fa fa-info"></i>
+                </span>
+            </div>
+        `;
+    });
+    
+    htmlErrores += '</div>';
+
+    Swal.fire({
+        icon: 'warning',
+        title: 'Proceso con errores',
+        html: `
+            <div style="text-align:center; margin:8px 0 12px 0;">
+                <span class="badge badge-success" style="font-size:12px; padding:4px 10px;">
+                    ${exitosos} exitosos
+                </span>
+                <span class="badge badge-danger" style="font-size:12px; padding:4px 10px;">
+                    ${errores.length} fallidos
+                </span>
+            </div>
+            ${htmlErrores}
+        `,
+        width: '500px',
+        confirmButtonText: 'Cerrar',
+        confirmButtonColor: '#6c757d',
+        didOpen: () => {
+            $('[data-toggle="tooltip"]').tooltip();
+        },
+        willClose: () => {
+            $('[data-toggle="tooltip"]').tooltip('dispose');
+        }
+    }).then(() => {
+        if (exitosos > 0) {
+            cerrarModalMasivo();
+            location.reload();
+        }
+    });
+}
+
+function procesarConflictos(conflictos) {
+    let indice = 0;
+
+    function mostrarSiguienteConflicto() {
+        if (indice >= conflictos.length) {
+            Swal.fire('Completado', 'Todos los conflictos resueltos', 'success').then(() => {
+                location.reload();
+            });
+            return;
+        }
+
+        const conflicto = conflictos[indice];
+        mostrarModalConflicto(
+            conflicto.archivo,
+            conflicto.serie,
+            conflicto.numero,
+            conflicto.opciones
+        );
+
+        window.resolverConflictoCallback = () => {
+            indice++;
+            mostrarSiguienteConflicto();
+        };
+    }
+
+    mostrarSiguienteConflicto();
+}
+
+function mostrarModalConflicto(archivo, serie, numero, opciones) {
+    document.getElementById("conflicto_archivo").value = archivo;
+    document.getElementById("conflicto_serie_numero").innerHTML = serie + "-" + numero;
+
+    let html = "";
+    opciones.forEach(op => {
+        html += `
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="conflictoProveedor" value="${op.id_comprobante}">
+            <label class="form-check-label">
+                ${op.nom_proveedor} <small>(RUC: ${op.ruc_proveedor})</small>
+            </label>
+        </div>`;
+    });
+
+    document.getElementById("conflicto_opciones").innerHTML = html;
+    $("#modalConflicto").modal("show");
+}
+
+function resolverConflicto() {
+    let id_comprobante = document.querySelector('input[name="conflictoProveedor"]:checked');
+    if (!id_comprobante) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Selección requerida',
+            text: 'Debes seleccionar un proveedor o cancelar',
+            showCancelButton: true,
+            confirmButtonText: 'Entendido',
+            cancelButtonText: 'Omitir archivo'
+        }).then((result) => {
+            if (result.isDismissed && window.resolverConflictoCallback) {
+                window.resolverConflictoCallback();
+            }
+        });
+        return;
+    }
+
+    id_comprobante = id_comprobante.value;
+    let archivo = document.getElementById("conflicto_archivo").value;
+
+    const formData = new FormData();
+    formData.append("id_comprobante", id_comprobante);
+    formData.append("archivo", archivo);
     formData.append('enviar_proveedor', document.getElementById('enviarProveedor').checked ? 1 : 0);
     formData.append('enviar_contabilidad', document.getElementById('enviarContabilidad').checked ? 1 : 0);
     formData.append('enviar_tesoreria', document.getElementById('enviarTesoreria').checked ? 1 : 0);
 
-    try {
-        Swal.fire({
-            title: 'Procesando...',
-            text: 'Subiendo vouchers, por favor espera...',
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading()
-        });
-
-        // 👇 ruta relativa (sube una carpeta y entra a _controlador)
-        const response = await fetch('../_controlador/comprobante_subida_masiva.php', {
-            method: 'POST',
-            body: formData
-        });
-
-        console.log("🔍 Estado HTTP:", response.status);
-        if (!response.ok) {
-            throw new Error(`Error HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-        console.log("📥 Respuesta del servidor:", data);
-
-        if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Subida completada',
-                html: `<b>${data.exitosos}</b> archivos subidos correctamente.<br>
-                       <b>${data.fallidos}</b> archivos fallaron.`,
-                confirmButtonText: 'Aceptar'
-            }).then(() => {
-                cerrarModalMasivo();
-            });
+    fetch("../_controlador/voucher_asignar_manual.php", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(resp => {
+        if (resp.success) {
+            Swal.fire("Asignado", "Voucher asignado correctamente", "success");
+            $("#modalConflicto").modal("hide");
+            
+            if (window.resolverConflictoCallback) {
+                window.resolverConflictoCallback();
+            }
         } else {
-            Swal.fire('Error', data.mensaje || 'Ocurrió un error en el servidor', 'error');
+            Swal.fire("Error", resp.mensaje || "Ocurrió un error", "error");
         }
-    } catch (error) {
-        console.error('❌ Error al enviar archivos:', error);
-        Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
-    }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire("Error", "No se pudo conectar con el servidor", "error");
+    });
 }
+
+// ============================================================
+// 5️⃣ FUNCIONES DE VALIDACIÓN DE VOUCHER INDIVIDUAL
+// ============================================================
+
+function inicializarVoucherPago() {
+    const inputVoucher = document.querySelector('input[name="voucher_pago"]');
+    if (!inputVoucher) {
+        console.warn("⚠️ Input voucher_pago no encontrado");
+        return;
+    }
+
+    // ✅ Remover listener anterior
+    inputVoucher.removeEventListener('change', validarVoucherPago);
+    inputVoucher.addEventListener('change', validarVoucherPago);
+    
+    console.log("✅ Validación de voucher inicializada");
+}
+
+function validarVoucherPago(e) {
+    const archivo = e.target.files[0];
+    if (!archivo) return;
+
+    const nombre = archivo.name.trim();
+    const tamañoMB = archivo.size / (1024 * 1024);
+
+    if (tamañoMB > 5) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Archivo demasiado grande',
+            text: `El archivo "${nombre}" pesa ${tamañoMB.toFixed(2)} MB. Máx. permitido: 5 MB.`
+        });
+        e.target.value = "";
+        return;
+    }
+
+    const regexNombre = /^[A-Z0-9]{4}-\d{2,8}\.[A-Za-z0-9]+$/i;
+    if (!regexNombre.test(nombre)) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Formato incorrecto',
+            text: `El archivo "${nombre}" no cumple el formato "SERIE-NUMERO". Ej: F001-00012345.pdf`
+        });
+        e.target.value = "";
+        return;
+    }
+
+    console.log("✅ Voucher válido:", nombre);
+}
+
+// ============================================================
+// 6️⃣ DATATABLES (Inicializar una sola vez)
+// ============================================================
+
+/*$(document).ready(function() {
+    console.log("✅ jQuery ready");
+    
+    if ($.fn.DataTable) {
+        $('#tablaComprobantes').DataTable({
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Spanish.json"
+            },
+            "order": [[0, "desc"]],
+            "pageLength": 25
+        });
+        console.log("✅ DataTable inicializado");
+    }
+});*/
 
 </script>
 
