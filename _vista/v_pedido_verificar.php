@@ -203,14 +203,9 @@ $monedas = MostrarMoneda();
                                 // Variables básicas
                                 $cantidad_pedida = floatval($detalle['cant_pedido_detalle']);
                                 $esVerificado = (!is_null($detalle['cant_oc_pedido_detalle']) || !is_null($detalle['cant_os_pedido_detalle']));
-                                $estaCerrado = ($detalle['est_pedido_detalle'] == 2);  
                                 $pedidoAnulado = ($pedido['est_pedido'] == 0);
                                 $esAutoOrden = ($pedido['id_producto_tipo'] == 2);
-
-                                // 🔥 Ahora SÍ puedes usar $estaCerrado
-                                if ($estaCerrado && ($detalle['cant_oc_pedido_detalle'] > 0 || $detalle['cant_os_pedido_detalle'] > 0)) {
-                                    $esVerificado = true;
-                                }
+                                
                                 // Determinar estado según ubicaciones
                                 if ($esAutoOrden) {
                                     // SERVICIOS 
@@ -339,25 +334,12 @@ $monedas = MostrarMoneda();
                                         }
                                         
                                     } else if (!$esVerificado) {
-                                        // ============================================
-                                        // CASO 4: Validar si hay salida pendiente
-                                        // ============================================
-                                        $id_detalle_actual = intval($detalle['id_pedido_detalle']);
-                                        $tiene_salida_pendiente = isset($detalles_con_salidas_pendientes[$id_detalle_actual]);
-                                        
-                                        if ($tiene_salida_pendiente) {
-                                            // ✅ HAY SALIDA PENDIENTE (estado 1)
-                                            $colorBorde = '#28a745';
-                                            $claseTexto = 'text-success';
-                                            $icono = 'fa-truck';
-                                            $estadoTexto = 'Verificado OS (Pendiente Aprobación)';
-                                        } else {
-                                            // ❌ NO verificado y sin salidas pendientes
-                                            $colorBorde = '#ffc107';
-                                            $claseTexto = 'text-warning';
-                                            $icono = 'fa-clock-o';
-                                            $estadoTexto = 'Pendiente Verificar';
-                                        }
+                                        // CASO 4: No verificado → PENDIENTE VERIFICAR
+                                        //$colorFondo = '#fff3cd';
+                                        $colorBorde = '#ffc107';
+                                        $claseTexto = 'text-warning';
+                                        $icono = 'fa-clock-o';
+                                        $estadoTexto = 'Pendiente Verificar';
                                     } else {
                                         // Default
                                         //$colorFondo = '#e9ecef';
@@ -450,11 +432,7 @@ $monedas = MostrarMoneda();
 
                                 <!-- ***************** EVALUAR DESDE AQUI LO QUE DEBERIA MOSTRARSE EN LABEL VERIFICADO ORDENADO PENDIENTE *********************-->
 
-                                <?php 
-                                $mostrarInfoStock = ($esVerificado || $estaCerrado) && isset($detalle['otras_ubicaciones_con_stock']);
-
-                                if (!$esAutoOrden && $mostrarInfoStock): 
-                                ?>
+                                <?php if (!$esAutoOrden && $esVerificado && isset($detalle['otras_ubicaciones_con_stock'])): ?>
                                 <div class="mt-2 p-2" style="background-color: #f8f9fa; border-radius: 4px; font-size: 11px; border-left: 3px solid <?php echo $colorBorde; ?>;">
                                     <strong class="d-block mb-2">
                                         <i class="fa fa-map-marker"></i> Stock por ubicaciones:
@@ -484,6 +462,25 @@ $monedas = MostrarMoneda();
                                                 </div>
                                             <?php endforeach; ?>
                                         </div>
+                                    <?php endif; ?>
+                                    
+                                    <!-- Resumen de cantidades -->
+                                    <?php if (isset($cantidad_para_os) && isset($cantidad_para_oc)): ?>
+                                    <!--<div class="mt-2 pt-2" style="border-top: 1px solid #dee2e6;">
+                                        <?php if ($cantidad_para_os > 0): ?>
+                                        <div class="mb-1" style="font-size: 10px;">
+                                            <i class="fa fa-truck text-success"></i>
+                                            <strong>Para OS:</strong> <span class="badge badge-success"><?php echo number_format($cantidad_para_os, 2); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($cantidad_para_oc > 0): ?>
+                                        <div style="font-size: 10px;">
+                                            <i class="fa fa-shopping-cart text-danger"></i>
+                                            <strong>Para OC:</strong> <span class="badge badge-danger"><?php echo number_format($cantidad_para_oc, 2); ?></span>
+                                        </div>
+                                        <?php endif; ?>
+                                    </div>-->
                                     <?php endif; ?>
                                 </div>
                                 <?php endif; ?>
@@ -582,16 +579,19 @@ $monedas = MostrarMoneda();
                                         // MATERIALES - LÓGICA CORREGIDA 
                                         // ========================================
                                         
-                                        // Obtener cantidades verificadas
+                                        // 1. Obtener cantidades verificadas (TOTAL AUTORIZADO)
                                         $cant_os_verificada = isset($detalle['cant_os_pedido_detalle']) ? floatval($detalle['cant_os_pedido_detalle']) : 0;
                                         $cant_oc_verificada = isset($detalle['cant_oc_pedido_detalle']) ? floatval($detalle['cant_oc_pedido_detalle']) : 0;
 
-                                        //  CALCULAR PENDIENTE OS 
-                                        // Calcular pendiente OS basado en CANTIDAD PEDIDA, no en OS verificada
-                                        $pendiente_os = $cantidad_pedida - $cant_os_ordenada_actual;
-                                        // Pero no puede exceder lo verificado para OS
-                                        $pendiente_os = min($pendiente_os, $cant_os_verificada);
-                                        $pendiente_os = max(0, $pendiente_os); // Asegurar que no sea negativo
+                                        // 2. Obtener lo que YA se ha procesado (usando el dato seguro del inicio del loop)
+                                        // Esto asegura que lea los "10" que viste en el log
+                                        $ya_ordenado_os_seguro = isset($detalle['cantidad_ya_ordenada_os']) ? floatval($detalle['cantidad_ya_ordenada_os']) : 0;
+
+                                        // 3. CÁLCULO DEFINITIVO: Lo autorizado MENOS lo ya procesado
+                                        $pendiente_os = max(0, $cant_os_verificada - $ya_ordenado_os_seguro);
+
+                                        // Debug visual (opcional, aparecerá en el HTML oculto si inspeccionas el elemento)
+                                        echo "";
 
                                         $pendiente_oc = isset($detalle['cantidad_pendiente_oc']) ? floatval($detalle['cantidad_pendiente_oc']) : 0;
 
@@ -649,40 +649,22 @@ $monedas = MostrarMoneda();
                                             </span>
                                     <?php
                                     }
-                                        // CASO 5: Solo se verificó OS y está pendiente
+                                        // 🔹 CASO 5: Solo se verificó OS y está pendiente NUEVO
                                     elseif ($se_verifico_os && !$se_verifico_oc && $pendiente_os > 0 && !$pedidoAnulado) {
-
-                                        //  CALCULAR cantidad en salidas pendientes
-                                        $cant_en_salidas_pendientes = ObtenerCantidadEnSalidasPendientesPorDetalle($detalle['id_pedido_detalle']);
-                                        
-                                        //  Cantidad disponible REAL para crear salidas
-                                        $cantidad_disponible_para_salida = max(0, $pendiente_os - $cant_en_salidas_pendientes);
-                                        
-                                        //  Decidir qué mostrar
-                                        if ($cantidad_disponible_para_salida > 0) {
-                                            //  AÚN HAY CANTIDAD DISPONIBLE → Botón
                                     ?>
                                             <button type="button" 
                                                     class="btn btn-success btn-sm btn-agregarSalida" 
                                                     data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
                                                     data-id-producto="<?php echo $detalle['id_producto']; ?>"
                                                     data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
-                                                    data-cantidad-disponible="<?php echo $cantidad_disponible_para_salida; ?>"
+                                                    data-cantidad-disponible="<?php echo $pendiente_os; ?>"
                                                     data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
                                                     data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
                                                     data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
                                                     style="padding: 2px 8px; font-size: 11px;">
-                                                <i class="fa fa-truck"></i> Agregar a OS (<?php echo number_format($cantidad_disponible_para_salida, 2); ?>)
+                                                <i class="fa fa-truck"></i> Agregar a OS (<?php echo number_format($pendiente_os, 2); ?>)
                                             </button>
                                     <?php
-                                        } else {
-                                            
-                                    ?>
-                                            <span class="badge badge-info" style="font-size: 11px; padding: 4px 8px;">
-                                                <i class="fa fa-clock"></i> OS Pendiente Aprobación
-                                            </span>
-                                    <?php
-                                        }
                                     }
                                         // CASO 6: Solo se verificó OS y está completada NUEVO
                                     elseif ($se_verifico_os && !$se_verifico_oc && $os_completada) {
@@ -694,39 +676,23 @@ $monedas = MostrarMoneda();
                                     }
                                         // CASO 7: Ambos verificados, solo OS pendiente
                                     elseif ($se_verifico_os && $se_verifico_oc && $pendiente_os > 0 && $oc_completada && !$pedidoAnulado) {
-                                        
-                                        //  CALCULAR cantidad en salidas pendientes
-                                        $cant_en_salidas_pendientes = ObtenerCantidadEnSalidasPendientesPorDetalle($detalle['id_pedido_detalle']);
-                                        $cantidad_disponible_para_salida = max(0, $pendiente_os - $cant_en_salidas_pendientes);
-                                        
-                                        if ($cantidad_disponible_para_salida > 0) {
                                     ?>
                                             <button type="button" 
                                                     class="btn btn-success btn-sm btn-agregarSalida" 
                                                     data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
                                                     data-id-producto="<?php echo $detalle['id_producto']; ?>"
                                                     data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
-                                                    data-cantidad-disponible="<?php echo $cantidad_disponible_para_salida; ?>"
+                                                    data-cantidad-disponible="<?php echo $pendiente_os; ?>"
                                                     data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
                                                     data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
                                                     data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
                                                     style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
-                                                <i class="fa fa-truck"></i> Agregar a OS (<?php echo number_format($cantidad_disponible_para_salida, 2); ?>)
+                                                <i class="fa fa-truck"></i> Agregar a OS (<?php echo number_format($pendiente_os, 2); ?>)
                                             </button>
                                             <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">
                                                 <i class="fa fa-check-circle"></i> OC Completada
                                             </span>
                                     <?php
-                                        } else {
-                                    ?>
-                                            <span class="badge badge-info" style="font-size: 11px; padding: 4px 8px; margin-right: 4px;">
-                                                <i class="fa fa-clock"></i> OS Pendiente Aprobación
-                                            </span>
-                                            <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">
-                                                <i class="fa fa-check-circle"></i> OC Completada
-                                            </span>
-                                    <?php
-                                        }
                                     }
                                         // CASO 8: Ambos verificados, solo OC pendiente
                                     elseif ($se_verifico_os && $se_verifico_oc && $pendiente_oc > 0 && $os_completada && !$pedidoAnulado) {
@@ -751,59 +717,49 @@ $monedas = MostrarMoneda();
                                     }
                                         // CASO 9: Ambos verificados y pendientes
                                     elseif ($se_verifico_os && $se_verifico_oc && $pendiente_os > 0 && $pendiente_oc > 0 && !$pedidoAnulado) {
+                                        // CALCULAR CANTIDAD YA ORDENADA
                                         $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
-                                        
-                                        //  CALCULAR cantidad en salidas pendientes
-                                        $cant_en_salidas_pendientes = ObtenerCantidadEnSalidasPendientesPorDetalle($detalle['id_pedido_detalle']);
-                                        $cantidad_disponible_para_salida = max(0, $pendiente_os - $cant_en_salidas_pendientes);
-                                        
-                                        if ($cantidad_disponible_para_salida > 0) {
                                     ?>
-                                            <button type="button" 
-                                                    class="btn btn-success btn-sm btn-agregarSalida" 
-                                                    data-id-detalle="<?php echo $id_detalle; ?>"
-                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                    data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
-                                                    data-cantidad-disponible="<?php echo $cantidad_disponible_para_salida; ?>"
-                                                    data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
-                                                    data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
-                                                    data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
-                                                    style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
-                                                <i class="fa fa-truck"></i> OS (<?php echo number_format($cantidad_disponible_para_salida, 2); ?>)
-                                            </button>
-                                            
-                                            <button type="button" 
-                                                    class="btn btn-primary btn-sm btn-agregarOrden" 
-                                                    data-id-detalle="<?php echo $id_detalle; ?>"
-                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                    data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
-                                                    data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
-                                                    data-cantidad-ordenada="<?php echo $ya_ordenado_oc; ?>"
-                                                    data-cantidad-pendiente="<?php echo $pendiente_oc; ?>"
-                                                    style="padding: 2px 8px; font-size: 11px;">
-                                                <i class="fa fa-shopping-cart"></i> OC (<?php echo number_format($pendiente_oc, 2); ?>)
-                                            </button>
+                                        <button type="button" 
+                                                class="btn btn-success btn-sm btn-agregarSalida" 
+                                                data-id-detalle="<?php echo $id_detalle; ?>"
+                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                                                data-cantidad-disponible="<?php echo $pendiente_os; ?>"
+                                                data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
+                                                data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
+                                                data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
+                                                style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
+                                            <i class="fa fa-truck"></i> OS (<?php echo number_format($pendiente_os, 2); ?>)
+                                        </button>
+                                        
+                                        <button type="button" 
+                                                class="btn btn-primary btn-sm btn-agregarOrden" 
+                                                data-id-detalle="<?php echo $id_detalle; ?>"
+                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
+                                                data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
+                                                data-cantidad-ordenada="<?php echo $ya_ordenado_oc; ?>"
+                                                data-cantidad-pendiente="<?php echo $pendiente_oc; ?>"
+                                                style="padding: 2px 8px; font-size: 11px;">
+                                            <i class="fa fa-shopping-cart"></i> OC (<?php echo number_format($pendiente_oc, 2); ?>)
+                                        </button>
                                     <?php
-                                        } else {
+                                    }
+                                        // CASO 10: Pendiente verificar
+                                        elseif (!$esVerificado && !$pedidoAnulado) {
                                     ?>
-                                            <span class="badge badge-info" style="font-size: 11px; padding: 4px 8px; margin-right: 4px;">
-                                                <i class="fa fa-clock"></i> OS Pendiente
-                                            </span>
-                                            
-                                            <button type="button" 
-                                                    class="btn btn-primary btn-sm btn-agregarOrden" 
-                                                    data-id-detalle="<?php echo $id_detalle; ?>"
-                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                    data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
-                                                    data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
-                                                    data-cantidad-ordenada="<?php echo $ya_ordenado_oc; ?>"
-                                                    data-cantidad-pendiente="<?php echo $pendiente_oc; ?>"
-                                                    style="padding: 2px 8px; font-size: 11px;">
-                                                <i class="fa fa-shopping-cart"></i> OC (<?php echo number_format($pendiente_oc, 2); ?>)
-                                            </button>
+                                        <button type="button" class="btn btn-warning btn-xs verificar-btn"
+                                                data-id-detalle="<?php echo $id_detalle; ?>"
+                                                data-cantidad-pedida="<?php echo $cantidad_pedida; ?>"
+                                                data-stock-destino="<?php echo $stock_destino; ?>"
+                                                data-stock-otras-ubicaciones="<?php echo isset($stock_otras_ubicaciones) ? $stock_otras_ubicaciones : 0; ?>"
+                                                data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
+                                                style="padding: 2px 8px; font-size: 11px;">
+                                            <i class="fa fa-check"></i> Verificar
+                                        </button>
                                     <?php
                                         }
-                                    }
                                     }
                                     ?>
                                 </div>
@@ -866,7 +822,7 @@ $monedas = MostrarMoneda();
                                         $cant_oc_ordenada = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                         $cant_os_ordenada = isset($detalle['cantidad_ya_ordenada_os']) ? floatval($detalle['cantidad_ya_ordenada_os']) : 0;
                                         
-                                        // Obtener salidas históricas reales
+                                       // Obtener salidas históricas reales
                                         $cant_os_ordenada_historica = ObtenerCantidadYaOrdenadaOSPorDetalle($detalle['id_pedido_detalle']);
                                         
                                         // Si no hay OS verificada PERO hay salidas históricas, mostrarlas
@@ -874,15 +830,16 @@ $monedas = MostrarMoneda();
                                             $cant_os_verificada = $cant_os_ordenada_historica;
                                         }
                                         
-                                        // Calcular pendiente OS basado en CANTIDAD PEDIDA
+                                        // Usar ordenada histórica si no hay ordenada calculada
                                         if ($cant_os_ordenada == 0 && $cant_os_ordenada_historica > 0) {
                                             $cant_os_ordenada = $cant_os_ordenada_historica;
                                         }
                                         
-                                        // El pendiente debe ser: Cantidad Pedida - Lo ya ordenado (limitado por OS verificada)
-                                        $pendiente_os = $cantidad_pedida - $cant_os_ordenada;
-                                        $pendiente_os = min($pendiente_os, $cant_os_verificada); // No puede exceder lo verificado
-                                        $pendiente_os = max(0, $pendiente_os); // No puede ser negativo
+                                        // ✅ CORRECCIÓN: Usar OS verificada, no cantidad pedida
+                                        $pendiente_os = $cant_os_verificada - $cant_os_ordenada;
+                                        
+                                        // ✅ Solo validar que no sea negativo
+                                        $pendiente_os = max(0, $pendiente_os);
                                         
                                         $pendiente_oc = $cant_oc_verificada - $cant_oc_ordenada;
                                         
@@ -1968,8 +1925,72 @@ $monedas = MostrarMoneda();
                                                         style="font-size: 12px; resize: none;"><?php echo ($modo_editar_salida && isset($salida_data)) ? htmlspecialchars($salida_data['obs_salida']) : ''; ?></textarea>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
+
+                                        <!--  Subir Documentos -->
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <label style="font-size: 11px; font-weight: bold;">
+                                                    Subir Documentos: <span class="text-danger">*</span>
+                                                </label>
+                                                <input type="file" name="documentos_salida[]" id="documentos_salida" 
+                                                    class="form-control form-control-sm" 
+                                                    multiple 
+                                                    <?php echo !$modo_editar_salida ? 'required' : ''; ?>
+                                                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                                    style="font-size: 12px;">
+                                                <small class="text-muted" style="font-size: 10px;">
+                                                    <i class="fa fa-info-circle"></i> 
+                                                    <strong><?php echo $modo_editar_salida ? 'Opcional en modo edición.' : 'Obligatorio.'; ?></strong> 
+                                                    Formatos permitidos: PDF, JPG, PNG, DOC, DOCX. Máximo 5MB por archivo.
+                                                </small>
+                                                
+                                                <?php if ($modo_editar_salida && isset($documentos_salida) && !empty($documentos_salida)): ?>
+                                                <!-- 🔥 MOSTRAR DOCUMENTOS EXISTENTES CON ESTILO DE HOMOLOGACIÓN -->
+                                                <div class="mt-2">
+                                                    <?php foreach ($documentos_salida as $doc): 
+                                                        $ruta_archivo = "../uploads/salidas/" . $doc['documento'];
+                                                        $extension = strtolower(pathinfo($doc['documento'], PATHINFO_EXTENSION));
+                                                        
+                                                        // Determinar icono según extensión
+                                                        $icono = 'fa-file';
+                                                        
+                                                        if ($extension == 'pdf') {
+                                                            $icono = 'fa-file-pdf-o';
+                                                        } elseif (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
+                                                            $icono = 'fa-file-image-o';
+                                                        } elseif (in_array($extension, ['doc', 'docx'])) {
+                                                            $icono = 'fa-file-word-o';
+                                                        } elseif (in_array($extension, ['xls', 'xlsx'])) {
+                                                            $icono = 'fa-file-excel-o';
+                                                        }
+                                                        
+                                                        // Nombre amigable (sin prefijo de timestamp)
+                                                        $nombre_mostrar = preg_replace('/^salidas_\d+_\d+_\d+_/', '', $doc['documento']);
+                                                    ?>
+                                                    <div style="margin-bottom: 5px; padding: 5px; background-color: #d4edda; border-radius: 4px; border: 1px solid #c3e6cb;">
+                                                        <a href="<?php echo $ruta_archivo; ?>" 
+                                                        target="_blank" 
+                                                        class="text-success" 
+                                                        style="font-size: 11px; display: block; text-decoration: none;">
+                                                            <i class="fa <?php echo $icono; ?>"></i> 
+                                                            <strong>Archivo actual:</strong>
+                                                            <br>
+                                                            <small class="text-muted"><?php echo htmlspecialchars($nombre_mostrar); ?></small>
+                                                        </a>
+                                                    </div>
+                                                    <?php endforeach; ?>
+                                                    <small class="text-info d-block mb-2" style="font-size: 10px;">
+                                                        <i class="fa fa-info-circle"></i> Subir nuevos archivos para agregar más documentos
+                                                    </small>
+                                                </div>
+                                                <?php elseif ($modo_editar_salida): ?>
+                                                <div class="alert alert-warning mt-2" style="padding: 8px; font-size: 11px; margin-bottom: 0;">
+                                                    <i class="fa fa-exclamation-triangle"></i> 
+                                                    <strong>Sin documentos:</strong> Esta salida no tiene archivos adjuntos. Puedes agregar nuevos arriba.
+                                                </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
                                 
                                 <!-- Contenedor de items de salida -->
                                 <div id="contenedor-items-salida" class="mb-3">
@@ -1978,7 +1999,7 @@ $monedas = MostrarMoneda();
                                             $cantidad_maxima = isset($item['cantidad_maxima']) ? floatval($item['cantidad_maxima']) : 0;
                                             $cant_actual_en_salida = floatval($item['cant_salida_detalle']);
                                             
-                                            // 🔍 DEBUG
+                                            
                                             error_log("📝 HTML: Item '{$item['nom_producto']}' | Max: $cantidad_maxima | Actual: $cant_actual_en_salida");
                                         ?>
                                         <div class="alert alert-light p-2 mb-2" id="item-salida-<?php echo $item['id_salida_detalle']; ?>">
@@ -2041,32 +2062,29 @@ $monedas = MostrarMoneda();
                 </div>
             </div>
         </div>
-
-        <!-- Botón Volver -->
-        <div class="row">
-            <div class="col-md-12">
-                <div class="x_panel">
-                    <div class="x_content text-center" style="padding: 15px;">
-                        <div class="row">
-                            <div class="col-md-6 offset-md-3">
-                                <a href="pedidos_mostrar.php" class="btn btn-outline-secondary btn-sm btn-block">
-                                    <i class="fa fa-arrow-left"></i> Volver
-                                </a>
-                            </div>
-                        </div>
-                        <div class="col-md-12 mt-2">
-                            <p class="text-muted" style="font-size: 12px;">
-                                <i class="fa fa-info-circle"></i> 
-                                Recuerda verificar todos los items antes de generar órdenes o salidas
-                            </p>
-                        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-12">
+        <div class="x_panel">
+            <div class="x_content text-center" style="padding: 15px;">
+                <div class="row">
+                    <div class="col-md-6 offset-md-3">
+                        <a href="pedidos_mostrar.php" class="btn btn-outline-secondary btn-sm btn-block">
+                            <i class="fa fa-arrow-left"></i> Volver
+                        </a>
                     </div>
+                </div>
+                <div class="col-md-12 mt-2">
+                    <p class="text-muted" style="font-size: 12px;">
+                        <i class="fa fa-info-circle"></i> 
+                        Recuerda verificar todos los items antes de generar órdenes o salidas
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 <!-- ============================================ -->
 <!-- MODALES -->
 <!-- ============================================ -->
@@ -2937,7 +2955,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             confirmButtonText: 'Entendido'
                         });
                         
-                        ubicacionDestino.value = '';
+                        ubicacionOrigen.value = '';
                     }
                 }
             });
@@ -3837,7 +3855,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const ubicOrigen = document.getElementById('ubicacion_origen_salida').value;
     const almDestino = document.getElementById('almacen_destino_salida').value;
     const ubicDestino = document.getElementById('ubicacion_destino_salida').value;
-    
+    const inputArchivos = document.getElementById('documentos_salida');
+
     console.log('📋 Datos capturados:', {
         ndoc, fec, almOrigen, ubicOrigen, almDestino, ubicDestino
     });
@@ -3902,6 +3921,49 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         return;
     }
+
+    if (!modoEditarSalida) {
+        if (!inputArchivos || !inputArchivos.files || inputArchivos.files.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Documentos Requeridos',
+                text: 'Debe subir al menos un documento para generar la salida',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
+    }
+
+    if (inputArchivos && inputArchivos.files && inputArchivos.files.length > 0) {
+        const maxSize = 5 * 1024 * 1024;
+        let archivosPesados = [];
+
+        for (let i = 0; i < inputArchivos.files.length; i++) {
+            if (inputArchivos.files[i].size > maxSize) {
+                archivosPesados.push(inputArchivos.files[i].name);
+            }
+        }
+
+        if (archivosPesados.length > 0) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Archivos muy pesados',
+                html: `
+                    <div style="text-align: left;">
+                        <p>Los siguientes archivos exceden el tamaño máximo de 5MB:</p>
+                        <ul style="color: #d33;">
+                            ${archivosPesados.map(f => `<li><strong>${f}</strong></li>`).join('')}
+                        </ul>
+                    </div>
+                `,
+                confirmButtonColor: '#d33'
+            });
+            return;
+        }
+        
+        console.log(`📎 Archivos nuevos a subir: ${inputArchivos.files.length}`);
+    }
+
     
     // ✅ RECOLECTAR ITEMS (CORREGIDO)
     const contenedorItems = document.getElementById('contenedor-items-salida');

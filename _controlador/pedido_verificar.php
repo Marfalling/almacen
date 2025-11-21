@@ -78,7 +78,8 @@ if (isset($_REQUEST['verificar_item'])) {
                 $pedido_row = $pedido_check[0];
                 $estado_pedido = intval($pedido_row['est_pedido']);
                 
-                // CORRECCIÓN: Permitir verificación en estados 1 (Pendiente) y 2 (Atendido)
+                //  CORRECCIÓN: Permitir verificación en estados 1 (Pendiente) y 2 (Completado)
+                // NO permitir en: 0 (Anulado), 3 (Aprobado), 4 (Ingresado), 5 (Finalizado)
                 if ($estado_pedido == 0) {
                     $alerta = [
                         "icon" => "error",
@@ -96,44 +97,21 @@ if (isset($_REQUEST['verificar_item'])) {
                     $rpta = verificarItem($id_pedido_detalle, $cant_oc, $cant_os);
 
                     if ($rpta == "SI") {
-                        // VALIDAR SI EL PEDIDO ESTÁ COMPLETO
-                        include("../_conexion/conexion.php");
-                        
-                        $sql_check_completo = "SELECT COUNT(*) as items_abiertos
-                                              FROM pedido_detalle
-                                              WHERE id_pedido = $id_pedido_real
-                                              AND est_pedido_detalle = 1";
-                        $res_check = mysqli_query($con, $sql_check_completo);
-                        $row_check = mysqli_fetch_assoc($res_check);
-                        
-                        mysqli_close($con);
-                        
-                        $items_abiertos = intval($row_check['items_abiertos']);
-                        
-                        if ($items_abiertos == 0) {
-                            // TODOS LOS ITEMS ESTÁN CERRADOS
-                            error_log(" Todos los items cerrados - Actualizando pedido: $id_pedido_real");
-                            
-                            // Actualizar estado del pedido
-                            ActualizarEstadoPedidoUnificado($id_pedido_real);
-                            
-                            // Mostrar alerta de pedido completado
-                            $alerta = [
-                                "icon" => "success",
-                                "title" => "¡Pedido Completado!",
-                                "html" => "Todos los items tienen stock disponible.<br>El pedido ha sido marcado como <strong>ATENDIDO</strong>.",
-                                "timer" => 4000,
-                                "showConfirmButton" => true,
-                                "confirmButtonText" => "Ir al listado",
-                                "allowOutsideClick" => false,
-                                "showCancelButton" => true,
-                                "cancelButtonText" => "Quedarme aquí"
-                            ];
-                        } else {
-                            // Items aún pendientes - redirect normal
-                            header("Location: pedido_verificar.php?id=$id_pedido_real&success=verificado");
-                            exit;
-                        }
+                        // ===============================================================
+                        //  REGISTRO DE MOVIMIENTO tipo_orden = 5 (pedido / stock comprometido)
+                        // ===============================================================
+                        $id_producto   = intval($detalle['id_producto']);
+                        $id_almacen    = intval($pedido_row['id_almacen']);
+                        $id_ubicacion  = intval($pedido_row['id_ubicacion']);
+
+                        //  Obtener stock actual (físico y disponible)
+                        $stock = ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion);
+                        $stock_disponible = floatval($stock['stock_disponible']);
+
+                        // ===============================================================
+                        //  Verificación exitosa
+                        header("Location: pedido_verificar.php?id=$id_pedido_real&success=verificado");
+                        exit;
                     } else {
                         $alerta = [
                             "icon" => "error",
@@ -679,9 +657,73 @@ if (isset($_REQUEST['crear_salida'])) {
         // PROCESAR RESULTADO
         if (is_array($resultado)) {
             if (isset($resultado['success']) && $resultado['success'] === true) {
-                error_log("✅ Salida creada correctamente - ID: " . ($resultado['id_salida'] ?? 'N/A'));
+                error_log(" Salida creada correctamente - ID: " . ($resultado['id_salida'] ?? 'N/A'));
+                
+                // ============================================================================
+                //  SUBIDA DE ARCHIVOS
+                // ============================================================================
+                $id_salida = isset($resultado['id_salida']) ? intval($resultado['id_salida']) : 0;
+                
+                if ($id_salida > 0 && isset($_FILES['documentos_salida']) && count($_FILES['documentos_salida']['name']) > 0) {
+                    include_once("../_modelo/m_documentos.php");
+                    
+                    $entidad = "salidas";
+                    $target_dir = __DIR__ . "/../uploads/" . $entidad . "/";
+                    
+                    // Crear directorio si no existe
+                    if (!is_dir($target_dir)) {
+                        mkdir($target_dir, 0777, true);
+                    }
+                    
+                    $archivos_subidos = 0;
+                    $archivos_fallidos = 0;
+                    
+                    foreach ($_FILES['documentos_salida']['name'] as $i => $nombre_original) {
+                        if (!empty($nombre_original) && $_FILES['documentos_salida']['error'][$i] === UPLOAD_ERR_OK) {
+                            // Limpiar nombre del archivo
+                            $nombre_limpio = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $nombre_original);
+                            if ($nombre_limpio === false || trim($nombre_limpio) === '') {
+                                $nombre_limpio = $nombre_original;
+                            }
+                            
+                            // Remover caracteres especiales
+                            $nombre_limpio = preg_replace('/[^A-Za-z0-9._-]/', '_', $nombre_limpio);
+                            $nombre_limpio = trim($nombre_limpio, '_');
+                            
+                            // Generar nombre único
+                            $nombre_archivo = $entidad . "_" . $id_salida . "_" . time() . "_" . $i . "_" . basename($nombre_limpio);
+                            $target_file = $target_dir . $nombre_archivo;
+                            
+                            // Mover archivo
+                            if (move_uploaded_file($_FILES["documentos_salida"]["tmp_name"][$i], $target_file)) {
+                                GuardarDocumento($entidad, $id_salida, $nombre_archivo, $_SESSION['id_personal']);
+                                $archivos_subidos++;
+                                error_log("✅ Archivo subido: $nombre_archivo");
+                            } else {
+                                $archivos_fallidos++;
+                                error_log("❌ Error al subir archivo: $nombre_original");
+                            }
+                        }
+                    }
+                    
+                    // Mensaje adicional sobre archivos
+                    $mensaje_archivos = '';
+                    if ($archivos_subidos > 0) {
+                        $mensaje_archivos = " Se subieron $archivos_subidos archivo(s) correctamente.";
+                    }
+                    if ($archivos_fallidos > 0) {
+                        $mensaje_archivos .= " Advertencia: $archivos_fallidos archivo(s) no pudieron ser subidos.";
+                    }
+                    
+                    error_log("📁 Resultado subida: $archivos_subidos exitosos, $archivos_fallidos fallidos");
+                }
+                // ============================================================================
+                
                 mysqli_close($con);
-                echo json_encode(['success' => true]);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Salida creada correctamente' . ($mensaje_archivos ?? '')
+                ]);
                 exit;
             } else {
                 $mensaje_error = isset($resultado['message']) ? $resultado['message'] : 'Error desconocido al crear la salida';
@@ -711,6 +753,40 @@ if (isset($_REQUEST['crear_salida'])) {
         } elseif (is_string($resultado)) {
             if (strpos($resultado, 'OK') === 0 || strpos($resultado, 'SI') === 0) {
                 error_log("✅ Salida creada correctamente");
+                
+                // ============================================================================
+                //  SUBIDA DE ARCHIVOS 
+                // ============================================================================
+                // Intentar extraer ID de salida del mensaje (si viene en formato "OK|123" o similar)
+                $id_salida = 0;
+                if (preg_match('/\|(\d+)/', $resultado, $matches)) {
+                    $id_salida = intval($matches[1]);
+                }
+                
+                if ($id_salida > 0 && isset($_FILES['documentos_salida']) && count($_FILES['documentos_salida']['name']) > 0) {
+                    include_once("../_modelo/m_documentos.php");
+                    
+                    $entidad = "salidas";
+                    $target_dir = __DIR__ . "/../uploads/" . $entidad . "/";
+                    
+                    if (!is_dir($target_dir)) {
+                        mkdir($target_dir, 0777, true);
+                    }
+                    
+                    foreach ($_FILES['documentos_salida']['name'] as $i => $nombre_original) {
+                        if (!empty($nombre_original) && $_FILES['documentos_salida']['error'][$i] === UPLOAD_ERR_OK) {
+                            $nombre_limpio = preg_replace('/[^A-Za-z0-9._-]/', '_', $nombre_original);
+                            $nombre_archivo = $entidad . "_" . $id_salida . "_" . time() . "_" . $i . "_" . basename($nombre_limpio);
+                            $target_file = $target_dir . $nombre_archivo;
+                            
+                            if (move_uploaded_file($_FILES["documentos_salida"]["tmp_name"][$i], $target_file)) {
+                                GuardarDocumento($entidad, $id_salida, $nombre_archivo, $_SESSION['id_personal']);
+                            }
+                        }
+                    }
+                }
+                // ============================================================================
+                
                 mysqli_close($con);
                 echo json_encode(['success' => true]);
                 exit;
@@ -1006,7 +1082,8 @@ if (isset($_GET['success'])) {
 // ============================================================
 // CARGAR DATOS DEL PEDIDO CON RE-VERIFICACIÓN AUTOMÁTICA
 // ============================================================
-$tiene_salida_activa = false;
+
+$tiene_salida_activa = false; // Inicializar variable
 
 if ($id_pedido > 0) {
     $pedido_data = ConsultarPedido($id_pedido);
@@ -1020,136 +1097,48 @@ if ($id_pedido > 0) {
         $estado_pedido = intval($pedido['est_pedido']);
         
         // ============================================================
-        // VALIDACIÓN AUTOMÁTICA AL ENTRAR A VERIFICAR
+        //  RE-VERIFICACIÓN AUTOMÁTICA (SIEMPRE)
         // ============================================================
-        if ($estado_pedido == 1) { // SOLO si está PENDIENTE
-            error_log(" Validando pedido al entrar a verificación - Pedido $id_pedido");
+        if ($estado_pedido != 0 && $estado_pedido != 5 && $estado_pedido != 4) { //  NO verificar si está en estado 4 (Ingresado)
+        error_log("🔄 RE-VERIFICACIÓN AUTOMÁTICA - Pedido $id_pedido");
+        
+        include("../_conexion/conexion.php");
+        
+        //  VALIDAR: ¿Hay items que NECESITEN re-verificación?
+        $sql_check = "SELECT COUNT(*) as items_pendientes
+                    FROM pedido_detalle 
+                    WHERE id_pedido = $id_pedido 
+                    AND est_pedido_detalle = 1"; // Solo items abiertos
+        
+        $res_check = mysqli_query($con, $sql_check);
+        $row_check = mysqli_fetch_assoc($res_check);
+        $hay_items_pendientes = intval($row_check['items_pendientes']) > 0;
+        
+        if ($hay_items_pendientes) {
+            // Obtener todos los detalles activos
+            $sql_detalles = "SELECT id_pedido_detalle 
+                            FROM pedido_detalle 
+                            WHERE id_pedido = $id_pedido 
+                            AND est_pedido_detalle IN (1, 2)";
             
-            include("../_conexion/conexion.php");
+            $res_detalles = mysqli_query($con, $sql_detalles);
+            $items_reverificados = 0;
             
-            // Obtener todos los items del pedido
-            $sql_items = "SELECT pd.id_pedido_detalle,
-                                pd.id_producto,
-                                pd.cant_pedido_detalle,
-                                pd.cant_oc_pedido_detalle,
-                                pd.cant_os_pedido_detalle,
-                                pd.est_pedido_detalle,
-                                p.id_almacen,
-                                p.id_ubicacion
-                        FROM pedido_detalle pd
-                        INNER JOIN pedido p ON pd.id_pedido = p.id_pedido
-                        WHERE pd.id_pedido = $id_pedido
-                        AND pd.est_pedido_detalle IN (1, 2)";
-            
-            $res_items = mysqli_query($con, $sql_items);
-            
-            $todos_cerrados = true;
-            $items_cerrados_auto = 0;
-            
-            while ($item = mysqli_fetch_assoc($res_items)) {
-                $id_pedido_detalle = intval($item['id_pedido_detalle']);
-                $estado_item = intval($item['est_pedido_detalle']);
+            while ($row = mysqli_fetch_assoc($res_detalles)) {
+                $id_detalle = intval($row['id_pedido_detalle']);
                 
-                // Si ya está cerrado, continuar
-                if ($estado_item == 2) {
-                    continue;
-                }
-                
-                // Solo cerrar si NO necesita verificación (OC=0 y OS=0)
-                $cant_oc = floatval($item['cant_oc_pedido_detalle']);
-                $cant_os = floatval($item['cant_os_pedido_detalle']);
-                
-                // Si necesita OC u OS, NO cerrarlo automáticamente
-                if ($cant_oc > 0 || $cant_os > 0) {
-                    error_log("    Item $id_pedido_detalle necesita verificación (OC=$cant_oc, OS=$cant_os) - No cerrar automáticamente");
-                    $todos_cerrados = false;
-                    continue;
-                }
-                
-                // Si NO necesita OC ni OS, verificar stock
-                $id_producto = intval($item['id_producto']);
-                $cantidad_pedida = floatval($item['cant_pedido_detalle']);
-                $id_almacen = intval($item['id_almacen']);
-                $id_ubicacion = intval($item['id_ubicacion']);
-                
-                // Obtener stock en destino
-                $stock_data = ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion, $id_pedido);
-                $stock_destino = floatval($stock_data['stock_fisico']);
-                
-                // Si hay stock suficiente, cerrar item automáticamente
-                if ($stock_destino >= $cantidad_pedida) {
-                    $sql_cerrar = "UPDATE pedido_detalle 
-                                SET est_pedido_detalle = 2 
-                                WHERE id_pedido_detalle = $id_pedido_detalle";
-                    mysqli_query($con, $sql_cerrar);
-                    
-                    $items_cerrados_auto++;
-                    error_log("    Item $id_pedido_detalle cerrado automáticamente (stock disponible: $stock_destino >= $cantidad_pedida)");
-                } else {
-                    // Falta stock, el pedido NO está completo
-                    $todos_cerrados = false;
-                    error_log("    Item $id_pedido_detalle - Stock insuficiente ($stock_destino < $cantidad_pedida)");
-                }
+                //  RE-VERIFICAR SOLO SI NO ESTÁ COMPLETAMENTE INGRESADO
+                ReverificarItemAutomaticamente($id_detalle);
+                $items_reverificados++;
             }
             
-            mysqli_close($con);
-            
-            // Si se cerraron items automáticamente, mostrar mensaje
-            if ($items_cerrados_auto > 0) {
-                error_log(" Items cerrados automáticamente: $items_cerrados_auto");
-                
-                // Si TODOS los items están cerrados, actualizar estado y redirigir
-                if ($todos_cerrados) {
-                    error_log("Todos los items cerrados - Actualizando pedido a ATENDIDO");
-                    
-                    ActualizarEstadoPedidoUnificado($id_pedido);
-                    
-                    // Redirigir con mensaje de éxito
-                    header("Location: pedidos_mostrar.php?success=pedido_atendido");
-                    exit;
-                }
-            }
+            error_log("✅ Items re-verificados automáticamente: $items_reverificados");
+        } else {
+            error_log(" Sin items pendientes - Omitiendo re-verificación");
         }
         
-        // ============================================================
-        // RE-VERIFICACIÓN AUTOMÁTICA (SIEMPRE)
-        // ============================================================
-        if ($estado_pedido != 0 && $estado_pedido != 5 && $estado_pedido != 4) {
-            error_log(" RE-VERIFICACIÓN AUTOMÁTICA - Pedido $id_pedido");
-            
-            include("../_conexion/conexion.php");
-            
-            $sql_check = "SELECT COUNT(*) as items_pendientes
-                        FROM pedido_detalle 
-                        WHERE id_pedido = $id_pedido 
-                        AND est_pedido_detalle = 1";
-            
-            $res_check = mysqli_query($con, $sql_check);
-            $row_check = mysqli_fetch_assoc($res_check);
-            $hay_items_pendientes = intval($row_check['items_pendientes']) > 0;
-            
-            if ($hay_items_pendientes) {
-                $sql_detalles = "SELECT id_pedido_detalle 
-                                FROM pedido_detalle 
-                                WHERE id_pedido = $id_pedido 
-                                AND est_pedido_detalle = 1"; // SOLO ABIERTOS
-                
-                $res_detalles = mysqli_query($con, $sql_detalles);
-                $items_reverificados = 0;
-                
-                while ($row = mysqli_fetch_assoc($res_detalles)) {
-                    $id_detalle = intval($row['id_pedido_detalle']);
-                    ReverificarItemAutomaticamente($id_detalle);
-                    $items_reverificados++;
-                }
-                
-                error_log(" Items re-verificados automáticamente: $items_reverificados");
-            } else {
-                error_log(" Sin items pendientes - Omitiendo re-verificación");
-            }
-            
-            mysqli_close($con);
-        }
+        mysqli_close($con);
+    }
         
         // ============================================================
         // CARGAR DETALLE CON STOCK CALCULADO
@@ -1195,13 +1184,13 @@ if ($id_pedido > 0) {
             $sql_detalles = "SELECT id_pedido_detalle 
                             FROM pedido_detalle 
                             WHERE id_pedido = $id_pedido 
-                            AND est_pedido_detalle = 1";
+                            AND est_pedido_detalle IN (1, 2)";
             
             $res_detalles = mysqli_query($con, $sql_detalles);
             
             while ($row = mysqli_fetch_assoc($res_detalles)) {
                 $id_detalle = intval($row['id_pedido_detalle']);
-                VerificarEstadoItemPorDetalle($id_detalle); 
+                VerificarEstadoItemPorDetalle($id_detalle);
             }
             
             mysqli_close($con);
@@ -1210,7 +1199,6 @@ if ($id_pedido > 0) {
         // Cargar resto de datos
         $pedido_compra = ConsultarCompra($id_pedido);
         $pedido_salidas = ConsultarSalidasPorPedido($id_pedido);
-        $detalles_con_salidas_pendientes = ObtenerDetallesConSalidasPendientes($id_pedido);
         $proveedor = MostrarProveedores();
         $moneda = MostrarMoneda();
         $obras = MostrarObras();
@@ -1259,6 +1247,9 @@ if ($id_pedido > 0) {
             
             $salida_detalle = ObtenerDetalleSalida($id_salida_editar);
             
+            
+            require_once("../_modelo/m_documentos.php");
+            $documentos_salida = MostrarDocumentos('salidas', $id_salida_editar);            
             // ABRIR CONEXIÓN PARA CONSULTAS
             include("../_conexion/conexion.php");
             
@@ -1278,9 +1269,9 @@ if ($id_pedido > 0) {
                 
                 //  PASO 2: Cantidad ya ordenada en OTRAS salidas activas (excluyendo la actual)
                 $sql_otras_salidas = "SELECT COALESCE(SUM(sd.cant_salida_detalle), 0) as total_otras
-                                      FROM salida_detalle sd
-                                      INNER JOIN salida s ON sd.id_salida = s.id_salida
-                                      WHERE sd.id_pedido_detalle = $id_pedido_detalle
+                                    FROM salida_detalle sd
+                                    INNER JOIN salida s ON sd.id_salida = s.id_salida
+                                    WHERE sd.id_pedido_detalle = $id_pedido_detalle
                                         AND s.est_salida = 1
                                         AND s.id_salida != $id_salida_editar";
                 $res_otras = mysqli_query($con, $sql_otras_salidas);
@@ -1363,49 +1354,26 @@ if ($id_pedido > 0) {
     require_once("../_vista/v_alertas.php");
     ?>
 
-    <?php if (isset($alerta) && !empty($alerta) && !empty($alerta['text'] ?? $alerta['html'] ?? '')): ?>
+    <?php if (isset($alerta) && !empty($alerta) && !empty($alerta['text'])): ?>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const alerta = <?php echo json_encode($alerta, JSON_UNESCAPED_UNICODE); ?>;
         
-        if (alerta && (alerta.text || alerta.html) && (alerta.text?.trim() !== '' || alerta.html?.trim() !== '')) {
+        if (alerta && alerta.text && alerta.text.trim() !== '') {
+            //  Determinar si debe auto-cerrar
             const autoClose = alerta.timer && alerta.timer > 0;
             
-            // Configuración de la alerta
-            const swalConfig = {
+            Swal.fire({
                 icon: alerta.icon || 'info',
                 title: alerta.title || 'Aviso',
-                showConfirmButton: alerta.showConfirmButton !== false,
+                text: alerta.text,
+                showConfirmButton: !autoClose,
                 timer: alerta.timer || null,
-                allowOutsideClick: alerta.allowOutsideClick !== undefined ? alerta.allowOutsideClick : true
-            };
-            
-            // Agregar texto o HTML
-            if (alerta.html) {
-                swalConfig.html = alerta.html;
-            } else if (alerta.text) {
-                swalConfig.text = alerta.text;
-            }
-            
-            // Botones personalizados
-            if (alerta.confirmButtonText) {
-                swalConfig.confirmButtonText = alerta.confirmButtonText;
-            }
-            
-            if (alerta.showCancelButton) {
-                swalConfig.showCancelButton = true;
-                swalConfig.cancelButtonText = alerta.cancelButtonText || 'Cancelar';
-            }
-            
-            // Mostrar alerta
-            Swal.fire(swalConfig).then((result) => {
-                // Si presionó "Ir al listado"
-                if (result.isConfirmed && alerta.confirmButtonText?.includes('listado')) {
-                    window.location.href = 'pedidos_mostrar.php?success=pedido_atendido';
+                allowOutsideClick: false,
+                didClose: () => {
+                    //  LIMPIAR URL AL CERRAR (manual o automático)
+                    limpiarParametroSuccess();
                 }
-                
-                // Si se cerró automáticamente o presionó cancelar, limpiar URL
-                limpiarParametroSuccess();
             });
             
             // Si tiene timer, también limpiar cuando termine
@@ -1416,12 +1384,13 @@ if ($id_pedido > 0) {
             }
         }
         
-        // Función para limpiar URL
+        //  FUNCIÓN PARA LIMPIAR URL
         function limpiarParametroSuccess() {
             const url = new URL(window.location);
             if (url.searchParams.has('success')) {
                 url.searchParams.delete('success');
                 window.history.replaceState({}, document.title, url.pathname + url.search);
+                console.log(' Parámetro success eliminado de la URL');
             }
         }
     });
