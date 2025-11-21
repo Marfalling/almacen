@@ -1074,7 +1074,7 @@ $monedas = MostrarMoneda();
                                                     $estado_texto = '';
                                                     $estado_clase = '';
 
-                                                    switch ($compra['est_compra']) {
+                                                    /*switch ($compra['est_compra']) {
                                                         case 0:
                                                             $estado_texto = 'Anulada';
                                                             $estado_clase = 'danger';
@@ -1101,6 +1101,30 @@ $monedas = MostrarMoneda();
                                                         default:
                                                             $estado_texto = 'Desconocido';
                                                             $estado_clase = 'secondary';
+                                                    }*/
+
+                                                    if ($compra['est_compra'] == 2 && $compra['pagado'] == 1) {
+                                                        $estado_texto = 'PAGADO';
+                                                        $estado_clase = 'badge-primary';
+
+                                                    } elseif ($compra['est_compra'] == 3 && $compra['pagado'] == 1) {
+                                                        $estado_texto = 'CERRADO';
+                                                        $estado_clase = 'badge-dark';
+
+                                                    } elseif ($compra['est_compra'] == 2) {
+                                                        $estado_texto = 'APROBADO';
+                                                        $estado_clase = 'badge-info';
+
+                                                    } elseif ($compra['est_compra'] == 3) {
+                                                        $estado_texto = 'INGRESADO';
+                                                        $estado_clase = 'badge-success';
+
+                                                    } elseif ($compra['est_compra'] == 1) {
+                                                        $estado_texto = 'PENDIENTE';
+                                                        $estado_clase = 'badge-warning';
+                                                    } else {
+                                                        $estado_texto = 'ANULADO';
+                                                        $estado_clase = 'badge-danger';
                                                     }
 
                                                     $fecha_formateada = date('d/m/Y', strtotime($compra['fec_compra']));
@@ -1110,7 +1134,7 @@ $monedas = MostrarMoneda();
                                                         <td><?php echo htmlspecialchars($compra['nom_proveedor']); ?></td>
                                                         <td><?php echo $fecha_formateada; ?></td>
                                                         <td>
-                                                            <span class="badge badge-<?php echo $estado_clase; ?>">
+                                                            <span class="badge <?php echo $estado_clase; ?> badge_size">
                                                                 <?php echo $estado_texto; ?>
                                                             </span>
                                                         </td>

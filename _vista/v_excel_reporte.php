@@ -18,24 +18,24 @@ header("content-disposition: attachment;filename=" . $filename);
     <table border="0" class="table table-bordered table-hover table-condensed " >
     
     <tr>
-        <th bgcolor="#D8D8FC" style="text-align: center">#</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">DOI Tipo</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">DOI Numero</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Tipo Abono</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Nro Cuentas a Abonar</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Nombre de Beneficiario</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Importe Abonar</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Tipo Recibo</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Nro Documento</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Abono agrupado</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Moneda</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Referencia Orden</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Referencia Comprobante</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Indicador Aviso</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Medio de aviso</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Persona Contacto</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Estado</th>
-        <th bgcolor="#D8D8FC" style="text-align: center">Validacion</th>
+        <th bgcolor="#993366" style="text-align: center; color: #FFFFFF;">#</th>
+        <th bgcolor="#993366" style="text-align: center; color: #FFFFFF;">DOI Tipo</th>
+        <th bgcolor="#993366" style="text-align: center; color: #FFFFFF;">DOI Numero</th>
+        <th bgcolor="#993366" style="text-align: center; color: #FFFFFF;">Tipo Abono</th>
+        <th bgcolor="#993366" style="text-align: center; color: #FFFFFF;">Nro Cuentas a Abonar</th>
+        <th bgcolor="#993366" style="text-align: center; color: #FFFFFF;">Nombre de Beneficiario</th>
+        <th bgcolor="#993366" style="text-align: center; color: #FFFFFF;">Importe Abonar</th>
+        <th bgcolor="#993366" style="text-align: center; color: #FFFFFF;">Tipo Recibo</th>
+        <th bgcolor="#993366" style="text-align: center; color: #FFFFFF;">Nro Documento</th>
+        <th bgcolor="#993366" style="text-align: center; color: #FFFFFF;">Abono agrupado</th>
+        <th bgcolor="#969696" style="text-align: center; color: #FFFFFF;">Moneda</th>
+        <th bgcolor="#969696" style="text-align: center; color: #FFFFFF;">Referencia Orden</th>
+        <th bgcolor="#969696" style="text-align: center; color: #FFFFFF;">Referencia Comprobante</th>
+        <th bgcolor="#969696" style="text-align: center; color: #FFFFFF;">Indicador Aviso</th>
+        <th bgcolor="#969696" style="text-align: center; color: #FFFFFF;">Medio de aviso</th>
+        <th bgcolor="#969696" style="text-align: center; color: #FFFFFF;">Persona Contacto</th>
+        <th bgcolor="#969696" style="text-align: center; color: #FFFFFF;">Estado</th>
+        <th bgcolor="#969696" style="text-align: center; color: #FFFFFF;">Validacion</th>
         
     </tr>
     

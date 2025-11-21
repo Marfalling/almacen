@@ -173,6 +173,7 @@ require_once("../_modelo/m_detraccion.php");
                                         <th>Tipo Doc.</th>
                                         <th>Serie-Número</th>
                                         <th>Monto IGV</th>
+                                        <th>Detracción</th>
                                         <th>Total</th>
                                         <th>Fecha Pago</th>
                                         <th>Voucher</th>
@@ -187,14 +188,75 @@ require_once("../_modelo/m_detraccion.php");
                                         <td><?php echo $comp['nom_tipo_documento']; ?></td>
                                         <td><strong><?php echo $comp['num_comprobante']; ?></strong></td>
                                         <td><?php echo $comp['simbolo_moneda'] . ' ' . number_format($comp['monto_total_igv'], 2); ?></td>
-                                        <td><strong><?php echo $comp['simbolo_moneda'] . ' ' . number_format($comp['total_pagar'], 2); ?></strong></td>
+                                        <!--<td><?php echo $comp['simbolo_moneda'] . ' ' . number_format($comp['monto_detraccion'], 2); ?></td>-->
+                                        <!--<td><strong><?php echo $comp['simbolo_moneda'] . ' ' . number_format($comp['total_pagar'], 2); ?></strong></td>-->
+                                        <!-- Detracción (con ícono si aplica) - fg=2 -->
+                                        <td>
+                                            <?php 
+                                            $montoDetraccion = $comp['monto_detraccion'];
+                                            echo $comp['simbolo_moneda'] . ' ' . number_format($montoDetraccion, 2);
+                                            
+                                            // Mostrar ícono solo si tiene detracción y NO es percepción (id_detraccion != 13)
+                                            if ($montoDetraccion > 0 && isset($comp['id_detraccion']) && $comp['id_detraccion'] != 13) {
+                                                // fg=2 es el pago de detracción
+                                                $tienePagoDetraccion = isset($comp['tiene_pago_detraccion']) && $comp['tiene_pago_detraccion'] > 0;
+                                                $iconClass = $tienePagoDetraccion ? 'fa-check-circle text-success' : 'fa-exclamation-triangle text-warning';
+                                                $iconTitle = $tienePagoDetraccion ? 'Monto ya se pagó' : 'Monto falta pagar';
+                                                echo ' <i class="fa ' . $iconClass . '" style="cursor: " title="' . $iconTitle . '" data-toggle="tooltip"></i>';
+                                            }
+                                            ?>
+                                        </td>
+
+                                        <!-- Total al Proveedor (siempre con ícono) - fg=1 -->
+                                        <td>
+                                            <strong>
+                                                <?php 
+                                                echo $comp['simbolo_moneda'] . ' ' . number_format($comp['total_pagar'], 2);
+                                                
+                                                // fg=1 es el pago al proveedor
+                                                $tienePagoProveedor = isset($comp['tiene_pago_proveedor']) && $comp['tiene_pago_proveedor'] > 0;
+                                                $iconClass = $tienePagoProveedor ? 'fa-check-circle text-success' : 'fa-exclamation-triangle text-warning';
+                                                $iconTitle = $tienePagoProveedor ? 'Monto ya se pagó' : 'Monto falta pagar';
+                                                echo ' <i class="fa ' . $iconClass . '" style="cursor: " title="' . $iconTitle . '" data-toggle="tooltip"></i>';
+                                                ?>
+                                            </strong>
+                                        </td>
                                         <td><?php echo $comp['fec_pago'] ? date('d/m/Y', strtotime($comp['fec_pago'])) : '<span class="text-muted">Pendiente</span>'; ?></td>
-                                        <td class="text-center">
+                                        <!-- <td class="text-center">
                                             <?php if (!empty($comp['voucher_pago'])): ?>
                                                 <a href="../_upload/vouchers/<?php echo $comp['voucher_pago']; ?>" target="_blank" style="text-decoration: underline; color: #495057;">
                                                     Ver voucher
                                                 </a>
                                             <?php else: ?>
+                                                <span style="color: #6c757d;">Sin voucher</span>
+                                            <?php endif; ?>
+                                        </td>-->
+                                        <td class="text-center">
+                                            <?php 
+                                            $tieneVoucherProveedor = !empty($comp['voucher_proveedor']);
+                                            $tieneVoucherDetraccion = !empty($comp['voucher_detraccion']);
+                                            $montoDetraccion = $comp['monto_detraccion'];
+                                            $tieneDetraccion = ($montoDetraccion > 0 && isset($comp['id_detraccion']) && $comp['id_detraccion'] != 13);
+                                            ?>
+                                            
+                                            <?php if ($tieneVoucherProveedor): ?>
+                                                <a href="../_upload/vouchers/<?php echo $comp['voucher_proveedor']; ?>" 
+                                                target="_blank" 
+                                                style="text-decoration: underline; color: #007bff;">
+                                                    Comprobante
+                                                </a>
+                                            <?php endif; ?>
+                                            
+                                            <?php if ($tieneDetraccion && $tieneVoucherDetraccion): ?>
+                                                <?php if ($tieneVoucherProveedor): ?><br><?php endif; ?>
+                                                <a href="../_upload/vouchers/<?php echo $comp['voucher_detraccion']; ?>" 
+                                                target="_blank" 
+                                                style="text-decoration: underline; color: #007bff;">
+                                                    Detracción
+                                                </a>
+                                            <?php endif; ?>
+                                            
+                                            <?php if (!$tieneVoucherProveedor && !$tieneVoucherDetraccion): ?>
                                                 <span style="color: #6c757d;">Sin voucher</span>
                                             <?php endif; ?>
                                         </td>
@@ -876,7 +938,7 @@ require_once("../_modelo/m_detraccion.php");
     <div class="modal-content">
 
       <div class="modal-header bg-warning">
-        <h5 class="modal-title">Conflicto de asignación</h5>
+        <h5 class="modal-title">Información</h5>
         <button type="button" class="close" data-dismiss="modal">&times;</button>
       </div>
 
@@ -909,29 +971,23 @@ require_once("../_modelo/m_detraccion.php");
 
 <script>
 
-console.log('🚀 === SCRIPT INICIADO ===');
-
-console.log('🔍 Verificando dependencias...');
-console.log('jQuery disponible:', typeof jQuery !== 'undefined' ? '✅' : '❌');
-console.log('$ disponible:', typeof $ !== 'undefined' ? '✅' : '❌');
-console.log('Swal disponible:', typeof Swal !== 'undefined' ? '✅' : '❌');
-
 if (typeof jQuery === 'undefined') {
     console.error('❌ CRÍTICO: jQuery NO está cargado');
     alert('Error: jQuery no está cargado. Contacte al administrador.');
 }
 
 // ============================================================
-// 1️⃣ VARIABLES GLOBALES
+// VARIABLES GLOBALES
 // ============================================================
 let archivosSeleccionados = [];
 let modalRegistrarInicializado = false;
 let modalEditarInicializado = false;
+let datosAnalisis = null; // Almacena resultado del análisis
 
 console.log('✅ Variables globales declaradas');
 
 // ============================================================
-// 2️⃣ FUNCIONES DE CÁLCULO
+// FUNCIONES DE CÁLCULO
 // ============================================================
 
 function calcularTotalPagar(isEditMode) {
@@ -990,11 +1046,11 @@ function calcularTotalPagar(isEditMode) {
     }
 
     inputTotal.value = total.toFixed(2);
-    console.log(`✅ Total calculado: ${total.toFixed(2)}`);
+    console.log(`Total calculado: ${total.toFixed(2)}`);
 }
 
 function validarMontoMaximo(isEditMode, valor) {
-    console.log(`🔍 validarMontoMaximo: ${valor} (${isEditMode ? 'EDIT' : 'NEW'})`);
+    console.log(`validarMontoMaximo: ${valor} (${isEditMode ? 'EDIT' : 'NEW'})`);
     
     const prefix = isEditMode ? 'edit_' : '';
     const hiddenId = prefix + "monto_maximo_permitido";
@@ -1002,7 +1058,7 @@ function validarMontoMaximo(isEditMode, valor) {
     const hiddenNow = document.getElementById(hiddenId) || document.getElementById(fallbackHiddenId);
     const montoMax = hiddenNow ? parseFloat(hiddenNow.value) : NaN;
 
-    console.log(`💰 Monto máximo permitido: ${montoMax}`);
+    console.log(`Monto máximo permitido: ${montoMax}`);
 
     if (isNaN(montoMax)) {
         if (valor <= 0) {
@@ -1021,7 +1077,7 @@ function validarMontoMaximo(isEditMode, valor) {
 }
 
 function setupCuentaControl(isEditMode) {
-    console.log(`🏦 setupCuentaControl (${isEditMode ? 'EDIT' : 'NEW'})`);
+    console.log(`setupCuentaControl (${isEditMode ? 'EDIT' : 'NEW'})`);
     
     const prefix = isEditMode ? 'edit_' : '';
     const medio = document.getElementById(prefix + 'id_medio_pago');
@@ -1034,24 +1090,24 @@ function setupCuentaControl(isEditMode) {
     });
     
     if (!medio || !cuenta) {
-        console.warn('⚠️ Campos de cuenta control no encontrados');
+        console.warn('Campos de cuenta control no encontrados');
         return;
     }
 
     const aplicarEstado = () => {
-        console.log(`🔄 Aplicando estado cuenta, medio_pago: "${medio.value}"`);
+        console.log(`Aplicando estado cuenta, medio_pago: "${medio.value}"`);
         
         if ((medio.value || '').toString().trim() === '2') {
             cuenta.disabled = false;
             cuenta.required = true;
             cuenta.style.backgroundColor = '#ffffff';
-            console.log('✅ Cuenta ACTIVADA');
+            console.log('Cuenta ACTIVADA');
         } else {
             cuenta.disabled = true;
             cuenta.required = false;
             cuenta.value = '';
             cuenta.style.backgroundColor = '#e9ecef';
-            console.log('🔒 Cuenta DESACTIVADA');
+            console.log('Cuenta DESACTIVADA');
         }
     };
 
@@ -1065,15 +1121,15 @@ function setupCuentaControlEdit() {
 }
 
 // ============================================================
-// 3️⃣ INICIALIZACIÓN DE MODALES
+//  INICIALIZACIÓN DE MODALES
 // ============================================================
 
 function inicializarModalRegistrar() {
-    console.log('🚀 inicializarModalRegistrar llamada');
+    console.log('inicializarModalRegistrar llamada');
     console.log('Estado actual:', {modalRegistrarInicializado});
     
     if (modalRegistrarInicializado) {
-        console.log('⚠️ Modal REGISTRAR ya inicializado, solo recalculando');
+        console.log(' Modal REGISTRAR ya inicializado, solo recalculando');
         calcularTotalPagar(false);
         setupCuentaControl(false);
         return;
@@ -1081,19 +1137,19 @@ function inicializarModalRegistrar() {
     
     const modal = document.getElementById('modalRegistrarComprobante');
     if (!modal) {
-        console.error('❌ Modal REGISTRAR no encontrado');
+        console.error('Modal REGISTRAR no encontrado');
         return;
     }
     
-    console.log('✅ Modal REGISTRAR encontrado, agregando listeners');
+    console.log(' Modal REGISTRAR encontrado, agregando listeners');
     
     // Evento delegado para input
     modal.addEventListener('input', function(e) {
-        console.log('📝 Input detectado en:', e.target.id);
+        console.log(' Input detectado en:', e.target.id);
         
         if (e.target.id === 'monto_total_igv') {
             const valor = parseFloat(e.target.value) || 0;
-            console.log('💵 Monto ingresado:', valor);
+            console.log(' Monto ingresado:', valor);
             
             if (validarMontoMaximo(false, valor)) {
                 calcularTotalPagar(false);
@@ -1109,14 +1165,14 @@ function inicializarModalRegistrar() {
     
     // Evento delegado para change
     modal.addEventListener('change', function(e) {
-        console.log('🔄 Change detectado en:', e.target.id);
+        console.log(' Change detectado en:', e.target.id);
         
         if (e.target.id === 'id_afectacion') {
-            console.log('📋 Afectación cambiada');
+            console.log(' Afectación cambiada');
             calcularTotalPagar(false);
         }
         if (e.target.id === 'id_medio_pago') {
-            console.log('💳 Medio de pago cambiado');
+            console.log(' Medio de pago cambiado');
             setupCuentaControl(false);
         }
         if (e.target.id === 'monto_total_igv') {
@@ -1131,15 +1187,15 @@ function inicializarModalRegistrar() {
     modalRegistrarInicializado = true;
     setupCuentaControl(false);
     calcularTotalPagar(false);
-    console.log('✅ Modal REGISTRAR inicializado completamente');
+    console.log(' Modal REGISTRAR inicializado completamente');
 }
 
 function inicializarModalEditar() {
-    console.log('🚀 inicializarModalEditar llamada');
+    console.log(' inicializarModalEditar llamada');
     console.log('Estado actual:', {modalEditarInicializado});
     
     if (modalEditarInicializado) {
-        console.log('⚠️ Modal EDITAR ya inicializado, solo recalculando');
+        console.log(' Modal EDITAR ya inicializado, solo recalculando');
         calcularTotalPagar(true);
         setupCuentaControl(true);
         return;
@@ -1147,19 +1203,19 @@ function inicializarModalEditar() {
     
     const modal = document.getElementById('modalEditarComprobante');
     if (!modal) {
-        console.error('❌ Modal EDITAR no encontrado');
+        console.error(' Modal EDITAR no encontrado');
         return;
     }
     
-    console.log('✅ Modal EDITAR encontrado, agregando listeners');
+    console.log(' Modal EDITAR encontrado, agregando listeners');
     
     // Evento delegado para input
     modal.addEventListener('input', function(e) {
-        console.log('📝 Input detectado en:', e.target.id);
+        console.log(' Input detectado en:', e.target.id);
         
         if (e.target.id === 'edit_monto_total_igv') {
             const valor = parseFloat(e.target.value) || 0;
-            console.log('💵 Monto ingresado:', valor);
+            console.log(' Monto ingresado:', valor);
             
             if (validarMontoMaximo(true, valor)) {
                 calcularTotalPagar(true);
@@ -1176,14 +1232,14 @@ function inicializarModalEditar() {
     
     // Evento delegado para change
     modal.addEventListener('change', function(e) {
-        console.log('🔄 Change detectado en:', e.target.id);
+        console.log(' Change detectado en:', e.target.id);
         
         if (e.target.id === 'edit_id_afectacion') {
-            console.log('📋 Afectación cambiada');
+            console.log(' Afectación cambiada');
             calcularTotalPagar(true);
         }
         if (e.target.id === 'edit_id_medio_pago') {
-            console.log('💳 Medio de pago cambiado');
+            console.log(' Medio de pago cambiado');
             setupCuentaControl(true);
         }
         if (e.target.id === 'edit_monto_total_igv') {
@@ -1198,19 +1254,19 @@ function inicializarModalEditar() {
     modalEditarInicializado = true;
     setupCuentaControl(true);
     calcularTotalPagar(true);
-    console.log('✅ Modal EDITAR inicializado completamente');
+    console.log(' Modal EDITAR inicializado completamente');
 }
 
 // ============================================================
-// 4️⃣ EVENTOS DE MODALES
+//  EVENTOS DE MODALES
 // ============================================================
 
 $(document).ready(function() {
-    console.log('✅ jQuery ready ejecutado');
+    console.log(' jQuery ready ejecutado');
     
     // Modal Registrar
     $('#modalRegistrarComprobante').on('shown.bs.modal', function() {
-        console.log('🔵 Modal REGISTRAR abierto (evento shown.bs.modal)');
+        console.log(' Modal REGISTRAR abierto (evento shown.bs.modal)');
         
         setTimeout(() => {
             if (!modalRegistrarInicializado) {
@@ -1226,7 +1282,7 @@ $(document).ready(function() {
     
     // Modal Editar
     $('#modalEditarComprobante').on('shown.bs.modal', function() {
-        console.log('🟢 Modal EDITAR abierto (evento shown.bs.modal)');
+        console.log(' Modal EDITAR abierto (evento shown.bs.modal)');
         
         setTimeout(() => {
             if (!modalEditarInicializado) {
@@ -1249,10 +1305,16 @@ $(document).ready(function() {
             "order": [[0, "desc"]],
             "pageLength": 25
         });
-        console.log("✅ DataTable inicializado");
+        console.log(" DataTable inicializado");
     }
+
+    // Inicializar tooltips
+    $('[data-toggle="tooltip"]').tooltip({
+        placement: 'top',
+        trigger: 'hover'
+    });
     
-    console.log('✅ Todos los eventos jQuery configurados');
+    console.log(' Todos los eventos jQuery configurados');
 });
 
 // ============================================================
@@ -1319,7 +1381,7 @@ function CargarModalEditar(id_comprobante) {
                 return;
             }
             
-            console.log('📝 Cargando datos para edición:', data);
+            console.log(' Cargando datos para edición:', data);
             
             // Llenar campos
             document.getElementById('edit_id_comprobante').value = data.id_comprobante;
@@ -1354,7 +1416,7 @@ function CargarModalEditar(id_comprobante) {
             document.getElementById('edit_afectacion_seleccionada').value = data.id_detraccion;
             document.getElementById('edit_monto_maximo_permitido').value = data.monto_maximo_permitido;
             
-            // ✅ LLAMAR a la función global
+            // LLAMAR a la función global
             setTimeout(function() {
                 setupCuentaControlEdit();
                 calcularTotalPagar(true);
@@ -1384,7 +1446,7 @@ function CargarModalEditar(id_comprobante) {
 function AbrirModalVoucher(id_comprobante) {
     document.getElementById('voucher_id_comprobante').value = id_comprobante;
     
-    // ✅ Inicializar SOLO cuando se abre el modal
+    // Inicializar SOLO cuando se abre el modal
     setTimeout(() => {
         inicializarVoucherPago();
     }, 200);
@@ -1409,6 +1471,8 @@ function VerDetalleComprobante(id_comprobante) {
             }
 
             let subtotal = parseFloat(data.monto_total_igv > 0 ? data.total_pagar - data.monto_total_igv : data.total_pagar);
+            let montoDetraccion = parseFloat(data.monto_detraccion || 0);
+            let tieneDetraccion = (montoDetraccion > 0 && data.id_detraccion && data.id_detraccion != 13);
             
             let html = `
                 <table class="table table-sm table-bordered">
@@ -1435,8 +1499,11 @@ function VerDetalleComprobante(id_comprobante) {
                             ${data.archivo_xml ? 
                                 '<a href="../_upload/comprobantes/' + data.archivo_xml + '" target="_blank" class="btn btn-sm btn-info" style="margin-right: 8px;"><i class="fa fa-file-code-o"></i> XML</a>' : 
                                 ''}
-                            ${data.voucher_pago ? 
-                                '<a href="../_upload/vouchers/' + data.voucher_pago + '" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-check-circle"></i> Voucher</a>' : 
+                            ${data.voucher_proveedor ? 
+                                '<a href="../_upload/vouchers/' + data.voucher_proveedor + '" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-check-circle"></i> Proveedor</a>' : 
+                                ''}
+                            ${(tieneDetraccion && data.voucher_detraccion) ? 
+                                '<a href="../_upload/vouchers/' + data.voucher_detraccion + '" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-check-circle"></i> Detracción</a>' : 
                                 ''}
                         </div>
                     </div>
@@ -1452,23 +1519,22 @@ function VerDetalleComprobante(id_comprobante) {
 }
 
 // ============================================================
-// 4️⃣ FUNCIONES DE SUBIDA MASIVA
+//  FUNCIONES DE SUBIDA MASIVA
 // ============================================================
 
-// ✅ INICIALIZAR SOLO UNA VEZ
+// INICIALIZAR SOLO UNA VEZ
 function inicializarModalMasivo() {
     const inputArchivos = document.getElementById("inputArchivos");
     
     if (!inputArchivos) {
-        console.error("❌ Input de archivos no encontrado");
+        console.error(" Input de archivos no encontrado");
         return;
     }
     
-    // ✅ Remover listener anterior (evita duplicados)
     inputArchivos.removeEventListener("change", manejarCambioArchivos);
     inputArchivos.addEventListener("change", manejarCambioArchivos);
     
-    console.log("✅ Modal masivo inicializado");
+    console.log(" Modal masivo inicializado");
 }
 
 function abrirModalMasivo() {
@@ -1476,12 +1542,11 @@ function abrirModalMasivo() {
     if (modal) {
         modal.style.display = "flex";
         
-        // ✅ Inicializar SOLO cuando se abre
         setTimeout(() => {
             inicializarModalMasivo();
         }, 200);
     } else {
-        console.error("❌ Modal no encontrado");
+        console.error(" Modal no encontrado");
     }
 }
 
@@ -1490,12 +1555,13 @@ function cerrarModalMasivo() {
     if (modal) {
         modal.style.display = "none";
         archivosSeleccionados = [];
+        datosAnalisis = null;
         document.getElementById("listaArchivos").innerHTML = "";
     }
 }
 
 function manejarCambioArchivos(e) {
-    console.log("📂 ¡¡¡CAMBIO DETECTADO!!!");
+    console.log(" ¡¡¡CAMBIO DETECTADO!!!");
     const nuevosArchivos = Array.from(e.target.files);
     if (nuevosArchivos.length === 0) return;
 
@@ -1524,7 +1590,7 @@ function manejarCambioArchivos(e) {
 
         if (!archivosSeleccionados.find(a => a.name === nombre)) {
             archivosSeleccionados.push(archivo);
-            console.log("✅ Archivo agregado:", nombre);
+            console.log(" Archivo agregado:", nombre);
         } else {
             Swal.fire({
                 icon: 'info',
@@ -1585,339 +1651,374 @@ function eliminarArchivo(index) {
     actualizarListaArchivos();
 }
 
-/*async function procesarArchivos() {
-    if (archivosSeleccionados.length === 0) {
-        Swal.fire('Advertencia', 'Selecciona al menos un archivo', 'warning');
-        return;
-    }
-
-    const conflictos = [];
-    let exitosos = 0;
-    let fallidos = 0;
-
-    Swal.fire({
-        title: 'Procesando...',
-        html: `<b>0</b> / ${archivosSeleccionados.length} archivos procesados`,
-        allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
-    });
-
-    for (let i = 0; i < archivosSeleccionados.length; i++) {
-        const archivo = archivosSeleccionados[i];
-        const formData = new FormData();
-        formData.append('archivos[]', archivo);
-        formData.append('enviar_proveedor', document.getElementById('enviarProveedor').checked ? 1 : 0);
-        formData.append('enviar_contabilidad', document.getElementById('enviarContabilidad').checked ? 1 : 0);
-        formData.append('enviar_tesoreria', document.getElementById('enviarTesoreria').checked ? 1 : 0);
-
-        try {
-            const response = await fetch('../_controlador/comprobante_subida_masiva.php', {
-                method: 'POST',
-                body: formData
-            });
-
-            const data = await response.json();
-
-            if (data.conflicto) {
-                conflictos.push(data);
-            } else if (data.success) {
-                exitosos += data.exitosos;
-                fallidos += data.fallidos;
-            }
-
-            Swal.update({
-                html: `<b>${i + 1}</b> / ${archivosSeleccionados.length} archivos procesados`
-            });
-
-        } catch (error) {
-            console.error('Error procesando archivo:', archivo.name, error);
-            fallidos++;
-        }
-    }
-
-    Swal.close();
-
-    if (conflictos.length > 0) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Conflictos detectados',
-            html: `<b>${conflictos.length}</b> archivo(s) tienen múltiples coincidencias.<br>
-                   <b>${exitosos}</b> exitosos | <b>${fallidos}</b> fallidos`,
-            confirmButtonText: 'Resolver conflictos'
-        }).then(() => {
-            procesarConflictos(conflictos);
-        });
-    } else {
-        Swal.fire({
-            icon: 'success',
-            title: 'Proceso completado',
-            html: `<b>${exitosos}</b> exitosos | <b>${fallidos}</b> fallidos`
-        }).then(() => {
-            cerrarModalMasivo();
-            location.reload();
-        });
-    }
-}*/
-
+// NUEVO FLUJO: FASE 1 - ANÁLISIS
 async function procesarArchivos() {
     if (archivosSeleccionados.length === 0) {
         Swal.fire('Advertencia', 'Selecciona al menos un archivo', 'warning');
         return;
     }
 
-    const conflictos = [];
-    let exitosos = 0;
-    let todosLosErrores = []; // 🔥 NUEVO: Acumular errores de todos los archivos
-
+    // 1️⃣ FASE DE ANÁLISIS
     Swal.fire({
-        title: 'Procesando...',
-        html: `<b>0</b> / ${archivosSeleccionados.length} archivos procesados`,
+        title: 'Analizando archivos...',
+        html: '',
         allowOutsideClick: false,
         didOpen: () => Swal.showLoading()
     });
 
-    for (let i = 0; i < archivosSeleccionados.length; i++) {
-        const archivo = archivosSeleccionados[i];
-        const formData = new FormData();
+    const formData = new FormData();
+    archivosSeleccionados.forEach(archivo => {
         formData.append('archivos[]', archivo);
-        formData.append('enviar_proveedor', document.getElementById('enviarProveedor').checked ? 1 : 0);
-        formData.append('enviar_contabilidad', document.getElementById('enviarContabilidad').checked ? 1 : 0);
-        formData.append('enviar_tesoreria', document.getElementById('enviarTesoreria').checked ? 1 : 0);
+    });
 
-        try {
-            const response = await fetch('../_controlador/comprobante_subida_masiva.php', {
-                method: 'POST',
-                body: formData
-            });
+    try {
+        const response = await fetch('../_controlador/comprobante_analizar_masivo.php', {
+            method: 'POST',
+            body: formData
+        });
 
-            const data = await response.json();
+        datosAnalisis = await response.json();
+        
+        Swal.close();
 
-            if (data.conflicto) {
-                conflictos.push(data);
-            } else if (data.success) {
-                exitosos += data.exitosos;
-                
-                // 🔥 NUEVO: Acumular errores
-                if (data.errores && data.errores.length > 0) {
-                    todosLosErrores = todosLosErrores.concat(data.errores);
-                }
-            }
-
-            Swal.update({
-                html: `<b>${i + 1}</b> / ${archivosSeleccionados.length} archivos procesados`
-            });
-
-        } catch (error) {
-            console.error('Error procesando archivo:', archivo.name, error);
-            todosLosErrores.push({
-                archivo: archivo.name,
-                motivo: 'Error de conexión con el servidor'
-            });
+        if (!datosAnalisis.success) {
+            Swal.fire('Error', datosAnalisis.mensaje || 'Error al analizar archivos', 'error');
+            return;
         }
+
+        // 2️⃣ ¿HAY CONFLICTOS?
+        if (datosAnalisis.conflictos.length > 0) {
+            //await mostrarResumenAnalisis();
+            await resolverConflictos();
+        } else {
+            // 3️⃣ NO HAY CONFLICTOS → REGISTRAR DIRECTAMENTE
+            await registrarArchivosMasivo();
+        }
+
+    } catch (error) {
+        Swal.close();
+        console.error('Error:', error);
+        Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
+    }
+}
+
+// NUEVO: Mostrar resumen del análisis
+/*async function mostrarResumenAnalisis() {
+    const { correctos, conflictos, errores } = datosAnalisis;
+
+    return Swal.fire({
+        icon: 'info',
+        title: 'Análisis completado',
+        html: `
+            <div style="text-align:center; margin:12px 0;">
+                <span class="badge badge-success" style="font-size:13px; padding:6px 12px;">
+                    ✅ ${correctos.length} correctos
+                </span>
+                <span class="badge badge-warning" style="font-size:13px; padding:6px 12px;">
+                    ⚠️ ${conflictos.length} conflictos
+                </span>
+                <span class="badge badge-danger" style="font-size:13px; padding:6px 12px;">
+                    ❌ ${errores.length} errores
+                </span>
+            </div>
+            <p style="margin-top:12px; font-size:13px;">
+                ${conflictos.length > 0 ? 'Debes resolver los conflictos antes de continuar' : 'Procederemos con el registro'}
+            </p>
+        `,
+        confirmButtonText: conflictos.length > 0 ? 'Resolver conflictos' : 'Continuar'
+    });
+}*/
+
+// NUEVO FLUJO: FASE 2 - RESOLUCIÓN DE CONFLICTOS
+async function resolverConflictos() {
+    let indice = 0;
+    const conflictos = datosAnalisis.conflictos;
+
+    console.log(`🔍 Iniciando resolución de ${conflictos.length} conflictos`);
+
+    async function mostrarSiguienteConflicto() {
+        if (indice >= conflictos.length) {
+            console.log("✅ Todos los conflictos resueltos");
+            // ✅ Todos los conflictos resueltos → REGISTRAR
+            await registrarArchivosMasivo();
+            return;
+        }
+
+        const conflicto = conflictos[indice];
+        console.log(`📋 Mostrando conflicto ${indice + 1}/${conflictos.length}:`, conflicto.archivo);
+        
+        await mostrarModalConflicto(
+            conflicto.archivo,
+            conflicto.serie,
+            conflicto.numero,
+            conflicto.opciones,
+            indice + 1,
+            conflictos.length
+        );
     }
 
-    Swal.close();
+    // Callback para siguiente conflicto
+    window.resolverConflictoCallback = async (id_comprobante_seleccionado) => {
+        console.log(`✅ Resolviendo conflicto ${indice + 1} con ID:`, id_comprobante_seleccionado);
+        
+        // Mover de conflictos a correctos
+        const conflictoResuelto = conflictos[indice];
+        const opcionSeleccionada = conflictoResuelto.opciones.find(
+            op => op.id_comprobante == id_comprobante_seleccionado
+        );
 
-    // 🔥 NUEVO: Mostrar resultados detallados
-    if (conflictos.length > 0) {
+        if (!opcionSeleccionada) {
+            console.error("❌ Opción no encontrada");
+            return;
+        }
+
+        datosAnalisis.correctos.push({
+            archivo: conflictoResuelto.archivo,
+            serie: conflictoResuelto.serie,
+            numero: conflictoResuelto.numero,
+            id_comprobante: id_comprobante_seleccionado,
+            nom_proveedor: opcionSeleccionada.nom_proveedor,
+            ruc_proveedor: opcionSeleccionada.ruc_proveedor,
+            archivo_temporal: conflictoResuelto.archivo_temporal,
+            extension: conflictoResuelto.extension
+        });
+
+        console.log(`✅ Conflicto ${indice + 1} resuelto. Correctos:`, datosAnalisis.correctos.length);
+
+        indice++;
+        await mostrarSiguienteConflicto();
+    };
+
+    await mostrarSiguienteConflicto();
+}
+
+// ACTUALIZAR: Modal de conflicto con contador con SweetAlert2
+async function mostrarModalConflicto(archivo, serie, numero, opciones, actual, total) {
+    let htmlOpciones = "";
+    
+    opciones.forEach(op => {
+        htmlOpciones += `
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="conflictoProveedor" value="${op.id_comprobante}" id="opt_${op.id_comprobante}">
+            <label class="form-check-label" for="opt_${op.id_comprobante}">
+                <strong>${op.nom_proveedor}</strong><br>
+                <small class="text-muted">RUC: ${op.ruc_proveedor}</small>
+            </label>
+        </div>`;
+    });
+
+    const result = await Swal.fire({
+        title: 'Información',
+        html: `
+            <div style="text-align:left;">
+                <p class="mb-1">Se encontraron varios comprobantes con la serie y número: <strong>${serie}-${numero}</strong></p>
+                <br>
+                <p>Seleccione a qué proveedor pertenece el archivo:</p>
+                ${htmlOpciones}
+            </div>
+        `,
+        width: '400px',
+        showCancelButton: true,
+        confirmButtonText: 'Asignar',
+        cancelButtonText: 'Cancelar',
+        customClass: {
+            popup: 'swal2-small',
+            title: 'swal2-title-warning'
+        },
+        preConfirm: () => {
+            const seleccionado = document.querySelector('input[name="conflictoProveedor"]:checked');
+            if (!seleccionado) {
+                Swal.showValidationMessage('Debes seleccionar un proveedor');
+                return false;
+            }
+            return seleccionado.value;
+        }
+    });
+
+    if (result.isConfirmed) {
+        if (window.resolverConflictoCallback) {
+            await window.resolverConflictoCallback(result.value);
+        }
+    } else {
+        Swal.fire('Proceso cancelado', 'No se registró ningún archivo', 'info');
+    }
+}
+
+// ACTUALIZAR: Resolver conflicto (sin registrar)
+function resolverConflicto() {
+    let id_comprobante = document.querySelector('input[name="conflictoProveedor"]:checked');
+    
+    if (!id_comprobante) {
         Swal.fire({
             icon: 'warning',
-            title: 'Conflictos detectados',
-            html: `<b>${conflictos.length}</b> archivo(s) tienen múltiples coincidencias.<br>
-                   <b>${exitosos}</b> exitosos | <b>${todosLosErrores.length}</b> fallidos`,
-            confirmButtonText: 'Resolver conflictos'
-        }).then(() => {
-            procesarConflictos(conflictos);
+            title: 'Selección requerida',
+            text: 'Debes seleccionar un proveedor',
+            confirmButtonText: 'Entendido'
         });
-    } else if (todosLosErrores.length > 0) {
-        mostrarErroresDetallados(exitosos, todosLosErrores);
-    } else {
+        return;
+    }
+
+    id_comprobante = id_comprobante.value;
+    
+    $("#modalConflicto").modal("hide");
+    
+    // Llamar callback para continuar
+    if (window.resolverConflictoCallback) {
+        window.resolverConflictoCallback(id_comprobante);
+    }
+}
+
+// NUEVO FLUJO: FASE 3 - REGISTRO MASIVO
+async function registrarArchivosMasivo() {
+    const { correctos, errores } = datosAnalisis;
+
+    if (correctos.length === 0) {
+        mostrarResultadoFinal(0, errores);
+        return;
+    }
+
+    Swal.fire({
+        title: 'Registrando archivos...',
+        html: `Procesando ${correctos.length} archivo(s)`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    // Preparar datos para envío
+    const archivos_a_registrar = correctos.map(item => ({
+        archivo: item.archivo,
+        id_comprobante: item.id_comprobante,
+        archivo_temporal: item.archivo_temporal,
+        extension: item.extension
+    }));
+
+    const payload = {
+        archivos_a_registrar: archivos_a_registrar,
+        enviar_proveedor: document.getElementById('enviarProveedor').checked ? 1 : 0,
+        enviar_contabilidad: document.getElementById('enviarContabilidad').checked ? 1 : 0,
+        enviar_tesoreria: document.getElementById('enviarTesoreria').checked ? 1 : 0
+    };
+
+    try {
+        const response = await fetch('../_controlador/comprobante_subida_masiva.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const resultado = await response.json();
+        
+        Swal.close();
+
+        if (resultado.success) {
+            // Combinar errores de análisis + errores de registro
+            const todosLosErrores = [...errores, ...resultado.errores];
+            mostrarResultadoFinal(resultado.exitosos, todosLosErrores);
+        } else {
+            Swal.fire('Error', resultado.mensaje || 'Error al registrar archivos', 'error');
+        }
+
+    } catch (error) {
+        Swal.close();
+        console.error('Error:', error);
+        Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
+    }
+}
+
+// NUEVO FLUJO: FASE 4 - RESULTADO FINAL
+function mostrarResultadoFinal(exitosos, errores) {
+    if (errores.length === 0) {
+        // ✅ TODO EXITOSO
         Swal.fire({
             icon: 'success',
-            title: 'Proceso completado',
+            title: '¡Proceso completado!',
             html: `<b>${exitosos}</b> archivo(s) procesado(s) exitosamente`,
             confirmButtonText: 'Aceptar'
         }).then(() => {
             cerrarModalMasivo();
             location.reload();
         });
-    }
-}
+    } else {
+        // ⚠️ HAY ERRORES
+        let htmlErrores = '<div style="max-height:350px; overflow-y:auto; text-align:left; margin-top:10px;">';
+        
+        errores.forEach((error) => {
+            htmlErrores += `
+                <div style="
+                    display:flex; 
+                    align-items:center; 
+                    gap:8px;
+                    padding:6px 10px; 
+                    margin-bottom:4px;
+                    background:#f8f9fa;
+                    border-radius:4px;
+                    border-left:3px solid #dc3545;
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">
+                    <i class="fa fa-file-o" style="color:#dc3545; font-size:12px;"></i>
+                    <span style="font-size:12px; color:#495057; flex:1; min-width:0;">
+                        ${error.archivo}
+                    </span>
+                    <span 
+                        style="
+                            background:#dc3545;
+                            color:white;
+                            width:18px;
+                            height:18px;
+                            border-radius:50%;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            font-size:10px;
+                            cursor:help;
+                            flex-shrink:0;
+                        "
+                        title="${error.motivo}"
+                        data-toggle="tooltip"
+                        data-placement="left"
+                    >
+                        <i class="fa fa-info"></i>
+                    </span>
+                </div>
+            `;
+        });
+        
+        htmlErrores += '</div>';
 
-// 🔥 NUEVA FUNCIÓN: Mostrar errores detallados
-function mostrarErroresDetallados(exitosos, errores) {
-    let htmlErrores = '<div style="max-height:350px; overflow-y:auto; text-align:left; margin-top:10px;">';
-    
-    errores.forEach((error, index) => {
-        htmlErrores += `
-            <div style="
-                display:flex; 
-                align-items:center; 
-                gap:8px;
-                padding:6px 10px; 
-                margin-bottom:4px;
-                background:#f8f9fa;
-                border-radius:4px;
-                border-left:3px solid #dc3545;
-                transition: all 0.2s;
-            " onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">
-                <i class="fa fa-file-o" style="color:#dc3545; font-size:12px;"></i>
-                <span style="font-size:12px; color:#495057; flex:1; min-width:0;">
-                    ${error.archivo}
-                </span>
-                <span 
-                    style="
-                        background:#dc3545;
-                        color:white;
-                        width:18px;
-                        height:18px;
-                        border-radius:50%;
-                        display:flex;
-                        align-items:center;
-                        justify-content:center;
-                        font-size:10px;
-                        cursor:help;
-                        flex-shrink:0;
-                    "
-                    title="${error.motivo}"
-                    data-toggle="tooltip"
-                    data-placement="left"
-                >
-                    <i class="fa fa-info"></i>
-                </span>
-            </div>
-        `;
-    });
-    
-    htmlErrores += '</div>';
-
-    Swal.fire({
-        icon: 'warning',
-        title: 'Proceso con errores',
-        html: `
-            <div style="text-align:center; margin:8px 0 12px 0;">
-                <span class="badge badge-success" style="font-size:12px; padding:4px 10px;">
-                    ${exitosos} exitosos
-                </span>
-                <span class="badge badge-danger" style="font-size:12px; padding:4px 10px;">
-                    ${errores.length} fallidos
-                </span>
-            </div>
-            ${htmlErrores}
-        `,
-        width: '500px',
-        confirmButtonText: 'Cerrar',
-        confirmButtonColor: '#6c757d',
-        didOpen: () => {
-            $('[data-toggle="tooltip"]').tooltip();
-        },
-        willClose: () => {
-            $('[data-toggle="tooltip"]').tooltip('dispose');
-        }
-    }).then(() => {
-        if (exitosos > 0) {
-            cerrarModalMasivo();
-            location.reload();
-        }
-    });
-}
-
-function procesarConflictos(conflictos) {
-    let indice = 0;
-
-    function mostrarSiguienteConflicto() {
-        if (indice >= conflictos.length) {
-            Swal.fire('Completado', 'Todos los conflictos resueltos', 'success').then(() => {
-                location.reload();
-            });
-            return;
-        }
-
-        const conflicto = conflictos[indice];
-        mostrarModalConflicto(
-            conflicto.archivo,
-            conflicto.serie,
-            conflicto.numero,
-            conflicto.opciones
-        );
-
-        window.resolverConflictoCallback = () => {
-            indice++;
-            mostrarSiguienteConflicto();
-        };
-    }
-
-    mostrarSiguienteConflicto();
-}
-
-function mostrarModalConflicto(archivo, serie, numero, opciones) {
-    document.getElementById("conflicto_archivo").value = archivo;
-    document.getElementById("conflicto_serie_numero").innerHTML = serie + "-" + numero;
-
-    let html = "";
-    opciones.forEach(op => {
-        html += `
-        <div class="form-check">
-            <input class="form-check-input" type="radio" name="conflictoProveedor" value="${op.id_comprobante}">
-            <label class="form-check-label">
-                ${op.nom_proveedor} <small>(RUC: ${op.ruc_proveedor})</small>
-            </label>
-        </div>`;
-    });
-
-    document.getElementById("conflicto_opciones").innerHTML = html;
-    $("#modalConflicto").modal("show");
-}
-
-function resolverConflicto() {
-    let id_comprobante = document.querySelector('input[name="conflictoProveedor"]:checked');
-    if (!id_comprobante) {
         Swal.fire({
-            icon: 'warning',
-            title: 'Selección requerida',
-            text: 'Debes seleccionar un proveedor o cancelar',
-            showCancelButton: true,
-            confirmButtonText: 'Entendido',
-            cancelButtonText: 'Omitir archivo'
-        }).then((result) => {
-            if (result.isDismissed && window.resolverConflictoCallback) {
-                window.resolverConflictoCallback();
+            icon: exitosos > 0 ? 'warning' : 'error',
+            title: exitosos > 0 ? 'Proceso con errores' : 'Proceso fallido',
+            html: `
+                <div style="text-align:center; margin:8px 0 12px 0;">
+                    ${exitosos > 0 ? `
+                        <span class="badge badge-success" style="font-size:12px; padding:4px 10px;">
+                            ${exitosos} exitosos
+                        </span>
+                    ` : ''}
+                    <span class="badge badge-danger" style="font-size:12px; padding:4px 10px;">
+                        ${errores.length} fallidos
+                    </span>
+                </div>
+                ${htmlErrores}
+            `,
+            width: '500px',
+            confirmButtonText: 'Cerrar',
+            confirmButtonColor: '#6c757d',
+            didOpen: () => {
+                $('[data-toggle="tooltip"]').tooltip();
+            },
+            willClose: () => {
+                $('[data-toggle="tooltip"]').tooltip('dispose');
+            }
+        }).then(() => {
+            if (exitosos > 0) {
+                cerrarModalMasivo();
+                location.reload();
             }
         });
-        return;
     }
-
-    id_comprobante = id_comprobante.value;
-    let archivo = document.getElementById("conflicto_archivo").value;
-
-    const formData = new FormData();
-    formData.append("id_comprobante", id_comprobante);
-    formData.append("archivo", archivo);
-    formData.append('enviar_proveedor', document.getElementById('enviarProveedor').checked ? 1 : 0);
-    formData.append('enviar_contabilidad', document.getElementById('enviarContabilidad').checked ? 1 : 0);
-    formData.append('enviar_tesoreria', document.getElementById('enviarTesoreria').checked ? 1 : 0);
-
-    fetch("../_controlador/voucher_asignar_manual.php", {
-        method: "POST",
-        body: formData
-    })
-    .then(res => res.json())
-    .then(resp => {
-        if (resp.success) {
-            Swal.fire("Asignado", "Voucher asignado correctamente", "success");
-            $("#modalConflicto").modal("hide");
-            
-            if (window.resolverConflictoCallback) {
-                window.resolverConflictoCallback();
-            }
-        } else {
-            Swal.fire("Error", resp.mensaje || "Ocurrió un error", "error");
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire("Error", "No se pudo conectar con el servidor", "error");
-    });
 }
 
 // ============================================================
@@ -2029,6 +2130,23 @@ function validarVoucherPago(e) {
     /* opcional: tamaño para uniformar si se ve distinto en navegadores */
     width: 1.05em;
     height: 1.05em;
+    }
+
+    .swal2-title-warning {
+        background-color: #ffc107 !important;
+        color: #212529 !important;
+        padding: 15px !important;
+        margin: 0 0 20px 0 !important;
+        border-radius: 5px 5px 0 0 !important;
+    }
+
+    .swal2-small {
+        font-size: 14px !important;
+    }
+
+    .swal2-small .form-check {
+        margin-bottom: 10px;
+        text-align: left;
     }
     
 </style>

@@ -1282,14 +1282,13 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal,
                 id_pedido, id_proveedor, id_moneda, id_personal, id_personal_aprueba, 
                 obs_compra, denv_compra, plaz_compra, port_compra, 
                 id_detraccion, id_retencion, id_percepcion,
-                fec_compra, est_compra
+                fec_compra, est_compra, fecha_reg_compra
             ) VALUES (
                 $id_pedido, $proveedor, $moneda, $id_personal, NULL, 
                 '$observacion', '$direccion', '$plazo_entrega', '$porte', 
                 $id_detraccion_sql, $id_retencion_sql, $id_percepcion_sql,
-                '$fecha_orden', 1
+                '$fecha_orden', 1, NOW()
             )";
-
     if (mysqli_query($con, $sql)) {
         $id_compra = mysqli_insert_id($con);
         

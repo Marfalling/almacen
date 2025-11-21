@@ -74,4 +74,51 @@ function ObtenerStock($id_producto, $id_almacen, $id_ubicacion)
         'disponible' => $stock_disponible
     ];
 }
+
+function ObtenerStockActual($id_producto, $id_almacen, $id_ubicacion)
+{
+    include("../_conexion/conexion.php");
+
+    $id_producto = intval($id_producto);
+    $id_almacen = intval($id_almacen);
+    $id_ubicacion = intval($id_ubicacion);
+
+    // Validar parámetros
+    if ($id_producto <= 0 || $id_almacen <= 0 || $id_ubicacion <= 0) {
+        return 0;
+    }
+
+    // -----------------------------------------------------------
+    // STOCK FÍSICO
+    // Entradas (tipo_movimiento = 1) EXCEPTO devoluciones (tipo_orden = 3)
+    // menos Salidas (tipo_movimiento = 2) EXCEPTO devoluciones (tipo_orden = 3)
+    // -----------------------------------------------------------
+    $sql_fisico = "
+        SELECT 
+            COALESCE(SUM(CASE 
+                WHEN tipo_movimiento = 1 AND tipo_orden <> 3 
+                THEN cant_movimiento 
+                ELSE 0 
+            END), 0)
+          - COALESCE(SUM(CASE 
+                WHEN tipo_movimiento = 2 AND tipo_orden <> 3 
+                THEN cant_movimiento 
+                ELSE 0 
+            END), 0)
+        AS stock_fisico
+        FROM movimiento
+        WHERE id_producto = '$id_producto'
+          AND id_almacen = '$id_almacen'
+          AND id_ubicacion = '$id_ubicacion'
+          AND est_movimiento = 1
+    ";
+
+    $res_fisico = mysqli_query($con, $sql_fisico);
+    $row_fisico = mysqli_fetch_assoc($res_fisico);
+    $stock_fisico = floatval($row_fisico['stock_fisico'] ?? 0);
+
+    mysqli_close($con);
+
+    return $stock_fisico;
+}
 ?>

@@ -706,7 +706,7 @@ function ConsultarComprobante($id_comprobante)
 
     $id_comprobante = intval($id_comprobante);
 
-    // ⭐ LOG: Verificar que la variable existe
+    // LOG: Verificar que la variable existe
     error_log("BD_COMPLEMENTO: " . (isset($bd_complemento) ? $bd_complemento : "NO DEFINIDA"));
 
     $sql = "SELECT c.*,
@@ -729,6 +729,22 @@ function ConsultarComprobante($id_comprobante)
                    d.nombre_detraccion,
                    d.porcentaje as porcentaje_detraccion,
                    per.nom_personal,
+                   -- NUEVOS CAMPOS: Vouchers
+                   (SELECT cp_prov.vou_comprobante_pago 
+                       FROM comprobante_pago cp_prov 
+                       WHERE cp_prov.id_comprobante = c.id_comprobante 
+                       AND cp_prov.fg_comprobante_pago = 1 
+                       AND cp_prov.est_comprobante_pago = 1
+                       LIMIT 1) as voucher_proveedor,
+                   
+                   (SELECT cp_det.vou_comprobante_pago 
+                       FROM comprobante_pago cp_det 
+                       WHERE cp_det.id_comprobante = c.id_comprobante 
+                       AND cp_det.fg_comprobante_pago = 2 
+                       AND cp_det.est_comprobante_pago = 1
+                       LIMIT 1) as voucher_detraccion,
+                    -- Calcular monto de detracción
+                   (c.monto_total_igv - c.total_pagar) as monto_detraccion,
                    CASE 
                        WHEN c.est_comprobante = 1 THEN 'Activo'
                        WHEN c.est_comprobante = 0 THEN 'Anulado'
@@ -895,6 +911,37 @@ function MostrarComprobantesCompra($id_compra)
                    m.nom_moneda,
                    mp.nom_medio_pago,
                    per.nom_personal,
+                   (c.monto_total_igv - c.total_pagar) as monto_detraccion,
+
+                    -- Verificar si existe pago al proveedor (fg=1)
+                    (SELECT COUNT(*) FROM comprobante_pago cp1 
+                        WHERE cp1.id_comprobante = c.id_comprobante 
+                        AND cp1.fg_comprobante_pago = 1 
+                        AND cp1.est_comprobante_pago = 1) as tiene_pago_proveedor,
+                    
+                    -- Verificar si existe pago de detracción (fg=2)
+                    (SELECT COUNT(*) FROM comprobante_pago cp2 
+                        WHERE cp2.id_comprobante = c.id_comprobante 
+                        AND cp2.fg_comprobante_pago = 2 
+                        AND cp2.est_comprobante_pago = 1) as tiene_pago_detraccion,
+                
+                    -- Obtener voucher de pago al proveedor (fg=1)
+                   (SELECT cp_prov.vou_comprobante_pago 
+                       FROM comprobante_pago cp_prov 
+                       WHERE cp_prov.id_comprobante = c.id_comprobante 
+                       AND cp_prov.fg_comprobante_pago = 1 
+                       AND cp_prov.est_comprobante_pago = 1
+                       LIMIT 1) as voucher_proveedor,
+
+                   -- Obtener voucher de pago de detracción (fg=2)
+                   (SELECT cp_det.vou_comprobante_pago 
+                       FROM comprobante_pago cp_det 
+                       WHERE cp_det.id_comprobante = c.id_comprobante 
+                       AND cp_det.fg_comprobante_pago = 2 
+                       AND cp_det.est_comprobante_pago = 1
+                       LIMIT 1) as voucher_detraccion,
+
+
                    CASE 
                        WHEN m.id_moneda = 1 THEN 'S/.'
                        WHEN m.id_moneda = 2 THEN 'US$'

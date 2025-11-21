@@ -490,7 +490,7 @@ function EliminarDocumento(id_doc) {
                                                         </a>
                                                     </td>
                                                     <td><?php echo $compra['nom_proveedor']; ?></td>
-                                                    <td><?php echo date('d/m/Y H:i', strtotime($compra['fec_compra'])); ?></td>
+                                                    <td><?php echo date('d/m/Y H:i', strtotime($compra['fecha_reg_compra'])); ?></td>
                                                     
                                                     <!-- COLUMNA TIPO DE PAGO -->
                                                     <td class="text-center">
@@ -1720,7 +1720,7 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
                         <p style="margin: 5px 0; font-size: 13px;"><strong>Moneda:</strong> ${compra.nom_moneda || 'No especificada'}</p>
                     </div>
                     <div class="col-md-6">
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Fecha:</strong> ${fechaFormateada}</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Fecha Orden:</strong> ${fechaFormateada}</p>
                         <p style="margin: 5px 0; font-size: 13px;"><strong>Estado:</strong> <span class="badge badge-${estadoClase}">${estadoTexto}</span></p>
                         <p style="margin: 5px 0; font-size: 13px;"><strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'}</p>
                         <p style="margin: 5px 0; font-size: 13px;"><strong>Plazo Entrega:</strong> ${compra.plaz_compra || 'No especificado'}</p>

@@ -1197,7 +1197,10 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
     $resultado = mysqli_query($con, $sql);
     $todos_ingresos = array();
 
+    require_once("../_modelo/m_compras.php");
+
     while ($row = mysqli_fetch_array($resultado, MYSQLI_ASSOC)) {
+        $row['pagado'] = esCompraPagada($row['id_orden']);
         $todos_ingresos[] = $row;
     }
 

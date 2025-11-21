@@ -1,361 +1,4 @@
 <?php
-/*require_once("../_conexion/conexion.php");
-/*require_once("../_conexion/conexion_complemento.php"); */
-// ============================================
-// FUNCIONES PARA OBTENER DATOS DE FILTROS
-// ============================================
-
-/*function obtenerListaProveedores($con) {
-    $sql = "SELECT id_proveedor, nom_proveedor FROM proveedor WHERE est_proveedor = 1 ORDER BY nom_proveedor";
-    $result = $con->query($sql);
-    $datos = [];
-    if ($result && $result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $datos[] = $row;
-        }
-    }
-    return $datos;
-}
-
-// ============================================
-// DASHBOARD 3.a: RESUMEN GENERAL DE ÓRDENES DE COMPRA
-// ============================================
-function obtenerResumenOrdenes($con, $fecha_inicio = null, $fecha_fin = null) {
-    $where = "WHERE c.est_compra != 0";
-    
-    if ($fecha_inicio && $fecha_fin) {
-        $where .= " AND DATE(c.fec_compra) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
-    }
-    
-    $sql = "SELECT 
-            COUNT(DISTINCT c.id_compra) as total_ordenes,
-            SUM(CASE WHEN c.est_compra = 3 THEN 1 ELSE 0 END) as ordenes_atendidas,
-            SUM(CASE WHEN c.est_compra IN (1, 2) THEN 1 ELSE 0 END) as ordenes_pendientes
-            FROM compra c
-            $where";
-    
-    $result = $con->query($sql);
-    if ($result && $result->num_rows > 0) {
-        return $result->fetch_assoc();
-    }
-    return ['total_ordenes' => 0, 'ordenes_atendidas' => 0, 'ordenes_pendientes' => 0];
-}
-
-// ============================================
-// DASHBOARD 3.b: ORDENES DE COMPRA POR ALMACÉN
-// ============================================
-function obtenerOrdenesPorAlmacen($con, $fecha_inicio = null, $fecha_fin = null) {
-    $where = "WHERE c.est_compra != 0";
-    
-    if ($fecha_inicio && $fecha_fin) {
-        $where .= " AND DATE(c.fec_compra) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
-    }
-    
-    $sql = "SELECT 
-            a.nom_almacen as almacen,
-            COUNT(DISTINCT c.id_compra) as total_ordenes,
-            SUM(CASE WHEN c.est_compra = 3 THEN 1 ELSE 0 END) as ordenes_atendidas,
-            SUM(CASE WHEN c.est_compra IN (1, 2) THEN 1 ELSE 0 END) as ordenes_pendientes
-            FROM compra c
-            INNER JOIN pedido p ON c.id_pedido = p.id_pedido
-            INNER JOIN almacen a ON p.id_almacen = a.id_almacen
-            $where
-            GROUP BY a.id_almacen, a.nom_almacen
-            HAVING total_ordenes > 0
-            ORDER BY a.nom_almacen";
-    
-    $result = $con->query($sql);
-    $datos = [];
-    if ($result && $result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $datos[] = $row;
-        }
-    }
-    return $datos;
-}
-
-// ============================================
-// DASHBOARD 3.c: PAGOS POR ALMACÉN (SIN AGRUPAR POR MONEDA)
-// ============================================
-/*function obtenerPagosPorAlmacen($con, $fecha_inicio = null, $fecha_fin = null) {
-    $where = "WHERE c.est_compra IN (2, 3)";
-    
-    if ($fecha_inicio && $fecha_fin) {
-        $where .= " AND DATE(c.fec_compra) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
-    }
-    
-    $sql = "SELECT 
-            a.nom_almacen as almacen,
-            COUNT(DISTINCT c.id_compra) as total_ordenes,
-            SUM(CASE WHEN i.fpag_ingreso IS NOT NULL THEN 1 ELSE 0 END) as ordenes_pagadas,
-            SUM(CASE WHEN i.fpag_ingreso IS NULL THEN 1 ELSE 0 END) as pendientes_pago,
-            COALESCE(SUM(cd.cant_compra_detalle * cd.prec_compra_detalle), 0) as monto_total_soles,
-            COALESCE(SUM(CASE WHEN c.id_moneda = 2 THEN cd.cant_compra_detalle * cd.prec_compra_detalle ELSE 0 END), 0) as monto_total_dolares
-            FROM compra c
-            INNER JOIN pedido p ON c.id_pedido = p.id_pedido
-            INNER JOIN almacen a ON p.id_almacen = a.id_almacen
-            LEFT JOIN ingreso i ON c.id_compra = i.id_compra AND i.est_ingreso = 1
-            LEFT JOIN compra_detalle cd ON c.id_compra = cd.id_compra AND cd.est_compra_detalle = 1
-            $where
-            GROUP BY a.id_almacen, a.nom_almacen
-            HAVING total_ordenes > 0
-            ORDER BY a.nom_almacen";
-    
-    $result = $con->query($sql);
-    $datos = [];
-    if ($result && $result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $datos[] = $row;
-        }
-    }
-    return $datos;
-}
-
-// ============================================
-// DASHBOARD 3.d: PAGOS POR PROVEEDOR (SIN AGRUPAR POR MONEDA)
-// ============================================
-function obtenerPagosPorProveedor($con, $fecha_inicio = null, $fecha_fin = null, $proveedor = null) {
-    $where = "WHERE c.est_compra IN (2, 3)";
-    
-    if ($fecha_inicio && $fecha_fin) {
-        $where .= " AND DATE(c.fec_compra) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
-    }
-    
-    if ($proveedor) {
-        $where .= " AND pr.id_proveedor = $proveedor";
-    }
-    
-    $sql = "SELECT 
-            pr.nom_proveedor as proveedor,
-            COUNT(DISTINCT c.id_compra) as total_ordenes,
-            SUM(CASE WHEN i.fpag_ingreso IS NOT NULL THEN 1 ELSE 0 END) as ordenes_pagadas,
-            SUM(CASE WHEN i.fpag_ingreso IS NULL THEN 1 ELSE 0 END) as pendientes_pago,
-            COALESCE(SUM(cd.cant_compra_detalle * cd.prec_compra_detalle), 0) as monto_total_soles,
-            COALESCE(SUM(CASE WHEN c.id_moneda = 2 THEN cd.cant_compra_detalle * cd.prec_compra_detalle ELSE 0 END), 0) as monto_total_dolares
-            FROM compra c
-            INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
-            LEFT JOIN ingreso i ON c.id_compra = i.id_compra AND i.est_ingreso = 1
-            LEFT JOIN compra_detalle cd ON c.id_compra = cd.id_compra AND cd.est_compra_detalle = 1
-            $where
-            GROUP BY pr.id_proveedor, pr.nom_proveedor
-            HAVING total_ordenes > 0
-            ORDER BY monto_total_soles DESC";
-    
-    $result = $con->query($sql);
-    $datos = [];
-    if ($result && $result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $datos[] = $row;
-        }
-    }
-    return $datos;
-}*/
-
-// ============================================
-// DASHBOARD 3.c: PAGOS POR ALMACÉN (ACTUALIZADO)
-// ============================================
-/*function obtenerPagosPorAlmacen($con, $fecha_inicio = null, $fecha_fin = null) {
-    $where = "WHERE comp.est_comprobante IN (1, 3)"; // 1=Pendiente, 3=Pagado
-    
-    if ($fecha_inicio && $fecha_fin) {
-        $where .= " AND DATE(comp.fec_emision) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
-    }
-    
-    $sql = "SELECT 
-            a.nom_almacen as almacen,
-            
-            -- Total de comprobantes (órdenes)
-            COUNT(DISTINCT comp.id_comprobante) as total_ordenes,
-            
-            -- Comprobantes por estado
-            SUM(CASE WHEN comp.est_comprobante = 3 THEN 1 ELSE 0 END) as ordenes_pagadas,
-            SUM(CASE WHEN comp.est_comprobante = 1 THEN 1 ELSE 0 END) as pendientes_pago,
-            
-            -- Montos en soles (id_moneda = 1)
-            COALESCE(SUM(CASE WHEN comp.id_moneda = 1 THEN comp.total_pagar ELSE 0 END), 0) as monto_total_soles,
-            COALESCE(SUM(CASE WHEN comp.id_moneda = 1 AND comp.est_comprobante = 3 THEN comp.total_pagar ELSE 0 END), 0) as monto_pagado_soles,
-            COALESCE(SUM(CASE WHEN comp.id_moneda = 1 AND comp.est_comprobante = 1 THEN comp.total_pagar ELSE 0 END), 0) as monto_pendiente_soles,
-            
-            -- Montos en dólares (id_moneda = 2)
-            COALESCE(SUM(CASE WHEN comp.id_moneda = 2 THEN comp.total_pagar ELSE 0 END), 0) as monto_total_dolares,
-            COALESCE(SUM(CASE WHEN comp.id_moneda = 2 AND comp.est_comprobante = 3 THEN comp.total_pagar ELSE 0 END), 0) as monto_pagado_dolares,
-            COALESCE(SUM(CASE WHEN comp.id_moneda = 2 AND comp.est_comprobante = 1 THEN comp.total_pagar ELSE 0 END), 0) as monto_pendiente_dolares,
-            
-            -- Porcentaje de pago
-            ROUND((SUM(CASE WHEN comp.est_comprobante = 3 THEN 1 ELSE 0 END) * 100.0) / 
-                  COUNT(DISTINCT comp.id_comprobante), 2) as porcentaje_pagado
-            
-            FROM comprobante comp
-            INNER JOIN compra c ON comp.id_compra = c.id_compra
-            INNER JOIN pedido p ON c.id_pedido = p.id_pedido
-            INNER JOIN almacen a ON p.id_almacen = a.id_almacen
-            $where
-            GROUP BY a.id_almacen, a.nom_almacen
-            HAVING total_ordenes > 0
-            ORDER BY a.nom_almacen";
-    
-    $result = $con->query($sql);
-    $datos = [];
-    
-    if ($result && $result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            // Calcular totales generales (suma de ambas monedas para referencia)
-            $row['total_comprobantes_general'] = $row['monto_total_soles'] + $row['monto_total_dolares'];
-            $row['total_pagado_general'] = $row['monto_pagado_soles'] + $row['monto_pagado_dolares'];
-            $row['total_pendiente_general'] = $row['monto_pendiente_soles'] + $row['monto_pendiente_dolares'];
-            
-            $datos[] = $row;
-        }
-    }
-    
-    return $datos;
-}
-
-// ============================================
-// DASHBOARD 3.d: PAGOS POR PROVEEDOR (ACTUALIZADO)
-// ============================================
-function obtenerPagosPorProveedor($con, $fecha_inicio = null, $fecha_fin = null, $proveedor = null) {
-    $where = "WHERE comp.est_comprobante IN (1, 3)"; // 1=Pendiente, 3=Pagado
-    
-    if ($fecha_inicio && $fecha_fin) {
-        $where .= " AND DATE(comp.fec_emision) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
-    }
-    
-    if ($proveedor) {
-        $where .= " AND pr.id_proveedor = $proveedor";
-    }
-    
-    $sql = "SELECT 
-            pr.nom_proveedor as proveedor,
-            pr.id_proveedor,
-            
-            -- Total de comprobantes (órdenes)
-            COUNT(DISTINCT comp.id_comprobante) as total_ordenes,
-            
-            -- Comprobantes por estado
-            SUM(CASE WHEN comp.est_comprobante = 3 THEN 1 ELSE 0 END) as ordenes_pagadas,
-            SUM(CASE WHEN comp.est_comprobante = 1 THEN 1 ELSE 0 END) as pendientes_pago,
-            
-            -- Montos en soles (id_moneda = 1)
-            COALESCE(SUM(CASE WHEN comp.id_moneda = 1 THEN comp.total_pagar ELSE 0 END), 0) as monto_total_soles,
-            COALESCE(SUM(CASE WHEN comp.id_moneda = 1 AND comp.est_comprobante = 3 THEN comp.total_pagar ELSE 0 END), 0) as monto_pagado_soles,
-            COALESCE(SUM(CASE WHEN comp.id_moneda = 1 AND comp.est_comprobante = 1 THEN comp.total_pagar ELSE 0 END), 0) as monto_pendiente_soles,
-            
-            -- Montos en dólares (id_moneda = 2)
-            COALESCE(SUM(CASE WHEN comp.id_moneda = 2 THEN comp.total_pagar ELSE 0 END), 0) as monto_total_dolares,
-            COALESCE(SUM(CASE WHEN comp.id_moneda = 2 AND comp.est_comprobante = 3 THEN comp.total_pagar ELSE 0 END), 0) as monto_pagado_dolares,
-            COALESCE(SUM(CASE WHEN comp.id_moneda = 2 AND comp.est_comprobante = 1 THEN comp.total_pagar ELSE 0 END), 0) as monto_pendiente_dolares,
-            
-            -- Porcentaje de pago
-            ROUND((SUM(CASE WHEN comp.est_comprobante = 3 THEN 1 ELSE 0 END) * 100.0) / 
-                  COUNT(DISTINCT comp.id_comprobante), 2) as porcentaje_pagado
-            
-            FROM comprobante comp
-            INNER JOIN proveedor_cuenta pc ON comp.id_cuenta_proveedor = pc.id_proveedor_cuenta
-            INNER JOIN proveedor pr ON pc.id_proveedor = pr.id_proveedor
-            $where
-            GROUP BY pr.id_proveedor, pr.nom_proveedor
-            HAVING total_ordenes > 0
-            ORDER BY monto_total_soles DESC, monto_total_dolares DESC";
-    
-    $result = $con->query($sql);
-    $datos = [];
-    
-    if ($result && $result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            // Calcular totales generales (suma de ambas monedas para referencia)
-            $row['total_comprobantes_general'] = $row['monto_total_soles'] + $row['monto_total_dolares'];
-            $row['total_pagado_general'] = $row['monto_pagado_soles'] + $row['monto_pagado_dolares'];
-            $row['total_pendiente_general'] = $row['monto_pendiente_soles'] + $row['monto_pendiente_dolares'];
-            
-            $datos[] = $row;
-        }
-    }
-    
-    return $datos;
-}
-
-// ============================================
-// DASHBOARD 3.e: ORDENES VENCIDAS POR PROVEEDOR POR MES
-// ============================================
-function obtenerOrdenesVencidasPorProveedorMes($con, $año = null) {
-    if (!$año) {
-        $año = date('Y');
-    }
-    
-    $sql = "SELECT 
-            pr.nom_proveedor as proveedor,
-            MONTH(c.fec_compra) as mes,
-            COUNT(DISTINCT c.id_compra) as ordenes_vencidas
-            FROM compra c
-            INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
-            WHERE YEAR(c.fec_compra) = $año
-            AND c.est_compra IN (1, 2, 3)
-            AND c.plaz_compra IS NOT NULL
-            AND c.plaz_compra != ''
-            AND c.plaz_compra != '0'
-            AND DATEDIFF(CURDATE(), DATE_ADD(c.fec_compra, INTERVAL CAST(c.plaz_compra AS UNSIGNED) DAY)) > 0
-            GROUP BY pr.id_proveedor, pr.nom_proveedor, MONTH(c.fec_compra)
-            ORDER BY pr.nom_proveedor, mes";
-    
-    $result = $con->query($sql);
-    $datos = [];
-    if ($result && $result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $datos[] = $row;
-        }
-    }
-    return $datos;
-}
-
-// ============================================
-// CARDS DE RESUMEN
-// ============================================
-
-// ESTOS NO CAMBIAN CON FILTROS (totales generales)
-function obtenerTotalProductos($con) {
-    $sql = "SELECT COUNT(*) as total FROM producto WHERE est_producto = 1";
-    $result = $con->query($sql);
-    return $result ? $result->fetch_assoc()['total'] : 0;
-}
-
-function obtenerTotalAlmacenes($con) {
-    $sql = "SELECT COUNT(*) as total FROM almacen WHERE est_almacen = 1";
-    $result = $con->query($sql);
-    return $result ? $result->fetch_assoc()['total'] : 0;
-}
-
-function obtenerTotalProveedores($con) {
-    $sql = "SELECT COUNT(*) as total FROM proveedor WHERE est_proveedor = 1";
-    $result = $con->query($sql);
-    return $result ? $result->fetch_assoc()['total'] : 0;
-}
-
-// ESTOS SÍ CAMBIAN CON FILTROS
-function obtenerTotalPedidos($con, $fecha_inicio = null, $fecha_fin = null) {
-    $where = "WHERE est_pedido IN (0, 1)";
-    
-    if ($fecha_inicio && $fecha_fin) {
-        $where .= " AND DATE(fec_pedido) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
-    }
-    
-    $sql = "SELECT COUNT(*) as total FROM pedido $where";
-    $result = $con->query($sql);
-    return $result ? $result->fetch_assoc()['total'] : 0;
-}
-
-function obtenerTotalCompras($con, $fecha_inicio = null, $fecha_fin = null) {
-    $where = "WHERE est_compra != 0";
-    
-    if ($fecha_inicio && $fecha_fin) {
-        $where .= " AND DATE(fec_compra) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
-    }
-    
-    $sql = "SELECT COUNT(*) as total FROM compra $where";
-    $result = $con->query($sql);
-    return $result ? $result->fetch_assoc()['total'] : 0;
-}*/
-
 require_once("../_conexion/conexion.php");
 /*require_once("../_conexion/conexion_complemento.php"); */
 
@@ -399,29 +42,75 @@ function _buildFiltroProveedorCentro(&$whereClauses, $proveedor, $centro_costo) 
 // - Considera filtros: proveedor, centro de costo, fecha inicio/fin
 // - Devuelve: total_ordenes, ordenes_atendidas, ordenes_pendientes
 // ============================================
+
 function obtenerResumenOrdenes($con, $proveedor = null, $centro_costo = null, $fecha_inicio = null, $fecha_fin = null) {
-    // Map de estados: atendidas = est_compra IN (2,4)
     $where = ["c.est_compra != 0"];
     _buildFiltroProveedorCentro($where, $proveedor, $centro_costo);
     _buildFiltroFecha($where, $fecha_inicio, $fecha_fin, "DATE(c.fec_compra)");
     $where_sql = $where ? ("WHERE " . implode(" AND ", $where)) : "";
 
-    $sql = "SELECT
-                COUNT(DISTINCT c.id_compra) AS total_ordenes,
-                SUM(CASE WHEN c.est_compra IN (3,4) THEN 1 ELSE 0 END) AS ordenes_atendidas,
-                SUM(CASE WHEN c.est_compra IN (1,2) THEN 1 ELSE 0 END) AS ordenes_pendientes
+    $sql = "SELECT 
+                c.id_compra,
+                c.est_compra,
+                
+                -- Total de la compra
+                COALESCE(
+                    SUM(
+                        cd.cant_compra_detalle 
+                        * cd.prec_compra_detalle 
+                        * (1 + (cd.igv_compra_detalle / 100))
+                    ), 
+                0) AS total_compra,
+                
+                -- Total pagado
+                COALESCE(
+                    (SELECT SUM(monto_total_igv) 
+                     FROM comprobante 
+                     WHERE id_compra = c.id_compra 
+                       AND est_comprobante = 3), 
+                0) AS total_pagado
+                
             FROM compra c
             LEFT JOIN pedido p ON c.id_pedido = p.id_pedido
-            $where_sql";
+            LEFT JOIN compra_detalle cd ON c.id_compra = cd.id_compra 
+                AND cd.est_compra_detalle = 1
+            $where_sql
+            GROUP BY c.id_compra, c.est_compra";
+    
     $result = $con->query($sql);
-    if ($result && $row = $result->fetch_assoc()) {
-        // asegurar valores numéricos
-        $row['total_ordenes'] = intval($row['total_ordenes']);
-        $row['ordenes_atendidas'] = intval($row['ordenes_atendidas']);
-        $row['ordenes_pendientes'] = intval($row['ordenes_pendientes']);
-        return $row;
+    
+    if (!$result) {
+        return ['total_ordenes' => 0, 'ordenes_atendidas' => 0, 'ordenes_pendientes' => 0];
     }
-    return ['total_ordenes' => 0, 'ordenes_atendidas' => 0, 'ordenes_pendientes' => 0];
+
+    $total_ordenes = 0;
+    $ordenes_atendidas = 0;
+    $ordenes_pendientes = 0;
+
+    while ($row = $result->fetch_assoc()) {
+        $est_compra = intval($row['est_compra']);
+        $total_compra = round(floatval($row['total_compra']), 2);
+        $total_pagado = round(floatval($row['total_pagado']), 2);
+        
+        $total_ordenes++;
+
+        // Verificar si está pagada (esto la hace ATENDIDA)
+        $esta_pagada = ($total_pagado >= $total_compra);
+
+        // Clasificar: Atendida si est_compra=3 O si está pagada
+        if ($est_compra == 3 || $esta_pagada) {
+            $ordenes_atendidas++;
+        } else {
+            // est_compra: 1=Pendiente, 2=Parcial
+            $ordenes_pendientes++;
+        }
+    }
+
+    return [
+        'total_ordenes' => $total_ordenes,
+        'ordenes_atendidas' => $ordenes_atendidas,
+        'ordenes_pendientes' => $ordenes_pendientes
+    ];
 }
 
 // ============================================

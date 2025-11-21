@@ -74,12 +74,10 @@
                             </div>
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3">Cliente destino <span class="text-danger">*</span>:</label>
+                                <label class="control-label col-md-3">Ubicación Destino:</label>
                                 <div class="col-md-9">
-                                    <select id="id_cliente_destino" name="id_cliente_destino" class="form-control" required>
-                                        <option value="">Seleccionar Cliente</option>
-                                        <!-- Los clientes se cargarán dinámicamente según el almacén -->
-                                    </select>
+                                    <input type="text" class="form-control" value="BASE" readonly style="background-color: #f8f9fa;">
+                                    <input type="hidden" name="id_ubicacion_destino" value="1">
                                 </div>
                             </div>
 
@@ -95,7 +93,7 @@
                                 <!-- Plantilla: se clonará -->
                                 <div class="material-item border p-3 mb-3">
                                     <div class="row">
-                                        <div class="col-md-6">
+                                        <div class="col-md-8">
                                             <label>Material <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
                                                 <input type="text" name="descripcion[]" class="form-control" placeholder="Material" required>
@@ -106,15 +104,15 @@
                                             </div>
                                         </div>
 
-                                        <div class="col-md-3">
+                                        <div class="col-md-4">
                                             <label>Cantidad <span class="text-danger">*</span>:</label>
                                             <input type="number" name="cantidad[]" class="form-control" step="0.01" required>
                                         </div>
 
-                                        <div class="col-md-3">
+                                        <!-- <div class="col-md-3">
                                             <label>Stock Disponible:</label>
                                             <div class="form-control" id="stock-disponible-0" style="background-color: #f8f9fa;">0.00</div>
-                                        </div>
+                                        </div>-->
                                     </div>
 
                                     <div class="row mt-2">
@@ -633,7 +631,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-document.addEventListener('DOMContentLoaded', function() {
+/*document.addEventListener('DOMContentLoaded', function() {
     const clienteSelect = document.getElementById('id_cliente_destino');
     const almacenSelect = document.getElementById('id_almacen');
     const ubicacionSelect = document.getElementById('id_ubicacion');
@@ -651,45 +649,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-});
-
-document.getElementById('id_almacen').addEventListener('change', function() {
-    const idAlmacen = this.value;
-    const selectCliente = document.getElementById('id_cliente_destino');
-
-    // Limpiar select
-    selectCliente.innerHTML = '<option value="">Seleccionar Cliente</option>';
-
-    if (!idAlmacen) return;
-
-    fetch('../_controlador/clientes_por_almacen.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'id_almacen=' + idAlmacen
-    })
-    .then(response => response.json())
-    .then(data => {
-        let tieneArce = false;
-
-        data.forEach(cliente => {
-            const option = document.createElement('option');
-            option.value = cliente.id_cliente;
-            option.textContent = cliente.nom_cliente;
-            selectCliente.appendChild(option);
-
-            if (parseInt(cliente.id_cliente) === 9) tieneArce = true;
-        });
-
-        // Si ARCE (id_cliente=9) no está en la lista, lo agregamos al final
-        if (!tieneArce) {
-            const optionArce = document.createElement('option');
-            optionArce.value = 9;
-            optionArce.textContent = 'ARCE';
-            selectCliente.appendChild(optionArce);
-        }
-    })
-    .catch(err => console.error('Error al cargar clientes:', err));
-});
+});*/
 
 </script>
 

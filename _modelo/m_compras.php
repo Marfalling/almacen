@@ -361,6 +361,7 @@ function ConsultarCompra($id_pedido)
     
     $compras = array();
     while ($row = mysqli_fetch_assoc($resultado)) {
+        $row['pagado'] = esCompraPagada($row['id_compra']);
         $compras[] = $row;
     }
     

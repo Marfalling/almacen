@@ -65,7 +65,7 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
                 $id_personal = $_SESSION['id_personal'];
 
                 // Capturar cliente destino
-                $id_cliente_destino = isset($_REQUEST['id_cliente_destino']) ? intval($_REQUEST['id_cliente_destino']) : null;
+                $id_cliente_destino = 1;
 
                 // Validación obligatoria de cliente
                 if (!$id_cliente_destino) {
@@ -76,22 +76,49 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
                 } else {
                     // Procesar materiales
                     $materiales = array();
+                    $errores_stock = array(); // NUEVO: Array para errores de stock
+                    
                     if (isset($_REQUEST['id_producto']) && is_array($_REQUEST['id_producto'])) {
                         foreach ($_REQUEST['id_producto'] as $index => $id_producto) {
                             if (!empty($id_producto) && !empty($_REQUEST['cantidad'][$index])) {
-                                $materiales[] = array(
-                                    'id_producto' => intval($id_producto),
-                                    'cantidad'    => floatval($_REQUEST['cantidad'][$index]),
-                                    'detalle'     => mysqli_real_escape_string($con, $_REQUEST['descripcion'][$index])
-                                );
+                                $id_prod = intval($id_producto);
+                                $cantidad = floatval($_REQUEST['cantidad'][$index]);
+
+                                require_once("../_modelo/m_stock.php");
+                                
+                                // VALIDAR STOCK DISPONIBLE
+                                $stock_actual = ObtenerStockActual($id_prod, $id_almacen, $id_ubicacion);
+                                
+                                if ($cantidad > $stock_actual) {
+                                    // Obtener nombre del producto para el mensaje
+                                    $sql_prod = "SELECT nom_producto FROM producto WHERE id_producto = $id_prod";
+                                    $res_prod = mysqli_query($con, $sql_prod);
+                                    $row_prod = mysqli_fetch_assoc($res_prod);
+                                    $nombre_prod = $row_prod['nom_producto'] ?? "Producto ID: $id_prod";
+                                    
+                                    $errores_stock[] = "$nombre_prod: solicita $cantidad pero solo hay $stock_actual disponible";
+                                } else {
+                                    // Si hay stock suficiente, agregar al array
+                                    $materiales[] = array(
+                                        'id_producto' => $id_prod,
+                                        'cantidad'    => $cantidad,
+                                        'detalle'     => mysqli_real_escape_string($con, $_REQUEST['descripcion'][$index])
+                                    );
+                                }
                             }
                         }
                     }
                     
+                    // ⭐ VERIFICAR SI HAY ERRORES DE STOCK
+                    if (count($errores_stock) > 0) {
+                        $mostrar_alerta = true;
+                        $tipo_alerta = 'error';
+                        $titulo_alerta = 'Stock insuficiente';
+                        $mensaje_alerta = implode('<br>', $errores_stock);
+                    }
                     // Validación materiales
-                    if (count($materiales) > 0) {
-                        // <--- Se agrega $id_cliente_destino como nuevo parámetro
-                        $resultado = GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $id_cliente_destino, $obs_devolucion, $materiales);
+                    elseif (count($materiales) > 0) {
+                        $resultado = GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devolucion, $materiales);
                         
                         if ($resultado === "SI") {
                             ?>

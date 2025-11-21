@@ -3,7 +3,7 @@
 // MODELO: m_devolucion.php
 //=======================================================================
 
-function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $id_cliente_destino, $obs_devolucion, $materiales) 
+/*function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $id_cliente_destino, $obs_devolucion, $materiales) 
 {
     include("../_conexion/conexion.php");
 
@@ -76,6 +76,85 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $id_cliente_
                                     $cantidad, NOW(), 1
                                 )";
                     mysqli_query($con, $sql_mov);
+                }
+            }
+        }
+        
+        mysqli_close($con);
+        return "SI";
+    } else {
+        $error = mysqli_error($con);
+        mysqli_close($con);
+        return "ERROR: " . $error;
+    }
+}*/
+
+function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devolucion, $materiales) 
+{
+    include("../_conexion/conexion.php");
+
+    // La ubicación destino SIEMPRE es BASE (id_ubicacion = 1)
+    $id_ubicacion_destino = 1;
+
+    // Insertar devolución principal
+    $sql = "INSERT INTO devolucion (
+                id_almacen, id_ubicacion, id_personal, id_cliente_destino,
+                obs_devolucion, fec_devolucion, est_devolucion
+            ) VALUES (
+                $id_almacen, $id_ubicacion, $id_personal, $id_ubicacion_destino,
+                '$obs_devolucion', NOW(), 1
+            )";
+
+    if (mysqli_query($con, $sql)) {
+        $id_devolucion = mysqli_insert_id($con);
+        
+        // Insertar detalles y generar movimientos
+        foreach ($materiales as $material) {
+            $id_producto = intval($material['id_producto']);
+            $cantidad = floatval($material['cantidad']);
+            $detalle = mysqli_real_escape_string($con, $material['detalle']);
+
+            // Insertar detalle de devolución
+            $sql_detalle = "INSERT INTO devolucion_detalle (
+                                id_devolucion, id_producto, cant_devolucion_detalle, 
+                                det_devolucion_detalle, est_devolucion_detalle
+                            ) VALUES (
+                                $id_devolucion, $id_producto, $cantidad, 
+                                '$detalle', 1
+                            )";
+            
+            if (mysqli_query($con, $sql_detalle)) {
+                
+                // LÓGICA SIMPLIFICADA:
+                // Si la ubicación origen NO es BASE, genera traslado interno
+                if ($id_ubicacion != 1) {
+                    
+                    // Movimiento 1: RESTA de la ubicación origen
+                    $sql_mov_resta = "INSERT INTO movimiento (
+                                        id_personal, id_orden, id_producto, id_almacen, 
+                                        id_ubicacion, tipo_orden, tipo_movimiento, 
+                                        cant_movimiento, fec_movimiento, est_movimiento
+                                    ) VALUES (
+                                        $id_personal, $id_devolucion, $id_producto, $id_almacen, 
+                                        $id_ubicacion, 3, 2, 
+                                        $cantidad, NOW(), 1
+                                    )";
+                    mysqli_query($con, $sql_mov_resta);
+                    
+                    // Movimiento 2: SUMA a BASE del mismo almacén
+                    $sql_mov_suma = "INSERT INTO movimiento (
+                                        id_personal, id_orden, id_producto, id_almacen, 
+                                        id_ubicacion, tipo_orden, tipo_movimiento, 
+                                        cant_movimiento, fec_movimiento, est_movimiento
+                                    ) VALUES (
+                                        $id_personal, $id_devolucion, $id_producto, $id_almacen, 
+                                        1, 3, 1, 
+                                        $cantidad, NOW(), 1
+                                    )";
+                    mysqli_query($con, $sql_mov_suma);
+                    
+                } else {
+                    // Si ya está en BASE, no genera movimientos
                 }
             }
         }

@@ -202,19 +202,38 @@
                                                                     <?php 
                                                                     if ($tipo == 'COMPRA') { 
                                                                         $est_compra = intval($est_compra);
-                                                                        
-                                                                        if ($est_compra == 0) { ?>
-                                                                            <span class="badge badge-danger badge_size">ANULADO</span>
-                                                                        <?php } elseif ($est_compra == 1) { ?>
-                                                                            <span class="badge badge-warning badge_size">PENDIENTE</span>
-                                                                        <?php } elseif ($est_compra == 2) { ?>
-                                                                            <span class="badge badge-success badge_size">APROBADO</span>
-                                                                        <?php } elseif ($est_compra == 3) { ?>
-                                                                            <span class="badge badge-info badge_size">CERRADA</span>
-                                                                        <?php } elseif ($est_compra == 4) { ?>
-                                                                            <span class="badge badge-primary badge_size">PAGADA</span>
-                                                                        <?php } ?>
-                                                                    <?php } else { ?>
+
+                                                                        if ($est_compra == 2 && $ingreso['pagado']==1) {
+                                                                            //$estado_final = 'PAGADO';
+                                                                            //$badge_class = 'badge-primary';
+                                                                            ?><span class="badge badge-primary badge_size">PAGADO</span><?php
+                                                                        } elseif ($est_compra == 3 && $ingreso['pagado']==1) {
+                                                                            //$estado_final = 'CERRADO';
+                                                                            //$badge_class = 'badge-dark';
+                                                                            ?><span class="badge badge-dark badge_size">CERRADO</span><?php
+
+                                                                        } elseif ($est_compra == 2) {
+                                                                            //$estado_final = 'APROBADO';
+                                                                            //$badge_class = 'badge-info';
+                                                                            ?><span class="badge badge-info badge_size">APROBADO</span><?php
+
+                                                                        } elseif ($est_compra == 3) {
+                                                                            //$estado_final = 'INGRESADO';
+                                                                            //$badge_class = 'badge-success';
+                                                                            ?><span class="badge badge-success badge_size">INGRESADO</span><?php
+
+                                                                        } elseif ($est_compra == 1) {
+
+                                                                            //$estado_final = 'PENDIENTE';
+                                                                            //$badge_class = 'badge-warning';
+                                                                            ?><span class="badge badge-warning badge_size">PENDIENTE</span><?php
+
+                                                                        } else {
+                                                                            //$estado_final = 'ANULADO';
+                                                                            //$badge_class = 'badge-danger';
+                                                                            ?><span class="badge badge-danger badge_size">ANULADO</span><?php
+                                                                        }
+                                                                    } else { ?>
                                                                         <?php if ($ingreso['estado'] == 0) { ?>
                                                                             <span class="badge badge-danger badge_size">ANULADO</span>
                                                                         <?php } else { ?>
