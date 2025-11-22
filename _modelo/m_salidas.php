@@ -1013,7 +1013,7 @@ function ObtenerStockDisponible($id_producto, $id_almacen, $id_ubicacion, $id_pe
                 WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                 ELSE 0
                 END), 0
-            ) AS Stock_Disponible,
+            ) AS stock_disponible  
             FROM movimiento mov
             WHERE mov.id_producto = $id_producto 
             AND mov.id_almacen = $id_almacen 
