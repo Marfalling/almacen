@@ -412,8 +412,8 @@ function ObtenerStockDisponible($id_producto, $id_almacen, $id_ubicacion)
     $sql = "SELECT 
                 -- STOCK FÍSICO (entradas - salidas), sin contar tipo_orden = 5
                 COALESCE(SUM(CASE
-                    WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden <> 5 THEN mov.cant_movimiento
-                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento
+                    WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                    WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                     ELSE 0
                 END), 0) AS stock_fisico,
 
@@ -426,8 +426,8 @@ function ObtenerStockDisponible($id_producto, $id_almacen, $id_ubicacion)
                 -- STOCK DISPONIBLE (físico - comprometido)
                 (
                     COALESCE(SUM(CASE
-                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden <> 5 THEN mov.cant_movimiento
-                        WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                         ELSE 0
                     END), 0)
                     -
@@ -440,7 +440,7 @@ function ObtenerStockDisponible($id_producto, $id_almacen, $id_ubicacion)
             WHERE mov.id_producto = $id_producto 
             AND mov.id_almacen = $id_almacen 
             AND mov.id_ubicacion = $id_ubicacion
-            AND mov.est_movimiento = 1";
+            AND mov.est_movimiento != 0";
     
     $resultado = mysqli_query($con, $sql);
     $row = mysqli_fetch_assoc($resultado);

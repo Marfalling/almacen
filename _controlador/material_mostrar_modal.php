@@ -56,8 +56,8 @@ LEFT JOIN (
         id_almacen,
         id_ubicacion,
         SUM(CASE
-            WHEN tipo_movimiento = 1 THEN cant_movimiento
-            WHEN tipo_movimiento = 2 AND tipo_orden != 5 THEN -cant_movimiento
+            WHEN tipo_movimiento = 1 AND tipo_orden != 3 THEN cant_movimiento
+            WHEN tipo_movimiento = 2 THEN -cant_movimiento
             ELSE 0
         END) AS stock_físico,
         SUM(CASE
@@ -65,7 +65,7 @@ LEFT JOIN (
             ELSE 0
         END) AS stock_comprometido
     FROM movimiento 
-    WHERE est_movimiento = 1
+    WHERE est_movimiento != 0
     " . ($id_almacen > 0 ? " AND id_almacen = $id_almacen" : "") . "
     " . ($id_ubicacion > 0 ? " AND id_ubicacion = $id_ubicacion" : "") . "
     GROUP BY id_producto, id_almacen, id_ubicacion
@@ -83,8 +83,8 @@ LEFT JOIN (
         id_almacen,
         id_ubicacion,
         SUM(CASE
-            WHEN tipo_movimiento = 1 THEN cant_movimiento
-            WHEN tipo_movimiento = 2 AND tipo_orden != 5 THEN -cant_movimiento
+            WHEN tipo_movimiento = 1 AND tipo_orden != 3 THEN cant_movimiento
+            WHEN tipo_movimiento = 2 THEN -cant_movimiento
             ELSE 0
         END) AS stock_físico,
         SUM(CASE
@@ -92,7 +92,7 @@ LEFT JOIN (
             ELSE 0
         END) AS stock_comprometido
     FROM movimiento 
-    WHERE est_movimiento = 1
+    WHERE est_movimiento != 0
     " . ($id_almacen > 0 ? " AND id_almacen = $id_almacen" : "") . "
     " . ($id_ubicacion > 0 ? " AND id_ubicacion = $id_ubicacion" : "") . "
     GROUP BY id_producto, id_almacen, id_ubicacion

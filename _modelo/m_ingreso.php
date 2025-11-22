@@ -592,7 +592,7 @@ function AnularIngresoDirecto($id_ingreso, $id_personal)
             $sql_stock = "SELECT 
                             COALESCE(SUM(
                                 CASE 
-                                    WHEN tipo_movimiento = 1 THEN cant_movimiento 
+                                    WHEN tipo_movimiento = 1 AND tipo_orden != 3 THEN cant_movimiento
                                     WHEN tipo_movimiento = 2 THEN -cant_movimiento 
                                     ELSE 0 
                                 END
@@ -601,7 +601,7 @@ function AnularIngresoDirecto($id_ingreso, $id_personal)
                          WHERE id_producto = '" . $producto['id_producto'] . "' 
                          AND id_almacen = '" . $ingreso_info['id_almacen'] . "' 
                          AND id_ubicacion = '" . $ingreso_info['id_ubicacion'] . "' 
-                         AND est_movimiento = 1";
+                         AND est_movimiento != 0";
             
             $res_stock = mysqli_query($con, $sql_stock);
             $stock_data = mysqli_fetch_array($res_stock, MYSQLI_ASSOC);
@@ -713,8 +713,8 @@ function ObtenerStockActual($id_producto, $id_almacen, $id_ubicacion)
     $sql = "SELECT 
                 COALESCE(SUM(
                     CASE 
-                        WHEN tipo_movimiento = 1 THEN cant_movimiento 
-                        WHEN tipo_movimiento = 2 THEN -cant_movimiento 
+                        WHEN tipo_movimiento = 1 AND tipo_orden != 3 THEN cant_movimiento
+                        WHEN tipo_movimiento = 2 THEN -cant_movimiento
                         ELSE 0 
                     END
                 ), 0) as stock_actual
@@ -722,7 +722,7 @@ function ObtenerStockActual($id_producto, $id_almacen, $id_ubicacion)
             WHERE id_producto = '$id_producto' 
             AND id_almacen = '$id_almacen' 
             AND id_ubicacion = '$id_ubicacion' 
-            AND est_movimiento = 1";
+            AND est_movimiento != 0";
     
     $resultado = mysqli_query($con, $sql);
     

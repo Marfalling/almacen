@@ -421,7 +421,7 @@ function MostrarProductosConStock($limit, $offset, $search, $orderColumn, $order
                 p.mod_producto,
                 COALESCE(
                     (SELECT SUM(CASE
-                        WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
                         WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                         ELSE 0
                     END)
@@ -429,7 +429,7 @@ function MostrarProductosConStock($limit, $offset, $search, $orderColumn, $order
                     WHERE mov.id_producto = p.id_producto 
                     AND mov.id_almacen = $id_almacen 
                     AND mov.id_ubicacion = $id_ubicacion
-                    AND mov.est_movimiento = 1), 0
+                    AND mov.est_movimiento != 0), 0
                 ) AS stock_disponible
             FROM producto p
             INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
@@ -555,7 +555,7 @@ function MostrarProductosConStockPorTipo($limit, $offset, $search, $orderColumn,
                 p.mod_producto,
                 COALESCE(
                     (SELECT SUM(CASE
-                        WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
                         WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                         ELSE 0
                     END)
@@ -563,7 +563,7 @@ function MostrarProductosConStockPorTipo($limit, $offset, $search, $orderColumn,
                     WHERE mov.id_producto = p.id_producto 
                     AND mov.id_almacen = $id_almacen 
                     AND mov.id_ubicacion = $id_ubicacion
-                    AND mov.est_movimiento = 1), 0
+                    AND mov.est_movimiento !=0 ), 0
                 ) AS stock_disponible
             FROM producto p
             INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo

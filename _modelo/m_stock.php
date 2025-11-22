@@ -96,13 +96,11 @@ function ObtenerStockActual($id_producto, $id_almacen, $id_ubicacion)
     $sql_fisico = "
         SELECT 
             COALESCE(SUM(CASE 
-                WHEN tipo_movimiento = 1 AND tipo_orden <> 3 
-                THEN cant_movimiento 
+                WHEN tipo_movimiento = 1 AND tipo_orden != 3 THEN cant_movimiento 
                 ELSE 0 
             END), 0)
           - COALESCE(SUM(CASE 
-                WHEN tipo_movimiento = 2 AND tipo_orden <> 3 
-                THEN cant_movimiento 
+                WHEN tipo_movimiento = 2 THEN -cant_movimiento
                 ELSE 0 
             END), 0)
         AS stock_fisico

@@ -51,8 +51,8 @@ $sql = "SELECT
     COALESCE(
         (SELECT SUM(
             CASE 
-                WHEN m.tipo_movimiento = 1 THEN m.cant_movimiento 
-                WHEN m.tipo_movimiento = 2 THEN -m.cant_movimiento 
+                WHEN m.tipo_movimiento = 1 AND m.tipo_orden != 3 THEN m.cant_movimiento
+                WHEN m.tipo_movimiento = 2 THEN -m.cant_movimiento
                 ELSE 0 
             END
         )
@@ -60,7 +60,7 @@ $sql = "SELECT
         WHERE m.id_producto = p.id_producto
         AND m.id_almacen = $id_almacen
         AND m.id_ubicacion = $id_ubicacion
-        AND m.est_movimiento = 1), 
+        AND m.est_movimiento != 0), 
     0) as stock_actual
 FROM producto p
 INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo

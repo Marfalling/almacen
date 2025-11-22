@@ -248,8 +248,8 @@ function AprobarSalidaConMovimientos($id_salida, $id_personal_aprueba)
             $sql_stock = "SELECT COALESCE(
                             SUM(
                                 CASE
-                                    WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
-                                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento
+                                    WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                    WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                                     ELSE 0
                                 END
                             ), 0) AS stock_fisico_real
@@ -257,7 +257,7 @@ function AprobarSalidaConMovimientos($id_salida, $id_personal_aprueba)
                           WHERE mov.id_producto = $id_producto
                             AND mov.id_almacen = $id_almacen_origen
                             AND mov.id_ubicacion = $id_ubicacion_origen
-                            AND mov.est_movimiento = 1";
+                            AND mov.est_movimiento != 0";
             
             $res_stock = mysqli_query($con, $sql_stock);
             $row_stock = mysqli_fetch_assoc($res_stock);
@@ -776,8 +776,8 @@ function ActualizarSalida($id_salida, $id_almacen_origen, $id_ubicacion_origen,
             $sql_stock = "SELECT COALESCE(
                             SUM(
                                 CASE
-                                    WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
-                                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento
+                                    WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                    WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                                     ELSE 0
                                 END
                             ), 0) AS stock_fisico_real
@@ -785,7 +785,7 @@ function ActualizarSalida($id_salida, $id_almacen_origen, $id_ubicacion_origen,
                           WHERE mov.id_producto = $id_producto
                             AND mov.id_almacen = $id_almacen_origen
                             AND mov.id_ubicacion = $id_ubicacion_origen
-                            AND mov.est_movimiento = 1";
+                            AND mov.est_movimiento != 0";
             
             $res_stock = mysqli_query($con, $sql_stock);
             $row_stock = mysqli_fetch_assoc($res_stock);
@@ -1008,22 +1008,17 @@ function ObtenerStockDisponible($id_producto, $id_almacen, $id_ubicacion, $id_pe
     $id_pedido = $id_pedido !== null ? intval($id_pedido) : null;
 
     $sql = "SELECT COALESCE(
-                SUM(
-                    CASE
-                        WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
-                        WHEN mov.tipo_movimiento = 2 THEN 
-                            CASE
-                                WHEN mov.tipo_orden = 5 AND ".($id_pedido !== null ? "mov.id_orden = $id_pedido" : "0")." THEN 0
-                                ELSE -mov.cant_movimiento
-                            END
-                        ELSE 0
-                    END
-                ), 0) AS stock_disponible
+            SUM(CASE
+                WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+                ELSE 0
+                END), 0
+            ) AS Stock_Disponible,
             FROM movimiento mov
             WHERE mov.id_producto = $id_producto 
             AND mov.id_almacen = $id_almacen 
             AND mov.id_ubicacion = $id_ubicacion
-            AND mov.est_movimiento = 1";
+            AND mov.est_movimiento != 0";
     
     $resultado = mysqli_query($con, $sql);
     $row = mysqli_fetch_assoc($resultado);
@@ -1183,8 +1178,8 @@ function MostrarProductosConStockParaSalida($limit, $offset, $searchValue, $orde
                 -- ==============================================
                 COALESCE(SUM(
                     CASE
-                        WHEN mov.tipo_orden <> 5 AND mov.tipo_movimiento = 1 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
-                        WHEN mov.tipo_orden <> 5 AND mov.tipo_movimiento = 2 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 1 AND mov.est_movimiento != 0 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 2 AND mov.est_movimiento != 0 THEN -mov.cant_movimiento
                         ELSE 0
                     END
                 ), 0) AS stock_fisico,
@@ -1202,8 +1197,8 @@ function MostrarProductosConStockParaSalida($limit, $offset, $searchValue, $orde
                 -- ==============================================
                 COALESCE(SUM(
                     CASE
-                        WHEN mov.tipo_orden <> 5 AND mov.tipo_movimiento = 1 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
-                        WHEN mov.tipo_orden <> 5 AND mov.tipo_movimiento = 2 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 1 AND mov.est_movimiento != 0 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 2 AND mov.est_movimiento != 0 THEN -mov.cant_movimiento
                         ELSE 0
                     END
                 ), 0)
@@ -1766,8 +1761,8 @@ function ValidarCantidadesSalida($id_pedido, $items_salida, $id_salida_actual = 
         $sql_stock_fisico = "SELECT COALESCE(
                                 SUM(
                                     CASE
-                                        WHEN tipo_movimiento = 1 THEN cant_movimiento
-                                        WHEN tipo_movimiento = 2 AND tipo_orden <> 5 THEN -cant_movimiento
+                                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                        WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                                         ELSE 0
                                     END
                                 ), 0) AS stock_fisico
@@ -1775,7 +1770,7 @@ function ValidarCantidadesSalida($id_pedido, $items_salida, $id_salida_actual = 
                              WHERE id_producto = $id_producto
                                AND id_almacen = $id_almacen_origen
                                AND id_ubicacion = $id_ubicacion_origen
-                               AND est_movimiento = 1";
+                               AND est_movimiento != 0";
         
         $res_fisico = mysqli_query($con, $sql_stock_fisico);
         $row_fisico = mysqli_fetch_assoc($res_fisico);
@@ -1900,8 +1895,8 @@ function verificarSiNecesitaReverificacion($materiales, $id_salida, $id_pedido) 
         $sql_stock = "SELECT COALESCE(
                         SUM(
                             CASE
-                                WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
-                                WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento
+                                WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                                 ELSE 0
                             END
                         ), 0) AS stock_fisico_real
@@ -1909,7 +1904,7 @@ function verificarSiNecesitaReverificacion($materiales, $id_salida, $id_pedido) 
                       WHERE mov.id_producto = $id_producto
                         AND mov.id_almacen = $id_almacen
                         AND mov.id_ubicacion = $id_ubicacion
-                        AND mov.est_movimiento = 1";
+                        AND mov.est_movimiento != 0";
         
         $res_stock = mysqli_query($con, $sql_stock);
         $row_stock = mysqli_fetch_assoc($res_stock);
