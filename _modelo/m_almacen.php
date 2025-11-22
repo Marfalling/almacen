@@ -274,11 +274,18 @@ function ConsultarAlmacenTotal()
     WHERE mov.est_movimiento != 0
     AND pro.id_producto_tipo <> 2  -- EXCLUIR SERVICIOS
     
-    GROUP BY 
-        pro.id_producto,
-        cli.id_cliente,
-        alm.id_almacen,
-        ubi.id_ubicacion
+   GROUP BY 
+    pro.id_producto,
+    pro.nom_producto,
+    cli.id_cliente,
+    cli.nom_cliente,
+    alm.id_almacen,
+    alm.nom_almacen,
+    obr.id_subestacion,
+    obr.nom_subestacion,
+    ubi.id_ubicacion,
+    ubi.nom_ubicacion
+
     
     HAVING Stock_Disponible > 0 OR Stock_Devolucion > 0
     
