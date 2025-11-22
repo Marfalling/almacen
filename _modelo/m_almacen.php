@@ -137,7 +137,7 @@ function ConsultarAlmacen($id_almacen)
     return $resultado;
 }
 //-----------------------------------------------------------------------
-function ConsultarAlmacenTotal()
+/*function ConsultarAlmacenTotal()
 {
     include("../_conexion/conexion.php");
 
@@ -223,7 +223,86 @@ function ConsultarAlmacenTotal()
     mysqli_close($con);
     
     return $resultado;
+}*/
+
+function ConsultarAlmacenTotal()
+{
+    include("../_conexion/conexion.php");
+
+    $sqlc = "SELECT 
+        pro.nom_producto       AS Producto,
+        cli.nom_cliente        AS Cliente,
+        obr.nom_subestacion    AS Obra,
+        alm.nom_almacen        AS Almacen,
+        ubi.nom_ubicacion      AS Ubicacion,
+        
+        -- STOCK DISPONIBLE (stock real utilizable)
+        COALESCE(
+            SUM(CASE
+                WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+                ELSE 0
+            END), 0
+        ) AS Stock_Disponible,
+        
+        -- STOCK EN DEVOLUCIÓN (solo en BASE)
+        CASE 
+            WHEN ubi.id_ubicacion = 1 THEN  -- ⬅️ SOLO si es BASE
+                COALESCE(
+                    (
+                        SELECT SUM(md.cant_movimiento)
+                        FROM movimiento md
+                        WHERE md.id_producto = mov.id_producto
+                          AND md.id_almacen = mov.id_almacen
+                          AND md.id_ubicacion = 1  -- BASE
+                          AND md.tipo_orden = 3    -- Devoluciones
+                          AND md.tipo_movimiento = 1  -- Ingresos a BASE
+                          AND md.est_movimiento = 2   -- Pendiente
+                    ), 0
+                )
+            ELSE 0  -- ⬅️ En OBRA siempre es 0
+        END AS Stock_Devolucion
+
+    FROM movimiento mov
+    INNER JOIN producto   pro ON mov.id_producto   = pro.id_producto
+    INNER JOIN {$bd_complemento}.personal   per ON mov.id_personal   = per.id_personal
+    INNER JOIN almacen    alm ON mov.id_almacen    = alm.id_almacen
+    INNER JOIN {$bd_complemento}.cliente    cli ON alm.id_cliente    = cli.id_cliente
+    INNER JOIN {$bd_complemento}.subestacion obr ON alm.id_obra       = obr.id_subestacion
+    INNER JOIN ubicacion  ubi ON mov.id_ubicacion  = ubi.id_ubicacion
+
+    WHERE mov.est_movimiento != 0
+    AND pro.id_producto_tipo <> 2  -- EXCLUIR SERVICIOS
+    
+    GROUP BY 
+        pro.id_producto,
+        cli.id_cliente,
+        alm.id_almacen,
+        ubi.id_ubicacion
+    
+    HAVING Stock_Disponible > 0 OR Stock_Devolucion > 0
+    
+    ORDER BY 
+        pro.nom_producto,
+        cli.nom_cliente,
+        alm.nom_almacen,
+        obr.nom_subestacion,
+        ubi.nom_ubicacion;
+    ";
+    
+    $resc = mysqli_query($con, $sqlc);
+
+    $resultado = array();
+
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $resultado[] = $rowc;
+    }
+
+    mysqli_close($con);
+    
+    return $resultado;
 }
+
 function ConsultarAlmacenArce()
 {
     include("../_conexion/conexion.php");
@@ -233,46 +312,32 @@ function ConsultarAlmacenArce()
         pti.nom_producto_tipo  AS Tipo_Producto,
         mti.nom_material_tipo  AS Tipo_Material,
         umi.nom_unidad_medida  AS Unidad_Medida,
-        -- STOCK FÍSICO (entradas - salidas)
-            SUM(
-                CASE 
-                    WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
-                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento
-                    ELSE 0 
-                END
-            ) AS Stock_Fisico,
-
-            -- STOCK RESERVADO (solo pedidos activos)
-            (
-                SELECT 
-                    IFNULL(SUM(mr.cant_movimiento), 0)
-                FROM movimiento mr
-                WHERE mr.id_producto = mov.id_producto
-                  AND mr.tipo_orden = 5
-                  AND mr.tipo_movimiento = 2
-                  AND mr.est_movimiento = 1
-            ) AS Stock_Reservado,
-
-            -- STOCK DISPONIBLE = Físico - Reservado
-            (
-                SUM(
-                    CASE 
-                        WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
-                        WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento 
-                        ELSE 0 
-                    END
+        -- STOCK DISPONIBLE (stock real utilizable)
+        COALESCE(
+            SUM(CASE
+                WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+                ELSE 0
+            END), 0
+        ) AS Stock_Disponible,
+        
+        -- STOCK EN DEVOLUCIÓN (solo en BASE)
+        CASE 
+            WHEN ubi.id_ubicacion = 1 THEN  -- ⬅️ SOLO si es BASE
+                COALESCE(
+                    (
+                        SELECT SUM(md.cant_movimiento)
+                        FROM movimiento md
+                        WHERE md.id_producto = mov.id_producto
+                          AND md.id_almacen = mov.id_almacen
+                          AND md.id_ubicacion = 1  -- BASE
+                          AND md.tipo_orden = 3    -- Devoluciones
+                          AND md.tipo_movimiento = 1  -- Ingresos a BASE
+                          AND md.est_movimiento = 2   -- Pendiente
+                    ), 0
                 )
-                -
-                (
-                    SELECT 
-                        IFNULL(SUM(mr.cant_movimiento), 0)
-                    FROM movimiento mr
-                    WHERE mr.id_producto = mov.id_producto
-                      AND mr.tipo_orden = 5
-                      AND mr.tipo_movimiento = 2
-                      AND mr.est_movimiento = 1
-                )
-            ) AS Stock_Disponible
+            ELSE 0  -- ⬅️ En OBRA siempre es 0
+        END AS Stock_Devolucion
     FROM movimiento mov
     INNER JOIN producto   pro ON mov.id_producto   = pro.id_producto
         INNER JOIN producto_tipo  pti ON pro.id_producto_tipo = pti.id_producto_tipo
@@ -283,7 +348,7 @@ function ConsultarAlmacenArce()
         INNER JOIN {$bd_complemento}.cliente    cli ON alm.id_cliente    = cli.id_cliente
         INNER JOIN {$bd_complemento}.subestacion obr ON alm.id_obra       = obr.id_subestacion
     INNER JOIN ubicacion  ubi ON mov.id_ubicacion  = ubi.id_ubicacion
-    WHERE mov.est_movimiento = 1
+    WHERE mov.est_movimiento != 0
       AND pro.id_producto_tipo <> 2  -- EXCLUIR SERVICIOS
     GROUP BY 
         pro.id_producto
@@ -320,50 +385,32 @@ function ConsultarAlmacenClientes($id_cliente)
         alm.nom_almacen       AS Almacen,
         obr.nom_subestacion   AS Obra,
         ubi.nom_ubicacion      AS Ubicacion,
-        -- STOCK FÍSICO (entradas - salidas)
-            SUM(
-                CASE 
-                    WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
-                    WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento 
-                    ELSE 0 
-                END
-            ) AS Stock_Fisico,
-
-            -- STOCK RESERVADO (pedidos activos)
-            (
-                SELECT 
-                    IFNULL(SUM(mr.cant_movimiento), 0)
-                FROM movimiento mr
-                WHERE mr.id_producto = mov.id_producto
-                  AND mr.id_almacen = mov.id_almacen
-                  AND mr.id_ubicacion = mov.id_ubicacion
-                  AND mr.tipo_orden = 5
-                  AND mr.tipo_movimiento = 2
-                  AND mr.est_movimiento = 1
-            ) AS Stock_Reservado,
-
-            -- STOCK DISPONIBLE = físico - reservado
-            (
-                SUM(
-                    CASE 
-                        WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento 
-                        WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden <> 5 THEN -mov.cant_movimiento
-                        ELSE 0 
-                    END
+        -- STOCK DISPONIBLE (stock real utilizable)
+        COALESCE(
+            SUM(CASE
+                WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+                ELSE 0
+            END), 0
+        ) AS Stock_Disponible,
+        
+        -- STOCK EN DEVOLUCIÓN (solo en BASE)
+        CASE 
+            WHEN ubi.id_ubicacion = 1 THEN  -- ⬅️ SOLO si es BASE
+                COALESCE(
+                    (
+                        SELECT SUM(md.cant_movimiento)
+                        FROM movimiento md
+                        WHERE md.id_producto = mov.id_producto
+                          AND md.id_almacen = mov.id_almacen
+                          AND md.id_ubicacion = 1  -- BASE
+                          AND md.tipo_orden = 3    -- Devoluciones
+                          AND md.tipo_movimiento = 1  -- Ingresos a BASE
+                          AND md.est_movimiento = 2   -- Pendiente
+                    ), 0
                 )
-                -
-                (
-                    SELECT 
-                        IFNULL(SUM(mr.cant_movimiento), 0)
-                    FROM movimiento mr
-                    WHERE mr.id_producto = mov.id_producto
-                      AND mr.id_almacen = mov.id_almacen
-                      AND mr.id_ubicacion = mov.id_ubicacion
-                      AND mr.tipo_orden = 5
-                      AND mr.tipo_movimiento = 2
-                      AND mr.est_movimiento = 1
-                )
-            ) AS Stock_Disponible
+            ELSE 0  -- ⬅️ En OBRA siempre es 0
+        END AS Stock_Devolucion
     FROM movimiento mov
     INNER JOIN producto   pro ON mov.id_producto   = pro.id_producto
         INNER JOIN producto_tipo  pti ON pro.id_producto_tipo = pti.id_producto_tipo
@@ -374,7 +421,7 @@ function ConsultarAlmacenClientes($id_cliente)
         INNER JOIN {$bd_complemento}.cliente    cli ON alm.id_cliente    = cli.id_cliente
         INNER JOIN {$bd_complemento}.subestacion obr ON alm.id_obra       = obr.id_subestacion
     INNER JOIN ubicacion  ubi ON mov.id_ubicacion  = ubi.id_ubicacion
-    WHERE mov.est_movimiento = 1
+    WHERE mov.est_movimiento != 0
       AND pro.id_producto_tipo <> 2  -- EXCLUIR SERVICIOS
     $filtro_cliente
     GROUP BY 

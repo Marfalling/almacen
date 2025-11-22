@@ -40,6 +40,7 @@
                                                 <!-- <th>Stock Físico</th> -->
                                                 <!-- <th>Stock Reservado</th> -->
                                                 <th>Stock Disponible</th>
+                                                <th>Stock Devolución</th>
                                             </tr>
                                         </thead>
 
@@ -56,6 +57,7 @@
                                             //echo "<td>" . htmlspecialchars($almacen['Stock_Fisico']) . "</td>";
                                             //echo "<td>" . htmlspecialchars($almacen['Stock_Reservado']) . "</td>";
                                             echo "<td>" . htmlspecialchars($almacen['Stock_Disponible']) . "</td>";
+                                            echo "<td>" . htmlspecialchars($almacen['Stock_Devolucion']) . "</td>";
                                             echo "</tr>";
                                         }
                                         ?>

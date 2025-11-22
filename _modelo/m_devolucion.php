@@ -137,7 +137,7 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devoluc
                                     ) VALUES (
                                         $id_personal, $id_devolucion, $id_producto, $id_almacen, 
                                         $id_ubicacion, 3, 2, 
-                                        $cantidad, NOW(), 1
+                                        $cantidad, NOW(), 2
                                     )";
                     mysqli_query($con, $sql_mov_resta);
                     
@@ -149,7 +149,7 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devoluc
                                     ) VALUES (
                                         $id_personal, $id_devolucion, $id_producto, $id_almacen, 
                                         1, 3, 1, 
-                                        $cantidad, NOW(), 1
+                                        $cantidad, NOW(), 2
                                     )";
                     mysqli_query($con, $sql_mov_suma);
                     
@@ -505,11 +505,45 @@ function AnularDevolucion($id_devolucion) {
 function ConfirmarDevolucion($id_devolucion) {
     include("../_conexion/conexion.php");
 
-    // Solo cambiamos el estado, no tocamos stock
+    // 1. Actualizar estado de la devolución
     $sql = "UPDATE devolucion 
             SET est_devolucion = 2 
             WHERE id_devolucion = $id_devolucion";
-    mysqli_query($con, $sql);
+    
+    if (!mysqli_query($con, $sql)) {
+        $error = mysqli_error($con);
+        mysqli_close($con);
+        return "ERROR: " . $error;
+    }
+
+    // 2. Actualizar movimientos asociados a esta devolución
+    // Movimiento de SALIDA (tipo_movimiento = 2) → est_movimiento = 1
+    $sql_salida = "UPDATE movimiento 
+                   SET est_movimiento = 1 
+                   WHERE id_orden = $id_devolucion 
+                     AND tipo_orden = 3 
+                     AND tipo_movimiento = 2 
+                     AND est_movimiento = 2";
+    
+    if (!mysqli_query($con, $sql_salida)) {
+        $error = mysqli_error($con);
+        mysqli_close($con);
+        return "ERROR actualizando salida: " . $error;
+    }
+
+    // 3. Actualizar movimiento de ENTRADA (tipo_movimiento = 1) → est_movimiento = 0
+    $sql_entrada = "UPDATE movimiento 
+                    SET est_movimiento = 0 
+                    WHERE id_orden = $id_devolucion 
+                      AND tipo_orden = 3 
+                      AND tipo_movimiento = 1 
+                      AND est_movimiento = 2";
+    
+    if (!mysqli_query($con, $sql_entrada)) {
+        $error = mysqli_error($con);
+        mysqli_close($con);
+        return "ERROR actualizando entrada: " . $error;
+    }
 
     mysqli_close($con);
     return "SI";
