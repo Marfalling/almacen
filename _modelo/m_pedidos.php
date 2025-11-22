@@ -439,7 +439,7 @@ function ConsultarPedidoDetalle($id_pedido)
              --  STOCK EN UBICACIÓN DESTINO (usando movimientos)
              COALESCE(
                 (SELECT SUM(CASE
-                    WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                    WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
                     WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                     ELSE 0
                 END)
@@ -448,7 +448,7 @@ function ConsultarPedidoDetalle($id_pedido)
                 WHERE mov.id_producto = pd.id_producto 
                 AND mov.id_almacen = ped.id_almacen 
                 AND mov.id_ubicacion = ped.id_ubicacion
-                AND mov.est_movimiento = 1), 0
+                AND mov.est_movimiento != 0), 0
              ) AS cantidad_disponible_almacen,
              
              --  CANTIDAD YA ORDENADA EN SALIDAS (PENDIENTES + APROBADAS)
@@ -499,7 +499,7 @@ function ConsultarPedidoDetalle($id_pedido)
              --  STOCK EN OTRAS UBICACIONES (usando movimientos)
              (
                 SELECT COALESCE(SUM(CASE
-                    WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                    WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
                     WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                     ELSE 0
                 END), 0)
@@ -508,7 +508,7 @@ function ConsultarPedidoDetalle($id_pedido)
                 WHERE mov.id_producto = pd.id_producto 
                   AND mov.id_almacen = ped2.id_almacen 
                   AND mov.id_ubicacion != ped2.id_ubicacion
-                  AND mov.est_movimiento = 1
+                  AND mov.est_movimiento != 0
              ) AS stock_otras_ubicaciones
              
              FROM pedido_detalle pd 
@@ -983,7 +983,7 @@ function PedidoTieneTodoConStock($id_pedido)
                     pd.cant_pedido_detalle,
                     COALESCE(
                         (SELECT SUM(CASE
-                            WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                            WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
                             WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                             ELSE 0
                         END)
@@ -991,7 +991,7 @@ function PedidoTieneTodoConStock($id_pedido)
                         WHERE mov.id_producto = pd.id_producto 
                         AND mov.id_almacen = $id_almacen
                         AND mov.id_ubicacion = $id_ubicacion
-                        AND mov.est_movimiento = 1), 0
+                        AND mov.est_movimiento != 0), 0
                     ) AS stock_disponible
                   FROM pedido_detalle pd
                   WHERE pd.id_pedido = $id_pedido
@@ -1032,8 +1032,8 @@ function ObtenerItemsParaSalida($id_pedido)
                 -- ==========================================
                 COALESCE((
                     SELECT SUM(CASE
-                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden = 1 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
-                        WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 2 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden = 1 AND mov.est_movimiento != 0 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 2 AND mov.est_movimiento != 0 THEN -mov.cant_movimiento
                         ELSE 0
                     END)
                     FROM movimiento mov
@@ -1055,7 +1055,7 @@ function ObtenerItemsParaSalida($id_pedido)
                       AND mov.id_ubicacion = ped.id_ubicacion
                       AND mov.tipo_movimiento = 2
                       AND mov.tipo_orden = 5
-                      AND mov.est_movimiento = 1
+                      AND mov.est_movimiento != 0
                       AND mov.id_orden <> pd.id_pedido
                 ), 0) AS stock_comprometido,
 
@@ -1064,8 +1064,8 @@ function ObtenerItemsParaSalida($id_pedido)
                 -- ==========================================
                 COALESCE((
                     SELECT SUM(CASE
-                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden = 1 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
-                        WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 2 AND mov.est_movimiento = 1 THEN -mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden = 1 AND mov.est_movimiento != 0 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 2 AND mov.est_movimiento != 0 THEN -mov.cant_movimiento
                         ELSE 0
                     END)
                     FROM movimiento mov
@@ -1084,7 +1084,7 @@ function ObtenerItemsParaSalida($id_pedido)
                       AND mov.id_ubicacion = ped.id_ubicacion
                       AND mov.tipo_movimiento = 2
                       AND mov.tipo_orden = 5
-                      AND mov.est_movimiento = 1
+                      AND mov.est_movimiento != 0
                       AND mov.id_orden <> pd.id_pedido
                 ), 0)
                 AS stock_disponible,
@@ -1243,7 +1243,7 @@ function verificarPedidoListo($id_pedido, $con = null)
                     pd.est_pedido_detalle,
                     COALESCE(
                         (SELECT SUM(CASE
-                            WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                            WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
                             WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                             ELSE 0
                         END)
@@ -1251,7 +1251,7 @@ function verificarPedidoListo($id_pedido, $con = null)
                         WHERE mov.id_producto = pd.id_producto 
                         AND mov.id_almacen = $id_almacen
                         AND mov.id_ubicacion = $id_ubicacion
-                        AND mov.est_movimiento = 1), 0
+                        AND mov.est_movimiento != 0), 0
                     ) AS stock_disponible
                   FROM pedido_detalle pd
                   WHERE pd.id_pedido = $id_pedido
@@ -2227,7 +2227,7 @@ function VerificarYActualizarEstadoPedido($id_pedido)
                     p.nom_producto,
                     COALESCE(
                         (SELECT SUM(CASE
-                            WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                            WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
                             WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                             ELSE 0
                         END)
@@ -2235,7 +2235,7 @@ function VerificarYActualizarEstadoPedido($id_pedido)
                         WHERE mov.id_producto = pd.id_producto 
                         AND mov.id_almacen = $id_almacen
                         AND mov.id_ubicacion = $id_ubicacion
-                        AND mov.est_movimiento = 1), 0
+                        AND mov.est_movimiento != 0), 0
                     ) AS stock_disponible
                   FROM pedido_detalle pd
                   INNER JOIN producto p ON pd.id_producto = p.id_producto
@@ -2379,7 +2379,7 @@ function ObtenerStockProducto($id_producto, $id_almacen = null, $id_ubicacion = 
 
     $id_producto = intval($id_producto);
 
-    $whereBase = "id_producto = $id_producto AND est_movimiento = 1";
+    $whereBase = "id_producto = $id_producto AND est_movimiento != 0";
 
     if (!is_null($id_almacen)) {
         $id_almacen = intval($id_almacen);
@@ -2390,23 +2390,24 @@ function ObtenerStockProducto($id_producto, $id_almacen = null, $id_ubicacion = 
         $whereBase .= " AND id_ubicacion = $id_ubicacion";
     }
 
-    // 1) Stock físico: consideramos movimientos que afectan realmente el stock (EXCLUIMOS tipo_orden = 5 que son reservas)
+    // 1) Stock físico: consideramos movimientos que afectan realmente el stock (EXCLUIMOS tipo_orden = 5 que son reservas y tipo_orden = 3 en ingresos)
     $sql_fisico = "SELECT COALESCE(SUM(
                     CASE
-                        WHEN tipo_movimiento = 1 THEN cant_movimiento
+                        WHEN tipo_movimiento = 1 AND tipo_orden != 3 THEN cant_movimiento
                         WHEN tipo_movimiento = 2 THEN -cant_movimiento
                         ELSE 0
                     END), 0) AS stock_fisico
                   FROM movimiento
                   WHERE $whereBase
+                    AND est_movimiento != 0
                     AND tipo_orden <> 5";
 
     $res = mysqli_query($con, $sql_fisico);
     $row = $res ? mysqli_fetch_assoc($res) : null;
     $stock_fisico = $row ? floatval($row['stock_fisico']) : 0.0;
 
-    // 2) Stock reservado (compromisos): tipo_orden = 5, tipo_movimiento = 2, est_movimiento = 1
-    $whereReservado = "$whereBase AND tipo_orden = 5 AND tipo_movimiento = 2 AND est_movimiento = 1";
+    // 2) Stock reservado (compromisos): tipo_orden = 5, tipo_movimiento = 2, est_movimiento != 0
+    $whereReservado = "$whereBase AND tipo_orden = 5 AND tipo_movimiento = 2 AND est_movimiento != 0";
 
      // 👇 Excluir compromisos del pedido actual (si se pasa el ID)
     if (!is_null($id_pedido_excluir)) {
@@ -2425,7 +2426,7 @@ function ObtenerStockProducto($id_producto, $id_almacen = null, $id_ubicacion = 
     // 3) (opcional) stock neto si consideráramos las reservas como salidas (para comparar con versiones anteriores)
     $sql_incluye_comp = "SELECT COALESCE(SUM(
                             CASE
-                              WHEN tipo_movimiento = 1 THEN cant_movimiento
+                              WHEN tipo_movimiento = 1 AND tipo_orden != 3 THEN cant_movimiento
                               WHEN tipo_movimiento = 2 THEN -cant_movimiento
                               ELSE 0
                             END),0) AS stock_net_incluye_comp
@@ -2999,7 +3000,7 @@ function ObtenerStockFisicoEnUbicacion($id_producto, $id_almacen, $id_ubicacion)
     $sql = "SELECT COALESCE(
                 SUM(
                     CASE
-                        WHEN tipo_movimiento = 1 THEN cant_movimiento
+                        WHEN tipo_movimiento = 1 AND tipo_orden != 3 THEN cant_movimiento
                         WHEN tipo_movimiento = 2 THEN -cant_movimiento
                         ELSE 0
                     END
@@ -3009,7 +3010,7 @@ function ObtenerStockFisicoEnUbicacion($id_producto, $id_almacen, $id_ubicacion)
               WHERE id_producto = ?
               AND id_almacen = ?
               AND id_ubicacion = ?
-              AND est_movimiento = 1";
+              AND est_movimiento != 0";
 
     $stmt = mysqli_prepare($con, $sql);
     mysqli_stmt_bind_param($stmt, "iii", $id_producto, $id_almacen, $id_ubicacion);
@@ -3093,7 +3094,7 @@ function ObtenerStockEnUbicacion($id_producto, $id_almacen, $id_ubicacion) {
     $sql = "SELECT COALESCE(
                 SUM(
                     CASE
-                        WHEN tipo_movimiento = 1 THEN cant_movimiento
+                        WHEN tipo_movimiento = 1 AND tipo_orden != 3 THEN cant_movimiento
                         WHEN tipo_movimiento = 2 THEN -cant_movimiento
                         ELSE 0
                     END
@@ -3103,7 +3104,7 @@ function ObtenerStockEnUbicacion($id_producto, $id_almacen, $id_ubicacion) {
               WHERE id_producto = ?
               AND id_almacen = ?
               AND id_ubicacion = ?
-              AND est_movimiento = 1";
+              AND est_movimiento != 0";
 
     $stmt = mysqli_prepare($con, $sql);
     mysqli_stmt_bind_param($stmt, "iii", $id_producto, $id_almacen, $id_ubicacion);
@@ -3127,7 +3128,7 @@ function ObtenerOtrasUbicacionesConStock($id_producto, $id_almacen, $id_ubicacio
                 COALESCE(
                     SUM(
                         CASE
-                            WHEN m.tipo_movimiento = 1 THEN m.cant_movimiento
+                            WHEN m.tipo_movimiento = 1 AND m.tipo_orden != 3 THEN m.cant_movimiento
                             WHEN m.tipo_movimiento = 2 THEN -m.cant_movimiento
                             ELSE 0
                         END
@@ -3138,7 +3139,7 @@ function ObtenerOtrasUbicacionesConStock($id_producto, $id_almacen, $id_ubicacio
               WHERE m.id_producto = ?
               AND m.id_almacen = ?
               AND m.id_ubicacion != ?
-              AND m.est_movimiento = 1
+              AND m.est_movimiento != 0
               GROUP BY u.id_ubicacion, u.nom_ubicacion
               HAVING stock > 0
               ORDER BY stock DESC";
@@ -3165,7 +3166,7 @@ function ObtenerStockTotalAlmacen($id_producto, $id_almacen) {
     $sql = "SELECT COALESCE(
                 SUM(
                     CASE
-                        WHEN tipo_movimiento = 1 THEN cant_movimiento
+                        WHEN tipo_movimiento = 1 AND tipo_orden != 3 THEN cant_movimiento
                         WHEN tipo_movimiento = 2 THEN -cant_movimiento
                         ELSE 0
                     END
@@ -3173,7 +3174,7 @@ function ObtenerStockTotalAlmacen($id_producto, $id_almacen) {
               FROM movimiento
               WHERE id_producto = ?
               AND id_almacen = ?
-              AND est_movimiento = 1";
+              AND est_movimiento != 0";
 
     $stmt = mysqli_prepare($con, $sql);
     mysqli_stmt_bind_param($stmt, "ii", $id_producto, $id_almacen);
