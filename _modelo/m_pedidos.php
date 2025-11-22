@@ -421,6 +421,8 @@ function ConsultarPedidoDetalle($id_pedido)
 {
     include("../_conexion/conexion.php");
 
+    $id_pedido = intval($id_pedido);
+
     $sqlc = "SELECT pd.*, 
              pd.ot_pedido_detalle,
              GROUP_CONCAT(
@@ -433,6 +435,8 @@ function ConsultarPedidoDetalle($id_pedido)
              p.nom_producto,
              p.cod_material,  
              p.id_producto as id_producto,
+             
+             --  STOCK EN UBICACIÓN DESTINO (usando movimientos)
              COALESCE(
                 (SELECT SUM(CASE
                     WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
@@ -445,7 +449,68 @@ function ConsultarPedidoDetalle($id_pedido)
                 AND mov.id_almacen = ped.id_almacen 
                 AND mov.id_ubicacion = ped.id_ubicacion
                 AND mov.est_movimiento = 1), 0
-             ) AS cantidad_disponible_almacen
+             ) AS cantidad_disponible_almacen,
+             
+             --  CANTIDAD YA ORDENADA EN SALIDAS (PENDIENTES + APROBADAS)
+             --  CAMBIO CLAVE: Incluye estado 1 (PENDIENTE) para descuento visual inmediato
+             (
+                SELECT COALESCE(SUM(sd.cant_salida_detalle), 0)
+                FROM salida_detalle sd
+                INNER JOIN salida s ON sd.id_salida = s.id_salida
+                WHERE sd.id_pedido_detalle = pd.id_pedido_detalle
+                  AND sd.est_salida_detalle = 1
+                  AND s.est_salida IN (1, 3)  --  PENDIENTE (1) + APROBADO (3)
+             ) AS cantidad_ya_ordenada_os,
+             
+             --  CANTIDAD YA ORDENADA EN COMPRAS (sin cambios)
+             (
+                SELECT COALESCE(SUM(cd.cant_compra_detalle), 0)
+                FROM compra_detalle cd
+                INNER JOIN compra c ON cd.id_compra = c.id_compra
+                WHERE cd.id_pedido_detalle = pd.id_pedido_detalle
+                  AND c.est_compra IN (1, 2, 3, 4)
+                  AND cd.est_compra_detalle = 1
+             ) AS cantidad_ya_ordenada_oc,
+             
+             --  CANTIDAD PENDIENTE OS (Auto-calculado)
+             (
+                pd.cant_os_pedido_detalle - (
+                    SELECT COALESCE(SUM(sd.cant_salida_detalle), 0)
+                    FROM salida_detalle sd
+                    INNER JOIN salida s ON sd.id_salida = s.id_salida
+                    WHERE sd.id_pedido_detalle = pd.id_pedido_detalle
+                      AND sd.est_salida_detalle = 1
+                      AND s.est_salida IN (1, 3)
+                )
+             ) AS cantidad_pendiente_os,
+             
+             --  CANTIDAD PENDIENTE OC (Auto-calculado)
+             (
+                pd.cant_oc_pedido_detalle - (
+                    SELECT COALESCE(SUM(cd.cant_compra_detalle), 0)
+                    FROM compra_detalle cd
+                    INNER JOIN compra c ON cd.id_compra = c.id_compra
+                    WHERE cd.id_pedido_detalle = pd.id_pedido_detalle
+                      AND c.est_compra IN (1, 2, 3, 4)
+                      AND cd.est_compra_detalle = 1
+                )
+             ) AS cantidad_pendiente_oc,
+             
+             --  STOCK EN OTRAS UBICACIONES (usando movimientos)
+             (
+                SELECT COALESCE(SUM(CASE
+                    WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                    WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+                    ELSE 0
+                END), 0)
+                FROM movimiento mov
+                INNER JOIN pedido ped2 ON pd.id_pedido = ped2.id_pedido
+                WHERE mov.id_producto = pd.id_producto 
+                  AND mov.id_almacen = ped2.id_almacen 
+                  AND mov.id_ubicacion != ped2.id_ubicacion
+                  AND mov.est_movimiento = 1
+             ) AS stock_otras_ubicaciones
+             
              FROM pedido_detalle pd 
              LEFT JOIN pedido_detalle_documento pdd ON pd.id_pedido_detalle = pdd.id_pedido_detalle
                 AND pdd.est_pedido_detalle_documento = 1
@@ -456,9 +521,17 @@ function ConsultarPedidoDetalle($id_pedido)
              ORDER BY pd.id_pedido_detalle";
              
     $resc = mysqli_query($con, $sqlc);
+    
+    if (!$resc) {
+        error_log("❌ Error en ConsultarPedidoDetalle: " . mysqli_error($con));
+        mysqli_close($con);
+        return [];
+    }
+    
     $resultado = array();
 
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        // Procesar archivos
         if (!empty($rowc['archivos'])) {
             $archivos_array = explode(',', $rowc['archivos']);
             $archivos_limpio = array();
@@ -1631,16 +1704,17 @@ function VerificarEstadoItemPorDetalle($id_pedido_detalle) {
     
     error_log("✅ Datos obtenidos - Cantidad Pedida: $cantidad_pedida | OS: $cant_os_verificada | OC: $cant_oc_verificada | Producto: $id_producto");
     
-    // 🔹 OBTENER CANTIDADES YA ORDENADAS
+    //  Usar cantidad RECEPCIONADA para cierre
     $total_ordenado_oc = ObtenerCantidadYaOrdenadaOCPorDetalle($id_pedido_detalle);
-    $total_ordenado_os = ObtenerCantidadYaOrdenadaOSPorDetalle($id_pedido_detalle);
+    $total_recepcionado_os = ObtenerCantidadRecepcionadaOSPorDetalle($id_pedido_detalle); // ✅ NUEVO
     
-    error_log("📊 Total ordenado - OC: $total_ordenado_oc/$cant_oc_verificada | OS: $total_ordenado_os/$cant_os_verificada");
+    error_log("📊 VerificarEstadoItemPorDetalle - Detalle: $id_pedido_detalle");
+    error_log("   OS Verificada: $cant_os_verificada | OS Recepcionada: $total_recepcionado_os | Pendiente: " . ($cant_os_verificada - $total_recepcionado_os));
+    error_log("   OC Verificada: $cant_oc_verificada | OC Ordenada: $total_ordenado_oc | Pendiente: " . ($cant_oc_verificada - $total_ordenado_oc));    
     
     // 🔹 CALCULAR PENDIENTES
-    $pendiente_os = max(0, $cant_os_verificada - $total_ordenado_os);
+    $pendiente_os = max(0, $cant_os_verificada - $total_recepcionado_os); // ✅ USA RECEPCIONADA
     $pendiente_oc = max(0, $cant_oc_verificada - $total_ordenado_oc);
-    
     error_log("📊 Pendientes - OS: $pendiente_os | OC: $pendiente_oc");
     
     // 🔥 CORRECCIÓN CRÍTICA: SOLO CERRAR SI AMBOS ESTÁN COMPLETOS
@@ -1732,27 +1806,33 @@ function ObtenerCantidadYaOrdenadaOCPorDetalle($id_pedido_detalle) {
     return $total;
 }
 
-// ============================================================================
-// ObtenerCantidadYaOrdenadaOSPorDetalle
-// ============================================================================
+/**
+ * Obtiene la cantidad YA ORDENADA en salidas (incluyendo pendientes)
+ * PROPÓSITO: Descuento visual inmediato, igual que las OC
+ * 
+ * @param int $id_pedido_detalle
+ * @return float Cantidad ya ordenada en salidas (pendientes + aprobadas)
+ */
 function ObtenerCantidadYaOrdenadaOSPorDetalle($id_pedido_detalle) {
     include("../_conexion/conexion.php");
     
     $id_pedido_detalle = intval($id_pedido_detalle);
     
-    // 🔹 CORRECCIÓN: Usar query directa con variable ya sanitizada
-    $sql = "SELECT COALESCE(SUM(sd.cant_salida_detalle), 0) as total_ordenado
+    //  Contar PENDIENTES (1) 
+    // Esto da el descuento visual inmediato que el usuario necesita
+    $sql = "SELECT 
+                COALESCE(SUM(sd.cant_salida_detalle), 0) as total_ordenado
             FROM salida_detalle sd
             INNER JOIN salida s ON sd.id_salida = s.id_salida
             WHERE sd.id_pedido_detalle = $id_pedido_detalle
-            AND s.est_salida IN (1, 2, 3)"; 
-    
-    error_log("   📊 SQL ObtenerCantidadYaOrdenadaOSPorDetalle: $sql");
+              AND sd.est_salida_detalle = 1
+              AND s.est_salida = 1  --  PENDIENTE (1) 
+            ";
     
     $resultado = mysqli_query($con, $sql);
     
     if (!$resultado) {
-        error_log("   ❌ ERROR en ObtenerCantidadYaOrdenadaOSPorDetalle: " . mysqli_error($con));
+        error_log("❌ Error en ObtenerCantidadYaOrdenadaOSPorDetalle: " . mysqli_error($con));
         mysqli_close($con);
         return 0;
     }
@@ -1760,21 +1840,96 @@ function ObtenerCantidadYaOrdenadaOSPorDetalle($id_pedido_detalle) {
     $row = mysqli_fetch_assoc($resultado);
     $total = floatval($row['total_ordenado']);
     
-    // 🔹 Log histórico para debugging (opcional, puede mantenerse)
-    $sql_historico = "SELECT COALESCE(SUM(sd.cant_salida_detalle), 0) as total_historico
-                      FROM salida_detalle sd
-                      INNER JOIN salida s ON sd.id_salida = s.id_salida
-                      WHERE sd.id_pedido_detalle = $id_pedido_detalle
-                      AND sd.est_salida_detalle = 1";
-    $res_hist = mysqli_query($con, $sql_historico);
-    $row_hist = mysqli_fetch_assoc($res_hist);
-    $total_historico = floatval($row_hist['total_historico']);
-    
-    error_log("   ✅ Total ordenado OS para detalle $id_pedido_detalle: $total (Histórico total: $total_historico)");
-    
     mysqli_close($con);
+    
     return $total;
 }
+/**
+ * Obtiene la cantidad REALMENTE COMPLETADA (recepcionada)
+ * PROPÓSITO: Para cerrar items solo cuando se recepcionen las salidas
+ * 
+ * @param int $id_pedido_detalle
+ * @return float Cantidad recepcionada (estado 2)
+ */
+function ObtenerCantidadRecepcionadaOSPorDetalle($id_pedido_detalle) {
+    include("../_conexion/conexion.php");
+    
+    $id_pedido_detalle = intval($id_pedido_detalle);
+    
+    //  SOLO RECEPCIONADAS (2) para cierre definitivo
+    $sql = "SELECT 
+                COALESCE(SUM(sd.cant_salida_detalle), 0) as total_recepcionado
+            FROM salida_detalle sd
+            INNER JOIN salida s ON sd.id_salida = s.id_salida
+            WHERE sd.id_pedido_detalle = $id_pedido_detalle
+              AND sd.est_salida_detalle = 1
+              AND s.est_salida = 2  --  SOLO RECEPCIONADA (2)
+            ";
+    
+    $resultado = mysqli_query($con, $sql);
+    
+    if (!$resultado) {
+        error_log("❌ Error en ObtenerCantidadRecepcionadaOSPorDetalle: " . mysqli_error($con));
+        mysqli_close($con);
+        return 0;
+    }
+    
+    $row = mysqli_fetch_assoc($resultado);
+    $total = floatval($row['total_recepcionado']);
+    
+    mysqli_close($con);
+    
+    return $total;
+}
+/**
+ * Obtiene SOLO las salidas APROBADAS (para validaciones de stock real)
+ * PROPÓSITO: Validaciones de stock físico real
+ * 
+ * @param int $id_pedido_detalle
+ * @return float Cantidad realmente entregada (solo aprobadas)
+ */
+function ObtenerCantidadRealmenteEntregadaOS($id_pedido_detalle) {
+    include("../_conexion/conexion.php");
+    
+    $id_pedido_detalle = intval($id_pedido_detalle);
+    
+    // Solo salidas APROBADAS (estado 3) para stock real
+    $sql = "SELECT 
+                COALESCE(SUM(
+                    CASE 
+                        WHEN s.est_salida = 3 THEN (
+                            SELECT COALESCE(SUM(md.cant_movimiento_detalle), 0)
+                            FROM movimiento_detalle md
+                            INNER JOIN movimiento m ON md.id_movimiento = m.id_movimiento
+                            WHERE md.id_pedido_detalle = $id_pedido_detalle
+                              AND m.id_salida = s.id_salida
+                              AND m.est_movimiento = 1
+                        )
+                        ELSE 0
+                    END
+                ), 0) AS total_entregado
+            FROM salida_detalle sd
+            INNER JOIN salida s ON sd.id_salida = s.id_salida
+            WHERE sd.id_pedido_detalle = $id_pedido_detalle
+              AND sd.est_salida_detalle = 1
+              AND s.est_salida = 3";  
+    
+    $resultado = mysqli_query($con, $sql);
+    
+    if (!$resultado) {
+        error_log("❌ Error en ObtenerCantidadRealmenteEntregadaOS: " . mysqli_error($con));
+        mysqli_close($con);
+        return 0;
+    }
+    
+    $row = mysqli_fetch_assoc($resultado);
+    $total = floatval($row['total_entregado']);
+    
+    mysqli_close($con);
+    
+    return $total;
+}
+
 
 function VerificarReaperturaItemPorDetalle($id_pedido_detalle) {
     include("../_conexion/conexion.php");
@@ -3503,7 +3658,9 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
 
     error_log("🔄 ReverificarItemAutomaticamente - ID: $id_pedido_detalle");
 
-    // Obtener información del detalle y del pedido
+    // ============================================================
+    // PASO 1: Obtener información del detalle y del pedido
+    // ============================================================
     $sql_detalle = "SELECT 
                         pd.id_pedido_detalle,
                         pd.id_pedido,
@@ -3549,27 +3706,15 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
     $cant_os_anterior = floatval($detalle['cant_os_anterior']);
 
     // ============================================================
-    // PASO 1: Obtener cantidad ya entregada REALMENTE (OS activas)
-    // ============================================================
-    $cantidad_ya_entregada = ObtenerCantidadYaEntregadaOS($id_pedido_detalle);
-
-    // ============================================================
-    // PASO 2: Calcular PENDIENTE REAL basado en lo ya entregado
-    // ============================================================
-    $pendiente_real = max(0, $cantidad_pedida - $cantidad_ya_entregada);
-
-    error_log("📊 Pedido: $cantidad_pedida | Ya entregado: $cantidad_ya_entregada | Pendiente real: $pendiente_real");
-
-    // ============================================================
-    // PASO 3: Obtener stock disponible en ubicación DESTINO
+    // PASO 2: Obtener stock disponible en ubicación DESTINO
     // ============================================================
     $stock_data = ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion, $id_pedido);
     $stock_destino = floatval($stock_data['stock_fisico']);
 
-    error_log("📦 Stock destino: $stock_destino");
+    error_log("📦 Stock destino: $stock_destino | Cantidad pedida: $cantidad_pedida");
 
     // ============================================================
-    // PASO 4: Obtener stock en OTRAS ubicaciones
+    // PASO 3: Obtener stock en OTRAS ubicaciones
     // ============================================================
     $otras = ObtenerOtrasUbicacionesConStock($id_producto, $id_almacen, $id_ubicacion);
     $stock_otras = 0;
@@ -3583,29 +3728,31 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
     error_log("📦 Stock otras ubicaciones: $stock_otras");
 
     // ============================================================
-    // PASO 5: CALCULAR NUEVA DISTRIBUCIÓN OS/OC
+    // PASO 4:  CALCULAR NUEVA DISTRIBUCIÓN OS/OC
+    // LÓGICA: Calcular lo que FALTA en destino para completar el pedido
     // ============================================================
     
-    // 🔥 CORRECCIÓN FINAL: Calcular lo que FALTA en destino para COMPLETAR el pedido
-    // Usamos CANTIDAD PEDIDA (no pendiente real) porque queremos saber cuánto falta en la ubicación final
+    // Lo que falta en la ubicación destino
     $falta_en_destino = max(0, $cantidad_pedida - $stock_destino);
     
-    // OS: Lo que se puede trasladar desde otras ubicaciones
+    //  OS (Orden de Salida): Lo que se puede trasladar desde otras ubicaciones
     $nueva_os = min($falta_en_destino, $stock_otras);
     
-    // OC: Lo que no se puede cubrir con traslados
+    //  OC (Orden de Compra): Lo que NO se puede cubrir ni con stock destino ni con traslados
+    //  IMPORTANTE: Esta es la lógica ANTIGUA que funcionaba correctamente
     $nueva_oc = max(0, $falta_en_destino - $nueva_os);
 
-    error_log("📊 Cálculo correcto:");
-    error_log("   Cantidad pedida: $cantidad_pedida");
-    error_log("   Stock destino actual: $stock_destino");
-    error_log("   Falta en destino: $falta_en_destino (pedido - stock destino)");
-    error_log("   Stock otras ubicaciones: $stock_otras");
-    error_log("   Nueva OS: $nueva_os (trasladar desde otras)");
-    error_log("   Nueva OC: $nueva_oc (comprar)");
+    error_log("📊 Distribución calculada:");
+    error_log("   - Stock destino actual: $stock_destino");
+    error_log("   - Falta en destino: $falta_en_destino");
+    error_log("   - Stock en otras ubicaciones: $stock_otras");
+    error_log("   - ✅ Nueva OS (trasladar): $nueva_os");
+    error_log("   - ✅ Nueva OC (comprar): $nueva_oc");
+    error_log("   - Anterior OS: $cant_os_anterior");
+    error_log("   - Anterior OC: $cant_oc_anterior");
 
     // ============================================================
-    // PASO 6: Actualizar SOLO si cambió algo
+    // PASO 5: Actualizar SOLO si cambió algo
     // ============================================================
     if ($nueva_os != $cant_os_anterior || $nueva_oc != $cant_oc_anterior) {
 
@@ -3616,12 +3763,12 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
                        WHERE id_pedido_detalle = $id_pedido_detalle";
 
         if (mysqli_query($con, $sql_update)) {
-            error_log("✅ Actualizado OK: OS=$nueva_os | OC=$nueva_oc");
+            error_log("✅ Item reverificado | OS: $cant_os_anterior → $nueva_os | OC: $cant_oc_anterior → $nueva_oc");
         } else {
             error_log("❌ Error al actualizar: " . mysqli_error($con));
         }
     } else {
-        error_log("⏭️ Nada cambió, no se actualiza");
+        error_log("⏭️ Sin cambios en la reverificación (OS=$nueva_os, OC=$nueva_oc)");
     }
 
     mysqli_close($con);

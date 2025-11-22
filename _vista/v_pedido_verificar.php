@@ -576,189 +576,199 @@ $monedas = MostrarMoneda();
                                         }
                                     } else {
                                         // ========================================
-                                        // MATERIALES - LÓGICA CORREGIDA 
+                                        // MATERIALES - LÓGICA HÍBRIDA (OS Nueva + OC Antigua)
                                         // ========================================
                                         
-                                        // 1. Obtener cantidades verificadas (TOTAL AUTORIZADO)
-                                        $cant_os_verificada = isset($detalle['cant_os_pedido_detalle']) ? floatval($detalle['cant_os_pedido_detalle']) : 0;
+                                        //---------------------------------------------
+                                        // CASO 0: Reglas base
+                                        //---------------------------------------------
+                                        
+                                        //  PARA OS: Usar lógica NUEVA (con funciones)
+                                        $total_os_verificado = floatval($detalle['cant_os_pedido_detalle']);
+                                        $os_trasladada = ObtenerCantidadYaOrdenadaOSPorDetalle($id_detalle);
+                                        $os_verificada_total = $total_os_verificado + $os_trasladada;
+                                        $pendiente_os = max(0, $total_os_verificado - $os_trasladada); // Pendiente real después de restar ordenado
+                                        
+                                        //  PARA OC: Usar lógica ANTIGUA (desde $detalle)
                                         $cant_oc_verificada = isset($detalle['cant_oc_pedido_detalle']) ? floatval($detalle['cant_oc_pedido_detalle']) : 0;
-
-                                        // 2. Obtener lo que YA se ha procesado (usando el dato seguro del inicio del loop)
-                                        // Esto asegura que lea los "10" que viste en el log
-                                        $ya_ordenado_os_seguro = isset($detalle['cantidad_ya_ordenada_os']) ? floatval($detalle['cantidad_ya_ordenada_os']) : 0;
-
-                                        // 3. CÁLCULO DEFINITIVO: Lo autorizado MENOS lo ya procesado
-                                        $pendiente_os = max(0, $cant_os_verificada - $ya_ordenado_os_seguro);
-
-                                        // Debug visual (opcional, aparecerá en el HTML oculto si inspeccionas el elemento)
-                                        echo "";
-
+                                        $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                         $pendiente_oc = isset($detalle['cantidad_pendiente_oc']) ? floatval($detalle['cantidad_pendiente_oc']) : 0;
-
-                                        // Determinar si están completadas
-                                        $os_completada = ($cant_os_verificada > 0 && $pendiente_os <= 0);
+                                        
+                                        // Estados finales
+                                        $os_completada = ($os_verificada_total > 0 && $pendiente_os <= 0);
                                         $oc_completada = ($cant_oc_verificada > 0 && $pendiente_oc <= 0);
                                         
-                                        // Determinar si se verificó algo
-                                        $se_verifico_os = ($cant_os_verificada > 0);
+                                        $se_verifico_os = ($os_verificada_total > 0);
                                         $se_verifico_oc = ($cant_oc_verificada > 0);
-                                        
-                                        // ========================================
-                                        // CASOS DE USO
-                                        // ========================================
-                                        
+
+                                        //---------------------------------------------
                                         // CASO 1: Stock completo en destino → FINALIZADO
-                                        if (isset($stock_destino) && $stock_destino >= $cantidad_pedida) {
-                                    ?>
-                                            <span class="badge badge-success" style="font-size: 11px; padding: 4px 8px;">
+                                        //---------------------------------------------
+                                        if ($stock_destino >= $cantidad_pedida) { ?>
+                                            <span class="badge badge-success" style="font-size: 11px;">
                                                 <i class="fa fa-check-circle"></i> Stock disponible - Pedido Completado
                                             </span>
-                                    <?php
+                                        <?php 
                                         }
+
+                                        //---------------------------------------------
                                         // CASO 2: Ambos completados (OS + OC)
-                                        elseif ($os_completada && $oc_completada) {
-                                    ?>
-                                            <span class="badge badge-success" style="font-size: 11px; padding: 4px 8px;">
+                                        //---------------------------------------------
+                                        elseif ($os_completada && $oc_completada) { ?>
+                                            <span class="badge badge-success" style="font-size: 11px;">
                                                 <i class="fa fa-check-double"></i> Pedido Completado (OS + OC)
                                             </span>
-                                    <?php
+                                        <?php 
                                         }
-                                        // CASO 3: Solo se verificó OC y está pendiente NUEVO
-                                    elseif ($se_verifico_oc && !$se_verifico_os && $pendiente_oc > 0 && !$pedidoAnulado) {
-                                        // CALCULAR CANTIDAD YA ORDENADA
-                                        $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
-                                    ?>
-                                        <button type="button" 
-                                                class="btn btn-primary btn-sm btn-agregarOrden" 
-                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
-                                                data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
-                                                data-cantidad-ordenada="<?php echo $ya_ordenado_oc; ?>"
-                                                data-cantidad-pendiente="<?php echo $pendiente_oc; ?>"
-                                                style="padding: 2px 8px; font-size: 11px;">
-                                            <i class="fa fa-shopping-cart"></i> Agregar a OC (<?php echo number_format($pendiente_oc, 2); ?>)
-                                        </button>
-                                    <?php
-                                    }
-                                        // 🔹 CASO 4: Solo se verificó OC y está completada NUEVO
-                                    elseif ($se_verifico_oc && !$se_verifico_os && $oc_completada) {
-                                    ?>
-                                            <span class="badge badge-success" style="font-size: 11px; padding: 4px 8px;">
+
+                                        //---------------------------------------------
+                                        // CASO 3: Solo OC verificada y pendiente
+                                        //---------------------------------------------
+                                        elseif ($se_verifico_oc && !$se_verifico_os && $pendiente_oc > 0 && !$pedidoAnulado) { ?>
+                                            <button type="button" 
+                                                    class="btn btn-primary btn-sm btn-agregarOrden"
+                                                    data-id-detalle="<?= $id_detalle ?>"
+                                                    data-id-producto="<?= $detalle['id_producto'] ?>"
+                                                    data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
+                                                    data-cantidad-verificada="<?= $cant_oc_verificada ?>"
+                                                    data-cantidad-ordenada="<?= $ya_ordenado_oc ?>"
+                                                    data-cantidad-pendiente="<?= $pendiente_oc ?>"
+                                                    style="padding:2px 8px;font-size:11px;">
+                                                <i class="fa fa-shopping-cart"></i> Agregar a OC (<?= number_format($pendiente_oc,2) ?>)
+                                            </button>
+                                        <?php 
+                                        }
+
+                                        //---------------------------------------------
+                                        // CASO 4: Solo OC completada
+                                        //---------------------------------------------
+                                        elseif ($se_verifico_oc && !$se_verifico_os && $oc_completada) { ?>
+                                            <span class="badge badge-success" style="font-size: 11px;">
                                                 <i class="fa fa-check-circle"></i> OC Completada
                                             </span>
-                                    <?php
-                                    }
-                                        // 🔹 CASO 5: Solo se verificó OS y está pendiente NUEVO
-                                    elseif ($se_verifico_os && !$se_verifico_oc && $pendiente_os > 0 && !$pedidoAnulado) {
-                                    ?>
+                                        <?php 
+                                        }
+
+                                        //---------------------------------------------
+                                        // CASO 5: Solo OS pendiente
+                                        //---------------------------------------------
+                                        elseif ($se_verifico_os && !$se_verifico_oc && $pendiente_os > 0 && !$pedidoAnulado) { ?>
                                             <button type="button" 
-                                                    class="btn btn-success btn-sm btn-agregarSalida" 
-                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                    data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
-                                                    data-cantidad-disponible="<?php echo $pendiente_os; ?>"
-                                                    data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
-                                                    data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
-                                                    data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
-                                                    style="padding: 2px 8px; font-size: 11px;">
-                                                <i class="fa fa-truck"></i> Agregar a OS (<?php echo number_format($pendiente_os, 2); ?>)
+                                                    class="btn btn-success btn-sm btn-agregarSalida"
+                                                    data-id-detalle="<?= $id_detalle ?>"
+                                                    data-id-producto="<?= $detalle['id_producto'] ?>"
+                                                    data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
+                                                    data-cantidad-disponible="<?= $pendiente_os ?>"
+                                                    data-almacen-destino="<?= $pedido['id_almacen'] ?>"
+                                                    data-ubicacion-destino="<?= $pedido['id_ubicacion'] ?>"
+                                                    data-otras-ubicaciones='<?= json_encode($detalle['otras_ubicaciones_con_stock']) ?>'
+                                                    style="padding:2px 8px;font-size:11px;">
+                                                <i class="fa fa-truck"></i> Agregar a OS (<?= number_format($pendiente_os, 2) ?>)
                                             </button>
-                                    <?php
-                                    }
-                                        // CASO 6: Solo se verificó OS y está completada NUEVO
-                                    elseif ($se_verifico_os && !$se_verifico_oc && $os_completada) {
-                                    ?>
-                                            <span class="badge badge-success" style="font-size: 11px; padding: 4px 8px;">
+                                        <?php 
+                                        }
+
+                                        //---------------------------------------------
+                                        // CASO 6: Solo OS completada
+                                        //---------------------------------------------
+                                        elseif ($se_verifico_os && !$se_verifico_oc && $os_completada) { ?>
+                                            <span class="badge badge-success" style="font-size: 11px;">
                                                 <i class="fa fa-check-circle"></i> OS Completada
                                             </span>
-                                    <?php
-                                    }
-                                        // CASO 7: Ambos verificados, solo OS pendiente
-                                    elseif ($se_verifico_os && $se_verifico_oc && $pendiente_os > 0 && $oc_completada && !$pedidoAnulado) {
-                                    ?>
+                                        <?php 
+                                        }
+
+                                        //---------------------------------------------
+                                        // CASO 7: Ambos verificados, OS pendiente, OC completada
+                                        //---------------------------------------------
+                                        elseif ($se_verifico_oc && $se_verifico_os && $pendiente_os > 0 && $oc_completada && !$pedidoAnulado) { ?>
                                             <button type="button" 
-                                                    class="btn btn-success btn-sm btn-agregarSalida" 
-                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                    data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
-                                                    data-cantidad-disponible="<?php echo $pendiente_os; ?>"
-                                                    data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
-                                                    data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
-                                                    data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
-                                                    style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
-                                                <i class="fa fa-truck"></i> Agregar a OS (<?php echo number_format($pendiente_os, 2); ?>)
+                                                    class="btn btn-success btn-sm btn-agregarSalida"
+                                                    data-id-detalle="<?= $id_detalle ?>"
+                                                    data-id-producto="<?= $detalle['id_producto'] ?>"
+                                                    data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
+                                                    data-cantidad-disponible="<?= $pendiente_os ?>"
+                                                    data-almacen-destino="<?= $pedido['id_almacen'] ?>"
+                                                    data-ubicacion-destino="<?= $pedido['id_ubicacion'] ?>"
+                                                    data-otras-ubicaciones='<?= json_encode($detalle['otras_ubicaciones_con_stock']) ?>'
+                                                    style="padding:2px 8px;font-size:11px;margin-right:4px;">
+                                                <i class="fa fa-truck"></i> Agregar a OS (<?= number_format($pendiente_os, 2) ?>)
                                             </button>
-                                            <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px;">
+
+                                            <span class="badge badge-success" style="font-size: 10px;">
                                                 <i class="fa fa-check-circle"></i> OC Completada
                                             </span>
-                                    <?php
-                                    }
-                                        // CASO 8: Ambos verificados, solo OC pendiente
-                                    elseif ($se_verifico_os && $se_verifico_oc && $pendiente_oc > 0 && $os_completada && !$pedidoAnulado) {
-                                        // CALCULAR CANTIDAD YA ORDENADA
-                                        $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
-                                    ?>
-                                        <span class="badge badge-success" style="font-size: 10px; padding: 2px 6px; margin-right: 4px;">
-                                            <i class="fa fa-check-circle"></i> OS Completada
-                                        </span>
-                                        <button type="button" 
-                                                class="btn btn-primary btn-sm btn-agregarOrden" 
-                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                data-descripcion="<?php echo htmlspecialchars($descripcion_producto); ?>"
-                                                data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
-                                                data-cantidad-ordenada="<?php echo $ya_ordenado_oc; ?>"
-                                                data-cantidad-pendiente="<?php echo $pendiente_oc; ?>"
-                                                style="padding: 2px 8px; font-size: 11px;">
-                                            <i class="fa fa-shopping-cart"></i> Agregar a OC (<?php echo number_format($pendiente_oc, 2); ?>)
-                                        </button>
-                                    <?php
-                                    }
-                                        // CASO 9: Ambos verificados y pendientes
-                                    elseif ($se_verifico_os && $se_verifico_oc && $pendiente_os > 0 && $pendiente_oc > 0 && !$pedidoAnulado) {
-                                        // CALCULAR CANTIDAD YA ORDENADA
-                                        $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
-                                    ?>
-                                        <button type="button" 
-                                                class="btn btn-success btn-sm btn-agregarSalida" 
-                                                data-id-detalle="<?php echo $id_detalle; ?>"
-                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
-                                                data-cantidad-disponible="<?php echo $pendiente_os; ?>"
-                                                data-almacen-destino="<?php echo $pedido['id_almacen']; ?>"
-                                                data-ubicacion-destino="<?php echo $pedido['id_ubicacion']; ?>"
-                                                data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
-                                                style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
-                                            <i class="fa fa-truck"></i> OS (<?php echo number_format($pendiente_os, 2); ?>)
-                                        </button>
-                                        
-                                        <button type="button" 
-                                                class="btn btn-primary btn-sm btn-agregarOrden" 
-                                                data-id-detalle="<?php echo $id_detalle; ?>"
-                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
-                                                data-cantidad-verificada="<?php echo $cant_oc_verificada; ?>"
-                                                data-cantidad-ordenada="<?php echo $ya_ordenado_oc; ?>"
-                                                data-cantidad-pendiente="<?php echo $pendiente_oc; ?>"
-                                                style="padding: 2px 8px; font-size: 11px;">
-                                            <i class="fa fa-shopping-cart"></i> OC (<?php echo number_format($pendiente_oc, 2); ?>)
-                                        </button>
-                                    <?php
-                                    }
+                                        <?php 
+                                        }
+
+                                        //---------------------------------------------
+                                        // CASO 8: Ambos verificados, OC pendiente, OS completada
+                                        //---------------------------------------------
+                                        elseif ($se_verifico_oc && $se_verifico_os && $pendiente_oc > 0 && $os_completada && !$pedidoAnulado) { ?>
+                                            
+                                            <span class="badge badge-success" style="font-size: 10px;margin-right:4px;">
+                                                <i class="fa fa-check-circle"></i> OS Completada
+                                            </span>
+
+                                            <button type="button" 
+                                                    class="btn btn-primary btn-sm btn-agregarOrden"
+                                                    data-id-detalle="<?= $id_detalle ?>"
+                                                    data-id-producto="<?= $detalle['id_producto'] ?>"
+                                                    data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
+                                                    data-cantidad-verificada="<?= $cant_oc_verificada ?>"
+                                                    data-cantidad-ordenada="<?= $ya_ordenado_oc ?>"
+                                                    data-cantidad-pendiente="<?= $pendiente_oc ?>"
+                                                    style="padding:2px 8px;font-size:11px;">
+                                                <i class="fa fa-shopping-cart"></i> Agregar a OC (<?= number_format($pendiente_oc, 2) ?>)
+                                            </button>
+                                        <?php 
+                                        }
+
+                                        //---------------------------------------------
+                                        // CASO 9: Ambos verificados y ambos pendientes
+                                        //---------------------------------------------
+                                        elseif ($se_verifico_os && $se_verifico_oc && $pendiente_os > 0 && $pendiente_oc > 0 && !$pedidoAnulado) { ?>
+                                            <button type="button" 
+                                                    class="btn btn-success btn-sm btn-agregarSalida" 
+                                                    data-id-detalle="<?= $id_detalle ?>"
+                                                    data-id-producto="<?= $detalle['id_producto'] ?>"
+                                                    data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
+                                                    data-cantidad-disponible="<?= $pendiente_os ?>"
+                                                    data-almacen-destino="<?= $pedido['id_almacen'] ?>"
+                                                    data-ubicacion-destino="<?= $pedido['id_ubicacion'] ?>"
+                                                    data-otras-ubicaciones='<?= json_encode($detalle['otras_ubicaciones_con_stock']) ?>'
+                                                    style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
+                                                <i class="fa fa-truck"></i> OS (<?= number_format($pendiente_os, 2) ?>)
+                                            </button>
+                                            
+                                            <button type="button" 
+                                                    class="btn btn-primary btn-sm btn-agregarOrden" 
+                                                    data-id-detalle="<?= $id_detalle ?>"
+                                                    data-id-producto="<?= $detalle['id_producto'] ?>"
+                                                    data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
+                                                    data-cantidad-verificada="<?= $cant_oc_verificada ?>"
+                                                    data-cantidad-ordenada="<?= $ya_ordenado_oc ?>"
+                                                    data-cantidad-pendiente="<?= $pendiente_oc ?>"
+                                                    style="padding: 2px 8px; font-size: 11px;">
+                                                <i class="fa fa-shopping-cart"></i> OC (<?= number_format($pendiente_oc, 2) ?>)
+                                            </button>
+                                        <?php
+                                        }
+
+                                        //---------------------------------------------
                                         // CASO 10: Pendiente verificar
-                                        elseif (!$esVerificado && !$pedidoAnulado) {
-                                    ?>
-                                        <button type="button" class="btn btn-warning btn-xs verificar-btn"
-                                                data-id-detalle="<?php echo $id_detalle; ?>"
-                                                data-cantidad-pedida="<?php echo $cantidad_pedida; ?>"
-                                                data-stock-destino="<?php echo $stock_destino; ?>"
-                                                data-stock-otras-ubicaciones="<?php echo isset($stock_otras_ubicaciones) ? $stock_otras_ubicaciones : 0; ?>"
-                                                data-otras-ubicaciones='<?php echo json_encode($detalle['otras_ubicaciones_con_stock']); ?>'
-                                                style="padding: 2px 8px; font-size: 11px;">
-                                            <i class="fa fa-check"></i> Verificar
-                                        </button>
-                                    <?php
+                                        //---------------------------------------------
+                                        elseif (!$esVerificado && !$pedidoAnulado) { ?>
+                                            <button type="button" class="btn btn-warning btn-xs verificar-btn"
+                                                    data-id-detalle="<?= $id_detalle ?>"
+                                                    data-cantidad-pedida="<?= $cantidad_pedida ?>"
+                                                    data-stock-destino="<?= $stock_destino ?>"
+                                                    data-stock-otras-ubicaciones="<?= isset($stock_otras_ubicaciones) ? $stock_otras_ubicaciones : 0 ?>"
+                                                    data-otras-ubicaciones='<?= json_encode($detalle['otras_ubicaciones_con_stock']) ?>'
+                                                    style="padding: 2px 8px; font-size: 11px;">
+                                                <i class="fa fa-check"></i> Verificar
+                                            </button>
+                                        <?php
                                         }
                                     }
                                     ?>
