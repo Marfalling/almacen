@@ -202,15 +202,13 @@ function AprobarCompraFinanciera($id_compra, $id_personal)
         return false;
     }
 
+    //  SOLO ACTUALIZAR LA COMPRA, NO EL PEDIDO
     $sql_update = "UPDATE compra 
-                   SET id_personal_aprueba_financiera = '$id_personal'
+                   SET id_personal_aprueba_financiera = '$id_personal',
+                       est_compra = 2
                    WHERE id_compra = '$id_compra'";
     $res_update = mysqli_query($con, $sql_update);
 
-    if ($res_update) {
-        mysqli_query($con, "UPDATE compra SET est_compra = 2 WHERE id_compra = '$id_compra'");
-        verificarYCompletarPedido($row['id_pedido'], $con);
-    }
 
     mysqli_close($con);
     return $res_update;

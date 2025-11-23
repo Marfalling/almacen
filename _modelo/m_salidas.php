@@ -398,7 +398,7 @@ function RecepcionarSalida($id_salida, $id_personal_recepciona)
     $id_salida = intval($id_salida);
     $id_personal_recepciona = intval($id_personal_recepciona);
 
-    //  Verificar que la salida existe y está APROBADA
+    // Verificar que la salida existe y está APROBADA
     $sql_check = "SELECT est_salida, id_personal_recepciona_salida, id_pedido 
                   FROM salida 
                   WHERE id_salida = $id_salida";
@@ -406,21 +406,20 @@ function RecepcionarSalida($id_salida, $id_personal_recepciona)
     $res_check = mysqli_query($con, $sql_check);
     
     if (!$res_check) {
-        error_log(" RecepcionarSalida: Error en consulta: " . mysqli_error($con));
+        error_log("RecepcionarSalida: Error en consulta: " . mysqli_error($con));
         mysqli_close($con);
         return false;
     }
     
     $row_check = mysqli_fetch_assoc($res_check);
 
-    // Validar que existe
     if (!$row_check) {
-        error_log(" RecepcionarSalida: Salida ID $id_salida no encontrada");
+        error_log("RecepcionarSalida: Salida ID $id_salida no encontrada");
         mysqli_close($con);
         return false;
     }
 
-    //  Solo permitir recepcionar si está APROBADA (estado 3)
+    // Solo permitir recepcionar si está APROBADA (estado 3)
     if ($row_check['est_salida'] != 3) {
         $estado_actual = $row_check['est_salida'];
         $estados = [
@@ -430,14 +429,13 @@ function RecepcionarSalida($id_salida, $id_personal_recepciona)
             3 => 'APROBADA'
         ];
         $nombre_estado = $estados[$estado_actual] ?? 'DESCONOCIDO';
-        error_log(" RecepcionarSalida: Salida ID $id_salida está en estado $nombre_estado ($estado_actual), debe estar APROBADA (3)");
+        error_log("RecepcionarSalida: Salida ID $id_salida está en estado $nombre_estado ($estado_actual)");
         mysqli_close($con);
         return false;
     }
 
-    //  Validar que no esté ya recepcionada
     if (!empty($row_check['id_personal_recepciona_salida'])) {
-        error_log(" RecepcionarSalida: Salida ID $id_salida ya está recepcionada");
+        error_log("RecepcionarSalida: Salida ID $id_salida ya recepcionada");
         mysqli_close($con);
         return false;
     }
@@ -446,23 +444,17 @@ function RecepcionarSalida($id_salida, $id_personal_recepciona)
                 ? intval($row_check['id_pedido']) 
                 : 0;
 
-    //  Validar que el personal existe
+    // Validar que el personal existe
     $sql_validar = "SELECT id_personal FROM {$bd_complemento}.personal WHERE id_personal = $id_personal_recepciona";
     $res_validar = mysqli_query($con, $sql_validar);
     
-    if (!$res_validar) {
-        error_log(" RecepcionarSalida: Error validando personal: " . mysqli_error($con));
-        mysqli_close($con);
-        return false;
-    }
-    
-    if (mysqli_num_rows($res_validar) == 0) {
-        error_log(" RecepcionarSalida: Personal ID $id_personal_recepciona no existe");
+    if (!$res_validar || mysqli_num_rows($res_validar) == 0) {
+        error_log("RecepcionarSalida: Personal ID $id_personal_recepciona no existe");
         mysqli_close($con);
         return false;
     }
 
-    //  Actualizar estado a RECEPCIONADA (2) y guardar datos de recepción
+    //  Actualizar estado a RECEPCIONADA (2)
     $sql_update = "UPDATE salida 
                    SET est_salida = 2,
                        id_personal_recepciona_salida = $id_personal_recepciona,
@@ -472,7 +464,7 @@ function RecepcionarSalida($id_salida, $id_personal_recepciona)
     $res_update = mysqli_query($con, $sql_update);
 
     if (!$res_update) {
-        error_log(" RecepcionarSalida: Error en UPDATE: " . mysqli_error($con));
+        error_log("RecepcionarSalida: Error en UPDATE: " . mysqli_error($con));
         mysqli_close($con);
         return false;
     }
@@ -480,20 +472,20 @@ function RecepcionarSalida($id_salida, $id_personal_recepciona)
     $filas_afectadas = mysqli_affected_rows($con);
     
     if ($filas_afectadas == 0) {
-        error_log(" RecepcionarSalida: No se actualizó ninguna fila para salida ID $id_salida");
+        error_log("RecepcionarSalida: No se actualizó ninguna fila");
         mysqli_close($con);
         return false;
     }
 
-    error_log(" RecepcionarSalida: Salida ID $id_salida recepcionada exitosamente por personal ID $id_personal_recepciona");
+    error_log(" Salida ID $id_salida recepcionada por personal ID $id_personal_recepciona");
     
     mysqli_close($con);
 
-    // ACTUALIZAR ESTADO DEL PEDIDO SI EXISTE
+    //  ACTUALIZAR ESTADO DEL PEDIDO
     if ($id_pedido > 0) {
-        error_log(" Actualizando estado del pedido: $id_pedido");
+        error_log("📋 Actualizando estado del pedido: $id_pedido");
         require_once("../_modelo/m_pedidos.php");
-        ActualizarEstadoPedido($id_pedido);
+        ActualizarEstadoPedidoUnificado($id_pedido); // ✅ Usar función unificada
     }
 
     return true;
@@ -1988,20 +1980,17 @@ function AprobarSalida($id_salida, $id_personal)
 {
     include("../_conexion/conexion.php");
 
-    // ✅ Verificar que la salida existe y está activa
     $sql_check = "SELECT est_salida, id_personal_aprueba_salida, id_pedido 
                   FROM salida 
                   WHERE id_salida = '$id_salida'";
     $res_check = mysqli_query($con, $sql_check);
     $row_check = mysqli_fetch_array($res_check, MYSQLI_ASSOC);
 
-    // Validar que existe y está activa
     if (!$row_check || $row_check['est_salida'] == 0) {
         mysqli_close($con);
         return false;
     }
 
-    // Validar que no esté ya aprobada
     if (!empty($row_check['id_personal_aprueba_salida'])) {
         mysqli_close($con);
         return false;
@@ -2009,17 +1998,16 @@ function AprobarSalida($id_salida, $id_personal)
 
     $id_pedido = intval($row_check['id_pedido']);
 
-    // ✅ Validar que el personal existe
     $sql_validar = "SELECT id_personal FROM {$bd_complemento}.personal WHERE id_personal = '$id_personal'";
     $res_validar = mysqli_query($con, $sql_validar);
     
     if (!$res_validar || mysqli_num_rows($res_validar) == 0) {
         mysqli_close($con);
-        error_log("Error: id_personal $id_personal no existe en la tabla personal");
+        error_log("Error: id_personal $id_personal no existe");
         return false;
     }
 
-    // ✅ Actualizar la salida con los datos de aprobación
+    //  Actualizar a estado RECEPCIONADA (2) - YA NO HAY ESTADO 3
     $sql_update = "UPDATE salida 
                    SET id_personal_aprueba_salida = '$id_personal',
                        fec_aprueba_salida = NOW(),
@@ -2028,34 +2016,12 @@ function AprobarSalida($id_salida, $id_personal)
 
     $res_update = mysqli_query($con, $sql_update);
 
-    if ($res_update) {
-        // 🔄 ACTUALIZAR ESTADO DEL PEDIDO SI EXISTE
-        if ($id_pedido > 0) {
-            verificarYAtenderPedido($id_pedido, $con);
-        }
+    if ($res_update && $id_pedido > 0) {
+        //  Usar función unificada
+        require_once("../_modelo/m_pedidos.php");
+        ActualizarEstadoPedidoUnificado($id_pedido, $con);
     }
 
     mysqli_close($con);
     return $res_update;
-}
-
-/**
- * Verificar si todas las salidas de un pedido están recepcionadas
- * y actualizar el estado del pedido a ATENDIDO (2) si corresponde
- */
-function verificarYAtenderPedido($id_pedido, $con = null)
-{
-    $cerrar_conexion = false;
-    
-    if ($con === null) {
-        include("../_conexion/conexion.php");
-        $cerrar_conexion = true;
-    }
-
-    //  unificada maneja TODO
-    ActualizarEstadoPedidoUnificado($id_pedido, $con);
-    
-    if ($cerrar_conexion) {
-        mysqli_close($con);
-    }
 }

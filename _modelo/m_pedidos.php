@@ -233,6 +233,46 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null, $id_person
 {
     include("../_conexion/conexion.php");
    
+        // ========================================
+    //  ACTUALIZAR AUTOMÁTICAMENTE PEDIDOS CON STOCK
+    // ========================================
+    $sql_actualizar = "
+    UPDATE pedido p
+    SET p.est_pedido = 2
+    WHERE p.est_pedido = 1
+      AND p.id_personal_aprueba_tecnica IS NOT NULL
+      AND p.id_producto_tipo != 2
+      AND NOT EXISTS (
+          SELECT 1 FROM pedido_detalle pd 
+          WHERE pd.id_pedido = p.id_pedido 
+          AND (pd.cant_oc_pedido_detalle IS NOT NULL OR pd.cant_os_pedido_detalle IS NOT NULL)
+          AND pd.est_pedido_detalle != 0
+      )
+      AND NOT EXISTS (
+          SELECT 1 FROM pedido_detalle pd2
+          WHERE pd2.id_pedido = p.id_pedido
+            AND pd2.est_pedido_detalle = 1
+            AND pd2.cant_pedido_detalle > (
+                SELECT COALESCE(SUM(
+                    CASE
+                        WHEN m.tipo_movimiento = 1 AND m.tipo_orden != 3 THEN m.cant_movimiento
+                        WHEN m.tipo_movimiento = 2 AND m.tipo_orden = 2 THEN -m.cant_movimiento
+                        ELSE 0
+                    END
+                ), 0)
+                FROM movimiento m
+                WHERE m.id_producto = pd2.id_producto
+                  AND m.id_almacen = p.id_almacen
+                  AND m.id_ubicacion = p.id_ubicacion
+                  AND m.est_movimiento = 1
+            )
+      )
+    ";
+    
+    mysqli_query($con, $sql_actualizar);
+    // ========================================
+
+    
     // Filtro de fechas
     if ($fecha_inicio && $fecha_fin) {
         $where_fecha = " AND DATE(p.fec_pedido) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
@@ -1645,9 +1685,6 @@ function ObtenerDetalleOrden($id_compra) {
 // ============================================================================
 // NUEVA FUNCIÓN: Verificar estado correcto del item (cerrado/abierto) por detalle
 // ============================================================================
-// ============================================================================
-// NUEVA FUNCIÓN: Verificar estado correcto del item (cerrado/abierto) por detalle
-// ============================================================================
 function VerificarEstadoItemPorDetalle($id_pedido_detalle) {
     include("../_conexion/conexion.php");
     
@@ -1659,7 +1696,7 @@ function VerificarEstadoItemPorDetalle($id_pedido_detalle) {
     
     error_log("🔍 VerificarEstadoItemPorDetalle - ID: $id_pedido_detalle");
     
-    // 🔥 CORRECCIÓN: SQL sin columnas inexistentes
+    //   SQL sin columnas inexistentes
     $sql_detalle = "SELECT 
                         pd.cant_pedido_detalle, 
                         pd.cant_os_pedido_detalle, 
@@ -1706,18 +1743,18 @@ function VerificarEstadoItemPorDetalle($id_pedido_detalle) {
     
     //  Usar cantidad RECEPCIONADA para cierre
     $total_ordenado_oc = ObtenerCantidadYaOrdenadaOCPorDetalle($id_pedido_detalle);
-    $total_recepcionado_os = ObtenerCantidadRecepcionadaOSPorDetalle($id_pedido_detalle); // ✅ NUEVO
+    $total_recepcionado_os = ObtenerCantidadRecepcionadaOSPorDetalle($id_pedido_detalle); 
     
     error_log("📊 VerificarEstadoItemPorDetalle - Detalle: $id_pedido_detalle");
     error_log("   OS Verificada: $cant_os_verificada | OS Recepcionada: $total_recepcionado_os | Pendiente: " . ($cant_os_verificada - $total_recepcionado_os));
     error_log("   OC Verificada: $cant_oc_verificada | OC Ordenada: $total_ordenado_oc | Pendiente: " . ($cant_oc_verificada - $total_ordenado_oc));    
     
     // 🔹 CALCULAR PENDIENTES
-    $pendiente_os = max(0, $cant_os_verificada - $total_recepcionado_os); // ✅ USA RECEPCIONADA
+    $pendiente_os = max(0, $cant_os_verificada - $total_recepcionado_os); //  USA RECEPCIONADA
     $pendiente_oc = max(0, $cant_oc_verificada - $total_ordenado_oc);
     error_log("📊 Pendientes - OS: $pendiente_os | OC: $pendiente_oc");
     
-    // 🔥 CORRECCIÓN CRÍTICA: SOLO CERRAR SI AMBOS ESTÁN COMPLETOS
+    //  CORRECCIÓN CRÍTICA: SOLO CERRAR SI AMBOS ESTÁN COMPLETOS
     // Un item solo debe cerrarse cuando:
     // 1. NO hay OS verificada Y la OC está completa
     // 2. NO hay OC verificada Y la OS está completa  
@@ -1728,8 +1765,8 @@ function VerificarEstadoItemPorDetalle($id_pedido_detalle) {
     // CASO 1: Solo se verificó OC (sin OS)
     if ($cant_oc_verificada > 0 && $cant_os_verificada == 0) {
         if ($pendiente_oc <= 0) {
-            $estado = 2; // CERRADO - OC completada y no hay OS
-            error_log("✅ Item CERRADO (Solo OC verificada y completada)");
+            $estado = 1; // FINALIZADO (mantiene abierto para poder re-verificar)
+            error_log("✅ Item FINALIZADO (Solo OC verificada y completada - mantiene estado 1)");
         } else {
             error_log("🔓 Item ABIERTO (OC pendiente: $pendiente_oc)");
         }
@@ -1737,8 +1774,8 @@ function VerificarEstadoItemPorDetalle($id_pedido_detalle) {
     // CASO 2: Solo se verificó OS (sin OC)
     elseif ($cant_os_verificada > 0 && $cant_oc_verificada == 0) {
         if ($pendiente_os <= 0) {
-            $estado = 2; // CERRADO - OS completada y no hay OC
-            error_log("✅ Item CERRADO (Solo OS verificada y completada)");
+            $estado = 1; // FINALIZADO (mantiene abierto para poder re-verificar)
+            error_log("✅ Item FINALIZADO (Solo OS verificada y completada - mantiene estado 1)");
         } else {
             error_log("🔓 Item ABIERTO (OS pendiente: $pendiente_os)");
         }
@@ -1746,8 +1783,8 @@ function VerificarEstadoItemPorDetalle($id_pedido_detalle) {
     // CASO 3: Se verificaron AMBAS (OC + OS)
     elseif ($cant_oc_verificada > 0 && $cant_os_verificada > 0) {
         if ($pendiente_os <= 0 && $pendiente_oc <= 0) {
-            $estado = 2; // CERRADO - Ambas completadas
-            error_log("✅ Item CERRADO (OC y OS completadas)");
+            $estado = 1; // FINALIZADO (mantiene abierto para poder re-verificar)
+            error_log("✅ Item FINALIZADO (OC y OS completadas - mantiene estado 1)");
         } else {
             error_log("🔓 Item ABIERTO (Pendiente OC: $pendiente_oc | Pendiente OS: $pendiente_os)");
         }
@@ -3689,13 +3726,6 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
     $estado_item = intval($detalle['est_pedido_detalle']);
     $estado_pedido = intval($detalle['est_pedido']);
 
-    // No re-verificar si ya está cerrado manualmente o pedido finalizado
-    if (($estado_item == 2 && $estado_pedido == 4) || $estado_pedido == 5) {
-        error_log("⏭️ NO re-verificar | Item: $estado_item | Pedido: $estado_pedido");
-        mysqli_close($con);
-        return true;
-    }
-
     // Variables base
     $id_pedido = intval($detalle['id_pedido']);
     $id_producto = intval($detalle['id_producto']);
@@ -3705,6 +3735,43 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
 
     $cant_oc_anterior = floatval($detalle['cant_oc_anterior']);
     $cant_os_anterior = floatval($detalle['cant_os_anterior']);
+
+    // ============================================================
+    //  VALIDACIÓN 1: NO reverificar si está CERRADO MANUALMENTE
+    // ============================================================
+    if ($estado_item == 2) {
+        error_log("🔒 Item cerrado manualmente (est_pedido_detalle=2) - NO se reverifica");
+        mysqli_close($con);
+        return false;
+    }
+
+    // ============================================================
+    //  VALIDACIÓN 2: NO reverificar si ya está FINALIZADO (todo ordenado)
+    // ============================================================
+    $cantidad_verificada_total = $cant_oc_anterior + $cant_os_anterior;
+    
+    if ($cantidad_verificada_total > 0) {
+        // Obtener cantidades ya ordenadas
+        $cantidad_ya_ordenada_oc = ObtenerCantidadYaOrdenadaOCPorDetalle($id_pedido_detalle);
+        $cantidad_ya_ordenada_os = ObtenerCantidadYaOrdenadaOSPorDetalle($id_pedido_detalle);
+        $cantidad_ya_ordenada_total = $cantidad_ya_ordenada_oc + $cantidad_ya_ordenada_os;
+        
+        // Si ya ordenó todo lo verificado → FINALIZADO, NO reverificar
+        if ($cantidad_ya_ordenada_total >= $cantidad_verificada_total) {
+            error_log("✅ Item FINALIZADO (Ordenado: $cantidad_ya_ordenada_total / Verificado: $cantidad_verificada_total) - NO se reverifica");
+            mysqli_close($con);
+            return false;
+        }
+    }
+
+    // ============================================================
+    //  VALIDACIÓN 3: NO reverificar si el pedido completo está finalizado
+    // ============================================================
+    if ($estado_pedido == 5) {
+        error_log("⏭️ Pedido finalizado (est_pedido=5) - NO se reverifica");
+        mysqli_close($con);
+        return true;
+    }
 
     // ============================================================
     // PASO 2: Obtener stock disponible en ubicación DESTINO
@@ -3834,15 +3901,18 @@ function ObtenerCantidadEnSalidasActivasPorDetalle($id_pedido_detalle) {
 
 /**
  * ============================================
- * FUNCIÓN UNIFICADA DE ESTADO DEL PEDIDO
+ * FUNCIÓN UNIFICADA DE ESTADO DEL PEDIDO (SIMPLIFICADA)
  * ============================================
- * Evalúa OC + OS simultáneamente
  * 
  * ESTADOS:
- * 1 = Pendiente
- * 2 = Atendido (TODO completado: OC ingresada + OS entregadas)
- * 3 = Aprobado (OC aprobada pero aún sin ingresar o sin OS)
- * 4 = Ingresado (OC completa, pero falta OS)
+ * 0 = Anulado
+ * 1 = Pendiente (incluye aprobados técnicamente con id_personal_aprueba_tecnica)
+ * 2 = Atendido (TODO completado: OC 100% ingresada + OS 100% recepcionadas)
+ * 
+ * CRITERIO PARA ATENDIDO:
+ * - Si requiere OC → 100% ingresado
+ * - Si requiere OS → 100% recepcionado (estado salida = 2)
+ * - Si requiere ambos → ambos al 100%
  */
 function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
 {
@@ -3853,7 +3923,9 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
         $cerrar_conexion = true;
     }
     
-    // ✅ Obtener estado actual
+    // ============================================
+    // PASO 1: Obtener estado actual
+    // ============================================
     $sql_estado = "SELECT est_pedido FROM pedido WHERE id_pedido = $id_pedido";
     $res_estado = mysqli_query($con, $sql_estado);
     $row_estado = mysqli_fetch_assoc($res_estado);
@@ -3865,17 +3937,15 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
     
     $estado_actual = intval($row_estado['est_pedido']);
     
-    // 🔸 No tocar si está finalizado o anulado
+    // 🔸 No tocar si está anulado o finalizado
     if ($estado_actual == 0 || $estado_actual == 5) {
         if ($cerrar_conexion) mysqli_close($con);
         return;
     }
     
     // ============================================
-    // PASO 1: Verificar OC (Órdenes de Compra)
+    // PASO 2: Verificar si requiere OC
     // ============================================
-    
-    // ¿Requiere OC?
     $sql_requiere_oc = "SELECT COUNT(*) as total 
                         FROM compra 
                         WHERE id_pedido = $id_pedido 
@@ -3884,65 +3954,48 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
     $row_oc = mysqli_fetch_assoc($res_oc);
     $requiere_oc = ($row_oc['total'] > 0);
     
-    // ¿OC está completada? (todas aprobadas financieramente)
+    // ============================================
+    // PASO 3: Verificar si OC está 100% ingresada
+    // ============================================
     $oc_completada = false;
-    if ($requiere_oc) {
-        $sql_oc_pendientes = "SELECT COUNT(*) as total_pendientes
-                              FROM compra 
-                              WHERE id_pedido = $id_pedido 
-                              AND est_compra = 1"; // Solo pendientes
-        
-        $res_oc_pend = mysqli_query($con, $sql_oc_pendientes);
-        $row_oc_pend = mysqli_fetch_assoc($res_oc_pend);
-        
-        $oc_completada = ($row_oc_pend['total_pendientes'] == 0);
-    } else {
-        $oc_completada = true; // Si no requiere, se considera completo
-    }
     
-    // ¿Está ingresado TODO el stock? 
-    $stock_ingresado_completo = false;
     if ($requiere_oc) {
-        // Verificar si se completó el 100% del ingreso
-        $sql_verificar = "
-            SELECT 
-                COALESCE(SUM(cd.cant_compra_detalle), 0) as total_requerido,
-                COALESCE(
-                    (SELECT SUM(id2.cant_ingreso_detalle) 
-                    FROM compra c2 
-                    INNER JOIN ingreso i2 ON c2.id_compra = i2.id_compra 
-                    INNER JOIN ingreso_detalle id2 ON i2.id_ingreso = id2.id_ingreso 
-                    WHERE c2.id_pedido = $id_pedido
-                    AND i2.est_ingreso = 1 
-                    AND id2.est_ingreso_detalle = 1
-                    ), 0
-                ) as total_ingresado
-            FROM compra c
-            INNER JOIN compra_detalle cd ON c.id_compra = cd.id_compra
-            WHERE c.id_pedido = $id_pedido
-            AND c.est_compra != 0
-            AND cd.est_compra_detalle = 1
-        ";
+        // Total ordenado en compras
+        $sql_total_oc = "SELECT COALESCE(SUM(cd.cant_compra_detalle), 0) as total_ordenado
+                         FROM compra c
+                         INNER JOIN compra_detalle cd ON c.id_compra = cd.id_compra
+                         WHERE c.id_pedido = $id_pedido
+                         AND c.est_compra != 0
+                         AND cd.est_compra_detalle = 1";
         
-        $res_verificar = mysqli_query($con, $sql_verificar);
+        $res_total_oc = mysqli_query($con, $sql_total_oc);
+        $row_total_oc = mysqli_fetch_assoc($res_total_oc);
+        $total_ordenado = floatval($row_total_oc['total_ordenado']);
         
-        if ($res_verificar && mysqli_num_rows($res_verificar) > 0) {
-            $row = mysqli_fetch_assoc($res_verificar);
-            $total_requerido = floatval($row['total_requerido']);
-            $total_ingresado = floatval($row['total_ingresado']);
-            
-            // Solo está completo si se ingresó el 100%
-            $stock_ingresado_completo = ($total_ingresado >= $total_requerido && $total_requerido > 0);
-        }
+        // Total ingresado
+        $sql_total_ingresado = "SELECT COALESCE(SUM(id2.cant_ingreso_detalle), 0) as total_ingresado
+                                FROM compra c
+                                INNER JOIN ingreso i ON c.id_compra = i.id_compra
+                                INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso
+                                WHERE c.id_pedido = $id_pedido
+                                AND i.est_ingreso = 1
+                                AND id2.est_ingreso_detalle = 1";
+        
+        $res_total_ingresado = mysqli_query($con, $sql_total_ingresado);
+        $row_total_ingresado = mysqli_fetch_assoc($res_total_ingresado);
+        $total_ingresado = floatval($row_total_ingresado['total_ingresado']);
+        
+        //  OC completada si se ingresó el 100%
+        $oc_completada = ($total_ingresado >= $total_ordenado && $total_ordenado > 0);
+        
     } else {
-        $stock_ingresado_completo = true; // Si no requiere OC, no aplica
+        // Si no requiere OC, se considera completado
+        $oc_completada = true;
     }
     
     // ============================================
-    // PASO 2: Verificar OS (Órdenes de Salida)
+    // PASO 4: Verificar si requiere OS
     // ============================================
-    
-    // ¿Requiere OS?
     $sql_requiere_os = "SELECT COUNT(*) as total 
                         FROM salida 
                         WHERE id_pedido = $id_pedido 
@@ -3951,75 +4004,49 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
     $row_os = mysqli_fetch_assoc($res_os);
     $requiere_os = ($row_os['total'] > 0);
     
-    // ¿OS está completada? (todas recepcionadas/aprobadas)
+    // ============================================
+    // PASO 5: Verificar si OS está 100% recepcionada
+    // ============================================
     $os_completada = false;
+    
     if ($requiere_os) {
+        // Verificar que TODAS las salidas estén recepcionadas (estado 2)
         $sql_os_pendientes = "SELECT COUNT(*) as total_pendientes
                               FROM salida 
                               WHERE id_pedido = $id_pedido 
-                              AND est_salida = 1"; // Solo pendientes (no recepcionadas)
+                              AND est_salida != 2  -- No recepcionadas
+                              AND est_salida != 0"; 
         
         $res_os_pend = mysqli_query($con, $sql_os_pendientes);
         $row_os_pend = mysqli_fetch_assoc($res_os_pend);
         
+        //  OS completada si no hay pendientes
         $os_completada = ($row_os_pend['total_pendientes'] == 0);
+        
     } else {
-        $os_completada = true; // Si no requiere, se considera completo
+        // Si no requiere OS, se considera completado
+        $os_completada = true;
     }
     
     // ============================================
-    // PASO 3: DETERMINAR ESTADO CORRECTO
+    // PASO 6: DETERMINAR ESTADO FINAL
     // ============================================
+    $nuevo_estado = 1; // Por defecto PENDIENTE
     
-    $nuevo_estado = $estado_actual; // Por defecto mantener
-    
-    // 🔹 CASO 1: TODO COMPLETADO (OC ingresada al 100% + OS completadas)
-    if ($oc_completada && $stock_ingresado_completo && $os_completada) {
+    //  SOLO cambiar a ATENDIDO si AMBOS están completados al 100%
+    if ($oc_completada && $os_completada) {
         $nuevo_estado = 2; // ATENDIDO
     }
-    // 🔹 CASO 2: OC completa e ingresada al 100%, pero OS pendiente
-    elseif ($oc_completada && $stock_ingresado_completo && !$os_completada) {
-        $nuevo_estado = 4; // INGRESADO (esperando salidas)
-    }
-    // 🔹 CASO 3: OC aprobada pero ingreso incompleto
-    elseif ($oc_completada && !$stock_ingresado_completo) {
-        $nuevo_estado = 3; // APROBADO (esperando ingreso completo)
-    }
-    // 🔹 CASO 4: Hay pendientes
-    else {
-        // Solo volver a PENDIENTE si NO hay ninguna orden procesada
-        $sql_check_ordenes = "SELECT 
-                                (SELECT COUNT(*) FROM compra 
-                                 WHERE id_pedido = $id_pedido 
-                                 AND est_compra IN (2, 3)) as oc_procesadas,
-                                (SELECT COUNT(*) FROM salida 
-                                 WHERE id_pedido = $id_pedido 
-                                 AND est_salida = 2) as os_recepcionadas";
-        $res_check = mysqli_query($con, $sql_check_ordenes);
-        $row_check = mysqli_fetch_assoc($res_check);
-        
-        // Si hay al menos una orden procesada, no volver a PENDIENTE
-        if ($row_check['oc_procesadas'] == 0 && $row_check['os_recepcionadas'] == 0) {
-            $nuevo_estado = 1; // PENDIENTE
-        }
-        // Si hay progreso, mantener el estado más alto alcanzado
-        elseif ($estado_actual >= 3) {
-            // Mantener estado 3 (Aprobado) mientras se completan los ingresos
-            $nuevo_estado = 3;
-        }
-    }
     
     // ============================================
-    // PASO 4: ACTUALIZAR SI CAMBIÓ
+    // PASO 7: ACTUALIZAR SI CAMBIÓ
     // ============================================
-    
     if ($nuevo_estado != $estado_actual) {
         $sql_update = "UPDATE pedido SET est_pedido = $nuevo_estado WHERE id_pedido = $id_pedido";
         mysqli_query($con, $sql_update);
         
-        error_log("✅ Estado del pedido $id_pedido actualizado: $estado_actual → $nuevo_estado");
-    } else {
-        error_log("ℹ️ Estado del pedido $id_pedido se mantiene en: $estado_actual");
+        $estados_texto = [1 => 'PENDIENTE', 2 => 'ATENDIDO'];
+        error_log(" Estado del pedido $id_pedido actualizado: {$estados_texto[$estado_actual]} → {$estados_texto[$nuevo_estado]}");
     }
     
     if ($cerrar_conexion) {

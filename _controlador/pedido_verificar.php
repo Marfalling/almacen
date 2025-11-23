@@ -1055,24 +1055,24 @@ if (isset($_GET['success'])) {
         case 'salida_creada':
             $alerta = [
                 "icon" => "success",
-                "title" => "¡Salida Generada!",
-                "text" => "La salida de materiales se ha registrado correctamente",
+                "title" => "¡Solicitud de Salida Generada!",
+                "text" => "La  solicitud de salida se ha registrado correctamente",
                 "timer" => 2000
             ];
             break;
         case 'salida_actualizada':
             $alerta = [
                 "icon" => "success",
-                "title" => "¡Salida Actualizada!",
-                "text" => "Los datos de la salida se han actualizado correctamente",
+                "title" => "¡Solicitud de Salida Actualizada!",
+                "text" => "Los datos de la solicitud de salida se han actualizado correctamente",
                 "timer" => 2000
             ];
             break;
         case 'salida_anulada':
             $alerta = [
                 "icon" => "success",
-                "title" => "¡Salida Anulada!",
-                "text" => "La salida ha sido anulada correctamente",
+                "title" => "¡Solicitud de Salida Anulada!",
+                "text" => "La solicitud de salida ha sido anulada correctamente",
                 "timer" => 2000
             ];
             break;

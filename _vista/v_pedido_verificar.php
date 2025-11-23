@@ -106,11 +106,15 @@ $monedas = MostrarMoneda();
             <!-- COLUMNA IZQUIERDA - Items del Pedido -->
             <div class="col-md-6">
                 <div class="x_panel">
-                    <div class="x_title" style="padding: 8px 15px;">
-                        <h2 style="margin: 0; font-size: 16px;">Productos <small id="contador-pendientes">(<?php echo "Cantidad: " . count($pedido_detalle); ?>)</small></h2>
-                        <?php if ($pedido_anulado): ?>
-                            <span class="badge badge-danger ml-2">PEDIDO ANULADO</span>
-                        <?php endif; ?>
+                    <div class="x_title" style="padding: 8px 15px; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <h2 style="margin: 0; font-size: 16px;">
+                                Productos <small id="contador-pendientes">(<?php echo "Cantidad: " . count($pedido_detalle); ?>)</small>
+                            </h2>
+                            <?php if ($pedido_anulado): ?>
+                                <span class="badge badge-danger" style="font-size: 11px; padding: 4px 8px;">PEDIDO ANULADO</span>
+                            <?php endif; ?>
+                        </div>
                         <div class="clearfix"></div>
                     </div>
                         
@@ -210,148 +214,125 @@ $monedas = MostrarMoneda();
                                 if ($esAutoOrden) {
                                     // SERVICIOS 
                                     if ($detalle['est_pedido_detalle'] == 2) {
-                                        // Cerrado manualmente
                                         $colorBorde = '#dc3545';
                                         $claseTexto = 'text-danger';
                                         $icono = 'fa-times-circle';
                                         $estadoTexto = 'Servicio - Cerrado';
                                     } else {
-                                        // Normal
                                         $colorBorde = '#2196f3';
                                         $claseTexto = 'text-primary';
                                         $icono = 'fa-wrench';
                                         $estadoTexto = 'Servicio';
                                     }
-                                } else if ($detalle['est_pedido_detalle'] == 2) {
-                                    // Cerrado manualmente
-                                    //$colorFondo = '#f8d7da';
-                                    $colorBorde = '#dc3545';
-                                    $claseTexto = 'text-danger';
-                                    $icono = 'fa-times-circle';
-                                    $estadoTexto = 'Cerrado';
                                 } else {
-                                    // 🔹 MATERIALES: Evaluar por ubicaciones
-                                    $stock_destino = floatval($detalle['stock_ubicacion_destino']);
-                                    $stock_otras_ubicaciones = floatval($detalle['stock_total_almacen']) - $stock_destino;
-                                    $falta_total = max(0, $cantidad_pedida - $detalle['stock_total_almacen']);
-                                    
-                                    // 🆕 Calcular cantidades para cada tipo de orden
-                                    $cantidad_para_oc = $falta_total;
-                                    $cantidad_para_os = 0;
-                                    
-                                    if ($stock_destino >= $cantidad_pedida) {
-                                        // CASO 1: Stock completo en destino → PEDIDO FINALIZADO
-                                        //$colorFondo = '#d1f2eb';
-                                        $colorBorde = '#1abc9c';
-                                        $claseTexto = 'text-success';
-                                        $icono = 'fa-check-circle';
-                                        $estadoTexto = 'Finalizado';
-                                        $cantidad_para_os = 0;
-                                        $cantidad_para_oc = 0;
-                                    } else if ($esVerificado) {
-                                        // ============================================================
-                                        // CASO 2: ITEM VERIFICADO - Leer cantidades de BD
-                                        // ============================================================
-                                        $cantidad_para_os = floatval($detalle['cant_os_pedido_detalle']);
-                                        $cantidad_para_oc = floatval($detalle['cant_oc_pedido_detalle']);
+                                    //  MATERIALES
+                                
+                                    //  PRIORIDAD 1: Verificar si está CERRADO MANUALMENTE
+                                    if ($detalle['est_pedido_detalle'] == 2) {
+                                        $colorBorde = '#dc3545';
+                                        $claseTexto = 'text-danger';
+                                        $icono = 'fa-times-circle';
+                                        $estadoTexto = 'Cerrado Manualmente';
                                         
-                                        // Verificar si hay órdenes pendientes
-                                        $tiene_oc = $cantidad_para_oc > 0;
-                                        $tiene_os = $cantidad_para_os > 0;
+                                    } else {
+                                        //  PRIORIDAD 2: Verificar si está FINALIZADO (ordenó todo lo verificado)
+                                        $cantidad_verificada_total = floatval($detalle['cant_oc_pedido_detalle']) + floatval($detalle['cant_os_pedido_detalle']);
+                                        $cantidad_ya_ordenada_total = $detalle['cantidad_ya_ordenada_oc'] + $detalle['cantidad_ya_ordenada_os'];
                                         
-                                        if ($tiene_oc && $tiene_os) {
-                                            // --------------------------------------------------------
-                                            // SUBCASO 2.1: Ambos (OC + OS)
-                                            // --------------------------------------------------------
-                                            $ordenado_oc = ObtenerCantidadYaOrdenadaOCPorDetalle($detalle['id_pedido_detalle']);
-                                            $ordenado_os = ObtenerCantidadYaOrdenadaOSPorDetalle($detalle['id_pedido_detalle']);
+                                        //  Si ya ordenó todo lo que se verificó → FINALIZADO
+                                        if ($esVerificado && $cantidad_ya_ordenada_total >= $cantidad_verificada_total) {
+                                            $colorBorde = '#1abc9c';
+                                            $claseTexto = 'text-success';
+                                            $icono = 'fa-check-circle';
+                                            $estadoTexto = 'Finalizado';
                                             
-                                            // Calcular pendientes
-                                            $pendiente_oc = $cantidad_para_oc - $ordenado_oc;
-                                            $pendiente_os = $cantidad_para_os - $ordenado_os;
+                                        } else {
+                                            //  PRIORIDAD 3: Evaluar por stock y verificación
+                                            $stock_destino = floatval($detalle['stock_ubicacion_destino']);
+                                            $stock_otras_ubicaciones = floatval($detalle['stock_total_almacen']) - $stock_destino;
+                                            $falta_total = max(0, $cantidad_pedida - $detalle['stock_total_almacen']);
                                             
+                                            $cantidad_para_oc = $falta_total;
+                                            $cantidad_para_os = 0;
                                             
-                                            if ($pendiente_oc > 0 && $pendiente_os > 0) {
-                                                // Ambos con pendientes
-                                                //$colorFondo = '#fff3cd';
-                                                $colorBorde = '#ffc107';
-                                                $claseTexto = 'text-warning';
-                                                $icono = 'fa-exchange-alt';
-                                                $estadoTexto = 'Verificado OS/OC';
-                                                
-                                            } else if ($pendiente_oc <= 0 && $pendiente_os > 0) {
-                                                // OC completada, OS pendiente
-                                                //$colorFondo = '#d4edda';
-                                                $colorBorde = '#28a745';
-                                                $claseTexto = 'text-success';
-                                                $icono = 'fa-truck';
-                                                $estadoTexto = 'Pendiente OS';
-                                                
-                                            } else if ($pendiente_os <= 0 && $pendiente_oc > 0) {
-                                                // OS completada, OC pendiente
-                                                //$colorFondo = '#cfe2ff';
-                                                $colorBorde = '#2196f3';
-                                                $claseTexto = 'text-primary';
-                                                $icono = 'fa-shopping-cart';
-                                                $estadoTexto = 'Pendiente OC';
-                                                
-                                            } else {
-                                                // Ambos completados (no debería llegar aquí si stock_destino < cantidad_pedida)
-                                                //$colorFondo = '#d1f2eb';
+                                            if ($stock_destino >= $cantidad_pedida) {
+                                                // CASO 1: Stock completo en destino → FINALIZADO
                                                 $colorBorde = '#1abc9c';
                                                 $claseTexto = 'text-success';
                                                 $icono = 'fa-check-circle';
                                                 $estadoTexto = 'Finalizado';
+                                                
+                                            } else if ($esVerificado) {
+                                                // CASO 2: ITEM VERIFICADO - Evaluar estado según órdenes
+                                                $cantidad_para_os = floatval($detalle['cant_os_pedido_detalle']);
+                                                $cantidad_para_oc = floatval($detalle['cant_oc_pedido_detalle']);
+                                                
+                                                $tiene_oc = $cantidad_para_oc > 0;
+                                                $tiene_os = $cantidad_para_os > 0;
+                                                
+                                                if ($tiene_oc && $tiene_os) {
+                                                    // SUBCASO 2.1: Ambos (OC + OS)
+                                                    $pendiente_oc = $detalle['cantidad_pendiente_oc'];
+                                                    $pendiente_os = $detalle['cantidad_pendiente_os'];
+                                                    
+                                                    if ($pendiente_oc > 0 && $pendiente_os > 0) {
+                                                        $colorBorde = '#ffc107';
+                                                        $claseTexto = 'text-warning';
+                                                        $icono = 'fa-exchange-alt';
+                                                        $estadoTexto = 'Verificado OS/OC';
+                                                    } else if ($pendiente_oc <= 0 && $pendiente_os > 0) {
+                                                        $colorBorde = '#28a745';
+                                                        $claseTexto = 'text-success';
+                                                        $icono = 'fa-truck';
+                                                        $estadoTexto = 'Pendiente OS';
+                                                    } else if ($pendiente_os <= 0 && $pendiente_oc > 0) {
+                                                        $colorBorde = '#2196f3';
+                                                        $claseTexto = 'text-primary';
+                                                        $icono = 'fa-shopping-cart';
+                                                        $estadoTexto = 'Pendiente OC';
+                                                    } else {
+                                                        // Ambos completados
+                                                        $colorBorde = '#1abc9c';
+                                                        $claseTexto = 'text-success';
+                                                        $icono = 'fa-check-circle';
+                                                        $estadoTexto = 'Finalizado';
+                                                    }
+                                                    
+                                                } else if ($tiene_os) {
+                                                    // SUBCASO 2.2: Solo OS
+                                                    $colorBorde = '#28a745';
+                                                    $claseTexto = 'text-success';
+                                                    $icono = 'fa-truck';
+                                                    $estadoTexto = 'Verificado OS';
+                                                    
+                                                } else if ($tiene_oc) {
+                                                    // SUBCASO 2.3: Solo OC
+                                                    $colorBorde = '#2196f3';
+                                                    $claseTexto = 'text-primary';
+                                                    $icono = 'fa-shopping-cart';
+                                                    $estadoTexto = 'Verificado OC';
+                                                    
+                                                } else {
+                                                    // Sin cantidades asignadas (caso raro)
+                                                    $colorBorde = '#6c757d';
+                                                    $claseTexto = 'text-secondary';
+                                                    $icono = 'fa-question-circle';
+                                                    $estadoTexto = 'Sin asignar';
+                                                }
+                                                
+                                            } else {
+                                                // CASO 3: No verificado → PENDIENTE VERIFICAR
+                                                $colorBorde = '#ffc107';
+                                                $claseTexto = 'text-warning';
+                                                $icono = 'fa-clock-o';
+                                                $estadoTexto = 'Pendiente Verificar';
                                             }
-                                            
-                                        } else if ($tiene_os) {
-                                            // --------------------------------------------------------
-                                            // SUBCASO 2.2: Solo OS
-                                            // --------------------------------------------------------
-                                            //$colorFondo = '#d4edda';
-                                            $colorBorde = '#28a745';
-                                            $claseTexto = 'text-success';
-                                            $icono = 'fa-truck';
-                                            $estadoTexto = 'Verificado OS';
-                                            
-                                        } else if ($tiene_oc) {
-                                            // --------------------------------------------------------
-                                            // SUBCASO 2.3: Solo OC
-                                            // --------------------------------------------------------
-                                            //$colorFondo = '#cfe2ff';
-                                            $colorBorde = '#2196f3';
-                                            $claseTexto = 'text-primary';
-                                            $icono = 'fa-shopping-cart';
-                                            $estadoTexto = 'Verificado OC';
-                                            
-                                        } else {
-                                            // Sin cantidades asignadas (caso raro)
-                                            //$colorFondo = '#e9ecef';
-                                            $colorBorde = '#6c757d';
-                                            $claseTexto = 'text-secondary';
-                                            $icono = 'fa-question-circle';
-                                            $estadoTexto = 'Sin asignar';
                                         }
-                                        
-                                    } else if (!$esVerificado) {
-                                        // CASO 4: No verificado → PENDIENTE VERIFICAR
-                                        //$colorFondo = '#fff3cd';
-                                        $colorBorde = '#ffc107';
-                                        $claseTexto = 'text-warning';
-                                        $icono = 'fa-clock-o';
-                                        $estadoTexto = 'Pendiente Verificar';
-                                    } else {
-                                        // Default
-                                        //$colorFondo = '#e9ecef';
-                                        $colorBorde = '#6c757d';
-                                        $claseTexto = 'text-secondary';
-                                        $icono = 'fa-info-circle';
-                                        $estadoTexto = 'Sin clasificar';
                                     }
                                 }
-                                
+
                                 $descripcion_producto = $detalle['prod_pedido_detalle'];
-                                
+
                                 $enOrdenActual = false;
                                 if ($modo_editar && !empty($orden_detalle)) {
                                     foreach ($orden_detalle as $item_orden) {

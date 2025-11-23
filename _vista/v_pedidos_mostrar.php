@@ -154,30 +154,17 @@ function AprobarPedidoTecnica(id_pedido) {
                                                                 $badge_class = 'badge-danger';
 
                                                             } elseif ($pedido['est_pedido'] == 2) {
-                                                                // ATENDIDO (Completado)
+                                                                // ATENDIDO (TODO completado)
                                                                 $estado_final = 'ATENDIDO';
-                                                                $badge_class = 'badge-info';
-
-                                                            } elseif ($pedido['est_pedido'] == 3) {
-                                                                // APROBADO
-                                                                $estado_final = 'PENDIENTE';
-                                                                $badge_class = 'badge-warning';
-
-                                                            } elseif ($pedido['est_pedido'] == 4) {
-                                                                // INGRESADO
-                                                                $estado_final = 'PENDIENTE';
-                                                                $badge_class = 'badge-warning';
-
-                                                            } elseif ($pedido['est_pedido'] == 5) {
-                                                                // FINALIZADO
-                                                                $estado_final = 'PENDIENTE';
-                                                                $badge_class = 'badge-warning';
+                                                                $badge_class = 'badge-success';
 
                                                             } elseif ($pedido['est_pedido'] == 1) {
-                                                                //  PENDIENTE - Verificar si tiene aprobación técnica
+                                                                // PENDIENTE (puede estar aprobado técnicamente)
+                                                                $tiene_tecnica = !empty($pedido['id_personal_aprueba_tecnica']);
+                                                                
                                                                 if ($tiene_tecnica) {
                                                                     $estado_final = 'APROBADO';
-                                                                    $badge_class = 'badge-success';
+                                                                    $badge_class = 'badge-info';
                                                                 } else {
                                                                     $estado_final = 'PENDIENTE';
                                                                     $badge_class = 'badge-warning';
