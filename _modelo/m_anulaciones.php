@@ -22,6 +22,9 @@ function AnularCompra($id_compra, $id_personal)
         ];
     }
 
+    // ============================================
+    // VALIDACIÓN 1: Verificar estado y aprobaciones
+    // ============================================
     $sql_check = "SELECT c.est_compra, c.id_pedido,
                          c.id_personal_aprueba,
                          c.id_personal_aprueba_financiera,
@@ -53,6 +56,7 @@ function AnularCompra($id_compra, $id_personal)
         ];
     }
 
+    // Validar estado
     if ($row_check['est_compra'] == 0) {
         mysqli_close($con);
         return [
@@ -62,6 +66,7 @@ function AnularCompra($id_compra, $id_personal)
         ];
     }
 
+    // 🔹 VALIDACIÓN CRÍTICA: No anular si tiene aprobaciones
     if (!empty($row_check['id_personal_aprueba']) || 
         !empty($row_check['id_personal_aprueba_financiera'])) {
         mysqli_close($con);
@@ -72,14 +77,46 @@ function AnularCompra($id_compra, $id_personal)
         ];
     }
 
+    //  VALIDACIÓN: No anular si está cerrada (estado 4)
+    if ($row_check['est_compra'] == 4) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'No se puede anular una orden cerrada'
+        ];
+    }
+
+    // ============================================
+    // VALIDACIÓN 2: Verificar si tiene ingresos
+    // ============================================
+    $sql_ingresos = "SELECT COUNT(*) as total
+                     FROM ingreso 
+                     WHERE id_compra = $id_compra
+                     AND est_ingreso != 0";
+    
+    $res_ingresos = mysqli_query($con, $sql_ingresos);
+    $row_ingresos = mysqli_fetch_assoc($res_ingresos);
+    
+    if (intval($row_ingresos['total']) > 0) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'No se puede anular una orden que tiene ingresos registrados'
+        ];
+    }
+
     $id_pedido = $row_check['id_pedido'];
     $es_servicio = ($row_check['id_producto_tipo'] == 2);
 
-    // 🔹 NUEVO: Obtener los id_pedido_detalle de esta orden ANTES de anularla
-    $sql_detalles = "SELECT id_pedido_detalle 
-                      FROM compra_detalle 
-                      WHERE id_compra = $id_compra 
-                      AND est_compra_detalle = 1";
+    // ============================================
+    // PASO 1: Obtener detalles afectados ANTES de anular
+    // ============================================
+    $sql_detalles = "SELECT cd.id_pedido_detalle
+                      FROM compra_detalle cd
+                      WHERE cd.id_compra = $id_compra 
+                      AND cd.est_compra_detalle = 1";
     
     $res_detalles = mysqli_query($con, $sql_detalles);
     
@@ -97,7 +134,11 @@ function AnularCompra($id_compra, $id_personal)
         $detalles_afectados[] = intval($row_det['id_pedido_detalle']);
     }
 
-    // Anular la orden
+    error_log(" Detalles afectados por anulación de OC $id_compra: " . implode(', ', $detalles_afectados));
+
+    // ============================================
+    // PASO 2: Anular la orden de compra
+    // ============================================
     $sql_update = "UPDATE compra 
                    SET est_compra = 0
                    WHERE id_compra = $id_compra";
@@ -113,15 +154,23 @@ function AnularCompra($id_compra, $id_personal)
         ];
     }
 
-    // 🔹 CORRECCIÓN CRÍTICA: Verificar reapertura por cada detalle específico
+    // ============================================
+    // PASO 3: Reverificar items afectados
+    // ============================================
+    error_log(" Reverificando " . count($detalles_afectados) . " items del pedido $id_pedido");
+    
     foreach ($detalles_afectados as $id_pedido_detalle) {
         if ($es_servicio) {
             VerificarReaperturaItemServicioPorDetalle($id_pedido_detalle);
         } else {
             VerificarReaperturaItemPorDetalle($id_pedido_detalle);
-            //VerificarEstadoItemPorDetalle
         }
     }
+
+    // ============================================
+    // PASO 4: Actualizar estado del pedido
+    // ============================================
+    ActualizarEstadoPedidoUnificado($id_pedido, $con);
 
     mysqli_close($con);
     
@@ -133,7 +182,7 @@ function AnularCompra($id_compra, $id_personal)
 }
 
 /**
- * Anula un pedido
+ * Anula un pedido completo
  */
 function AnularPedido($id_pedido, $id_personal)
 {
@@ -150,6 +199,9 @@ function AnularPedido($id_pedido, $id_personal)
         ];
     }
 
+    // ============================================
+    // VALIDACIÓN 1: Verificar estado del pedido
+    // ============================================
     $sql_check = "SELECT est_pedido FROM pedido WHERE id_pedido = $id_pedido";
     $res_check = mysqli_query($con, $sql_check);
     
@@ -182,7 +234,47 @@ function AnularPedido($id_pedido, $id_personal)
         ];
     }
 
-    // Anular pedido
+    // ============================================
+    // VALIDACIÓN 2: Verificar que no tenga órdenes activas
+    // ============================================
+    $sql_ordenes_activas = "SELECT COUNT(*) as total 
+                            FROM compra 
+                            WHERE id_pedido = $id_pedido 
+                            AND est_compra != 0";
+    $res_ordenes = mysqli_query($con, $sql_ordenes_activas);
+    $row_ordenes = mysqli_fetch_assoc($res_ordenes);
+    
+    if (intval($row_ordenes['total']) > 0) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'No se puede anular el pedido: tiene órdenes de compra activas'
+        ];
+    }
+
+    // ============================================
+    // VALIDACIÓN 3: Verificar que no tenga salidas activas
+    // ============================================
+    $sql_salidas_activas = "SELECT COUNT(*) as total 
+                            FROM salida 
+                            WHERE id_pedido = $id_pedido 
+                            AND est_salida != 0";
+    $res_salidas = mysqli_query($con, $sql_salidas_activas);
+    $row_salidas = mysqli_fetch_assoc($res_salidas);
+    
+    if (intval($row_salidas['total']) > 0) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'No se puede anular el pedido: tiene órdenes de salida activas'
+        ];
+    }
+
+    // ============================================
+    // PASO 1: Anular el pedido
+    // ============================================
     $sql_update = "UPDATE pedido 
                    SET est_pedido = 0 
                    WHERE id_pedido = $id_pedido";
@@ -198,7 +290,9 @@ function AnularPedido($id_pedido, $id_personal)
         ];
     }
 
-    // Liberar stock comprometido
+    // ============================================
+    // PASO 2: Liberar stock comprometido
+    // ============================================
     $sql_mov = "UPDATE movimiento 
                 SET est_movimiento = 0
                 WHERE id_orden = $id_pedido 
@@ -218,6 +312,7 @@ function AnularPedido($id_pedido, $id_personal)
 
 /**
  * Anula una compra y su pedido asociado
+ * (Solo si es la única orden y no hay salidas)
  */
 function AnularCompraPedido($id_compra, $id_pedido, $id_personal)
 {
@@ -235,8 +330,10 @@ function AnularCompraPedido($id_compra, $id_pedido, $id_personal)
         ];
     }
     
-    //  No anular si la orden tiene aprobaciones
-    $sql_check = "SELECT id_personal_aprueba, id_personal_aprueba_financiera
+    // ============================================
+    // VALIDACIÓN 1: Verificar aprobaciones de esta orden
+    // ============================================
+    $sql_check = "SELECT id_personal_aprueba, id_personal_aprueba_financiera, est_compra
                   FROM compra 
                   WHERE id_compra = $id_compra";
     
@@ -253,8 +350,18 @@ function AnularCompraPedido($id_compra, $id_pedido, $id_personal)
     
     $row = mysqli_fetch_assoc($res);
     
-    if ($row && (!empty($row['id_personal_aprueba']) || 
-                 !empty($row['id_personal_aprueba_financiera']))) {
+    if (!$row) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'Orden de compra no encontrada'
+        ];
+    }
+
+    // No anular si tiene aprobaciones
+    if (!empty($row['id_personal_aprueba']) || 
+        !empty($row['id_personal_aprueba_financiera'])) {
         mysqli_close($con);
         return [
             'success' => false,
@@ -262,54 +369,87 @@ function AnularCompraPedido($id_compra, $id_pedido, $id_personal)
             'mensaje' => 'No se puede anular: la orden tiene aprobaciones'
         ];
     }
-    
-    // VALIDAR: Anular TODAS las órdenes del pedido
-    $sql_ordenes = "SELECT id_compra FROM compra WHERE id_pedido = $id_pedido AND est_compra != 0";
-    $res_ordenes = mysqli_query($con, $sql_ordenes);
-    
-    if (!$res_ordenes) {
+
+    // No anular si está cerrada
+    if ($row['est_compra'] == 4) {
         mysqli_close($con);
         return [
             'success' => false,
             'tipo_mensaje' => 'error',
-            'mensaje' => 'Error al obtener órdenes: ' . mysqli_error($con)
+            'mensaje' => 'No se puede anular: la orden está cerrada'
         ];
     }
+
+    // ============================================
+    // VALIDACIÓN 2: Verificar que no haya otras órdenes activas
+    // ============================================
+    $sql_otras_ordenes = "SELECT COUNT(*) as total
+                          FROM compra 
+                          WHERE id_pedido = $id_pedido 
+                          AND id_compra != $id_compra
+                          AND est_compra != 0";
     
-    $todas_anuladas = true;
-    $errores = [];
+    $res_otras = mysqli_query($con, $sql_otras_ordenes);
+    $row_otras = mysqli_fetch_assoc($res_otras);
     
-    while ($row_orden = mysqli_fetch_assoc($res_ordenes)) {
-        $resultado = AnularCompra($row_orden['id_compra'], $id_personal);
-        
-        if (!$resultado['success']) {
-            $todas_anuladas = false;
-            $errores[] = "Orden " . $row_orden['id_compra'] . ": " . $resultado['mensaje'];
-        }
-    }
-    
-    // Solo anular el pedido si todas las órdenes fueron anuladas
-    if ($todas_anuladas) {
-        $res_pedido = AnularPedido($id_pedido, $id_personal);
+    if (intval($row_otras['total']) > 0) {
         mysqli_close($con);
-        
-        if ($res_pedido['success']) {
-            return [
-                'success' => true,
-                'tipo_mensaje' => 'success',
-                'mensaje' => 'Orden de compra y pedido anulados exitosamente'
-            ];
-        } else {
-            return $res_pedido;
-        }
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'No se puede anular el pedido: existen otras órdenes de compra activas'
+        ];
     }
+
+    // ============================================
+    // VALIDACIÓN 3: Verificar que no haya salidas activas
+    // ============================================
+    $sql_salidas = "SELECT COUNT(*) as total
+                    FROM salida 
+                    WHERE id_pedido = $id_pedido 
+                    AND est_salida != 0";
+    
+    $res_salidas = mysqli_query($con, $sql_salidas);
+    $row_salidas = mysqli_fetch_assoc($res_salidas);
+    
+    if (intval($row_salidas['total']) > 0) {
+        mysqli_close($con);
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'No se puede anular el pedido: tiene órdenes de salida activas'
+        ];
+    }
+
+    // ============================================
+    // PASO 1: Anular la orden de compra
+    // ============================================
+    $resultado_compra = AnularCompra($id_compra, $id_personal);
+    
+    if (!$resultado_compra['success']) {
+        mysqli_close($con);
+        return $resultado_compra;
+    }
+
+    // ============================================
+    // PASO 2: Anular el pedido
+    // ============================================
+    $resultado_pedido = AnularPedido($id_pedido, $id_personal);
     
     mysqli_close($con);
     
-    return [
-        'success' => false,
-        'tipo_mensaje' => 'error',
-        'mensaje' => 'No se pudieron anular todas las órdenes: ' . implode(', ', $errores)
-    ];
+    if ($resultado_pedido['success']) {
+        return [
+            'success' => true,
+            'tipo_mensaje' => 'success',
+            'mensaje' => 'Orden de compra y pedido anulados exitosamente'
+        ];
+    } else {
+        return [
+            'success' => false,
+            'tipo_mensaje' => 'error',
+            'mensaje' => 'La orden se anuló pero hubo un error al anular el pedido: ' . $resultado_pedido['mensaje']
+        ];
+    }
 }
 ?>

@@ -877,9 +877,11 @@ $monedas = MostrarMoneda();
                                                         <span style="margin: 0 6px;">•</span>
                                                         <span style="font-weight: bold; color: #28a745;">✓ Completada</span>
                                                     <?php endif; ?>
-                                                    
+
+                                                    <!--
                                                     <span style="margin: 0 6px;">•</span>
-                                                    <span class="text-info"><strong>Stock destino:</strong> <?php echo number_format($stock_destino, 2); ?>/<?php echo number_format($cantidad_pedida, 2); ?></span>
+                                                    <span class="text-info"><strong>Stock destino:</strong> <?php echo number_format($stock_destino, 2); ?>/<?php echo number_format($cantidad_pedida, 2); ?></span> !-->
+
                                                 </div>
                                             <?php endif; ?>
                                             
@@ -1266,20 +1268,20 @@ $monedas = MostrarMoneda();
 
                                                 // Estado
                                                 if ($salida['est_salida'] == 0) {
-                                                    $estado_salida_texto = 'Anulada';
-                                                    $estado_salida_clase = 'danger';
+                                                    $estado_salida_texto = 'ANULADA';
+                                                    $estado_salida_clase = 'badge-danger';
                                                 } elseif ($salida['est_salida'] == 2) {
-                                                    $estado_salida_texto = 'Recepcionada';
-                                                    $estado_salida_clase = 'primary';
+                                                    $estado_salida_texto = 'RECEPCIONADA';
+                                                    $estado_salida_clase = 'badge-primary';
                                                 } elseif ($salida['est_salida'] == 1) {
-                                                    $estado_salida_texto = 'Pendiente Recepción';
-                                                    $estado_salida_clase = 'warning';
-                                                }elseif ($salida['est_salida'] == 3) {
-                                                    $estado_salida_texto = 'Aprobada';
-                                                    $estado_salida_clase = 'success';
+                                                    $estado_salida_texto = 'PENDIENTE';
+                                                    $estado_salida_clase = 'badge-warning';
+                                                } elseif ($salida['est_salida'] == 3) {
+                                                    $estado_salida_texto = 'APROBADA';
+                                                    $estado_salida_clase = 'badge-success';
                                                 } else {
-                                                    $estado_salida_texto = 'Desconocido';
-                                                    $estado_salida_clase = 'secondary';
+                                                    $estado_salida_texto = 'DESCONOCIDO';
+                                                    $estado_salida_clase = 'badge-secondary';
                                                 }
 
                                                 $fecha_salida = date('d/m/Y', strtotime($salida['fec_req_salida']));
@@ -1303,13 +1305,13 @@ $monedas = MostrarMoneda();
                                                     </td>
 
                                                     <td>
-                                                        <span class="badge badge-<?php echo $estado_salida_clase; ?>">
+                                                        <span class="badge <?php echo $estado_salida_clase; ?> badge_size">
                                                             <?php echo $estado_salida_texto; ?>
                                                         </span>
                                                     </td>
 
                                                     <td>
-                                                        <!-- Botón Ver Detalles -->
+                                                        <!-- Botón Ver Detalles - SIEMPRE VISIBLE -->
                                                         <button class="btn btn-info btn-xs btn-ver-salida"
                                                                 title="Ver detalles completos de esta salida"
                                                                 data-id-salida="<?php echo $salida['id_salida']; ?>">
@@ -1317,29 +1319,31 @@ $monedas = MostrarMoneda();
                                                         </button>
 
                                                         <?php if ($salida['est_salida'] == 1) { ?>
-                                                            <!-- Botón Editar -->
+                                                            <!-- Solo en estado PENDIENTE: mostrar Editar y Anular -->
                                                             <button class="btn btn-warning btn-xs ml-1 btn-editar-salida"
                                                                     title="Editar esta orden de salida"
                                                                     data-id-salida="<?php echo $salida['id_salida']; ?>">
                                                                 <i class="fa fa-edit"></i>
                                                             </button>
 
-                                                            <!-- Botón Anular -->
                                                             <button class="btn btn-danger btn-xs ml-1 btn-anular-salida"
                                                                     title="Anular Salida"
                                                                     data-id-salida="<?php echo $salida['id_salida']; ?>">
                                                                 <i class="fa fa-times"></i>
                                                             </button>
-
-                                                        <?php } elseif ($salida['est_salida'] == 2) { ?>
-                                                            <!-- Botones deshabilitados -->
-                                                            <button class="btn btn-outline-secondary btn-xs ml-1 disabled">
+                                                        <?php } ?>
+                                                        
+                                                        <?php if ($salida['est_salida'] == 0) { ?>
+                                                            <!-- Solo en estado ANULADA: botones deshabilitados visualmente -->
+                                                            <button class="btn btn-outline-secondary btn-xs ml-1 disabled" disabled>
                                                                 <i class="fa fa-edit"></i>
                                                             </button>
-                                                            <button class="btn btn-outline-secondary btn-xs ml-1 disabled">
+                                                            <button class="btn btn-outline-secondary btn-xs ml-1 disabled" disabled>
                                                                 <i class="fa fa-times"></i>
                                                             </button>
                                                         <?php } ?>
+                                                        
+                                                        <!-- Estados 2 (RECEPCIONADA) y 3 (APROBADA): solo mostrar el ojo, sin más botones -->
                                                     </td>
                                                 </tr>
                                             <?php } ?>
@@ -2668,9 +2672,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const myTab = document.getElementById('myTab');
         const myTabContent = document.getElementById('myTabContent');
         const contenedorNuevaSalida = document.getElementById('contenedor-nueva-salida');
+        const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
         
+        //  Ocultar tabs
         if (myTab) myTab.style.display = 'none';
         if (myTabContent) myTabContent.style.display = 'none';
+        
+        //  Ocultar formulario de orden si está visible
+        if (contenedorNuevaOrden) contenedorNuevaOrden.style.display = 'none';
+        
+        //  Mostrar formulario de salida
         if (contenedorNuevaSalida) contenedorNuevaSalida.style.display = 'block';
         
         btnNuevaSalida = document.getElementById('btn-nueva-salida');
@@ -2701,10 +2712,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const myTab = document.getElementById('myTab');
         const myTabContent = document.getElementById('myTabContent');
         const contenedorNuevaSalida = document.getElementById('contenedor-nueva-salida');
+        const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
         
+        // ✅ Mostrar tabs
         if (myTab) myTab.style.display = 'flex';
         if (myTabContent) myTabContent.style.display = 'block';
+        
+        // ✅ Ocultar ambos formularios
         if (contenedorNuevaSalida) contenedorNuevaSalida.style.display = 'none';
+        if (contenedorNuevaOrden) contenedorNuevaOrden.style.display = 'none';
         
         btnNuevaSalida = document.getElementById('btn-nueva-salida');
         if (btnNuevaSalida) {
@@ -4440,6 +4456,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 console.log(' Mostrando formulario de nueva salida');
                 mostrarFormularioNuevaSalida();
+                
+                // ✅ NUEVO: Ocultar el formulario de Nueva Orden si está visible
+                const contenedorNuevaOrden = document.getElementById('contenedor-nueva-orden');
+                if (contenedorNuevaOrden) {
+                    contenedorNuevaOrden.style.display = 'none';
+                }
+                
+                // ✅ NUEVO: Restaurar el botón Nueva Orden a su estado original
+                const btnNuevaOrden = document.getElementById('btn-nueva-orden');
+                if (btnNuevaOrden) {
+                    btnNuevaOrden.innerHTML = '<i class="fa fa-shopping-cart"></i> Nueva Orden';
+                    btnNuevaOrden.classList.remove('btn-secondary');
+                    btnNuevaOrden.classList.add('btn-primary');
+                }
             });
         }
         
@@ -4493,6 +4523,24 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Ocultar tabs
                     if (myTab) myTab.style.display = 'none';
                     if (myTabContent) myTabContent.style.display = 'none';
+                    
+                    //  NUEVO: Ocultar el formulario de Nueva Salida si está visible
+                    const contenedorNuevaSalida = document.getElementById('contenedor-nueva-salida');
+                    if (contenedorNuevaSalida) {
+                        contenedorNuevaSalida.style.display = 'none';
+                    }
+                    
+                    //  NUEVO: Restaurar el botón Nueva Salida a su estado original
+                    const btnNuevaSalida = document.getElementById('btn-nueva-salida');
+                    if (btnNuevaSalida) {
+                        const hayItemsDisponibles = validarItemsDisponiblesParaSalida();
+                        if (hayItemsDisponibles) {
+                            btnNuevaSalida.innerHTML = '<i class="fa fa-truck"></i> Nueva Salida';
+                            btnNuevaSalida.classList.remove('btn-secondary');
+                            btnNuevaSalida.classList.add('btn-success');
+                            btnNuevaSalida.disabled = false;
+                        }
+                    }
                     
                     // Mostrar formulario
                     if (contenedorNuevaOrden) {
@@ -5424,8 +5472,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }*/
 
+    // ============================================
+    // FUNCIÓN ANULAR COMPRA
+    // ============================================
     function AnularCompra(id_compra, id_pedido) {
-        // Primero validar si el pedido tiene otras OC o salidas
+        // Validar si el pedido tiene otras OC o salidas
         $.ajax({
             url: 'compras_validar_anulacion.php',
             type: 'POST',
@@ -5437,27 +5488,32 @@ document.addEventListener('DOMContentLoaded', function() {
             success: function(validacion) {
                 
                 if (validacion.error) {
-                    Swal.fire('Error', validacion.mensaje, 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: validacion.mensaje,
+                        confirmButtonColor: '#3085d6'
+                    });
                     return;
                 }
 
-                // CASO 1: Pedido tiene otras OC o salidas → SOLO ANULAR OC
-                if (validacion.tiene_otras_oc || validacion.tiene_salidas) {
+                // CASO 1: NO se puede anular pedido (tiene otras OCs aprobadas/cerradas o salidas)
+                if (!validacion.puede_anular_pedido) {
                     
-                    let mensaje_restriccion = "No se puede anular el pedido completo porque:\n\n";
+                    let mensaje_restriccion = "No se puede anular el pedido completo porque contiene:\n\n";
                     
-                    if (validacion.tiene_otras_oc) {
-                        mensaje_restriccion += `• Tiene ${validacion.total_otras_oc} orden(es) de compra adicional(es)\n`;
-                    }
-                    
-                    if (validacion.tiene_salidas) {
-                        mensaje_restriccion += `• Tiene ${validacion.total_salidas} orden(es) de salida registrada(s)\n`;
+                    // Construir mensaje de restricciones
+                    if (validacion.mensaje_restriccion && validacion.mensaje_restriccion.length > 0) {
+                        validacion.mensaje_restriccion.forEach(function(restriccion) {
+                            mensaje_restriccion += `• ${restriccion}\n`;
+                        });
                     }
                     
                     mensaje_restriccion += "\n¿Deseas anular solo esta Orden de Compra?";
 
                     Swal.fire({
                         title: '¿Seguro que deseas anular esta O/C?',
+                        html: mensaje_restriccion.replace(/\n/g, '<br>'),
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonColor: '#d33',
@@ -5471,12 +5527,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
 
                 } 
-                // CASO 2: Pedido sin restricciones → MOSTRAR AMBAS OPCIONES
+                // CASO 2: SÍ se puede anular pedido (solo tiene esta OC y sin salidas)
                 else {
                     
                     Swal.fire({
                         title: '¿Qué deseas anular?',
-                        text: "Selecciona una opción:",
+                        html: '<p style="margin-bottom: 15px;">Selecciona una opción:</p>' +
+                            '<ul style="text-align: left; padding-left: 20px;">' +
+                            '<li><strong>Solo O/C:</strong> Anula únicamente esta orden</li>' +
+                            '<li><strong>O/C y Pedido:</strong> Anula la orden y el pedido completo</li>' +
+                            '</ul>',
                         icon: 'warning',
                         showCancelButton: true,
                         showDenyButton: true,
@@ -5495,35 +5555,72 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
             },
-            error: function() {
-                Swal.fire('Error', 'No se pudo validar la anulación. Intente nuevamente.', 'error');
+            error: function(xhr, status, error) {
+                console.error('Error en validación:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de Conexión',
+                    text: 'No se pudo validar la anulación. Intente nuevamente.',
+                    confirmButtonColor: '#3085d6'
+                });
             }
         });
     }
 
-    // Anular solo OC
+    // ============================================
+    // FUNCIÓN AUXILIAR: ANULAR SOLO OC
+    // ============================================
     function anularSoloOC(id_compra) {
         $.ajax({
             url: 'compras_anular.php',
             type: 'POST',
             data: { id_compra: id_compra },
             dataType: 'json',
+            beforeSend: function() {
+                Swal.fire({
+                    title: 'Procesando...',
+                    text: 'Anulando orden de compra',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            },
             success: function(response) {
                 if (response.tipo_mensaje === 'success') {
-                    Swal.fire('¡Anulado!', response.mensaje, 'success').then(() => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Anulado!',
+                        text: response.mensaje,
+                        confirmButtonColor: '#3085d6'
+                    }).then(() => {
                         location.reload();
                     });
                 } else {
-                    Swal.fire('Error', response.mensaje, 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.mensaje,
+                        confirmButtonColor: '#3085d6'
+                    });
                 }
             },
-            error: function() {
-                Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+            error: function(xhr, status, error) {
+                console.error('Error al anular OC:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de Conexión',
+                    text: 'No se pudo conectar con el servidor.',
+                    confirmButtonColor: '#3085d6'
+                });
             }
         });
     }
 
-    // Anular OC y Pedido
+    // ============================================
+    // FUNCIÓN AUXILIAR: ANULAR OC Y PEDIDO
+    // ============================================
     function anularOCyPedido(id_compra, id_pedido) {
         $.ajax({
             url: 'compras_pedido_anular.php',
@@ -5533,17 +5630,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 id_pedido: id_pedido 
             },
             dataType: 'json',
+            beforeSend: function() {
+                Swal.fire({
+                    title: 'Procesando...',
+                    text: 'Anulando orden de compra y pedido',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            },
             success: function(response) {
                 if (response.tipo_mensaje === 'success') {
-                    Swal.fire('¡Anulado!', response.mensaje, 'success').then(() => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Anulado!',
+                        text: response.mensaje,
+                        confirmButtonColor: '#3085d6'
+                    }).then(() => {
                         location.reload();
                     });
                 } else {
-                    Swal.fire('Error', response.mensaje, 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.mensaje,
+                        confirmButtonColor: '#3085d6'
+                    });
                 }
             },
-            error: function() {
-                Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+            error: function(xhr, status, error) {
+                console.error('Error al anular OC y Pedido:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de Conexión',
+                    text: 'No se pudo conectar con el servidor.',
+                    confirmButtonColor: '#3085d6'
+                });
             }
         });
     }

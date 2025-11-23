@@ -144,271 +144,299 @@ function AprobarPedidoTecnica(id_pedido) {
                                                     </td>
                                                     <td>
                                                         <center>
-                                                            <?php 
-                                                            // Verificar si este pedido está en la lista de rechazados
-                                                            $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
+                                                            <?php  
+                                                            $estado_final = '';
+                                                            $badge_class = '';
 
-                                                            // ESTADOS CORREGIDOS - Tu versión original estaba bien
-                                                            if ($pedido['est_pedido'] == 0) { ?>
-                                                                <span class="badge badge-danger badge_size">ANULADO</span>
-                                                            <?php } elseif ($pedido['est_pedido'] == 1) { ?>
-                                                                <span class="badge badge-warning badge_size">PENDIENTE</span>
-                                                            <?php } elseif ($pedido['est_pedido'] == 2) { ?>
-                                                                <span class="badge badge-info badge_size">ATENDIDO</span>
-                                                            <?php } elseif ($pedido['est_pedido'] == 3) { ?>
-                                                                <span class="badge badge-warning badge_size">PENDIENTE</span>
-                                                            <?php } elseif ($pedido['est_pedido'] == 4) { ?>
-                                                                <span class="badge badge-warning badge_size">PENDIENTE</span>
-                                                            <?php } elseif ($pedido['est_pedido'] == 5) { ?>
-                                                                <span class="badge badge-warning badge_size">PENDIENTE</span>
-                                                            <?php } else { ?>
-                                                                <span class="badge badge-secondary badge_size">DESCONOCIDO</span>
-                                                            <?php } ?>
+                                                            if ($pedido['est_pedido'] == 0) {
+                                                                // ANULADO
+                                                                $estado_final = 'ANULADO';
+                                                                $badge_class = 'badge-danger';
+
+                                                            } elseif ($pedido['est_pedido'] == 2) {
+                                                                // ATENDIDO (Completado)
+                                                                $estado_final = 'ATENDIDO';
+                                                                $badge_class = 'badge-info';
+
+                                                            } elseif ($pedido['est_pedido'] == 3) {
+                                                                // APROBADO
+                                                                $estado_final = 'PENDIENTE';
+                                                                $badge_class = 'badge-warning';
+
+                                                            } elseif ($pedido['est_pedido'] == 4) {
+                                                                // INGRESADO
+                                                                $estado_final = 'PENDIENTE';
+                                                                $badge_class = 'badge-warning';
+
+                                                            } elseif ($pedido['est_pedido'] == 5) {
+                                                                // FINALIZADO
+                                                                $estado_final = 'PENDIENTE';
+                                                                $badge_class = 'badge-warning';
+
+                                                            } elseif ($pedido['est_pedido'] == 1) {
+                                                                //  PENDIENTE - Verificar si tiene aprobación técnica
+                                                                if ($tiene_tecnica) {
+                                                                    $estado_final = 'APROBADO';
+                                                                    $badge_class = 'badge-success';
+                                                                } else {
+                                                                    $estado_final = 'PENDIENTE';
+                                                                    $badge_class = 'badge-warning';
+                                                                }
+
+                                                            } else {
+                                                                // DESCONOCIDO
+                                                                $estado_final = 'DESCONOCIDO';
+                                                                $badge_class = 'badge-secondary';
+                                                            }
+                                                            ?>
+                                                            <span class="badge <?php echo $badge_class; ?> badge_size">
+                                                                <?php echo $estado_final; ?>
+                                                            </span>
                                                         </center>
                                                     </td>
-<td>
-    <div class="d-flex flex-wrap gap-2">
-        <!-- Botón Ver Detalle -->
-        <button type="button" 
-                class="btn btn-info btn-sm" 
-                data-toggle="modal" 
-                data-target="#modalDetallePedido<?php echo $pedido['id_pedido']; ?>" 
-                title="Ver Detalle">
-            <i class="fa fa-eye"></i>
-        </button>
-    
-        <!-- ============================================ -->
-        <!-- BOTÓN APROBAR TÉCNICA -->
-        <!-- ============================================ -->
-        <?php
-        if (!$tiene_permiso_aprobar_tecnica) {
-            // SIN PERMISO - Botón rojo outline danger
-            ?>
-            <a href="#"
-               class="btn btn-outline-danger btn-sm disabled"
-               title="No tienes permiso para aprobar técnicamente pedidos"
-               tabindex="-1" aria-disabled="true">
-                <i class="fa fa-check"></i>
-            </a>
-        <?php } elseif ($tiene_tecnica) { ?>
-            <!-- YA APROBADO - Gris por proceso -->
-            <a href="#"
-               class="btn btn-outline-secondary btn-sm disabled"
-               title="Ya aprobado técnicamente"
-               tabindex="-1" aria-disabled="true">
-                <i class="fa fa-check"></i>
-            </a>
-        <?php } else { ?>
-            <!-- PUEDE APROBAR - Verde activo -->
-            <a href="#"
-               onclick="AprobarPedidoTecnica(<?php echo $pedido['id_pedido']; ?>)"
-               class="btn btn-success btn-sm"
-               title="Aprobar Técnicamente">
-                <i class="fa fa-check"></i>
-            </a>
-        <?php } ?>
+                                                    <td>
+                                                        <div class="d-flex flex-wrap gap-2">
+                                                            <!-- Botón Ver Detalle -->
+                                                            <button type="button" 
+                                                                    class="btn btn-info btn-sm" 
+                                                                    data-toggle="modal" 
+                                                                    data-target="#modalDetallePedido<?php echo $pedido['id_pedido']; ?>" 
+                                                                    title="Ver Detalle">
+                                                                <i class="fa fa-eye"></i>
+                                                            </button>
+                                                        
+                                                            <!-- ============================================ -->
+                                                            <!-- BOTÓN APROBAR TÉCNICA -->
+                                                            <!-- ============================================ -->
+                                                            <?php
+                                                            if (!$tiene_permiso_aprobar_tecnica) {
+                                                                // SIN PERMISO - Botón rojo outline danger
+                                                                ?>
+                                                                <a href="#"
+                                                                class="btn btn-outline-danger btn-sm disabled"
+                                                                title="No tienes permiso para aprobar técnicamente pedidos"
+                                                                tabindex="-1" aria-disabled="true">
+                                                                    <i class="fa fa-check"></i>
+                                                                </a>
+                                                            <?php } elseif ($tiene_tecnica) { ?>
+                                                                <!-- YA APROBADO - Gris por proceso -->
+                                                                <a href="#"
+                                                                class="btn btn-outline-secondary btn-sm disabled"
+                                                                title="Ya aprobado técnicamente"
+                                                                tabindex="-1" aria-disabled="true">
+                                                                    <i class="fa fa-check"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <!-- PUEDE APROBAR - Verde activo -->
+                                                                <a href="#"
+                                                                onclick="AprobarPedidoTecnica(<?php echo $pedido['id_pedido']; ?>)"
+                                                                class="btn btn-success btn-sm"
+                                                                title="Aprobar Técnicamente">
+                                                                    <i class="fa fa-check"></i>
+                                                                </a>
+                                                            <?php } ?>
 
-        <?php
-        // ============================================
-        // BOTÓN EDITAR PEDIDO
-        // ============================================
-        $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
-        $puede_editar = false;
-        $titulo_editar = '';
+                                                            <?php
+                                                            // ============================================
+                                                            // BOTÓN EDITAR PEDIDO
+                                                            // ============================================
+                                                            $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
+                                                            $puede_editar = false;
+                                                            $titulo_editar = '';
 
-        if ($pedido['est_pedido'] == 0) {
-            $titulo_editar = "No se puede editar - Pedido anulado";
-        } elseif ($pedido['est_pedido'] >= 3) {
-            $estados = [
-                3 => "aprobado",
-                4 => "ingresado",
-                5 => "finalizado"
-            ];
-            $estado_nombre = $estados[$pedido['est_pedido']] ?? "procesado";
-            $titulo_editar = "No se puede editar - Pedido {$estado_nombre}";
-        } elseif ($es_rechazado) {
-            $titulo_editar = "No se puede editar - Pedido rechazado";
-        } elseif ($pedido['tiene_verificados'] == 1) {
-            $titulo_editar = "No se puede editar - Pedido con items verificados";
-        } elseif ($pedido['est_pedido'] == 2) {
-            $titulo_editar = "No se puede editar - Pedido completado (órdenes en proceso)";
-        } else {
-            $puede_editar = true;
-        }
+                                                            if ($pedido['est_pedido'] == 0) {
+                                                                $titulo_editar = "No se puede editar - Pedido anulado";
+                                                            } elseif ($pedido['est_pedido'] >= 3) {
+                                                                $estados = [
+                                                                    3 => "aprobado",
+                                                                    4 => "ingresado",
+                                                                    5 => "finalizado"
+                                                                ];
+                                                                $estado_nombre = $estados[$pedido['est_pedido']] ?? "procesado";
+                                                                $titulo_editar = "No se puede editar - Pedido {$estado_nombre}";
+                                                            } elseif ($es_rechazado) {
+                                                                $titulo_editar = "No se puede editar - Pedido rechazado";
+                                                            } elseif ($pedido['tiene_verificados'] == 1) {
+                                                                $titulo_editar = "No se puede editar - Pedido con items verificados";
+                                                            } elseif ($pedido['est_pedido'] == 2) {
+                                                                $titulo_editar = "No se puede editar - Pedido completado (órdenes en proceso)";
+                                                            } else {
+                                                                $puede_editar = true;
+                                                            }
 
-        if ($puede_editar) { ?>
-            <a href="pedidos_editar.php?id=<?php echo $pedido['id_pedido']; ?>" 
-               class="btn btn-warning btn-sm" 
-               title="Editar Pedido">
-                <i class="fa fa-edit"></i>
-            </a>
-        <?php } else { ?>
-            <a href="#" class="btn btn-outline-secondary btn-sm disabled" 
-               title="<?php echo $titulo_editar; ?>" tabindex="-1" aria-disabled="true">
-                <i class="fa fa-edit"></i>
-            </a>
-        <?php } ?>
+                                                            if ($puede_editar) { ?>
+                                                                <a href="pedidos_editar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+                                                                class="btn btn-warning btn-sm" 
+                                                                title="Editar Pedido">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" 
+                                                                title="<?php echo $titulo_editar; ?>" tabindex="-1" aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } ?>
 
-        <!-- ============================================ -->
-        <!-- BOTÓN GESTIONAR/VERIFICAR PEDIDO -->
-        <!-- ============================================ -->
-        <?php
-        $puede_gestionar = (
-            ($pedido['est_pedido'] == 1 || $pedido['est_pedido'] == 2 || 
-             $pedido['est_pedido'] == 3 || $pedido['est_pedido'] == 4) 
-            && $pedido['est_pedido'] != 0
-            && $pedido['est_pedido'] != 5
-        );
+                                                            <!-- ============================================ -->
+                                                            <!-- BOTÓN GESTIONAR/VERIFICAR PEDIDO -->
+                                                            <!-- ============================================ -->
+                                                            <?php
+                                                            $puede_gestionar = (
+                                                                ($pedido['est_pedido'] == 1 || $pedido['est_pedido'] == 2 || 
+                                                                $pedido['est_pedido'] == 3 || $pedido['est_pedido'] == 4) 
+                                                                && $pedido['est_pedido'] != 0
+                                                                && $pedido['est_pedido'] != 5
+                                                            );
 
-        if (!$tiene_permiso_verificar) {
-            // SIN PERMISO - Botón rojo outline danger
-            ?>
-            <a href="#"
-               class="btn btn-outline-danger btn-sm disabled"
-               title="No tienes permiso para verificar pedidos"
-               tabindex="-1" aria-disabled="true">
-                <i class="fa fa-check"></i>
-            </a>
-        <?php } elseif ($puede_gestionar) { ?>
-            <!-- CON PERMISO Y PUEDE GESTIONAR -->
-            <?php if ($tiene_tecnica) { ?>
-                <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
-                   class="btn btn-success btn-sm" 
-                   title="Gestionar pedido">
-                    <i class="fa fa-check"></i>
-                </a>
-            <?php } else { ?>
-                <span title="Requiere aprobación técnica">
-                    <a href="#"
-                       class="btn btn-outline-secondary btn-sm disabled"
-                       title="Requiere aprobación técnica"
-                       tabindex="-1" aria-disabled="true">
-                        <i class="fa fa-check"></i>
-                    </a>
-                </span>
-            <?php } ?>
-        <?php } else {
-            // CON PERMISO PERO NO PUEDE GESTIONAR POR PROCESO
-            $titulo_verificar = '';
-            
-            switch ($pedido['est_pedido']) {
-                case 0: 
-                    $titulo_verificar = "No se puede gestionar - Pedido anulado"; 
-                    break;
-                case 3: 
-                    $titulo_verificar = "No se puede gestionar - Pedido aprobado"; 
-                    break;
-                case 4: 
-                    $titulo_verificar = "No se puede gestionar - Pedido ingresado"; 
-                    break;
-                case 5: 
-                    $titulo_verificar = "No se puede gestionar - Pedido finalizado"; 
-                    break;
-                default: 
-                    $titulo_verificar = "No disponible";
-            }
-            ?>
-            <a href="#" class="btn btn-outline-secondary btn-sm disabled"
-               title="<?php echo $titulo_verificar; ?>" tabindex="-1" aria-disabled="true">
-                <i class="fa fa-check"></i>
-            </a>
-        <?php } ?>
+                                                            if (!$tiene_permiso_verificar) {
+                                                                // SIN PERMISO - Botón rojo outline danger
+                                                                ?>
+                                                                <a href="#"
+                                                                class="btn btn-outline-danger btn-sm disabled"
+                                                                title="No tienes permiso para verificar pedidos"
+                                                                tabindex="-1" aria-disabled="true">
+                                                                    <i class="fa fa-check"></i>
+                                                                </a>
+                                                            <?php } elseif ($puede_gestionar) { ?>
+                                                                <!-- CON PERMISO Y PUEDE GESTIONAR -->
+                                                                <?php if ($tiene_tecnica) { ?>
+                                                                    <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
+                                                                    class="btn btn-success btn-sm" 
+                                                                    title="Gestionar pedido">
+                                                                        <i class="fa fa-check"></i>
+                                                                    </a>
+                                                                <?php } else { ?>
+                                                                    <span title="Requiere aprobación técnica">
+                                                                        <a href="#"
+                                                                        class="btn btn-outline-secondary btn-sm disabled"
+                                                                        title="Requiere aprobación técnica"
+                                                                        tabindex="-1" aria-disabled="true">
+                                                                            <i class="fa fa-check"></i>
+                                                                        </a>
+                                                                    </span>
+                                                                <?php } ?>
+                                                            <?php } else {
+                                                                // CON PERMISO PERO NO PUEDE GESTIONAR POR PROCESO
+                                                                $titulo_verificar = '';
+                                                                
+                                                                switch ($pedido['est_pedido']) {
+                                                                    case 0: 
+                                                                        $titulo_verificar = "No se puede gestionar - Pedido anulado"; 
+                                                                        break;
+                                                                    case 3: 
+                                                                        $titulo_verificar = "No se puede gestionar - Pedido aprobado"; 
+                                                                        break;
+                                                                    case 4: 
+                                                                        $titulo_verificar = "No se puede gestionar - Pedido ingresado"; 
+                                                                        break;
+                                                                    case 5: 
+                                                                        $titulo_verificar = "No se puede gestionar - Pedido finalizado"; 
+                                                                        break;
+                                                                    default: 
+                                                                        $titulo_verificar = "No disponible";
+                                                                }
+                                                                ?>
+                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled"
+                                                                title="<?php echo $titulo_verificar; ?>" tabindex="-1" aria-disabled="true">
+                                                                    <i class="fa fa-check"></i>
+                                                                </a>
+                                                            <?php } ?>
 
-        <!-- Botón PDF -->
-        <a href="pedido_pdf.php?id=<?php echo $pedido['id_pedido']; ?>" 
-           class="btn btn-secondary btn-sm" 
-           title="Generar PDF"
-           target="_blank">
-            <i class="fa fa-file-pdf-o"></i>
-        </a>
+                                                            <!-- Botón PDF -->
+                                                            <a href="pedido_pdf.php?id=<?php echo $pedido['id_pedido']; ?>" 
+                                                            class="btn btn-secondary btn-sm" 
+                                                            title="Generar PDF"
+                                                            target="_blank">
+                                                                <i class="fa fa-file-pdf-o"></i>
+                                                            </a>
 
-        <!-- ============================================ -->
-        <!-- BOTÓN ANULAR PEDIDO -->
-        <!-- ============================================ -->
-        <?php 
-        $puede_anular = false;
-        $titulo_anular = '';
+                                                            <!-- ============================================ -->
+                                                            <!-- BOTÓN ANULAR PEDIDO -->
+                                                            <!-- ============================================ -->
+                                                            <?php 
+                                                            $puede_anular = false;
+                                                            $titulo_anular = '';
 
-        if (!$tiene_permiso_anular) {
-            // SIN PERMISO - Botón rojo outline danger
-            $titulo_anular = "No tienes permiso para anular pedidos";
-            ?>
-            <button class="btn btn-outline-danger btn-sm disabled"
-                    title="<?php echo $titulo_anular; ?>"
-                    tabindex="-1" 
-                    aria-disabled="true">
-                <i class="fa fa-times"></i>
-            </button>
-        <?php } else {
-            // CON PERMISO - Validar estado
-            if ($pedido['est_pedido'] == 0) {
-                $titulo_anular = "Pedido ya anulado";
-            } elseif ($pedido['est_pedido'] == 2 || $pedido['est_pedido'] >= 3) {
-                $estados_texto = [
-                    2 => "atendido",
-                    3 => "aprobado", 
-                    4 => "ingresado",
-                    5 => "finalizado"
-                ];
-                $estado_nombre = $estados_texto[$pedido['est_pedido']] ?? "procesado";
-                $titulo_anular = "No se puede anular - Pedido {$estado_nombre}";
-            } else {
-                // Verificar si tiene órdenes de compra activas
-                $tiene_ordenes_compra = false;
-                if (function_exists('ConsultarCompra')) {
-                    $ordenes = ConsultarCompra($pedido['id_pedido']);
-                    foreach ($ordenes as $orden) {
-                        if ($orden['est_compra'] != 0) {
-                            $tiene_ordenes_compra = true;
-                            break;
-                        }
-                    }
-                }
-                
-                // Verificar si tiene órdenes de salida activas
-                $tiene_ordenes_salida = false;
-                if (function_exists('ConsultarSalidasPorPedido')) {
-                    $salidas = ConsultarSalidasPorPedido($pedido['id_pedido']);
-                    foreach ($salidas as $salida) {
-                        if ($salida['est_salida'] != 0) {
-                            $tiene_ordenes_salida = true;
-                            break;
-                        }
-                    }
-                }
-                
-                if ($tiene_ordenes_compra || $tiene_ordenes_salida) {
-                    $restricciones = [];
-                    if ($tiene_ordenes_compra) $restricciones[] = "órdenes de compra";
-                    if ($tiene_ordenes_salida) $restricciones[] = "órdenes de salida";
-                    $titulo_anular = "No se puede anular - Tiene " . implode(" y ", $restricciones) . " asociadas";
-                } else {
-                    $puede_anular = ($pedido['est_pedido'] == 1);
-                    if (!$puede_anular) {
-                        $titulo_anular = "Solo se pueden anular pedidos pendientes";
-                    }
-                }
-            }
+                                                            if (!$tiene_permiso_anular) {
+                                                                // SIN PERMISO - Botón rojo outline danger
+                                                                $titulo_anular = "No tienes permiso para anular pedidos";
+                                                                ?>
+                                                                <button class="btn btn-outline-danger btn-sm disabled"
+                                                                        title="<?php echo $titulo_anular; ?>"
+                                                                        tabindex="-1" 
+                                                                        aria-disabled="true">
+                                                                    <i class="fa fa-times"></i>
+                                                                </button>
+                                                            <?php } else {
+                                                                // CON PERMISO - Validar estado
+                                                                if ($pedido['est_pedido'] == 0) {
+                                                                    $titulo_anular = "Pedido ya anulado";
+                                                                } elseif ($pedido['est_pedido'] == 2 || $pedido['est_pedido'] >= 3) {
+                                                                    $estados_texto = [
+                                                                        2 => "atendido",
+                                                                        3 => "aprobado", 
+                                                                        4 => "ingresado",
+                                                                        5 => "finalizado"
+                                                                    ];
+                                                                    $estado_nombre = $estados_texto[$pedido['est_pedido']] ?? "procesado";
+                                                                    $titulo_anular = "No se puede anular - Pedido {$estado_nombre}";
+                                                                } else {
+                                                                    // Verificar si tiene órdenes de compra activas
+                                                                    $tiene_ordenes_compra = false;
+                                                                    if (function_exists('ConsultarCompra')) {
+                                                                        $ordenes = ConsultarCompra($pedido['id_pedido']);
+                                                                        foreach ($ordenes as $orden) {
+                                                                            if ($orden['est_compra'] != 0) {
+                                                                                $tiene_ordenes_compra = true;
+                                                                                break;
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                    
+                                                                    // Verificar si tiene órdenes de salida activas
+                                                                    $tiene_ordenes_salida = false;
+                                                                    if (function_exists('ConsultarSalidasPorPedido')) {
+                                                                        $salidas = ConsultarSalidasPorPedido($pedido['id_pedido']);
+                                                                        foreach ($salidas as $salida) {
+                                                                            if ($salida['est_salida'] != 0) {
+                                                                                $tiene_ordenes_salida = true;
+                                                                                break;
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                    
+                                                                    if ($tiene_ordenes_compra || $tiene_ordenes_salida) {
+                                                                        $restricciones = [];
+                                                                        if ($tiene_ordenes_compra) $restricciones[] = "órdenes de compra";
+                                                                        if ($tiene_ordenes_salida) $restricciones[] = "órdenes de salida";
+                                                                        $titulo_anular = "No se puede anular - Tiene " . implode(" y ", $restricciones) . " asociadas";
+                                                                    } else {
+                                                                        $puede_anular = ($pedido['est_pedido'] == 1);
+                                                                        if (!$puede_anular) {
+                                                                            $titulo_anular = "Solo se pueden anular pedidos pendientes";
+                                                                        }
+                                                                    }
+                                                                }
 
-            if ($puede_anular) { 
-            ?>
-                <button class="btn btn-danger btn-sm" 
-                        onclick="AnularPedido(<?php echo $pedido['id_pedido']; ?>)"
-                        title="Anular Pedido">
-                    <i class="fa fa-times"></i>
-                </button>
-            <?php } else { ?>
-                <button class="btn btn-outline-secondary btn-sm disabled"
-                        title="<?php echo $titulo_anular; ?>"
-                        tabindex="-1" 
-                        aria-disabled="true">
-                    <i class="fa fa-times"></i>
-                </button>
-            <?php } ?>
-        <?php } ?>
+                                                                if ($puede_anular) { 
+                                                                ?>
+                                                                    <button class="btn btn-danger btn-sm" 
+                                                                            onclick="AnularPedido(<?php echo $pedido['id_pedido']; ?>)"
+                                                                            title="Anular Pedido">
+                                                                        <i class="fa fa-times"></i>
+                                                                    </button>
+                                                                <?php } else { ?>
+                                                                    <button class="btn btn-outline-secondary btn-sm disabled"
+                                                                            title="<?php echo $titulo_anular; ?>"
+                                                                            tabindex="-1" 
+                                                                            aria-disabled="true">
+                                                                        <i class="fa fa-times"></i>
+                                                                    </button>
+                                                                <?php } ?>
+                                                            <?php } ?>
 
-    </div>
-</td>
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             <?php 
                                                 $contador++;

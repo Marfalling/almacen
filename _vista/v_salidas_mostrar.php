@@ -231,7 +231,7 @@ function AnularSalida(id_salida) {
                                                             echo '<br><small class="text-muted">' . date('d/m/Y H:i', strtotime($salida['fec_aprueba_salida'])) . '</small>';
                                                         }
                                                     } else {
-                                                        echo '<span class="badge badge-secondary">Pendiente</span>';
+                                                        echo '-';
                                                     }
                                                     ?>
                                                 </td>
