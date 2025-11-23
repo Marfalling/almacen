@@ -83,7 +83,7 @@ function ConsultarUsoMaterialDetalle($id_uso_material)
                 GROUP_CONCAT(umdd.nom_uso_material_detalle_documento) as archivos,
                 COALESCE(
                     (SELECT SUM(CASE
-                        WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
                         WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                         ELSE 0
                     END)
@@ -92,7 +92,7 @@ function ConsultarUsoMaterialDetalle($id_uso_material)
                     WHERE mov.id_producto = umd.id_producto 
                     AND mov.id_almacen = usm.id_almacen 
                     AND mov.id_ubicacion = usm.id_ubicacion
-                    AND mov.est_movimiento = 1), 0
+                    AND mov.est_movimiento != 0), 0
                 ) + umd.cant_uso_material_detalle AS cantidad_disponible_almacen
             FROM uso_material_detalle umd 
             LEFT JOIN uso_material_detalle_documento umdd ON umd.id_uso_material_detalle = umdd.id_uso_material_detalle AND umdd.est_uso_material_detalle_documento = 1
@@ -129,7 +129,7 @@ function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_pers
             
             // Verificar stock disponible
             $sql_stock = "SELECT COALESCE(SUM(CASE
-                            WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                            WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
                             WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                             ELSE 0
                         END), 0) AS stock_actual
@@ -137,7 +137,7 @@ function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_pers
                         WHERE mov.id_producto = $id_producto 
                         AND mov.id_almacen = $id_almacen 
                         AND mov.id_ubicacion = $id_ubicacion
-                        AND mov.est_movimiento = 1";
+                        AND mov.est_movimiento != 0";
             
             $result_stock = mysqli_query($con, $sql_stock);
             $row_stock = mysqli_fetch_assoc($result_stock);
@@ -303,7 +303,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante,
             
             // Verificar stock disponible (ahora que los movimientos anteriores están desactivados)
             $sql_stock = "SELECT COALESCE(SUM(CASE
-                            WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                            WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
                             WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                             ELSE 0
                         END), 0) AS stock_actual
@@ -311,7 +311,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante,
                         WHERE mov.id_producto = $id_producto 
                         AND mov.id_almacen = $id_almacen 
                         AND mov.id_ubicacion = $id_ubicacion
-                        AND mov.est_movimiento = 1";
+                        AND mov.est_movimiento != 0";
             
             $result_stock = mysqli_query($con, $sql_stock);
             $row_stock = mysqli_fetch_assoc($result_stock);
