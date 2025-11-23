@@ -319,6 +319,7 @@ function ConsultarAlmacenArce()
         pti.nom_producto_tipo  AS Tipo_Producto,
         mti.nom_material_tipo  AS Tipo_Material,
         umi.nom_unidad_medida  AS Unidad_Medida,
+        
         -- STOCK DISPONIBLE (stock real utilizable)
         COALESCE(
             SUM(CASE
@@ -329,41 +330,53 @@ function ConsultarAlmacenArce()
         ) AS Stock_Disponible,
         
         -- STOCK EN DEVOLUCIÓN (solo en BASE)
-        CASE 
-            WHEN ubi.id_ubicacion = 1 THEN  -- ⬅️ SOLO si es BASE
-                COALESCE(
-                    (
-                        SELECT SUM(md.cant_movimiento)
-                        FROM movimiento md
-                        WHERE md.id_producto = mov.id_producto
-                          AND md.id_almacen = mov.id_almacen
-                          AND md.id_ubicacion = 1  -- BASE
-                          AND md.tipo_orden = 3    -- Devoluciones
-                          AND md.tipo_movimiento = 1  -- Ingresos a BASE
-                          AND md.est_movimiento = 2   -- Pendiente
-                    ), 0
-                )
-            ELSE 0  -- ⬅️ En OBRA siempre es 0
-        END AS Stock_Devolucion
+        COALESCE(
+            (
+                SELECT SUM(md.cant_movimiento)
+                FROM movimiento md
+                WHERE md.id_producto = pro.id_producto
+                  AND (
+                      -- De TODOS los almacenes: solo BASE
+                      (md.id_almacen != 3 AND md.id_ubicacion = 1)
+                      OR
+                      -- De ARCE: todas las ubicaciones pero solo BASE para devoluciones
+                      (md.id_almacen = 3 AND md.id_ubicacion = 1)
+                  )
+                  AND md.tipo_orden = 3         -- Devoluciones
+                  AND md.tipo_movimiento = 1    -- Ingresos
+                  AND md.est_movimiento = 2     -- Pendiente
+            ), 0
+        ) AS Stock_Devolucion
+        
     FROM movimiento mov
-    INNER JOIN producto   pro ON mov.id_producto   = pro.id_producto
-        INNER JOIN producto_tipo  pti ON pro.id_producto_tipo = pti.id_producto_tipo
-        INNER JOIN material_tipo mti ON pro.id_material_tipo  = mti.id_material_tipo
-        INNER JOIN unidad_medida  umi ON pro.id_unidad_medida = umi.id_unidad_medida
-    INNER JOIN {$bd_complemento}.personal   per ON mov.id_personal   = per.id_personal
-    INNER JOIN almacen    alm ON mov.id_almacen    = alm.id_almacen
-        INNER JOIN {$bd_complemento}.cliente    cli ON alm.id_cliente    = cli.id_cliente
-        INNER JOIN {$bd_complemento}.subestacion obr ON alm.id_obra       = obr.id_subestacion
-    INNER JOIN ubicacion  ubi ON mov.id_ubicacion  = ubi.id_ubicacion
+    INNER JOIN producto pro ON mov.id_producto = pro.id_producto
+        INNER JOIN producto_tipo pti ON pro.id_producto_tipo = pti.id_producto_tipo
+        INNER JOIN material_tipo mti ON pro.id_material_tipo = mti.id_material_tipo
+        INNER JOIN unidad_medida umi ON pro.id_unidad_medida = umi.id_unidad_medida
+    INNER JOIN {$bd_complemento}.personal per ON mov.id_personal = per.id_personal
+    INNER JOIN almacen alm ON mov.id_almacen = alm.id_almacen
+        INNER JOIN {$bd_complemento}.cliente cli ON alm.id_cliente = cli.id_cliente
+        INNER JOIN {$bd_complemento}.subestacion obr ON alm.id_obra = obr.id_subestacion
+    INNER JOIN ubicacion ubi ON mov.id_ubicacion = ubi.id_ubicacion
+    
     WHERE mov.est_movimiento != 0
       AND pro.id_producto_tipo <> 2  -- EXCLUIR SERVICIOS
+      AND (
+          -- ✅ De TODOS los almacenes: solo BASE (ubicación 1)
+          mov.id_ubicacion = 1
+          OR
+          -- ✅ Del almacén ARCE (id=3): TODAS las ubicaciones
+          mov.id_almacen = 3
+      )
+      
     GROUP BY 
         pro.id_producto
+        
     ORDER BY 
         pro.nom_producto
     ";
+    
     $resc = mysqli_query($con, $sqlc);
-
     $resultado = array();
 
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
@@ -371,7 +384,6 @@ function ConsultarAlmacenArce()
     }
 
     mysqli_close($con);
-    
     return $resultado;
 }
 

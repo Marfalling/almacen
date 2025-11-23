@@ -89,19 +89,19 @@
     }
 }*/
 
-function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devolucion, $materiales) 
+function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devolucion, $materiales, $id_cliente_destino) 
 {
     include("../_conexion/conexion.php");
 
     // La ubicación destino SIEMPRE es BASE (id_ubicacion = 1)
-    $id_ubicacion_destino = 1;
+    //$id_ubicacion_destino = 1;
 
     // Insertar devolución principal
     $sql = "INSERT INTO devolucion (
                 id_almacen, id_ubicacion, id_personal, id_cliente_destino,
                 obs_devolucion, fec_devolucion, est_devolucion
             ) VALUES (
-                $id_almacen, $id_ubicacion, $id_personal, $id_ubicacion_destino,
+                $id_almacen, $id_ubicacion, $id_personal, $id_cliente_destino,
                 '$obs_devolucion', NOW(), 1
             )";
 
@@ -320,15 +320,10 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cl
 
     if (mysqli_query($con, $sql)) {
         
-        // Eliminar movimientos anteriores
+        // ✅ ANULAR movimientos anteriores (no eliminar)
         $sql_del_mov = "UPDATE movimiento SET est_movimiento = 0 
                         WHERE id_orden = $id_devolucion AND tipo_orden = 3";
         mysqli_query($con, $sql_del_mov);
-        
-        // Eliminar detalles anteriores
-        $sql_del_det = "DELETE FROM devolucion_detalle 
-                WHERE id_devolucion = $id_devolucion";
-        mysqli_query($con, $sql_del_det);
         
         // Obtener el ID del personal
         $sql_personal = "SELECT id_personal FROM devolucion WHERE id_devolucion = $id_devolucion";
@@ -336,62 +331,63 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cl
         $row_personal = mysqli_fetch_assoc($res_personal);
         $id_personal = $row_personal['id_personal'];
         
-        // Insertar nuevos detalles y movimientos
+        // ✅ ACTUALIZAR detalles existentes (no eliminar y reinsertar)
         foreach ($materiales as $material) {
+            $id_devolucion_detalle = isset($material['id_devolucion_detalle']) ? intval($material['id_devolucion_detalle']) : 0;
             $id_producto = intval($material['id_producto']);
             $cantidad = floatval($material['cantidad']);
-            $descripcion = mysqli_real_escape_string($con, $material['descripcion']);
+            $detalle = mysqli_real_escape_string($con, $material['detalle']);
             
-            $sql_detalle = "INSERT INTO devolucion_detalle (
-                                id_devolucion, id_producto,  
-                                det_devolucion_detalle, cant_devolucion_detalle, est_devolucion_detalle
-                            ) VALUES (
-                                $id_devolucion, $id_producto, '$descripcion', 
-                                $cantidad, 1
-                            )";
+            if ($id_devolucion_detalle > 0) {
+                // ✅ ACTUALIZAR detalle existente
+                $sql_detalle = "UPDATE devolucion_detalle SET
+                                    id_producto = $id_producto,
+                                    cant_devolucion_detalle = $cantidad,
+                                    det_devolucion_detalle = '$detalle'
+                                WHERE id_devolucion_detalle = $id_devolucion_detalle";
+            } else {
+                // ✅ INSERTAR nuevo detalle (si se agregó uno nuevo)
+                $sql_detalle = "INSERT INTO devolucion_detalle (
+                                    id_devolucion, id_producto, cant_devolucion_detalle, 
+                                    det_devolucion_detalle, est_devolucion_detalle
+                                ) VALUES (
+                                    $id_devolucion, $id_producto, $cantidad, 
+                                    '$detalle', 1
+                                )";
+            }
             
             if (mysqli_query($con, $sql_detalle)) {
                 
-                if ($id_cliente_destino == 9) {
-                    // DEVOLUCIÓN A ARCE
+                // ✅ LÓGICA IGUAL A GrabarDevolucion:
+                // Si la ubicación origen NO es BASE, genera traslado interno
+                if ($id_ubicacion != 1) {
                     
-                    // Resta origen
+                    // Movimiento 1: RESTA de la ubicación origen
                     $sql_mov_resta = "INSERT INTO movimiento (
                                         id_personal, id_orden, id_producto, id_almacen, 
                                         id_ubicacion, tipo_orden, tipo_movimiento, 
                                         cant_movimiento, fec_movimiento, est_movimiento
-                                      ) VALUES (
+                                    ) VALUES (
                                         $id_personal, $id_devolucion, $id_producto, $id_almacen, 
                                         $id_ubicacion, 3, 2, 
-                                        $cantidad, NOW(), 1
-                                      )";
+                                        $cantidad, NOW(), 2
+                                    )";
                     mysqli_query($con, $sql_mov_resta);
                     
-                    // Suma ARCE BASE
+                    // Movimiento 2: SUMA a BASE del mismo almacén
                     $sql_mov_suma = "INSERT INTO movimiento (
                                         id_personal, id_orden, id_producto, id_almacen, 
                                         id_ubicacion, tipo_orden, tipo_movimiento, 
                                         cant_movimiento, fec_movimiento, est_movimiento
-                                      ) VALUES (
-                                        $id_personal, $id_devolucion, $id_producto, 3, 
+                                    ) VALUES (
+                                        $id_personal, $id_devolucion, $id_producto, $id_almacen, 
                                         1, 3, 1, 
-                                        $cantidad, NOW(), 1
-                                      )";
+                                        $cantidad, NOW(), 2
+                                    )";
                     mysqli_query($con, $sql_mov_suma);
                     
                 } else {
-                    // DEVOLUCIÓN A OTRO CLIENTE
-                    
-                    $sql_mov_devolucion = "INSERT INTO movimiento (
-                                        id_personal, id_orden, id_producto, id_almacen, 
-                                        id_ubicacion, tipo_orden, tipo_movimiento, 
-                                        cant_movimiento, fec_movimiento, est_movimiento
-                                      ) VALUES (
-                                        $id_personal, $id_devolucion, $id_producto, $id_almacen, 
-                                        $id_ubicacion, 3, 2, 
-                                        $cantidad, NOW(), 1
-                                      )";
-                    mysqli_query($con, $sql_mov_devolucion);
+                    // Si ya está en BASE, no genera movimientos
                 }
             }
         }
@@ -399,8 +395,9 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cl
         mysqli_close($con);
         return "SI";
     } else {
+        $error = mysqli_error($con);
         mysqli_close($con);
-        return "ERROR: " . mysqli_error($con);
+        return "ERROR: " . $error;
     }
 }
 
@@ -567,6 +564,27 @@ function ObtenerClientes()
     
     while ($row = mysqli_fetch_assoc($res)) {
         $resultado[] = $row;
+    }
+    
+    mysqli_close($con);
+    return $resultado;
+}
+
+function ObtenerClientePorAlmacen($id_almacen) 
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT c.id_cliente, c.nom_cliente 
+            FROM almacen a
+            INNER JOIN {$bd_complemento}.cliente c ON a.id_cliente = c.id_cliente
+            WHERE a.id_almacen = $id_almacen
+            AND c.act_cliente = 1";
+    
+    $res = mysqli_query($con, $sql);
+    $resultado = null;
+    
+    if ($row = mysqli_fetch_assoc($res)) {
+        $resultado = $row;
     }
     
     mysqli_close($con);

@@ -65,7 +65,8 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
                 $id_personal = $_SESSION['id_personal'];
 
                 // Capturar cliente destino
-                $id_cliente_destino = 1;
+                $cliente_destino = ObtenerClientePorAlmacen($id_almacen);
+                $id_cliente_destino = $cliente_destino['id_cliente'] ?? 0;
 
                 // Validación obligatoria de cliente
                 if (!$id_cliente_destino) {
@@ -118,7 +119,7 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
                     }
                     // Validación materiales
                     elseif (count($materiales) > 0) {
-                        $resultado = GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devolucion, $materiales);
+                        $resultado = GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devolucion, $materiales, $id_cliente_destino);
                         
                         if ($resultado === "SI") {
                             ?>

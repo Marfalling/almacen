@@ -75,7 +75,7 @@
                                 </div>
                             </div>
 
-                            <div class="form-group row">
+                            <!--<div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Cliente destino:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <input 
@@ -90,7 +90,7 @@
                                         value="<?php echo htmlspecialchars($devolucion_datos[0]['id_cliente_destino']); ?>"
                                     >
                                 </div>
-                            </div>
+                            </div>-->
 
                             <div class="ln_solid"></div>
 
@@ -107,7 +107,7 @@
                                 ?>
                                 <div class="material-item border p-3 mb-3">
                                     <div class="row">
-                                        <div class="col-md-6">
+                                        <div class="col-md-8">
                                             <label>Material <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
                                                 <input type="text" name="descripcion[]" class="form-control" 
@@ -119,24 +119,20 @@
                                                 </button>
                                             </div>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-4">
                                             <label>Cantidad <span class="text-danger">*</span>:</label>
                                             <input type="number" name="cantidad[]" class="form-control" step="0.01" 
                                                    value="<?php echo $detalle['cant_devolucion_detalle']; ?>" required>
                                         </div>
-                                        <div class="col-md-3">
+                                        <div class="col-md-3" style="display: none;">
                                             <label>Stock Disponible:</label>
                                             <div class="form-control" id="stock-disponible-<?php echo $contador; ?>" style="background-color: #f8f9fa;">
                                                 <?php 
                                                 // Calcular stock disponible actual + cantidad ya asignada
                                                 $stock_actual = ObtenerStockDisponible($detalle['id_producto'], $devolucion_datos[0]['id_almacen'], $devolucion_datos[0]['id_ubicacion']);
                                                 // si el cliente destino es ARCE (id = 1) no se suma la devolución
-                                                if ($devolucion_datos[0]['id_almacen']==3 && $devolucion_datos[0]['id_ubicacion']==1 && $devolucion_datos[0]['id_cliente_destino'] == 9) {
-                                                    $stock_con_devolucion = $stock_actual;
-                                                } else {
-                                                    // stock actual + cantidad previamente registrada
-                                                    $stock_con_devolucion = $stock_actual + $detalle['cant_devolucion_detalle'];
-                                                }
+                                                $stock_con_devolucion = $stock_actual + $detalle['cant_devolucion_detalle'];
+                                                
                                                 echo number_format($stock_con_devolucion, 2);
                                                 ?>
                                             </div>

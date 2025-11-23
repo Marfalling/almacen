@@ -97,7 +97,8 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
                 $id_ubicacion = intval($_REQUEST['id_ubicacion']);
                 
                 // nuevo: capturar cliente destino (editable en el formulario)
-                $id_cliente_destino = isset($_REQUEST['id_cliente_destino']) ? intval($_REQUEST['id_cliente_destino']) : null;
+                $cliente_destino = ObtenerClientePorAlmacen($id_almacen);
+                $id_cliente_destino = $cliente_destino['id_cliente'] ?? 0;
 
                 $obs_devolucion = mysqli_real_escape_string($con, $_REQUEST['obs_devolucion']);
                 

@@ -43,9 +43,11 @@
                                     <select id="id_ubicacion" name="id_ubicacion" class="form-control" required>
                                         <option value="">Seleccionar Ubicación</option>
                                         <?php foreach ($ubicaciones as $ubicacion) { ?>
-                                            <option value="<?php echo $ubicacion['id_ubicacion']; ?>">
-                                                <?php echo $ubicacion['nom_ubicacion']; ?>
-                                            </option>
+                                            <?php if ($ubicacion['id_ubicacion'] != 1) { ?>
+                                                <option value="<?php echo $ubicacion['id_ubicacion']; ?>">
+                                                    <?php echo $ubicacion['nom_ubicacion']; ?>
+                                                </option>
+                                            <?php } ?>
                                         <?php } ?>
                                     </select>
                                 </div>
@@ -73,13 +75,13 @@
                                 </div>
                             </div>
 
-                            <div class="form-group row">
+                            <!--<div class="form-group row">
                                 <label class="control-label col-md-3">Ubicación Destino:</label>
                                 <div class="col-md-9">
                                     <input type="text" class="form-control" value="BASE" readonly style="background-color: #f8f9fa;">
                                     <input type="hidden" name="id_ubicacion_destino" value="1">
                                 </div>
-                            </div>
+                            </div>-->
 
                             <div class="ln_solid"></div>
 
