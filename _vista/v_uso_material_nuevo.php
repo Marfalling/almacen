@@ -93,7 +93,7 @@
                                             <div class="input-group">
                                                 <input type="text" name="descripcion[]" class="form-control" placeholder="Buscar material" required>
                                                 <input type="hidden" name="id_producto[]" value="">
-                                                <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
+                                                <button title="Buscar Material" data-toggle="tooltip" onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
                                                     <i class="fa fa-search"></i>
                                                 </button>
                                             </div>
@@ -689,7 +689,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+<script>
+$(document).ready(function() {
+    // Inicializar tooltips
+    $('[data-toggle="tooltip"]').tooltip({
+        placement: 'top',
+        trigger: 'hover'
+    });
 
+});
+</script>
 <style>
 .duplicado-resaltado {
     background-color: #ffe6e6 !important; /* rojo pálido */

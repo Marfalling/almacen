@@ -298,72 +298,72 @@ require_once("../_modelo/m_detraccion.php");
                                         <td class="text-center">
                                             <?php if ($comp['est_comprobante'] == 1): ?>
                                                 <!-- ESTADO 1: ACTIVO - Todo disponible excepto Subir Voucher -->
-                                                <button class="btn btn-info btn-sm" title="Ver Detalle" onclick="VerDetalleComprobante(<?php echo $comp['id_comprobante']; ?>)">
+                                                <button class="btn btn-info btn-sm" title="Ver Detalle" data-toggle="tooltip" onclick="VerDetalleComprobante(<?php echo $comp['id_comprobante']; ?>)">
                                                     <i class="fa fa-eye"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-warning btn-sm" title="Editar" onclick="CargarModalEditar(<?php echo $comp['id_comprobante']; ?>)">
+                                                <button class="btn btn-warning btn-sm" title="Editar" data-toggle="tooltip" onclick="CargarModalEditar(<?php echo $comp['id_comprobante']; ?>)">
                                                     <i class="fa fa-edit"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-secondary btn-sm" title="Subir Voucher" disabled>
+                                                <button class="btn btn-secondary btn-sm" title="Subir Voucher" data-toggle="tooltip" disabled>
                                                     <i class="fa fa-upload"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-danger btn-sm" title="Anular" onclick="AnularComprobante(<?php echo $comp['id_comprobante']; ?>)">
+                                                <button class="btn btn-danger btn-sm" title="Anular" data-toggle="tooltip" onclick="AnularComprobante(<?php echo $comp['id_comprobante']; ?>)">
                                                     <i class="fa fa-times"></i>
                                                 </button>
                                                 
                                             <?php elseif ($comp['est_comprobante'] == 2): ?>
                                                 <!-- ESTADO 2: PENDIENTE - Ver y Subir Voucher activos -->
-                                                <button class="btn btn-info btn-sm" title="Ver Detalle" onclick="VerDetalleComprobante(<?php echo $comp['id_comprobante']; ?>)">
+                                                <button class="btn btn-info btn-sm" title="Ver Detalle" data-toggle="tooltip" onclick="VerDetalleComprobante(<?php echo $comp['id_comprobante']; ?>)">
                                                     <i class="fa fa-eye"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-secondary btn-sm" title="Editar" disabled>
+                                                <button class="btn btn-secondary btn-sm" title="Editar" data-toggle="tooltip" disabled>
                                                     <i class="fa fa-edit"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-success btn-sm" title="Subir Voucher" onclick="AbrirModalVoucher(<?php echo $comp['id_comprobante']; ?>)">
+                                                <button class="btn btn-success btn-sm" title="Subir Voucher" data-toggle="tooltip" onclick="AbrirModalVoucher(<?php echo $comp['id_comprobante']; ?>)">
                                                     <i class="fa fa-upload"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-secondary btn-sm" title="Anular" disabled>
+                                                <button class="btn btn-secondary btn-sm" title="Anular" data-toggle="tooltip" disabled>
                                                     <i class="fa fa-times"></i>
                                                 </button>
                                                 
                                             <?php elseif ($comp['est_comprobante'] == 3): ?>
                                                 <!-- ESTADO 3: ANULADO - Solo Ver disponible -->
-                                                <button class="btn btn-info btn-sm" title="Ver Detalle" onclick="VerDetalleComprobante(<?php echo $comp['id_comprobante']; ?>)">
+                                                <button class="btn btn-info btn-sm" title="Ver Detalle" data-toggle="tooltip" onclick="VerDetalleComprobante(<?php echo $comp['id_comprobante']; ?>)">
                                                     <i class="fa fa-eye"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-secondary btn-sm" title="Editar" disabled>
+                                                <button class="btn btn-secondary btn-sm" title="Editar" data-toggle="tooltip" disabled>
                                                     <i class="fa fa-edit"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-secondary btn-sm" title="Subir Voucher" disabled>
+                                                <button class="btn btn-secondary btn-sm" title="Subir Voucher" data-toggle="tooltip" disabled>
                                                     <i class="fa fa-upload"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-secondary btn-sm" title="Anulado" disabled>
+                                                <button class="btn btn-secondary btn-sm" title="Anulado" data-toggle="tooltip" disabled>
                                                     <i class="fa fa-ban"></i>
                                                 </button>
                                                 
                                             <?php else: ?>
-                                                <button class="btn btn-info btn-sm" title="Ver Detalle" onclick="VerDetalleComprobante(<?php echo $comp['id_comprobante']; ?>)">
+                                                <button class="btn btn-info btn-sm" title="Ver Detalle" data-toggle="tooltip" onclick="VerDetalleComprobante(<?php echo $comp['id_comprobante']; ?>)">
                                                     <i class="fa fa-eye"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-secondary btn-sm" title="Editar" disabled>
+                                                <button class="btn btn-secondary btn-sm" title="Editar" data-toggle="tooltip" disabled>
                                                     <i class="fa fa-edit"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-secondary btn-sm" title="Subir Voucher" disabled>
+                                                <button class="btn btn-secondary btn-sm" title="Subir Voucher" data-toggle="tooltip" disabled>
                                                     <i class="fa fa-upload"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-secondary btn-sm" title="Anulado" disabled>
+                                                <button class="btn btn-secondary btn-sm" title="Anulado" data-toggle="tooltip" disabled>
                                                     <i class="fa fa-ban"></i>
                                                 </button>
                                             <?php endif; ?>

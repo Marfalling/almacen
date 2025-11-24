@@ -101,19 +101,23 @@
                                                             </button>
 
                                                             <?php if ($devolucion['est_devolucion'] != 1) { ?>
-                                                                <a href="#"
-                                                                class="btn btn-outline-secondary btn-sm disabled"
-                                                                title="Editar"
-                                                                tabindex="-1"
-                                                                aria-disabled="true">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>
+                                                                <!-- Envolver en un span para que el tooltip funcione -->
+                                                                <span data-toggle="tooltip" title="Editar" style="display: inline-block;">
+                                                                    <a href="#"
+                                                                    class="btn btn-outline-secondary btn-sm disabled"
+                                                                    tabindex="-1"
+                                                                    aria-disabled="true"
+                                                                    style="pointer-events: none;">
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </a>
+                                                                </span>
                                                             <?php } else { ?>
                                                                 <a href="<?php echo ($devolucion['est_devolucion'] == 1) 
                                                                             ? 'devoluciones_editar.php?id='.$devolucion['id_devolucion'] 
                                                                             : '#'; ?>" 
                                                                 class="btn btn-warning btn-sm" 
                                                                 title="Editar"
+                                                                data-toggle="tooltip"
                                                                 <?php echo ($devolucion['est_devolucion'] != 1) ? 'onclick="return false;" style="pointer-events:none; opacity:0.65;"' : ''; ?>>
                                                                 <i class="fa fa-edit"></i>
                                                                 </a>
@@ -122,6 +126,7 @@
                                                             <a href="devoluciones_pdf.php?id=<?php echo $devolucion['id_devolucion']; ?>" 
                                                                class="btn btn-secondary btn-sm" 
                                                                title="Generar PDF"
+                                                               data-toggle="tooltip"
                                                                target="_blank">
                                                                 <i class="fa fa-file-pdf-o"></i>
                                                             </a>
@@ -133,7 +138,8 @@
                                                                 <?php if ($devolucion['est_devolucion'] != 1) { ?>
                                                                     <button type="button" 
                                                                             class="btn btn-outline-secondary btn-sm disabled" 
-                                                                            title="Confirmar Devolución" 
+                                                                            title="Confirmar Devolución"
+                                                                            data-toggle="tooltip" 
                                                                             disabled>
                                                                         <i class="fa fa-check"></i>
                                                                     </button>
@@ -141,7 +147,7 @@
                                                                     <button type="button" 
                                                                             name="confirmar" 
                                                                             class="btn btn-success btn-sm btn-confirmar" 
-                                                                            title="Confirmar Devolución">
+                                                                            title="Confirmar Devolución" data-toggle="tooltip">
                                                                         <i class="fa fa-check"></i>
                                                                     </button>
                                                                 <?php } ?>
@@ -155,7 +161,8 @@
                                                                 <?php if ($devolucion['est_devolucion'] != 1) { ?>
                                                                     <button type="button" 
                                                                             class="btn btn-outline-secondary btn-sm disabled" 
-                                                                            title="Anular Devolución" 
+                                                                            title="Anular Devolución"
+                                                                            data-toggle="tooltip" 
                                                                             disabled>
                                                                         <i class="fa fa-times"></i>
                                                                     </button>
@@ -163,7 +170,7 @@
                                                                     <button type="button" 
                                                                             name="anular" 
                                                                             class="btn btn-danger btn-sm btn-anular" 
-                                                                            title="Anular Devolución">
+                                                                            title="Anular Devolución" data-toggle="tooltip">
                                                                         <i class="fa fa-times"></i>
                                                                     </button>
                                                                 <?php } ?>
@@ -289,7 +296,7 @@ foreach($devoluciones as $devolucion) {
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
                 <form method="get" action="devoluciones_editar.php" style="display:inline;">
                     <input type="hidden" name="id" value="<?php echo $devolucion['id_devolucion']; ?>">
-                    <button type="submit" class="btn btn-warning text-white" 
+                    <button type="submit" class="btn btn-warning text-white"
                         <?php echo ($devolucion['est_devolucion'] != 1) ? 'disabled' : ''; ?>>
                         <i class="fa fa-edit"></i> Editar Devolución
                     </button>
@@ -303,3 +310,51 @@ foreach($devoluciones as $devolucion) {
 } 
 ?>
 
+<script>
+$(document).ready(function() {
+    // Inicializar tooltips
+    $('[data-toggle="tooltip"]').tooltip({
+        placement: 'top',
+        trigger: 'hover'
+    });
+
+    $('button[data-toggle="modal"][title]').hover(
+        function() {
+            // Mouse ENTRA
+            var $btn = $(this);
+            var title = $btn.attr('title');
+            var pos = $btn.offset();
+            
+            // Crear tooltip manualmente
+            var $tooltip = $('<div class="custom-tooltip">' + title + '</div>');
+            $tooltip.css({
+                position: 'absolute',
+                top: pos.top - 35,
+                left: pos.left + ($btn.outerWidth() / 2) - 50,
+                background: '#000',
+                color: '#fff',
+                padding: '5px 10px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                zIndex: 9999,
+                whiteSpace: 'nowrap'
+            });
+            
+            $('body').append($tooltip);
+            $tooltip.fadeIn(200);
+        },
+        function() {
+            // Mouse SALE
+            $('.custom-tooltip').fadeOut(200, function() {
+                $(this).remove();
+            });
+        }
+    );
+    
+    // Ocultar al hacer clic
+    $('button[data-toggle="modal"][title]').on('click', function() {
+        $('.custom-tooltip').remove();
+    });
+
+});
+</script>

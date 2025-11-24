@@ -100,7 +100,7 @@
                                             <div class="input-group">
                                                 <input type="text" name="descripcion[]" class="form-control" placeholder="Material" required>
                                                 <input type="hidden" name="id_producto[]" value="">
-                                                <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
+                                                <button title="Buscar Material" data-toggle="tooltip" onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
                                                     <i class="fa fa-search"></i>
                                                 </button>
                                             </div>
@@ -652,6 +652,54 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });*/
+
+
+$(document).ready(function() {
+    // Inicializar tooltips
+    $('[data-toggle="tooltip"]').tooltip({
+        placement: 'top',
+        trigger: 'hover'
+    });
+
+    $('button[data-toggle="modal"][title]').hover(
+        function() {
+            // Mouse ENTRA
+            var $btn = $(this);
+            var title = $btn.attr('title');
+            var pos = $btn.offset();
+            
+            // Crear tooltip manualmente
+            var $tooltip = $('<div class="custom-tooltip">' + title + '</div>');
+            $tooltip.css({
+                position: 'absolute',
+                top: pos.top - 35,
+                left: pos.left + ($btn.outerWidth() / 2) - 50,
+                background: '#000',
+                color: '#fff',
+                padding: '5px 10px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                zIndex: 9999,
+                whiteSpace: 'nowrap'
+            });
+            
+            $('body').append($tooltip);
+            $tooltip.fadeIn(200);
+        },
+        function() {
+            // Mouse SALE
+            $('.custom-tooltip').fadeOut(200, function() {
+                $(this).remove();
+            });
+        }
+    );
+    
+    // Ocultar al hacer clic
+    $('button[data-toggle="modal"][title]').on('click', function() {
+        $('.custom-tooltip').remove();
+    });
+
+});
 
 </script>
 

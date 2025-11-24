@@ -145,15 +145,31 @@ function AnularUso(id_uso_material) {
                                                         <?php
                                                         // Si está anulado, mostrar botones deshabilitados
                                                         if ($uso['est_uso_material'] == 0) { ?>
-                                                            <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Anular" tabindex="-1" aria-disabled="true">
-                                                                <i class="fa fa-times"></i>
-                                                            </a>
-                                                            <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Editar" tabindex="-1" aria-disabled="true">
-                                                                <i class="fa fa-edit"></i>
-                                                            </a>
+                                                            <!-- Botón ANULAR (deshabilitado con tooltip) -->
+                                                            <span data-toggle="tooltip" title="Anular" data-placement="top" style="display: inline-block;">
+                                                                <a href="#" 
+                                                                class="btn btn-outline-secondary btn-sm" 
+                                                                style="pointer-events: none; opacity: 0.65;" 
+                                                                tabindex="-1" 
+                                                                aria-disabled="true">
+                                                                    <i class="fa fa-times"></i>
+                                                                </a>
+                                                            </span>
+                                                            
+                                                            <!-- Botón EDITAR (deshabilitado con tooltip) -->
+                                                            <span data-toggle="tooltip" title="Editar" data-placement="top" style="display: inline-block;">
+                                                                <a href="#" 
+                                                                class="btn btn-outline-secondary btn-sm" 
+                                                                style="pointer-events: none; opacity: 0.65;" 
+                                                                tabindex="-1" 
+                                                                aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            </span>
                                                             <a href="uso_material_pdf.php?id=<?php echo $uso['id_uso_material']; ?>"
                                                                class="btn btn-secondary btn-sm"
                                                                title="Generar PDF"
+                                                               data-toggle="tooltip"
                                                                target="_blank">
                                                                 <i class="fa fa-file-pdf-o"></i>
                                                             </a>
@@ -163,17 +179,18 @@ function AnularUso(id_uso_material) {
                                                         ?>
                                                             <a href="#" onclick="AnularUso(<?php echo $uso['id_uso_material']; ?>)"
                                                                class="btn btn-danger btn-sm"
-                                                               title="Anular">
+                                                               title="Anular" data-toggle="tooltip">
                                                                 <i class="fa fa-times"></i>
                                                             </a>
                                                             <a href="uso_material_editar.php?id=<?php echo $uso['id_uso_material']; ?>"
                                                                class="btn btn-info btn-sm"
-                                                               title="Editar">
+                                                               title="Editar" data-toggle="tooltip">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
                                                             <a href="uso_material_pdf.php?id=<?php echo $uso['id_uso_material']; ?>"
                                                                class="btn btn-secondary btn-sm"
                                                                title="Generar PDF"
+                                                               data-toggle="tooltip"
                                                                target="_blank">
                                                                 <i class="fa fa-file-pdf-o"></i>
                                                             </a>
@@ -198,3 +215,14 @@ function AnularUso(id_uso_material) {
     </div>
 </div>
 <!-- /page content -->
+
+<script>
+$(document).ready(function() {
+    // Inicializar tooltips
+    $('[data-toggle="tooltip"]').tooltip({
+        placement: 'top',
+        trigger: 'hover'
+    });
+
+});
+</script>
