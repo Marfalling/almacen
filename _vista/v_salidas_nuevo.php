@@ -136,7 +136,7 @@
                             <div class="ln_solid"></div>
 
                             <div class="form-group">
-                                <label>Subir Documento<span class="text-danger">*</span>:</label>
+                                <label>Subir Documento</label>
                                 <input type="file" name="documento[]" id="documento" class="form-control" multiple required>
                             </div>
 
@@ -304,7 +304,7 @@
                                                 <div class="input-group">
                                                     <input type="text" name="descripcion[]" class="form-control" placeholder="Material" required>
                                                     <input type="hidden" name="id_producto[]" value="">
-                                                    <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
+                                                    <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" data-toggle="tooltip" title="Buscar Material" type="button">
                                                         <i class="fa fa-search"></i>
                                                     </button>
                                                 </div>

@@ -611,7 +611,8 @@ function EliminarDocumento(id_doc) {
                                                             $tiene_aprobacion = !empty($compra['id_personal_aprueba_financiera']);
 
                                                                 ?>
-                                                                <button class="btn btn-info btn-sm btn-ver-detalle-compra" 
+                                                                <button class="btn btn-info btn-sm btn-ver-detalle-compra"
+                                                                        data-toggle="tooltip" 
                                                                         title="Ver Detalles de la Orden"
                                                                         data-id-compra="<?php echo $compra['id_compra']; ?>">
                                                                     <i class="fa fa-eye"></i>
@@ -639,10 +640,12 @@ function EliminarDocumento(id_doc) {
                                                                 <?php if ($tiene_financiera) { ?>
                                                                     class="btn btn-outline-secondary btn-sm disabled"
                                                                     title="Ya aprobado financiera"
+                                                                    data-toggle="tooltip"
                                                                     tabindex="-1" aria-disabled="true"
                                                                 <?php } else { ?>
                                                                     onclick="AprobarCompraFinanciera(<?php echo $compra['id_compra']; ?>)"
                                                                     class="btn btn-primary btn-sm"
+                                                                    data-toggle="tooltip"
                                                                     title="Aprobar Financiera"
                                                                 <?php } ?>>
                                                                     <i class="fa fa-check"></i>
@@ -660,6 +663,7 @@ function EliminarDocumento(id_doc) {
                                                                     <a href="#"
                                                                     onclick="AnularCompra(<?php echo $compra['id_compra']; ?>, <?php echo $compra['id_pedido']; ?>)"
                                                                     class="btn btn-danger btn-sm"
+                                                                    data-toggle="tooltip"
                                                                     title="Anular">
                                                                         <i class="fa fa-times"></i>
                                                                     </a>
@@ -668,6 +672,7 @@ function EliminarDocumento(id_doc) {
                                                                 <!-- PDF -->
                                                                 <a href="compras_pdf.php?id=<?php echo $compra['id_compra']; ?>"
                                                                 class="btn btn-secondary btn-sm"
+                                                                data-toggle="tooltip"
                                                                 title="Generar PDF"
                                                                 target="_blank">
                                                                     <i class="fa fa-file-pdf-o"></i>
@@ -677,6 +682,7 @@ function EliminarDocumento(id_doc) {
                                                                 <?php if (!$tiene_aprobacion) { ?>
                                                                     <a href="#" 
                                                                     class="btn btn-warning btn-sm"
+                                                                    data-toggle="tooltip"
                                                                     onclick="abrirModalEditarOrden(<?php echo $compra['id_compra']; ?>)"
                                                                     title="Editar Orden">
                                                                         <i class="fa fa-edit"></i>
@@ -694,6 +700,7 @@ function EliminarDocumento(id_doc) {
                                                                 <?php if ($tiene_financiera) { ?>
                                                                     <a href="comprobante_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
                                                                     class="btn btn-warning btn-sm"
+                                                                    data-toggle="tooltip"
                                                                     title="Registrar/Ver Pagos">
                                                                         <i class="fa fa-money"></i>
                                                                     </a>

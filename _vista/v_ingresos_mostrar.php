@@ -269,18 +269,21 @@
                                                                         
                                                                         <a href="ingresos_detalle.php?id_compra=<?php echo $id_compra; ?>" 
                                                                             class="btn btn-secondary btn-sm"
-                                                                            title="Ver ingresos">
+                                                                            data-toggle="tooltip"
+                                                                            title="Ver detalles">
                                                                             <i class="fa fa-eye"></i>
                                                                         </a>
                                                                     <?php } else { ?>
                                                                         <a href="ingresos_detalle_directo.php?id_ingreso=<?php echo $ingreso['id_ingreso']; ?>" 
                                                                             class="btn btn-secondary btn-sm" 
+                                                                            data-toggle="tooltip"
                                                                             title="Ver detalles">
                                                                             <i class="fa fa-eye"></i>
                                                                         </a>
                                                                         <?php if ($ingreso['estado'] == 1) { ?>
                                                                             <button onclick="anularIngresoDirecto(<?php echo $ingreso['id_ingreso']; ?>)" 
                                                                                 class="btn btn-danger btn-sm" 
+                                                                                data-toggle="tooltip"
                                                                                 title="Anular ingreso">
                                                                                 <i class="fa fa-times"></i>
                                                                             </button>
@@ -391,6 +394,7 @@
                                                                     ?>
                                                                     <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
                                                                         class="btn btn-success btn-sm"
+                                                                        data-toggle="tooltip"
                                                                         title="Verificar ingreso">
                                                                         <i class="fa fa-check"></i>
                                                                     </a>
@@ -399,7 +403,8 @@
                                                                     <?php if ($est_compra != 0) { ?>
                                                                     <a href="ingresos_detalle.php?id_compra=<?php echo $id_compra; ?>" 
                                                                         class="btn btn-secondary btn-sm"
-                                                                        title="Ver historial de ingresos">
+                                                                        data-toggle="tooltip"
+                                                                        title="Ver detalles">
                                                                         <i class="fa fa-eye"></i>
                                                                     </a>
                                                                     <?php } ?>
@@ -472,12 +477,14 @@
                                                                 <div class="d-flex flex-wrap gap-2">
                                                                     <a href="ingresos_detalle_directo.php?id_ingreso=<?php echo $ingreso['id_ingreso']; ?>" 
                                                                         class="btn btn-secondary btn-sm"
-                                                                        title="Ver ingresos">
+                                                                        data-toggle="tooltip"
+                                                                        title="Ver detalles">
                                                                         <i class="fa fa-eye"></i>
                                                                     </a>
                                                                     <?php if ($ingreso['estado'] == 1) { ?>
                                                                         <button onclick="anularIngresoDirecto(<?php echo $ingreso['id_ingreso']; ?>)" 
                                                                             class="btn btn-danger btn-sm"
+                                                                            data-toggle="tooltip"
                                                                             title="Anular ingreso">
                                                                             <i class="fa fa-times"></i>
                                                                         </button>
@@ -575,7 +582,8 @@
                                                             <td>
                                                                 <a href="compras_detalle.php?id_compra=<?php echo $id_compra; ?>" 
                                                                    class="btn btn-secondary btn-sm"
-                                                                   title="Ver detalles de orden de servicio">
+                                                                   data-toggle="tooltip"
+                                                                   title="Ver detalles">
                                                                     <i class="fa fa-eye"></i>
                                                                 </a>
                                                             </td>

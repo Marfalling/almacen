@@ -258,12 +258,14 @@
                                                             <a href="../uploads/ingreso_directo/<?php echo $doc['documento']; ?>" 
                                                             target="_blank" 
                                                             class="btn btn-info btn-xs" 
+                                                            data-toggle="tooltip"
                                                             title="Ver documento">
                                                                 <i class="fa fa-eye"></i> Ver
                                                             </a>
                                                             <a href="../uploads/ingreso_directo/<?php echo $doc['documento']; ?>" 
                                                             download 
                                                             class="btn btn-success btn-xs"
+                                                            data-toggle="tooltip"
                                                             title="Descargar">
                                                                 <i class="fa fa-download"></i> Descargar
                                                             </a>

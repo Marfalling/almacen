@@ -977,11 +977,11 @@ $monedas = MostrarMoneda();
                                     ?>
                                     
                                     <?php if ($tiene_items_disponibles): ?>
-                                        <button type="button" class="btn btn-primary btn-sm" id="btn-nueva-orden" style="padding: 4px 8px; font-size: 12px;" title="Crear una nueva orden de compra con los items verificados">
+                                        <button type="button" data-toggle="tooltip" class="btn btn-primary btn-sm" id="btn-nueva-orden" style="padding: 4px 8px; font-size: 12px;" title="Crear una nueva orden de compra con los items verificados">
                                             <i class="fa fa-shopping-cart"></i> Nueva Orden
                                         </button>
                                     <?php else: ?>
-                                        <button type="button" class="btn btn-secondary btn-sm" disabled title="No hay items disponibles para agregar" style="padding: 4px 8px; font-size: 12px;">
+                                        <button type="button" data-toggle="tooltip" class="btn btn-secondary btn-sm" disabled title="No hay items disponibles para agregar" style="padding: 4px 8px; font-size: 12px;">
                                             <i class="fa fa-ban"></i> Nueva Orden
                                         </button>
                                     <?php endif; ?>
@@ -1014,7 +1014,7 @@ $monedas = MostrarMoneda();
                                 ?>
                                 
                                 <!--  SIEMPRE RENDERIZAR EL BOTÓN (solo cambiar estado) -->
-                                <button type="button" 
+                                <button type="button" data-toggle="tooltip"
                                         class="btn btn-<?php echo $tiene_items_para_salida ? 'success' : 'secondary'; ?> btn-sm" 
                                         id="btn-nueva-salida" 
                                         <?php echo !$tiene_items_para_salida ? 'disabled' : ''; ?>
@@ -1150,8 +1150,8 @@ $monedas = MostrarMoneda();
                                                         </td>
                                                         <td>
                                                             <!-- Botón Ver Detalles -->
-                                                            <button class="btn btn-info btn-xs btn-ver-detalle"
-                                                                    title="Ver detalles completos de esta orden"
+                                                            <button class="btn btn-info btn-xs btn-ver-detalle" data-toggle="tooltip"
+                                                                    title="Ver detalles"
                                                                     data-id-compra="<?php echo $compra['id_compra']; ?>">
                                                                 <i class="fa fa-eye"></i>
                                                             </button>
@@ -1167,7 +1167,7 @@ $monedas = MostrarMoneda();
 
                                                             if ($puede_editar) { ?>
                                                                 <!-- Botón Editar HABILITADO -->
-                                                                <button class="btn btn-warning btn-xs ml-1 btn-editar-orden"
+                                                                <button class="btn btn-warning btn-xs ml-1 btn-editar-orden" data-toggle="tooltip"
                                                                         title="Editar esta orden de compra"
                                                                         data-id-compra="<?php echo $compra['id_compra']; ?>">
                                                                     <i class="fa fa-edit"></i>
@@ -1202,6 +1202,7 @@ $monedas = MostrarMoneda();
                                                             if ($puede_anular) { ?>
                                                                 <button class="btn btn-danger btn-xs ml-1 btn-anular-orden"
                                                                         title="Anular Orden"
+                                                                        data-toggle="tooltip"
                                                                         data-id-compra="<?php echo $compra['id_compra']; ?>"
                                                                         data-id-pedido="<?php echo $id_pedido; ?>">
                                                                     <i class="fa fa-times"></i>
@@ -1311,6 +1312,7 @@ $monedas = MostrarMoneda();
                                                     <td>
                                                         <!-- Botón Ver Detalles - SIEMPRE VISIBLE -->
                                                         <button class="btn btn-info btn-xs btn-ver-salida"
+                                                                data-toggle="tooltip"
                                                                 title="Ver detalles completos de esta salida"
                                                                 data-id-salida="<?php echo $salida['id_salida']; ?>">
                                                             <i class="fa fa-eye"></i>
@@ -1319,12 +1321,14 @@ $monedas = MostrarMoneda();
                                                         <?php if ($salida['est_salida'] == 1) { ?>
                                                             <!-- Solo en estado PENDIENTE: mostrar Editar y Anular -->
                                                             <button class="btn btn-warning btn-xs ml-1 btn-editar-salida"
+                                                                    data-toggle="tooltip"
                                                                     title="Editar esta orden de salida"
                                                                     data-id-salida="<?php echo $salida['id_salida']; ?>">
                                                                 <i class="fa fa-edit"></i>
                                                             </button>
 
                                                             <button class="btn btn-danger btn-xs ml-1 btn-anular-salida"
+                                                                    data-toggle="tooltip"
                                                                     title="Anular Salida"
                                                                     data-id-salida="<?php echo $salida['id_salida']; ?>">
                                                                 <i class="fa fa-times"></i>
@@ -1336,7 +1340,7 @@ $monedas = MostrarMoneda();
                                                             <button class="btn btn-outline-secondary btn-xs ml-1 disabled" disabled>
                                                                 <i class="fa fa-edit"></i>
                                                             </button>
-                                                            <button class="btn btn-outline-secondary btn-xs ml-1 disabled" disabled>
+                                                            <button class="btn btn-outline-secondary btn-xs ml-1 disabled" data-toggle="tooltip" disabled>
                                                                 <i class="fa fa-times"></i>
                                                             </button>
                                                         <?php } ?>
@@ -1419,6 +1423,7 @@ $monedas = MostrarMoneda();
                                                         <button type="button"
                                                                 class="btn btn-info btn-sm btn-plus"
                                                                 id="btn-agregar-proveedor"
+                                                                data-toggle="tooltip"
                                                                 title="Agregar Proveedor">
                                                             <i class="fa fa-plus"></i>
                                                         </button>
@@ -1774,7 +1779,7 @@ $monedas = MostrarMoneda();
                                     <a href="pedido_verificar.php?id=<?php echo $id_pedido; ?>" class="btn btn-secondary btn-sm mr-2">
                                         <i class="fa fa-times"></i> Cancelar
                                     </a>
-                                    <button type="submit" class="btn btn-<?php echo $modo_editar ? 'warning' : 'primary'; ?> btn-sm">
+                                    <button type="submit" data-toggle="tooltip" class="btn btn-<?php echo $modo_editar ? 'warning' : 'primary'; ?> btn-sm">
                                         <i class="fa fa-save"></i> <?php echo $modo_editar ? 'Actualizar Orden' : 'Guardar Orden'; ?>
                                     </button>
                                 </div>
@@ -2053,7 +2058,7 @@ $monedas = MostrarMoneda();
                                                     </div>
                                                 </div>
                                                 <div class="col-md-1 text-right">
-                                                    <button type="button" class="btn btn-danger btn-sm btn-remover-item-salida" 
+                                                    <button type="button" class="btn btn-danger btn-sm btn-remover-item-salida" data-toggle="tooltip"
                                                             data-id-detalle="<?php echo $item['id_salida_detalle']; ?>">
                                                         <i class="fa fa-trash"></i>
                                                     </button>
@@ -2088,7 +2093,7 @@ $monedas = MostrarMoneda();
                                     <a href="pedido_verificar.php?id=<?php echo $id_pedido; ?>" class="btn btn-secondary btn-sm mr-2">
                                         <i class="fa fa-times"></i> Cancelar
                                     </a>
-                                    <button type="submit" class="btn btn-<?php echo $modo_editar_salida ? 'warning' : 'success'; ?> btn-sm">
+                                    <button type="submit" data-toggle="tooltip" class="btn btn-<?php echo $modo_editar_salida ? 'warning' : 'success'; ?> btn-sm">
                                         <i class="fa fa-save"></i> <?php echo $modo_editar_salida ? 'Actualizar Salida' : 'Guardar Salida'; ?>
                                     </button>
                                 </div>
@@ -2421,6 +2426,7 @@ $monedas = MostrarMoneda();
 <!-- ============================================ -->
 <!-- JAVASCRIPT -->
 <!-- ============================================ -->
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const urlActual = window.location.pathname;

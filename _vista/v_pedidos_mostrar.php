@@ -184,7 +184,7 @@ function AprobarPedidoTecnica(id_pedido) {
                                                     <td>
                                                         <div class="d-flex flex-wrap gap-2">
                                                             <!-- Botón Ver Detalle -->
-                                                            <button type="button" 
+                                                            <button type="button" data-toggle="tooltip"
                                                                     class="btn btn-info btn-sm" 
                                                                     data-toggle="modal" 
                                                                     data-target="#modalDetallePedido<?php echo $pedido['id_pedido']; ?>" 
@@ -218,6 +218,7 @@ function AprobarPedidoTecnica(id_pedido) {
                                                                 <a href="#"
                                                                 onclick="AprobarPedidoTecnica(<?php echo $pedido['id_pedido']; ?>)"
                                                                 class="btn btn-success btn-sm"
+                                                                data-toggle="tooltip"
                                                                 title="Aprobar Técnicamente">
                                                                     <i class="fa fa-check"></i>
                                                                 </a>
@@ -289,7 +290,8 @@ function AprobarPedidoTecnica(id_pedido) {
                                                                 <?php if ($tiene_tecnica) { ?>
                                                                     <a href="pedido_verificar.php?id=<?php echo $pedido['id_pedido']; ?>" 
                                                                     class="btn btn-success btn-sm" 
-                                                                    title="Gestionar pedido">
+                                                                    data-toggle="tooltip"
+                                                                    title="Verificar pedido">
                                                                         <i class="fa fa-check"></i>
                                                                     </a>
                                                                 <?php } else { ?>
@@ -331,6 +333,7 @@ function AprobarPedidoTecnica(id_pedido) {
 
                                                             <!-- Botón PDF -->
                                                             <a href="pedido_pdf.php?id=<?php echo $pedido['id_pedido']; ?>" 
+                                                            data-toggle="tooltip"
                                                             class="btn btn-secondary btn-sm" 
                                                             title="Generar PDF"
                                                             target="_blank">
@@ -409,12 +412,14 @@ function AprobarPedidoTecnica(id_pedido) {
                                                                 ?>
                                                                     <button class="btn btn-danger btn-sm" 
                                                                             onclick="AnularPedido(<?php echo $pedido['id_pedido']; ?>)"
+                                                                            data-toggle="tooltip" 
                                                                             title="Anular Pedido">
                                                                         <i class="fa fa-times"></i>
                                                                     </button>
                                                                 <?php } else { ?>
                                                                     <button class="btn btn-outline-secondary btn-sm disabled"
                                                                             title="<?php echo $titulo_anular; ?>"
+                                                                            data-toggle="tooltip" 
                                                                             tabindex="-1" 
                                                                             aria-disabled="true">
                                                                         <i class="fa fa-times"></i>

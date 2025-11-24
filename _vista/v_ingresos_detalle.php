@@ -305,6 +305,7 @@
                                                                 <a href="../uploads/ingresos/<?php echo $doc['documento']; ?>" 
                                                                 target="_blank" 
                                                                 class="btn btn-primary btn-sm" 
+                                                                data-toggle="tooltip"
                                                                 title="Ver documento">
                                                                     <i class="fa fa-eye"></i> Ver
                                                                 </a>

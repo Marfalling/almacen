@@ -139,7 +139,7 @@
                                             <label>Material/Servicio <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
                                                 <input type="text" name="descripcion[]" class="form-control" placeholder="Material o Servicio" required>
-                                                <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
+                                                <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" data-toggle="tooltip" title="Buscar Material"  type="button">
                                                     <i class="fa fa-search"></i>
                                                 </button>
                                             </div>

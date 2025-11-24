@@ -317,6 +317,7 @@ function AnularSalida(id_salida) {
                                                             <a href="#"
                                                                onclick="AprobarSalida(<?php echo $salida['id_salida']; ?>)"
                                                                class="btn btn-success btn-sm"
+                                                               data-toggle="tooltip"
                                                                title="Aprobar Salida (Genera Movimientos)">
                                                                 <i class="fa fa-check"></i>
                                                             </a>
@@ -348,6 +349,7 @@ function AnularSalida(id_salida) {
                                                             <a href="#"
                                                                onclick="RecepcionarSalida(<?php echo $salida['id_salida']; ?>)"
                                                                class="btn btn-primary btn-sm"
+                                                               data-toggle="tooltip"
                                                                title="Recepcionar Salida">
                                                                 <i class="fa fa-check"></i>
                                                             </a>
@@ -381,11 +383,12 @@ function AnularSalida(id_salida) {
                                                         if ($puede_editar) { ?>
                                                             <a href="salidas_editar.php?id=<?php echo $salida['id_salida']; ?>" 
                                                                class="btn btn-warning btn-sm" 
+                                                               data-toggle="tooltip"
                                                                title="Editar Salida">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
                                                         <?php } else { ?>
-                                                            <a href="#" class="btn btn-outline-secondary btn-sm disabled" 
+                                                            <a href="#" class="btn btn-outline-secondary btn-sm disabled" data-toggle="tooltip"
                                                                title="<?php echo $titulo_editar; ?>" tabindex="-1" aria-disabled="true">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
@@ -394,6 +397,7 @@ function AnularSalida(id_salida) {
                                                         <!-- Botón PDF -->
                                                         <a href="salidas_pdf.php?id=<?php echo $salida['id_salida']; ?>" 
                                                            class="btn btn-secondary btn-sm" 
+                                                           data-toggle="tooltip"
                                                            title="Generar PDF"
                                                            target="_blank">
                                                             <i class="fa fa-file-pdf-o"></i>
@@ -435,6 +439,7 @@ function AnularSalida(id_salida) {
                                                             ?>
                                                                 <button class="btn btn-danger btn-sm" 
                                                                         onclick="AnularSalida(<?php echo $salida['id_salida']; ?>)"
+                                                                        data-toggle="tooltip"
                                                                         title="<?php echo $titulo_anular; ?>">
                                                                     <i class="fa fa-times"></i>
                                                                 </button>
@@ -442,6 +447,7 @@ function AnularSalida(id_salida) {
                                                                 <button class="btn btn-outline-secondary btn-sm disabled"
                                                                         title="<?php echo $titulo_anular; ?>"
                                                                         tabindex="-1" 
+                                                                        data-toggle="tooltip"
                                                                         aria-disabled="true">
                                                                     <i class="fa fa-times"></i>
                                                                 </button>
