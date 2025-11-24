@@ -136,7 +136,7 @@
                             <div class="ln_solid"></div>
 
                             <div class="form-group">
-                                <label>Subir Documento</label>
+                                <label>Subir Documento<span class="text-danger">*</span>:</label>
                                 <input type="file" name="documento[]" id="documento" class="form-control" multiple required>
                             </div>
 

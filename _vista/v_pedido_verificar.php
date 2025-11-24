@@ -759,25 +759,42 @@ $monedas = MostrarMoneda();
                                 <div style="font-size: 11px; color: #333; line-height: 1.6; margin-top: 8px;">
                                     <!-- PRIMERA LÍNEA: Descripción y datos básicos -->
                                     <div style="margin-bottom: 4px;">
-                                        <strong>Descripción:</strong> 
-                                        <span style="color: #666;"><?php echo strlen($detalle['prod_pedido_detalle']) > 80 ? substr($detalle['prod_pedido_detalle'], 0, 80) . '...' : $detalle['prod_pedido_detalle']; ?></span>
-                                        
-                                        <?php if (!empty($detalle['ot_pedido_detalle'])): ?>
+                                        <?php if (!empty($detalle['cod_material'])): ?>
+                                        <strong>Código:</strong> 
+                                        <span style="color: #666;"><?php echo htmlspecialchars($detalle['cod_material']); ?></span>
                                         <span style="margin: 0 8px;">|</span>
-                                        <strong>OT Material:</strong> <span><?php echo htmlspecialchars($detalle['ot_pedido_detalle']); ?></span>
                                         <?php endif; ?>
+                                        
+                                        <strong>Producto:</strong> 
+                                        <span style="color: #666;">
+                                            <?php 
+                                            $nombre_producto = !empty($detalle['nom_producto']) ? $detalle['nom_producto'] : $detalle['prod_pedido_detalle'];
+                                            echo strlen($nombre_producto) > 80 ? substr($nombre_producto, 0, 80) . '...' : $nombre_producto; 
+                                            ?>
+                                        </span>
                                         
                                         <span style="margin: 0 8px;">|</span>
                                         <strong>Cantidad:</strong> <?php echo number_format($detalle['cant_pedido_detalle'], 2); ?>
                                         
                                         <span style="margin: 0 8px;">|</span>
-                                        <strong>Unid:</strong> <?php echo $unidad; ?>
+                                        <strong>Unidad:</strong> <?php echo $unidad; ?>
+                                    </div>
+
+                                    <!-- SEGUNDA LÍNEA: OT y SST -->
+                                    <?php if (!empty($detalle['ot_pedido_detalle']) || (!$esAutoOrden && !empty($descripcion_sst_completa))): ?>
+                                    <div style="font-size: 10px; color: #777; margin-top: 4px;">
+                                        <?php if (!empty($detalle['ot_pedido_detalle'])): ?>
+                                        <strong>OT:</strong> <span><?php echo htmlspecialchars($detalle['ot_pedido_detalle']); ?></span>
+                                        <?php endif; ?>
                                         
-                                        <?php if (!$esAutoOrden): ?>
+                                        <?php if (!$esAutoOrden && !empty($descripcion_sst_completa)): ?>
+                                            <?php if (!empty($detalle['ot_pedido_detalle'])): ?>
                                             <span style="margin: 0 8px;">|</span>
-                                            <strong>SST/MA/CA:</strong> <?php echo $descripcion_sst_completa; ?>
+                                            <?php endif; ?>
+                                        <strong>SST/MA/CA:</strong> <?php echo htmlspecialchars($descripcion_sst_completa); ?>
                                         <?php endif; ?>
                                     </div>
+                                    <?php endif; ?>
 
                                     <!-- SEGUNDA LÍNEA: Estado de verificación y ordenamiento -->
                                     <?php 

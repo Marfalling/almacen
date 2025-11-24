@@ -117,8 +117,8 @@
                                             <input type="text" name="observaciones[]" class="form-control" placeholder="Observaciones del uso">
                                         </div>
                                         <div class="col-md-6">
-                                            <label>Adjuntar Evidencias:</label>
-                                            <input type="file" name="archivos_0[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
+                                            <label>Adjuntar Evidencias <span class="text-danger">*</span>:</label>
+                                            <input type="file" name="archivos_0[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" required>
                                             <small class="form-text text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, XLS. Máximo 5MB por archivo.</small>
                                         </div>
                                     </div>

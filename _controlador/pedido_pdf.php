@@ -128,7 +128,15 @@ foreach ($pedido_detalle as $detalle) {
     $comentarios_array = array();
     
     if (!empty($detalle['com_pedido_detalle'])) {
-        $comentarios_array[] = htmlspecialchars($detalle['com_pedido_detalle'], ENT_QUOTES, 'UTF-8');
+        $comentario_limpio = $detalle['com_pedido_detalle'];
+        
+        // Solo remover la parte de Unidad ID
+        $comentario_limpio = preg_replace('/\s*\|\s*Unidad ID:\s*\d+\s*/i', '', $comentario_limpio);
+        $comentario_limpio = trim($comentario_limpio, ' |');
+        
+        if (!empty($comentario_limpio)) {
+            $comentarios_array[] = htmlspecialchars($comentario_limpio, ENT_QUOTES, 'UTF-8');
+        }
     }
     
     //  Agregar personal asignado a los comentarios si existe

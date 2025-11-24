@@ -2851,4 +2851,23 @@ function descargarExcel() {
     }, 800);
 }
 
+// ============================================================================
+// AUTO-ABRIR MODAL DESDE URL (CUANDO VIENE DE UNA ALERTA)
+// ============================================================================
+<?php if (isset($_GET['abrir_detalle']) && !empty($_GET['abrir_detalle'])): ?>
+window.addEventListener('DOMContentLoaded', function() {
+    const idCompraAbrir = <?php echo intval($_GET['abrir_detalle']); ?>;
+    
+    setTimeout(function() {
+        mostrarDetalleOrdenCompra(idCompraAbrir);
+        
+        // Limpiar URL después de abrir
+        setTimeout(function() {
+            const url = new URL(window.location);
+            url.searchParams.delete('abrir_detalle');
+            window.history.replaceState({}, document.title, url.pathname + url.search);
+        }, 1000);
+    }, 500);
+});
+<?php endif; ?>
 </script>

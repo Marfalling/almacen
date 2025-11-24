@@ -202,14 +202,8 @@ $total_alertas_productos = count($productos_por_vencer);
                             
                             // Determinar el enlace según el estado de la orden
                             $estado_compra = intval($compra['est_compra']);
-                            
-                            if ($estado_compra == 1) {
-                                // Estado PENDIENTE → Abrir modal de edición
-                                $href_alerta = "compras_mostrar.php?abrir_modal=" . $compra['id_compra'];
-                            } else {
-                                // Estados APROBADA (2), COMPLETADA (3) o PAGADA (4) → Página de comrpobante de pagos
-                                $href_alerta = "comprobante_registrar.php?id_compra=" . $compra['id_compra'];
-                            }
+                            // SIEMPRE ir al modal de detalles (ojito)
+                            $href_alerta = "compras_mostrar.php?abrir_detalle=" . $compra['id_compra'];
                         ?>
                         <li class="nav-item alerta-item">
                             <a class="dropdown-item" href="<?php echo $href_alerta; ?>">
