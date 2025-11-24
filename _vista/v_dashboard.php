@@ -37,7 +37,7 @@
                            value="<?php echo $fecha_fin; ?>">
                   </div>
                 </div>
-                <div class="col-md-4">
+                <!--<div class="col-md-4">
                   <div class="form-group">
                     <label>Proveedor:</label>
                     <select class="form-control" id="proveedor" name="proveedor">
@@ -50,8 +50,25 @@
                       <?php endforeach; ?>
                     </select>
                   </div>
-                </div>
+                </div>-->
+                <!-- ⭐ PROVEEDOR MÚLTIPLE -->
                 <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Proveedor(es):</label>
+                        <select class="form-control select2-proveedores-dashboard" 
+                                id="proveedor" 
+                                name="proveedor[]" 
+                                multiple>
+                            <?php foreach($lista_proveedores as $prov): ?>
+                                <option value="<?php echo $prov['id_proveedor']; ?>"
+                                        <?php echo (in_array($prov['id_proveedor'], $proveedores_seleccionados)) ? 'selected' : ''; ?>>
+                                    <?php echo $prov['nom_proveedor']; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <!--<div class="col-md-4">
                   <div class="form-group">
                     <label>Centro de Costo:</label>
                     <select class="form-control" id="centro_costo" name="centro_costo">
@@ -64,6 +81,23 @@
                       <?php endforeach; ?>
                     </select>
                   </div>
+                </div>-->
+                <!-- ⭐ CENTRO DE COSTO MÚLTIPLE -->
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label>Centro(s) de Costo:</label>
+                        <select class="form-control select2-centros-dashboard" 
+                                id="centro_costo" 
+                                name="centro_costo[]" 
+                                multiple>
+                            <?php foreach($lista_centros_costo as $cc): ?>
+                                <option value="<?php echo $cc['id_area']; ?>"
+                                        <?php echo (in_array($cc['id_area'], $centros_seleccionados)) ? 'selected' : ''; ?>>
+                                    <?php echo $cc['nom_area']; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </div>
               </div>
               <div class="row">
@@ -680,20 +714,22 @@ function drawPagosProveedorChart() {
 function drawVencidasMesChart() {
   <?php if (!empty($proveedores_mes)): ?>
   var data = google.visualization.arrayToDataTable([
-    ['Mes', <?php 
+    ['Mes'
+    <?php 
       $proveedores_unicos = array_keys($proveedores_mes);
       foreach($proveedores_unicos as $p) {
-        echo "'".addslashes($p)."', ";
+        echo ", '".addslashes($p)."'";  // ✅ Coma ANTES
       }
-    ?>],
+    ?>
+    ],
     <?php
     $meses_nombre = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     for($m = 1; $m <= 12; $m++) {
-      echo "['".$meses_nombre[$m-1]."', ";
+      echo "['".$meses_nombre[$m-1]."'";
       foreach($proveedores_unicos as $p) {
-        echo ($proveedores_mes[$p][$m] ?? 0).", ";
+        echo ", ".($proveedores_mes[$p][$m] ?? 0);  // ✅ Coma ANTES
       }
-      echo "],";
+      echo ($m < 12 ? "]," : "]");  // ✅ Sin coma en el último
     }
     ?>
   ]);
@@ -702,21 +738,40 @@ function drawVencidasMesChart() {
     title: 'Órdenes Vencidas por Mes',
     chartArea: {width: '80%'},
     hAxis: { title: 'Mes' },
-    vAxis: { title: 'Órdenes Vencidas' },
-    seriesType: 'bars'
+    vAxis: { title: 'Órdenes Vencidas', minValue: 0 },
+    seriesType: 'bars',
+    legend: { position: 'bottom' }
   };
 
   var chart = new google.visualization.ComboChart(document.getElementById('chart_vencidas_mes'));
   chart.draw(data, options);
   <?php else: ?>
+  // Gráfico vacío cuando no hay datos
   var data = google.visualization.arrayToDataTable([
     ['Mes', 'Sin datos'],
-    ['Ene', 0]
+    ['Ene', 0],
+    ['Feb', 0],
+    ['Mar', 0],
+    ['Abr', 0],
+    ['May', 0],
+    ['Jun', 0],
+    ['Jul', 0],
+    ['Ago', 0],
+    ['Sep', 0],
+    ['Oct', 0],
+    ['Nov', 0],
+    ['Dic', 0]
   ]);
+  
   var options = {
-    title: 'Sin órdenes vencidas en el año actual'
+    title: 'Sin órdenes vencidas en el año actual',
+    chartArea: {width: '80%'},
+    hAxis: { title: 'Mes' },
+    vAxis: { title: 'Órdenes Vencidas', minValue: 0 },
+    legend: { position: 'none' }
   };
-  var chart = new google.visualization.ComboChart(document.getElementById('chart_vencidas_mes'));
+  
+  var chart = new google.visualization.ColumnChart(document.getElementById('chart_vencidas_mes'));
   chart.draw(data, options);
   <?php endif; ?>
 }

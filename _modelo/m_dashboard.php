@@ -25,7 +25,7 @@ function _buildFiltroFecha(&$whereClauses, $fecha_inicio, $fecha_fin, $campo_fec
         $whereClauses[] = "$campo_fecha BETWEEN '$fi' AND '$ff'";
     }
 }
-function _buildFiltroProveedorCentro(&$whereClauses, $proveedor, $centro_costo) {
+/*function _buildFiltroProveedorCentro(&$whereClauses, $proveedor, $centro_costo) {
     if ($proveedor && is_numeric($proveedor) && intval($proveedor) > 0) {
         $p = intval($proveedor);
         $whereClauses[] = "c.id_proveedor = $p";
@@ -35,7 +35,35 @@ function _buildFiltroProveedorCentro(&$whereClauses, $proveedor, $centro_costo) 
         // pedido tiene id_centro_costo
         $whereClauses[] = "p.id_centro_costo = $cc";
     }
+}*/
+
+
+function _buildFiltroProveedorCentro(&$whereClauses, $proveedor, $centro_costo) {
+    // Proveedor(es)
+    if ($proveedor) {
+        if (strpos($proveedor, ',') !== false) {
+            // Múltiples: "1,2,3"
+            $whereClauses[] = "c.id_proveedor IN ($proveedor)";
+        } else {
+            // Simple: "1"
+            $p = intval($proveedor);
+            $whereClauses[] = "c.id_proveedor = $p";
+        }
+    }
+    
+    // Centro(s) de Costo
+    if ($centro_costo) {
+        if (strpos($centro_costo, ',') !== false) {
+            // Múltiples: "5,8,12"
+            $whereClauses[] = "p.id_centro_costo IN ($centro_costo)";
+        } else {
+            // Simple: "5"
+            $cc = intval($centro_costo);
+            $whereClauses[] = "p.id_centro_costo = $cc";
+        }
+    }
 }
+
 
 // ============================================
 // DASHBOARD: RESUMEN GENERAL DE ÓRDENES (TOTAL)
@@ -225,16 +253,8 @@ function obtenerPagosPorCentroCosto($con, $proveedor = null, $centro_costo = nul
 
     $where = ["c.est_compra != 0"];
 
-    if ($proveedor && intval($proveedor) > 0) {
-        $where[] = "c.id_proveedor = " . intval($proveedor);
-    }
-    if ($centro_costo && intval($centro_costo) > 0) {
-        $where[] = "p.id_centro_costo = " . intval($centro_costo);
-    }
-    if ($fecha_inicio && $fecha_fin) {
-        $where[] = "DATE(c.fec_compra) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
-    }
-
+    _buildFiltroProveedorCentro($where, $proveedor, $centro_costo);
+    _buildFiltroFecha($where, $fecha_inicio, $fecha_fin, "DATE(c.fec_compra)");
     $where_sql = "WHERE " . implode(" AND ", $where);
 
     $sql = "
@@ -417,16 +437,8 @@ function obtenerPagosPorProveedor($con, $proveedor = null, $centro_costo = null,
 
     $where = ["c.est_compra != 0"];
 
-    if ($proveedor && intval($proveedor) > 0) {
-        $where[] = "c.id_proveedor = " . intval($proveedor);
-    }
-    if ($centro_costo && intval($centro_costo) > 0) {
-        $where[] = "p.id_centro_costo = " . intval($centro_costo);
-    }
-    if ($fecha_inicio && $fecha_fin) {
-        $where[] = "DATE(c.fec_compra) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
-    }
-
+    _buildFiltroProveedorCentro($where, $proveedor, $centro_costo);
+    _buildFiltroFecha($where, $fecha_inicio, $fecha_fin, "DATE(c.fec_compra)");
     $where_sql = "WHERE " . implode(" AND ", $where);
 
     $sql = "
@@ -604,59 +616,102 @@ function obtenerPagosPorProveedor($con, $proveedor = null, $centro_costo = null,
 
 // ============================================
 // ÓRDENES VENCIDAS POR PROVEEDOR POR MES
-// - Filtros: proveedor (opcional), centro_costo (opcional), fecha_inicio/fin (opcional) 
-// - Si no se pasa año, se usa el año actual.
-// - Se considera vencida cuando: DATE_ADD(fec_compra, INTERVAL plaz_compra DAY) < CURDATE()
+// - Filtros: proveedor (múltiple), centro_costo (múltiple), fecha_inicio/fin
+// - Vencida: (fec_compra + plaz_compra) < HOY Y NO está pagada
+// - Usa esCompraPagada() de m_compras.php para validar el estado de pago
 // ============================================
 function obtenerOrdenesVencidasPorProveedorMes($con, $proveedor = null, $centro_costo = null, $fecha_inicio = null, $fecha_fin = null, $año = null) {
+    // Asegurar que la función esCompraPagada() esté disponible
+    if (!function_exists('esCompraPagada')) {
+        require_once("m_compras.php");
+    }
+    
     if (!$año) $año = date('Y');
 
-    $where = ["YEAR(c.fec_compra) = $año",
-              "c.plaz_compra IS NOT NULL",
-              "c.plaz_compra != ''",
-              "c.plaz_compra != '0'",
-              "DATEDIFF(CURDATE(), DATE_ADD(c.fec_compra, INTERVAL CAST(c.plaz_compra AS UNSIGNED) DAY)) > 0"
+    // ✅ CONSTRUIR FILTROS CON HELPER
+    $where = [
+        "YEAR(c.fec_compra) = $año",
+        "c.plaz_compra IS NOT NULL",
+        "c.plaz_compra != ''",
+        "c.plaz_compra != '0'",
+        "DATEDIFF(CURDATE(), DATE_ADD(c.fec_compra, INTERVAL CAST(c.plaz_compra AS UNSIGNED) DAY)) > 0"
     ];
 
-    if ($proveedor && is_numeric($proveedor) && intval($proveedor) > 0) {
-        $p = intval($proveedor);
-        $where[] = "c.id_proveedor = $p";
-    }
-    if ($centro_costo && is_numeric($centro_costo) && intval($centro_costo) > 0) {
-        $cc = intval($centro_costo);
-        $where[] = "p.id_centro_costo = $cc";
-    }
-    if ($fecha_inicio && $fecha_fin) {
-        $fi = $fecha_inicio;
-        $ff = $fecha_fin;
-        $where[] = "DATE(c.fec_compra) BETWEEN '$fi' AND '$ff'";
-    }
+    _buildFiltroProveedorCentro($where, $proveedor, $centro_costo);
+    _buildFiltroFecha($where, $fecha_inicio, $fecha_fin, "DATE(c.fec_compra)");
 
     $where_sql = "WHERE " . implode(" AND ", $where);
 
-    $sql = "SELECT
-                COALESCE(pr.nom_proveedor, 'SIN PROVEEDOR') AS proveedor,
-                pr.id_proveedor,
-                MONTH(c.fec_compra) AS mes,
-                COUNT(DISTINCT c.id_compra) AS ordenes_vencidas
-            FROM compra c
-            INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
-            INNER JOIN pedido p ON c.id_pedido = p.id_pedido
-            $where_sql
-            GROUP BY pr.id_proveedor, pr.nom_proveedor, MONTH(c.fec_compra)
-            ORDER BY pr.nom_proveedor, mes";
+    // ✅ OBTENER TODAS LAS COMPRAS VENCIDAS (candidatas)
+    $sql = "
+        SELECT
+            c.id_compra,
+            COALESCE(pr.nom_proveedor, 'SIN PROVEEDOR') AS proveedor,
+            pr.id_proveedor,
+            MONTH(c.fec_compra) AS mes
+        FROM compra c
+        INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
+        INNER JOIN pedido p ON c.id_pedido = p.id_pedido
+        $where_sql
+        ORDER BY pr.id_proveedor, MONTH(c.fec_compra)
+    ";
+    
     $result = $con->query($sql);
-    $datos = [];
-    if ($result && $result->num_rows > 0) {
-        while ($row = $result->fetch_assoc()) {
-            $row['ordenes_vencidas'] = intval($row['ordenes_vencidas']);
-            $row['mes'] = intval($row['mes']);
-            $datos[] = $row;
+    
+    if (!$result || $result->num_rows == 0) {
+        return [];
+    }
+
+    // ✅ FILTRAR SOLO LAS QUE NO ESTÁN PAGADAS
+    $agrupado = [];
+    
+    while ($row = $result->fetch_assoc()) {
+        $id_compra = intval($row['id_compra']);
+        $id_proveedor = intval($row['id_proveedor']);
+        $proveedor = $row['proveedor'];
+        $mes = intval($row['mes']);
+        
+        // ✅ VERIFICAR SI NO ESTÁ PAGADA
+        if (!esCompraPagada($id_compra)) {
+            // Inicializar estructura si no existe
+            if (!isset($agrupado[$id_proveedor])) {
+                $agrupado[$id_proveedor] = [
+                    'proveedor' => $proveedor,
+                    'id_proveedor' => $id_proveedor,
+                    'meses' => []
+                ];
+            }
+            
+            if (!isset($agrupado[$id_proveedor]['meses'][$mes])) {
+                $agrupado[$id_proveedor]['meses'][$mes] = 0;
+            }
+            
+            $agrupado[$id_proveedor]['meses'][$mes]++;
         }
     }
+
+    // ✅ CONVERTIR A FORMATO ESPERADO
+    $datos = [];
+    foreach ($agrupado as $id_prov => $info) {
+        foreach ($info['meses'] as $mes => $cantidad) {
+            $datos[] = [
+                'proveedor' => $info['proveedor'],
+                'id_proveedor' => $info['id_proveedor'],
+                'mes' => $mes,
+                'ordenes_vencidas' => $cantidad
+            ];
+        }
+    }
+
+    // ✅ ORDENAR POR PROVEEDOR Y MES
+    usort($datos, function($a, $b) {
+        $cmp_prov = strcmp($a['proveedor'], $b['proveedor']);
+        if ($cmp_prov !== 0) return $cmp_prov;
+        return $a['mes'] - $b['mes'];
+    });
+
     return $datos;
 }
-
 // ============================================
 // CARDS DE RESUMEN (conservadas)
 // ============================================

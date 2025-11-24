@@ -615,6 +615,43 @@ $(document).ready(function () {
 });
 </script>
 
+<!-- Select2 para Dashboard - Proveedores y Centros de Costo MÚLTIPLES -->
+<script>
+$(document).ready(function () {
+    // ⭐ PROVEEDORES MÚLTIPLES
+    const $provDash = $('.select2-proveedores-dashboard');
+    if ($provDash.length) {
+        $provDash.select2({
+            placeholder: 'Seleccione uno o más proveedores...',
+            allowClear: true,
+            width: '100%',
+            multiple: true,  // ⭐ CLAVE: Habilita selección múltiple
+            minimumInputLength: 0,
+            language: {
+                noResults: function () { return 'No se encontraron resultados'; },
+                searching: function () { return 'Buscando...'; }
+            }
+        });
+    }
+
+    // ⭐ CENTROS DE COSTO MÚLTIPLES
+    const $centroDash = $('.select2-centros-dashboard');
+    if ($centroDash.length) {
+        $centroDash.select2({
+            placeholder: 'Seleccione uno o más centros de costo...',
+            allowClear: true,
+            width: '100%',
+            multiple: true,  // ⭐ CLAVE: Habilita selección múltiple
+            minimumInputLength: 0,
+            language: {
+                noResults: function () { return 'No se encontraron resultados'; },
+                searching: function () { return 'Buscando...'; }
+            }
+        });
+    }
+});
+
+</script>
 
 
 

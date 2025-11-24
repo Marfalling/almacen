@@ -82,8 +82,26 @@ if (!verificarPermisoEspecifico('ver_dashboard')) {
 // ========================================================================
 $fecha_inicio  = $_GET['fecha_inicio']  ?? null;
 $fecha_fin     = $_GET['fecha_fin']     ?? null;
-$proveedor     = $_GET['proveedor']     ?? null;
-$centro_costo  = $_GET['centro_costo']  ?? null;
+//$proveedor     = $_GET['proveedor']     ?? null;
+//$centro_costo  = $_GET['centro_costo']  ?? null;
+
+// Capturar filtros múltiples
+$proveedores_seleccionados = isset($_GET['proveedor']) && is_array($_GET['proveedor']) 
+    ? array_map('intval', $_GET['proveedor']) 
+    : [];
+
+$centros_seleccionados = isset($_GET['centro_costo']) && is_array($_GET['centro_costo']) 
+    ? array_map('intval', $_GET['centro_costo']) 
+    : [];
+
+// Convertir a string para SQL (o pasar array al modelo)
+$proveedor_filtro = !empty($proveedores_seleccionados) 
+    ? implode(',', $proveedores_seleccionados) 
+    : null;
+
+$centro_filtro = !empty($centros_seleccionados) 
+    ? implode(',', $centros_seleccionados) 
+    : null;
 
 // Si no hay fechas, usar valores por defecto (último mes)
 if (!$fecha_inicio && !$fecha_fin) {
@@ -116,8 +134,8 @@ $cantidad_compras = obtenerTotalCompras($con, $fecha_inicio, $fecha_fin);
 // 1. Órdenes generadas, atendidas y pendientes
 $resumen_ordenes = obtenerResumenOrdenes(
     $con, 
-    $proveedor, 
-    $centro_costo, 
+    $proveedor_filtro, 
+    $centro_filtro, 
     $fecha_inicio, 
     $fecha_fin
 );
@@ -125,8 +143,8 @@ $resumen_ordenes = obtenerResumenOrdenes(
 // 2. Órdenes atendidas y pendientes POR centro de costo
 $ordenes_por_cc = obtenerOrdenesPorCentroCosto(
     $con,
-    $proveedor,
-    $centro_costo,
+    $proveedor_filtro,
+    $centro_filtro,
     $fecha_inicio,
     $fecha_fin
 );
@@ -134,8 +152,8 @@ $ordenes_por_cc = obtenerOrdenesPorCentroCosto(
 // 3. Órdenes pagadas y pendientes POR centro de costo
 $pagos_por_cc = obtenerPagosPorCentroCosto(
     $con,
-    $proveedor,
-    $centro_costo,
+    $proveedor_filtro,
+    $centro_filtro,
     $fecha_inicio,
     $fecha_fin
 );
@@ -143,8 +161,8 @@ $pagos_por_cc = obtenerPagosPorCentroCosto(
 // 4. Órdenes pagadas y pendientes POR proveedor
 $pagos_por_proveedor = obtenerPagosPorProveedor(
     $con,
-    $proveedor,
-    $centro_costo,
+    $proveedor_filtro,
+    $centro_filtro,
     $fecha_inicio,
     $fecha_fin
 );
@@ -154,8 +172,8 @@ $año_actual = date('Y');
 
 $vencidas = obtenerOrdenesVencidasPorProveedorMes(
     $con,
-    $proveedor,
-    $centro_costo,
+    $proveedor_filtro,
+    $centro_filtro,
     $fecha_inicio,
     $fecha_fin,
     $año_actual
