@@ -1109,6 +1109,12 @@ function EliminarDocumento(id_doc) {
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">
                     <i class="fa fa-times"></i> Cerrar
                 </button>
+
+                <!-- NUEVO BOTÓN DE PAGAR -->
+                <a id="btn-pagar-compra" href="#" class="btn btn-warning">
+                    <i class="fa fa-money"></i> Pagar
+                </a>
+
                 <a id="btn-descargar-pdf-compra" href="#" target="_blank" class="btn btn-primary">
                     <i class="fa fa-file-pdf-o"></i> Descargar PDF
                 </a>
@@ -1792,6 +1798,8 @@ function mostrarDetalleOrdenCompra(id_compra) {
     });
 }
 
+// Busca la función mostrarContenidoDetalleCompra y reemplázala con esta versión actualizada:
+
 function mostrarContenidoDetalleCompra(compra, detalles) {
     const titulo = document.getElementById('modalDetalleOrdenCompraLabel');
     
@@ -2014,6 +2022,66 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
     
     contenido.innerHTML = html;
     contenido.style.display = 'block';
+    
+    // ============================================================================
+    // CONFIGURAR BOTÓN DE PAGAR EN EL PIE DEL MODAL
+    // ============================================================================
+    const btnPagarCompra = document.getElementById('btn-pagar-compra');
+    const tiene_financiera = compra.id_personal_aprueba_financiera && compra.id_personal_aprueba_financiera != '';
+    
+    if (btnPagarCompra) {
+        // Limpiar eventos previos
+        const nuevoBtn = btnPagarCompra.cloneNode(true);
+        btnPagarCompra.parentNode.replaceChild(nuevoBtn, btnPagarCompra);
+        
+        // Estado 1 (PENDIENTE)
+        if (estadoCompra == 1) {
+            if (tiene_financiera) {
+                nuevoBtn.href = 'comprobante_registrar.php?id_compra=' + compra.id_compra;
+                nuevoBtn.className = 'btn btn-warning';
+                nuevoBtn.title = 'Registrar/Ver Pagos';
+                nuevoBtn.removeAttribute('disabled');
+                nuevoBtn.style.opacity = '1';
+                nuevoBtn.style.cursor = 'pointer';
+            } else {
+                nuevoBtn.href = '#';
+                nuevoBtn.className = 'btn btn-outline-secondary disabled';
+                nuevoBtn.title = 'Requiere aprobación financiera';
+                nuevoBtn.setAttribute('disabled', 'disabled');
+                nuevoBtn.style.opacity = '0.6';
+                nuevoBtn.style.cursor = 'not-allowed';
+                nuevoBtn.addEventListener('click', (e) => e.preventDefault());
+            }
+        }
+        // Estado 2 (APROBADO) o 3 (CERRADO)
+        else if (estadoCompra == 2 || estadoCompra == 3) {
+            nuevoBtn.href = 'comprobante_registrar.php?id_compra=' + compra.id_compra;
+            nuevoBtn.className = 'btn btn-warning';
+            nuevoBtn.title = 'Registrar/Ver Pagos';
+            nuevoBtn.removeAttribute('disabled');
+            nuevoBtn.style.opacity = '1';
+            nuevoBtn.style.cursor = 'pointer';
+        }
+        // Estado 4 (PAGADO)
+        else if (estadoCompra == 4) {
+            nuevoBtn.href = 'comprobante_registrar.php?id_compra=' + compra.id_compra;
+            nuevoBtn.className = 'btn btn-warning';
+            nuevoBtn.title = 'Ver pagos (Compra pagada)';
+            nuevoBtn.removeAttribute('disabled');
+            nuevoBtn.style.opacity = '1';
+            nuevoBtn.style.cursor = 'pointer';
+        }
+        // Estado 0 (ANULADO) u otro
+        else {
+            nuevoBtn.href = '#';
+            nuevoBtn.className = 'btn btn-outline-secondary disabled';
+            nuevoBtn.title = 'No disponible';
+            nuevoBtn.setAttribute('disabled', 'disabled');
+            nuevoBtn.style.opacity = '0.6';
+            nuevoBtn.style.cursor = 'not-allowed';
+            nuevoBtn.addEventListener('click', (e) => e.preventDefault());
+        }
+    }
 }
 
 function mostrarErrorDetalleCompra(mensaje) {
