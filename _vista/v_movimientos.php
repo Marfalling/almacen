@@ -59,12 +59,21 @@
                                 <tbody>
                                     <?php 
                                     $contador = 1;
+                                    
                                     foreach($movimientos as $mov) { 
+                                        switch (intval($mov['tipo_orden'])) {
+                                                case 1: $pref='I00'; break;
+                                                case 2: $pref='S00'; break;
+                                                case 3: $pref='D00'; break;
+                                                case 4: $pref='U00'; break;
+                                                case 5: $pref='P00';; break;
+                                                default: echo 'OTRO';
+                                            }
                                     ?>
                                     <tr>
                                         <td><?php echo $contador; ?></td>
                                         <td><?php echo (!empty($mov['fec_movimiento'])) ? date('d/m/Y H:i', strtotime($mov['fec_movimiento'])) : '-'; ?></td>
-                                        <td><?php echo (!empty($mov['id_orden'])) ? $mov['id_orden'] : '-'; ?></td>
+                                        <td><?php echo (!empty($mov['id_orden'])) ? $pref.$mov['id_orden'] : '-'; ?></td>
                                         <td><?php echo trim(($mov['nom_personal'] ?? '') . ' ' . ($mov['ape_personal'] ?? '')); ?></td>
                                         <td><?php echo $mov['nom_producto'] ?? '-'; ?></td>
                                         <td><?php echo $mov['nom_almacen'] ?? '-'; ?></td>
@@ -97,6 +106,8 @@
                                             <center>
                                                 <?php if (intval($mov['est_movimiento']) === 1) { ?>
                                                     <span class="badge badge-success badge_size">ACTIVO</span>
+                                                <?php } elseif (intval($mov['est_movimiento']) === 2) { ?>
+                                                    <span class="badge badge-warning badge_size">PENDIENTE</span>
                                                 <?php } else { ?>
                                                     <span class="badge badge-danger badge_size">INACTIVO</span>
                                                 <?php } ?>

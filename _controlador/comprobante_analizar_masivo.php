@@ -36,7 +36,7 @@ for ($i = 0; $i < count($archivos['name']); $i++) {
     }
 
     $serie = strtoupper($match[1]);
-    $numero = ltrim($match[2], '0');
+    $numero = $match[2];
 
     // 2️⃣ Buscar comprobante correspondiente
     $sql = "SELECT c.id_comprobante, p.nom_proveedor, p.ruc_proveedor

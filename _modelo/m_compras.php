@@ -38,9 +38,9 @@ function MostrarComprasFecha($fecha_inicio = null, $fecha_fin = null)
 
     $where = "";
     if ($fecha_inicio && $fecha_fin) {
-        $where = "WHERE DATE(c.fec_compra) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
+        $where = "WHERE DATE(c.fecha_reg_compra) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
     } else {
-        $where = "WHERE DATE(c.fec_compra) = CURDATE()";
+        $where = "WHERE DATE(c.fecha_reg_compra) = CURDATE()";
     }
 
     $sql = "SELECT 
@@ -301,6 +301,10 @@ function ConsultarCompraPorId($id_compra)
     }
     
     $compra = mysqli_fetch_assoc($resultado);
+
+     if ($compra) {
+        $compra['esta_pagada'] = esCompraPagada($id_compra);
+    }
     
     mysqli_close($con);
     return $compra ? array($compra) : array();

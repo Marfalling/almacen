@@ -400,7 +400,7 @@ $html = '
         <!-- TÍTULO DE ORDEN - ESTILO DEL PRIMER CÓDIGO -->
 
         <div class="cuadros-container">
-            <!-- ESTADO DE DEVOLUCION -->
+            <!-- ESTADO DE COMPRA -->
             <div class="estado-section">
                 <div class="estado-box">
                     ESTADO:<br>

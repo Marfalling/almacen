@@ -139,7 +139,12 @@ require_once("../_modelo/m_detraccion.php");
                     <div class="x_title">
                         <h2><i class="fa fa-file-text"></i> Comprobantes Registrados</h2>
                         <div class="pull-right">
-                            <button type="button" class="btn btn-primary" onclick="abrirModalMasivo()">📤 Subir vouchers masivo</button>
+                            <button 
+                                type="button" 
+                                class="btn <?php echo ($oc['pagado'] == 1) ? 'btn-secondary' : 'btn-primary'; ?>"
+                                <?php echo ($oc['pagado'] == 1) ? 'disabled title="Esta compra está pagada"' : 'onclick="abrirModalMasivo()"'; ?>>
+                                📤 Subir vouchers masivo
+                            </button>
                             <!--<button
                                 class="btn btn-sm <?php echo ($oc['pagado'] == 1 ) ? 'btn-outline-secondary disabled' : 'btn-outline-success'; ?>"
                                 <?php echo ($oc['pagado'] == 1) ? 'disabled title="Esta compra está pagada"' : 'data-toggle="modal" data-target="#modalRegistrarComprobante"'; ?>>
@@ -173,7 +178,7 @@ require_once("../_modelo/m_detraccion.php");
                                         <th>Tipo Doc.</th>
                                         <th>Serie-Número</th>
                                         <th>Monto IGV</th>
-                                        <th>Detracción</th>
+                                        <th>Afectación</th>
                                         <th>Total</th>
                                         <th>Fecha Pago</th>
                                         <th>Voucher</th>
@@ -194,7 +199,16 @@ require_once("../_modelo/m_detraccion.php");
                                         <td>
                                             <?php 
                                             $montoDetraccion = $comp['monto_detraccion'];
-                                            echo $comp['simbolo_moneda'] . ' ' . number_format($montoDetraccion, 2);
+                                            
+                                            $signo = '';
+                                            if (isset($comp['id_detraccion']) && $montoDetraccion > 0) {
+                                                if ($comp['id_detraccion'] == 13) {
+                                                    $signo = '+ '; // Percepción (suma)
+                                                } else {
+                                                    $signo = '- '; // Detracción (resta)
+                                                }
+                                            }
+                                            echo $comp['simbolo_moneda'] . ' ' .$signo.' '. number_format($montoDetraccion, 2);
                                             
                                             // Mostrar ícono solo si tiene detracción y NO es percepción (id_detraccion != 13)
                                             if ($montoDetraccion > 0 && isset($comp['id_detraccion']) && $comp['id_detraccion'] != 13) {
@@ -237,6 +251,16 @@ require_once("../_modelo/m_detraccion.php");
                                             $tieneVoucherDetraccion = !empty($comp['voucher_detraccion']);
                                             $montoDetraccion = $comp['monto_detraccion'];
                                             $tieneDetraccion = ($montoDetraccion > 0 && isset($comp['id_detraccion']) && $comp['id_detraccion'] != 13);
+                                            
+                                            // Determinar el nombre según id_detraccion
+                                            $nombreDetraccion = 'Detracción'; // Por defecto
+                                            if (isset($comp['id_detraccion'])) {
+                                                if ($comp['id_detraccion'] == 13) {
+                                                    $nombreDetraccion = 'Percepción';
+                                                } elseif ($comp['id_detraccion'] == 12) {
+                                                    $nombreDetraccion = 'Retención';
+                                                }
+                                            }
                                             ?>
                                             
                                             <?php if ($tieneVoucherProveedor): ?>
@@ -252,7 +276,7 @@ require_once("../_modelo/m_detraccion.php");
                                                 <a href="../_upload/vouchers/<?php echo $comp['voucher_detraccion']; ?>" 
                                                 target="_blank" 
                                                 style="text-decoration: underline; color: #007bff;">
-                                                    Detracción
+                                                    <?php echo $nombreDetraccion; ?>
                                                 </a>
                                             <?php endif; ?>
                                             
@@ -521,7 +545,7 @@ require_once("../_modelo/m_detraccion.php");
                 
                 <div class="row">
                     <div class="col-md-6">
-                        <label>Detracción</label>
+                        <label>Afectación</label>
 
                         <?php 
                         foreach($monedas as $mon) { 
@@ -727,7 +751,7 @@ require_once("../_modelo/m_detraccion.php");
                 
                 <div class="row">
                     <div class="col-md-6">
-                        <label>Detracción</label>
+                        <label>Afectación</label>
 
                         <?php 
                         foreach($monedas as $mon) { 
@@ -1473,6 +1497,16 @@ function VerDetalleComprobante(id_comprobante) {
             let subtotal = parseFloat(data.monto_total_igv > 0 ? data.total_pagar - data.monto_total_igv : data.total_pagar);
             let montoDetraccion = parseFloat(data.monto_detraccion || 0);
             let tieneDetraccion = (montoDetraccion > 0 && data.id_detraccion && data.id_detraccion != 13);
+
+            // Determinar el nombre según id_detraccion
+            let nombreDetraccion = 'Detracción';
+            if (data.id_detraccion) {
+                if (data.id_detraccion == 13) {
+                    nombreDetraccion = 'Percepción';
+                } else if (data.id_detraccion == 12) {
+                    nombreDetraccion = 'Retención';
+                }
+            }
             
             let html = `
                 <table class="table table-sm table-bordered">
@@ -1500,10 +1534,10 @@ function VerDetalleComprobante(id_comprobante) {
                                 '<a href="../_upload/comprobantes/' + data.archivo_xml + '" target="_blank" class="btn btn-sm btn-info" style="margin-right: 8px;"><i class="fa fa-file-code-o"></i> XML</a>' : 
                                 ''}
                             ${data.voucher_proveedor ? 
-                                '<a href="../_upload/vouchers/' + data.voucher_proveedor + '" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-check-circle"></i> Proveedor</a>' : 
+                                '<a href="../_upload/vouchers/' + data.voucher_proveedor + '" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-check-circle"></i> Pago Comprobante</a>' : 
                                 ''}
                             ${(tieneDetraccion && data.voucher_detraccion) ? 
-                                '<a href="../_upload/vouchers/' + data.voucher_detraccion + '" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-check-circle"></i> Detracción</a>' : 
+                                '<a href="../_upload/vouchers/' + data.voucher_detraccion + '" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-check-circle"></i> Pago ' + nombreDetraccion + '</a>' : 
                                 ''}
                         </div>
                     </div>

@@ -98,7 +98,7 @@ function obtenerResumenOrdenes($con, $proveedor = null, $centro_costo = null, $f
         $esta_pagada = ($total_pagado >= $total_compra);
 
         // Clasificar: Atendida si est_compra=3 O si está pagada
-        if ($est_compra == 3 || $esta_pagada) {
+        if ($est_compra == 3) {
             $ordenes_atendidas++;
         } else {
             // est_compra: 1=Pendiente, 2=Parcial
@@ -191,7 +191,7 @@ function obtenerOrdenesPorCentroCosto($con, $proveedor = null, $centro_costo = n
         $esta_pagada = ($total_pagado >= $total_compra);
 
         // Clasificar: Atendida si est_compra=3 O si está pagada
-        if ($est_compra == 3 || $esta_pagada) {
+        if ($est_compra == 3) {
             $centros[$id_area]['atendidas']++;
         } else {
             $centros[$id_area]['pendientes']++;

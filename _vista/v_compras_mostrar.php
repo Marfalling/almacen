@@ -1243,25 +1243,25 @@ function EliminarDocumento(id_doc) {
 
 // Variables globales
 let archivosSeleccionados = [];
+let datosAnalisis = null; // Almacena resultado del análisis
 
 // ============================================================
-// 4️⃣ FUNCIONES DE SUBIDA MASIVA
+//  FUNCIONES DE SUBIDA MASIVA
 // ============================================================
 
-// ✅ INICIALIZAR SOLO UNA VEZ
+// INICIALIZAR SOLO UNA VEZ
 function inicializarModalMasivo() {
     const inputArchivos = document.getElementById("inputArchivos");
     
     if (!inputArchivos) {
-        console.error("❌ Input de archivos no encontrado");
+        console.error(" Input de archivos no encontrado");
         return;
     }
     
-    // ✅ Remover listener anterior (evita duplicados)
     inputArchivos.removeEventListener("change", manejarCambioArchivos);
     inputArchivos.addEventListener("change", manejarCambioArchivos);
     
-    console.log("✅ Modal masivo inicializado");
+    console.log(" Modal masivo inicializado");
 }
 
 function abrirModalMasivo() {
@@ -1269,12 +1269,11 @@ function abrirModalMasivo() {
     if (modal) {
         modal.style.display = "flex";
         
-        // ✅ Inicializar SOLO cuando se abre
         setTimeout(() => {
             inicializarModalMasivo();
         }, 200);
     } else {
-        console.error("❌ Modal no encontrado");
+        console.error(" Modal no encontrado");
     }
 }
 
@@ -1283,12 +1282,13 @@ function cerrarModalMasivo() {
     if (modal) {
         modal.style.display = "none";
         archivosSeleccionados = [];
+        datosAnalisis = null;
         document.getElementById("listaArchivos").innerHTML = "";
     }
 }
 
 function manejarCambioArchivos(e) {
-    console.log("📂 ¡¡¡CAMBIO DETECTADO!!!");
+    console.log(" ¡¡¡CAMBIO DETECTADO!!!");
     const nuevosArchivos = Array.from(e.target.files);
     if (nuevosArchivos.length === 0) return;
 
@@ -1317,7 +1317,7 @@ function manejarCambioArchivos(e) {
 
         if (!archivosSeleccionados.find(a => a.name === nombre)) {
             archivosSeleccionados.push(archivo);
-            console.log("✅ Archivo agregado:", nombre);
+            console.log(" Archivo agregado:", nombre);
         } else {
             Swal.fire({
                 icon: 'info',
@@ -1378,267 +1378,376 @@ function eliminarArchivo(index) {
     actualizarListaArchivos();
 }
 
-
+// NUEVO FLUJO: FASE 1 - ANÁLISIS
 async function procesarArchivos() {
     if (archivosSeleccionados.length === 0) {
         Swal.fire('Advertencia', 'Selecciona al menos un archivo', 'warning');
         return;
     }
 
-    const conflictos = [];
-    let exitosos = 0;
-    let todosLosErrores = []; // 🔥 NUEVO: Acumular errores de todos los archivos
-
+    // 1️⃣ FASE DE ANÁLISIS
     Swal.fire({
-        title: 'Procesando...',
-        html: `<b>0</b> / ${archivosSeleccionados.length} archivos procesados`,
+        title: 'Analizando archivos...',
+        html: '',
         allowOutsideClick: false,
         didOpen: () => Swal.showLoading()
     });
 
-    for (let i = 0; i < archivosSeleccionados.length; i++) {
-        const archivo = archivosSeleccionados[i];
-        const formData = new FormData();
+    const formData = new FormData();
+    archivosSeleccionados.forEach(archivo => {
         formData.append('archivos[]', archivo);
-        formData.append('enviar_proveedor', document.getElementById('enviarProveedor').checked ? 1 : 0);
-        formData.append('enviar_contabilidad', document.getElementById('enviarContabilidad').checked ? 1 : 0);
-        formData.append('enviar_tesoreria', document.getElementById('enviarTesoreria').checked ? 1 : 0);
+    });
 
-        try {
-            const response = await fetch('../_controlador/comprobante_subida_masiva.php', {
-                method: 'POST',
-                body: formData
-            });
+    try {
+        const response = await fetch('../_controlador/comprobante_analizar_masivo.php', {
+            method: 'POST',
+            body: formData
+        });
 
-            const data = await response.json();
+        datosAnalisis = await response.json();
+        
+        Swal.close();
 
-            if (data.conflicto) {
-                conflictos.push(data);
-            } else if (data.success) {
-                exitosos += data.exitosos;
-                
-                // 🔥 NUEVO: Acumular errores
-                if (data.errores && data.errores.length > 0) {
-                    todosLosErrores = todosLosErrores.concat(data.errores);
-                }
-            }
-
-            Swal.update({
-                html: `<b>${i + 1}</b> / ${archivosSeleccionados.length} archivos procesados`
-            });
-
-        } catch (error) {
-            console.error('Error procesando archivo:', archivo.name, error);
-            todosLosErrores.push({
-                archivo: archivo.name,
-                motivo: 'Error de conexión con el servidor'
-            });
+        if (!datosAnalisis.success) {
+            Swal.fire('Error', datosAnalisis.mensaje || 'Error al analizar archivos', 'error');
+            return;
         }
+
+        // 2️⃣ ¿HAY CONFLICTOS?
+        if (datosAnalisis.conflictos.length > 0) {
+            //await mostrarResumenAnalisis();
+            await resolverConflictos();
+        } else {
+            // 3️⃣ NO HAY CONFLICTOS → REGISTRAR DIRECTAMENTE
+            await registrarArchivosMasivo();
+        }
+
+    } catch (error) {
+        Swal.close();
+        console.error('Error:', error);
+        Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
+    }
+}
+
+// NUEVO: Mostrar resumen del análisis
+/*async function mostrarResumenAnalisis() {
+    const { correctos, conflictos, errores } = datosAnalisis;
+
+    return Swal.fire({
+        icon: 'info',
+        title: 'Análisis completado',
+        html: `
+            <div style="text-align:center; margin:12px 0;">
+                <span class="badge badge-success" style="font-size:13px; padding:6px 12px;">
+                    ✅ ${correctos.length} correctos
+                </span>
+                <span class="badge badge-warning" style="font-size:13px; padding:6px 12px;">
+                    ⚠️ ${conflictos.length} conflictos
+                </span>
+                <span class="badge badge-danger" style="font-size:13px; padding:6px 12px;">
+                    ❌ ${errores.length} errores
+                </span>
+            </div>
+            <p style="margin-top:12px; font-size:13px;">
+                ${conflictos.length > 0 ? 'Debes resolver los conflictos antes de continuar' : 'Procederemos con el registro'}
+            </p>
+        `,
+        confirmButtonText: conflictos.length > 0 ? 'Resolver conflictos' : 'Continuar'
+    });
+}*/
+
+// NUEVO FLUJO: FASE 2 - RESOLUCIÓN DE CONFLICTOS
+async function resolverConflictos() {
+    let indice = 0;
+    const conflictos = datosAnalisis.conflictos;
+
+    console.log(`🔍 Iniciando resolución de ${conflictos.length} conflictos`);
+
+    async function mostrarSiguienteConflicto() {
+        if (indice >= conflictos.length) {
+            console.log("✅ Todos los conflictos resueltos");
+            // ✅ Todos los conflictos resueltos → REGISTRAR
+            await registrarArchivosMasivo();
+            return;
+        }
+
+        const conflicto = conflictos[indice];
+        console.log(`📋 Mostrando conflicto ${indice + 1}/${conflictos.length}:`, conflicto.archivo);
+        
+        await mostrarModalConflicto(
+            conflicto.archivo,
+            conflicto.serie,
+            conflicto.numero,
+            conflicto.opciones,
+            indice + 1,
+            conflictos.length
+        );
     }
 
-    Swal.close();
+    // Callback para siguiente conflicto
+    window.resolverConflictoCallback = async (id_comprobante_seleccionado) => {
+        console.log(`✅ Resolviendo conflicto ${indice + 1} con ID:`, id_comprobante_seleccionado);
+        
+        // Mover de conflictos a correctos
+        const conflictoResuelto = conflictos[indice];
+        const opcionSeleccionada = conflictoResuelto.opciones.find(
+            op => op.id_comprobante == id_comprobante_seleccionado
+        );
 
-    // 🔥 NUEVO: Mostrar resultados detallados
-    if (conflictos.length > 0) {
+        if (!opcionSeleccionada) {
+            console.error("❌ Opción no encontrada");
+            return;
+        }
+
+        datosAnalisis.correctos.push({
+            archivo: conflictoResuelto.archivo,
+            serie: conflictoResuelto.serie,
+            numero: conflictoResuelto.numero,
+            id_comprobante: id_comprobante_seleccionado,
+            nom_proveedor: opcionSeleccionada.nom_proveedor,
+            ruc_proveedor: opcionSeleccionada.ruc_proveedor,
+            archivo_temporal: conflictoResuelto.archivo_temporal,
+            extension: conflictoResuelto.extension
+        });
+
+        console.log(`✅ Conflicto ${indice + 1} resuelto. Correctos:`, datosAnalisis.correctos.length);
+
+        indice++;
+        await mostrarSiguienteConflicto();
+    };
+
+    await mostrarSiguienteConflicto();
+}
+
+// ACTUALIZAR: Modal de conflicto con contador con SweetAlert2
+async function mostrarModalConflicto(archivo, serie, numero, opciones, actual, total) {
+    let htmlOpciones = "";
+    
+    opciones.forEach(op => {
+        htmlOpciones += `
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="conflictoProveedor" value="${op.id_comprobante}" id="opt_${op.id_comprobante}">
+            <label class="form-check-label" for="opt_${op.id_comprobante}">
+                <strong>${op.nom_proveedor}</strong><br>
+                <small class="text-muted">RUC: ${op.ruc_proveedor}</small>
+            </label>
+        </div>`;
+    });
+
+    const result = await Swal.fire({
+        title: 'Información',
+        html: `
+            <div style="text-align:left;">
+                <p class="mb-1">Se encontraron varios comprobantes con la serie y número: <strong>${serie}-${numero}</strong></p>
+                <br>
+                <p>Seleccione a qué proveedor pertenece el archivo:</p>
+                ${htmlOpciones}
+            </div>
+        `,
+        width: '400px',
+        showCancelButton: true,
+        confirmButtonText: 'Asignar',
+        cancelButtonText: 'Cancelar',
+        customClass: {
+            popup: 'swal2-small',
+            title: 'swal2-title-warning'
+        },
+        preConfirm: () => {
+            const seleccionado = document.querySelector('input[name="conflictoProveedor"]:checked');
+            if (!seleccionado) {
+                Swal.showValidationMessage('Debes seleccionar un proveedor');
+                return false;
+            }
+            return seleccionado.value;
+        }
+    });
+
+    if (result.isConfirmed) {
+        if (window.resolverConflictoCallback) {
+            await window.resolverConflictoCallback(result.value);
+        }
+    } else {
+        Swal.fire('Proceso cancelado', 'No se registró ningún archivo', 'info');
+    }
+}
+
+// ACTUALIZAR: Resolver conflicto (sin registrar)
+function resolverConflicto() {
+    let id_comprobante = document.querySelector('input[name="conflictoProveedor"]:checked');
+    
+    if (!id_comprobante) {
         Swal.fire({
             icon: 'warning',
-            title: 'Conflictos detectados',
-            html: `<b>${conflictos.length}</b> archivo(s) tienen múltiples coincidencias.<br>
-                   <b>${exitosos}</b> exitosos | <b>${todosLosErrores.length}</b> fallidos`,
-            confirmButtonText: 'Resolver conflictos'
-        }).then(() => {
-            procesarConflictos(conflictos);
+            title: 'Selección requerida',
+            text: 'Debes seleccionar un proveedor',
+            confirmButtonText: 'Entendido'
         });
-    } else if (todosLosErrores.length > 0) {
-        mostrarErroresDetallados(exitosos, todosLosErrores);
-    } else {
+        return;
+    }
+
+    id_comprobante = id_comprobante.value;
+    
+    $("#modalConflicto").modal("hide");
+    
+    // Llamar callback para continuar
+    if (window.resolverConflictoCallback) {
+        window.resolverConflictoCallback(id_comprobante);
+    }
+}
+
+// NUEVO FLUJO: FASE 3 - REGISTRO MASIVO
+async function registrarArchivosMasivo() {
+    const { correctos, errores } = datosAnalisis;
+
+    if (correctos.length === 0) {
+        mostrarResultadoFinal(0, errores);
+        return;
+    }
+
+    Swal.fire({
+        title: 'Registrando archivos...',
+        html: `Procesando ${correctos.length} archivo(s)`,
+        allowOutsideClick: false,
+        didOpen: () => Swal.showLoading()
+    });
+
+    // Preparar datos para envío
+    const archivos_a_registrar = correctos.map(item => ({
+        archivo: item.archivo,
+        id_comprobante: item.id_comprobante,
+        archivo_temporal: item.archivo_temporal,
+        extension: item.extension
+    }));
+
+    const payload = {
+        archivos_a_registrar: archivos_a_registrar,
+        enviar_proveedor: document.getElementById('enviarProveedor').checked ? 1 : 0,
+        enviar_contabilidad: document.getElementById('enviarContabilidad').checked ? 1 : 0,
+        enviar_tesoreria: document.getElementById('enviarTesoreria').checked ? 1 : 0
+    };
+
+    try {
+        const response = await fetch('../_controlador/comprobante_subida_masiva.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const resultado = await response.json();
+        
+        Swal.close();
+
+        if (resultado.success) {
+            // Combinar errores de análisis + errores de registro
+            const todosLosErrores = [...errores, ...resultado.errores];
+            mostrarResultadoFinal(resultado.exitosos, todosLosErrores);
+        } else {
+            Swal.fire('Error', resultado.mensaje || 'Error al registrar archivos', 'error');
+        }
+
+    } catch (error) {
+        Swal.close();
+        console.error('Error:', error);
+        Swal.fire('Error', 'No se pudo conectar con el servidor', 'error');
+    }
+}
+
+// NUEVO FLUJO: FASE 4 - RESULTADO FINAL
+function mostrarResultadoFinal(exitosos, errores) {
+    if (errores.length === 0) {
+        // ✅ TODO EXITOSO
         Swal.fire({
             icon: 'success',
-            title: 'Proceso completado',
+            title: '¡Proceso completado!',
             html: `<b>${exitosos}</b> archivo(s) procesado(s) exitosamente`,
             confirmButtonText: 'Aceptar'
         }).then(() => {
             cerrarModalMasivo();
             location.reload();
         });
-    }
-}
+    } else {
+        // ⚠️ HAY ERRORES
+        let htmlErrores = '<div style="max-height:350px; overflow-y:auto; text-align:left; margin-top:10px;">';
+        
+        errores.forEach((error) => {
+            htmlErrores += `
+                <div style="
+                    display:flex; 
+                    align-items:center; 
+                    gap:8px;
+                    padding:6px 10px; 
+                    margin-bottom:4px;
+                    background:#f8f9fa;
+                    border-radius:4px;
+                    border-left:3px solid #dc3545;
+                    transition: all 0.2s;
+                " onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">
+                    <i class="fa fa-file-o" style="color:#dc3545; font-size:12px;"></i>
+                    <span style="font-size:12px; color:#495057; flex:1; min-width:0;">
+                        ${error.archivo}
+                    </span>
+                    <span 
+                        style="
+                            background:#dc3545;
+                            color:white;
+                            width:18px;
+                            height:18px;
+                            border-radius:50%;
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            font-size:10px;
+                            cursor:help;
+                            flex-shrink:0;
+                        "
+                        title="${error.motivo}"
+                        data-toggle="tooltip"
+                        data-placement="left"
+                    >
+                        <i class="fa fa-info"></i>
+                    </span>
+                </div>
+            `;
+        });
+        
+        htmlErrores += '</div>';
 
-// 🔥 NUEVA FUNCIÓN: Mostrar errores detallados
-function mostrarErroresDetallados(exitosos, errores) {
-    let htmlErrores = '<div style="max-height:350px; overflow-y:auto; text-align:left; margin-top:10px;">';
-    
-    errores.forEach((error, index) => {
-        htmlErrores += `
-            <div style="
-                display:flex; 
-                align-items:center; 
-                gap:8px;
-                padding:6px 10px; 
-                margin-bottom:4px;
-                background:#f8f9fa;
-                border-radius:4px;
-                border-left:3px solid #dc3545;
-                transition: all 0.2s;
-            " onmouseover="this.style.background='#e9ecef'" onmouseout="this.style.background='#f8f9fa'">
-                <i class="fa fa-file-o" style="color:#dc3545; font-size:12px;"></i>
-                <span style="font-size:12px; color:#495057; flex:1; min-width:0;">
-                    ${error.archivo}
-                </span>
-                <span 
-                    style="
-                        background:#dc3545;
-                        color:white;
-                        width:18px;
-                        height:18px;
-                        border-radius:50%;
-                        display:flex;
-                        align-items:center;
-                        justify-content:center;
-                        font-size:10px;
-                        cursor:help;
-                        flex-shrink:0;
-                    "
-                    title="${error.motivo}"
-                    data-toggle="tooltip"
-                    data-placement="left"
-                >
-                    <i class="fa fa-info"></i>
-                </span>
-            </div>
-        `;
-    });
-    
-    htmlErrores += '</div>';
-
-    Swal.fire({
-        icon: 'warning',
-        title: 'Proceso con errores',
-        html: `
-            <div style="text-align:center; margin:8px 0 12px 0;">
-                <span class="badge badge-success" style="font-size:12px; padding:4px 10px;">
-                    ${exitosos} exitosos
-                </span>
-                <span class="badge badge-danger" style="font-size:12px; padding:4px 10px;">
-                    ${errores.length} fallidos
-                </span>
-            </div>
-            ${htmlErrores}
-        `,
-        width: '500px',
-        confirmButtonText: 'Cerrar',
-        confirmButtonColor: '#6c757d',
-        didOpen: () => {
-            $('[data-toggle="tooltip"]').tooltip();
-        },
-        willClose: () => {
-            $('[data-toggle="tooltip"]').tooltip('dispose');
-        }
-    }).then(() => {
-        if (exitosos > 0) {
-            cerrarModalMasivo();
-            location.reload();
-        }
-    });
-}
-
-function procesarConflictos(conflictos) {
-    let indice = 0;
-
-    function mostrarSiguienteConflicto() {
-        if (indice >= conflictos.length) {
-            Swal.fire('Completado', 'Todos los conflictos resueltos', 'success').then(() => {
-                location.reload();
-            });
-            return;
-        }
-
-        const conflicto = conflictos[indice];
-        mostrarModalConflicto(
-            conflicto.archivo,
-            conflicto.serie,
-            conflicto.numero,
-            conflicto.opciones
-        );
-
-        window.resolverConflictoCallback = () => {
-            indice++;
-            mostrarSiguienteConflicto();
-        };
-    }
-
-    mostrarSiguienteConflicto();
-}
-
-function mostrarModalConflicto(archivo, serie, numero, opciones) {
-    document.getElementById("conflicto_archivo").value = archivo;
-    document.getElementById("conflicto_serie_numero").innerHTML = serie + "-" + numero;
-
-    let html = "";
-    opciones.forEach(op => {
-        html += `
-        <div class="form-check">
-            <input class="form-check-input" type="radio" name="conflictoProveedor" value="${op.id_comprobante}">
-            <label class="form-check-label">
-                ${op.nom_proveedor} <small>(RUC: ${op.ruc_proveedor})</small>
-            </label>
-        </div>`;
-    });
-
-    document.getElementById("conflicto_opciones").innerHTML = html;
-    $("#modalConflicto").modal("show");
-}
-
-function resolverConflicto() {
-    let id_comprobante = document.querySelector('input[name="conflictoProveedor"]:checked');
-    if (!id_comprobante) {
         Swal.fire({
-            icon: 'warning',
-            title: 'Selección requerida',
-            text: 'Debes seleccionar un proveedor o cancelar',
-            showCancelButton: true,
-            confirmButtonText: 'Entendido',
-            cancelButtonText: 'Omitir archivo'
-        }).then((result) => {
-            if (result.isDismissed && window.resolverConflictoCallback) {
-                window.resolverConflictoCallback();
+            icon: exitosos > 0 ? 'warning' : 'error',
+            title: exitosos > 0 ? 'Proceso con errores' : 'Proceso fallido',
+            html: `
+                <div style="text-align:center; margin:8px 0 12px 0;">
+                    ${exitosos > 0 ? `
+                        <span class="badge badge-success" style="font-size:12px; padding:4px 10px;">
+                            ${exitosos} exitosos
+                        </span>
+                    ` : ''}
+                    <span class="badge badge-danger" style="font-size:12px; padding:4px 10px;">
+                        ${errores.length} fallidos
+                    </span>
+                </div>
+                ${htmlErrores}
+            `,
+            width: '500px',
+            confirmButtonText: 'Cerrar',
+            confirmButtonColor: '#6c757d',
+            didOpen: () => {
+                $('[data-toggle="tooltip"]').tooltip();
+            },
+            willClose: () => {
+                $('[data-toggle="tooltip"]').tooltip('dispose');
+            }
+        }).then(() => {
+            if (exitosos > 0) {
+                cerrarModalMasivo();
+                location.reload();
             }
         });
-        return;
     }
-
-    id_comprobante = id_comprobante.value;
-    let archivo = document.getElementById("conflicto_archivo").value;
-
-    const formData = new FormData();
-    formData.append("id_comprobante", id_comprobante);
-    formData.append("archivo", archivo);
-    formData.append('enviar_proveedor', document.getElementById('enviarProveedor').checked ? 1 : 0);
-    formData.append('enviar_contabilidad', document.getElementById('enviarContabilidad').checked ? 1 : 0);
-    formData.append('enviar_tesoreria', document.getElementById('enviarTesoreria').checked ? 1 : 0);
-
-    fetch("../_controlador/voucher_asignar_manual.php", {
-        method: "POST",
-        body: formData
-    })
-    .then(res => res.json())
-    .then(resp => {
-        if (resp.success) {
-            Swal.fire("Asignado", "Voucher asignado correctamente", "success");
-            $("#modalConflicto").modal("hide");
-            
-            if (window.resolverConflictoCallback) {
-                window.resolverConflictoCallback();
-            }
-        } else {
-            Swal.fire("Error", resp.mensaje || "Ocurrió un error", "error");
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire("Error", "No se pudo conectar con el servidor", "error");
-    });
 }
+
 
 // ============================================================================
 // FUNCIÓN PARA VER DETALLES DE ORDEN DE COMPRA

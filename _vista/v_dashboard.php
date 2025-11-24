@@ -279,8 +279,8 @@
                     <tr>
                       <td><?php echo $cc['centro_costo']; ?></td>
                       <td><?php echo $cc['total_ordenes']; ?></td>
-                      <td><span class="badge badge-success"><?php echo $cc['atendidas']; ?></span></td>
-                      <td><span class="badge badge-warning"><?php echo $cc['pendientes']; ?></span></td>
+                      <td><span class="badge badge-success" style="font-size: 14px; padding: 6px 12px;"><?php echo $cc['atendidas']; ?></span></td>
+                      <td><span class="badge badge-warning" style="font-size: 14px; padding: 6px 12px;"><?php echo $cc['pendientes']; ?></span></td>
                       <td>
                         <div class="progress" style="margin:0">
                           <div class="progress-bar bg-green" style="width:<?php echo $porcentaje; ?>%">
@@ -374,8 +374,8 @@
                     <tr>
                       <td><?php echo $pago['centro_costo']; ?></td>
                       <td><?php echo $pago['total_ordenes']; ?></td>
-                      <td><span class="badge badge-success"><?php echo $pago['pagadas']; ?></span></td>
-                      <td><span class="badge badge-danger"><?php echo $pago['pendientes_pago']; ?></span></td>
+                      <td><span class="badge badge-success" style="font-size: 14px; padding: 6px 12px;"><?php echo $pago['pagadas']; ?></span></td>
+                      <td><span class="badge badge-danger" style="font-size: 14px; padding: 6px 12px;"><?php echo $pago['pendientes_pago']; ?></span></td>
                       <td><strong>S/ <?php echo number_format($pago['monto_pagado'], 2); ?></strong></td>
                       <td><strong>S/ <?php echo number_format($pago['monto_pendiente'], 2); ?></strong></td>
                     </tr>
@@ -419,8 +419,8 @@
                     <tr>
                       <td><?php echo $pago['proveedor']; ?></td>
                       <td><?php echo $pago['total_ordenes']; ?></td>
-                      <td><span class="badge badge-success"><?php echo $pago['pagadas']; ?></span></td>
-                      <td><span class="badge badge-danger"><?php echo $pago['pendientes_pago']; ?></span></td>
+                      <td><span class="badge badge-success" style="font-size: 14px; padding: 6px 12px;"><?php echo $pago['pagadas']; ?></span></td>
+                      <td><span class="badge badge-danger" style="font-size: 14px; padding: 6px 12px;"><?php echo $pago['pendientes_pago']; ?></span></td>
                       <td><strong>S/ <?php echo number_format($pago['monto_pagado'], 2); ?></strong></td>
                       <td><strong>S/ <?php echo number_format($pago['monto_pendiente'], 2); ?></strong></td>
                     </tr>

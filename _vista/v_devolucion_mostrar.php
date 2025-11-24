@@ -81,7 +81,7 @@
                                                     <td>       
                                                         <center>
                                                             <?php if($devolucion['est_devolucion'] == 1) { ?>
-                                                            <span class="badge badge-success badge_size">ACTIVO</span>
+                                                            <span class="badge badge-success badge_size">PENDIENTE</span>
                                                             <?php } elseif($devolucion['est_devolucion'] == 2) { ?>
                                                                 <span class="badge badge-success badge_size">CONFIRMADO</span>
                                                             <?php } else { ?>

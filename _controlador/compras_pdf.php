@@ -86,12 +86,32 @@ $simbolo_moneda = $compra['sim_moneda'] ?? 'S/.';
 // Estado de la compra
 $estado_texto = '';
 switch($compra['est_compra']) {
-    case 1: $estado_texto = 'PENDIENTE'; break;
-    case 2: $estado_texto = 'APROBADO'; break;
-    case 3: $estado_texto = 'APROBADO'; break;
-    case 4: $estado_texto = 'PAGADO'; break;
-    case 0: $estado_texto = 'ANULADO'; break;
-    default: $estado_texto = 'DESCONOCIDO';
+    case 1: 
+        $estado_texto = 'PENDIENTE'; 
+        break;
+        
+    case 2: 
+        if ($compra['esta_pagada']) {
+            $estado_texto = 'PAGADO';
+        } else {
+            $estado_texto = 'APROBADO';
+        }
+        break;
+        
+    case 3: 
+        if ($compra['esta_pagada']) {
+            $estado_texto = 'CERRADO';
+        } else {
+            $estado_texto = 'INGRESADO';
+        }
+        break;
+        
+    case 0: 
+        $estado_texto = 'ANULADO'; 
+        break;
+        
+    default: 
+        $estado_texto = 'DESCONOCIDO';
 }
 
 $tiene_detraccion = false;

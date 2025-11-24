@@ -176,9 +176,10 @@ function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $id_personal
     // $comprobante ya fue obtenido con mysqli_fetch_assoc($res_check)
 
     $tiene_detraccion = false;
-    if (isset($comprobante['id_detraccion'])) {
-        // ajusta el nombre del campo según tu esquema real: puede ser 'monto_detraccion', 'detraccion', 'id_detraccion'...
-        $tiene_detraccion = floatval($comprobante['id_detraccion']) > 0 && floatval($comprobante['id_detraccion']) != 0;
+    if (isset($comprobante['id_detraccion']) && !empty($comprobante['id_detraccion'])) {
+        $id_detraccion_valor = intval($comprobante['id_detraccion']);
+        // Solo es detracción si tiene valor Y no es 13 (percepción)
+        $tiene_detraccion = ($id_detraccion_valor > 0 && $id_detraccion_valor != 13);
     }
 
     // Obtener conteo de pagos activos existentes por tipo (1 = monto, 2 = impuesto)
@@ -743,8 +744,16 @@ function ConsultarComprobante($id_comprobante)
                        AND cp_det.fg_comprobante_pago = 2 
                        AND cp_det.est_comprobante_pago = 1
                        LIMIT 1) as voucher_detraccion,
-                    -- Calcular monto de detracción
-                   (c.monto_total_igv - c.total_pagar) as monto_detraccion,
+                    CASE 
+                       WHEN c.id_detraccion = 13 THEN 
+                           -- PERCEPCIÓN: total_pagar es MAYOR (se suma)
+                           ROUND(c.total_pagar - c.monto_total_igv, 2)
+                       WHEN c.id_detraccion IS NOT NULL THEN 
+                           -- DETRACCIÓN: monto_total_igv es MAYOR (se resta)
+                           ROUND(c.monto_total_igv - c.total_pagar, 2)
+                       ELSE 
+                           0
+                    END as monto_detraccion,
                    CASE 
                        WHEN c.est_comprobante = 1 THEN 'Activo'
                        WHEN c.est_comprobante = 0 THEN 'Anulado'
@@ -911,7 +920,16 @@ function MostrarComprobantesCompra($id_compra)
                    m.nom_moneda,
                    mp.nom_medio_pago,
                    per.nom_personal,
-                   (c.monto_total_igv - c.total_pagar) as monto_detraccion,
+                   CASE 
+                       WHEN c.id_detraccion = 13 THEN 
+                           -- PERCEPCIÓN: total_pagar es MAYOR
+                           ROUND(c.total_pagar - c.monto_total_igv, 2)
+                       WHEN c.id_detraccion IS NOT NULL THEN 
+                           -- DETRACCIÓN: monto_total_igv es MAYOR
+                           ROUND(c.monto_total_igv - c.total_pagar, 2)
+                       ELSE 
+                           0
+                   END as monto_detraccion,
 
                     -- Verificar si existe pago al proveedor (fg=1)
                     (SELECT COUNT(*) FROM comprobante_pago cp1 
@@ -1380,7 +1398,7 @@ function obtenerComprobantesEstado1($id_moneda)
         p.nom_proveedor AS beneficiario,
 
         -- Importe con 2 decimales
-        FORMAT(c.total_pagar, 2) AS importe_abonar,
+        ROUND(COALESCE(c.total_pagar, 0), 2) AS importe_abonar,
 
          -- Tipo recibo (F = factura, B = boleta, R = recibo/honorario, fallback = primera letra)
         CASE
