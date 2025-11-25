@@ -501,6 +501,9 @@ function AnularDevolucion($id_devolucion) {
 
 function ConfirmarDevolucion($id_devolucion) {
     include("../_conexion/conexion.php");
+    
+    // Obtener id_personal de la sesión
+    $id_personal = $_SESSION['id_personal'];
 
     // 1. Actualizar estado de la devolución
     $sql = "UPDATE devolucion 
@@ -513,8 +516,13 @@ function ConfirmarDevolucion($id_devolucion) {
         return "ERROR: " . $error;
     }
 
-    // 2. Actualizar movimientos asociados a esta devolución
-    // Movimiento de SALIDA (tipo_movimiento = 2) → est_movimiento = 1
+    // 2. Obtener el ID_CLIENTE_DESTINO de la devolución
+    $sql_get_cliente = "SELECT id_cliente_destino FROM devolucion WHERE id_devolucion = $id_devolucion";
+    $result_cliente = mysqli_query($con, $sql_get_cliente);
+    $row_cliente = mysqli_fetch_assoc($result_cliente);
+    $id_cliente_destino = $row_cliente['id_cliente_destino'];
+
+    // 3. Actualizar movimientos de SALIDA (tipo_movimiento = 2) → est_movimiento = 1
     $sql_salida = "UPDATE movimiento 
                    SET est_movimiento = 1 
                    WHERE id_orden = $id_devolucion 
@@ -528,9 +536,9 @@ function ConfirmarDevolucion($id_devolucion) {
         return "ERROR actualizando salida: " . $error;
     }
 
-    // 3. Actualizar movimiento de ENTRADA (tipo_movimiento = 1) → est_movimiento = 0
+    // 4. Actualizar movimiento de ENTRADA (tipo_movimiento = 1) → SIEMPRE est_movimiento = 0
     $sql_entrada = "UPDATE movimiento 
-                    SET est_movimiento = 0 
+                    SET est_movimiento = 0
                     WHERE id_orden = $id_devolucion 
                       AND tipo_orden = 3 
                       AND tipo_movimiento = 1 
@@ -540,6 +548,36 @@ function ConfirmarDevolucion($id_devolucion) {
         $error = mysqli_error($con);
         mysqli_close($con);
         return "ERROR actualizando entrada: " . $error;
+    }
+
+    // 5. Si el cliente destino es 9 (ARCE), insertar nuevo movimiento
+    if ($id_cliente_destino == 9) {
+        // Obtener los detalles de los movimientos de la devolución para replicarlos
+        $sql_detalles = "SELECT id_producto, cant_movimiento 
+                         FROM movimiento 
+                         WHERE id_orden = $id_devolucion 
+                           AND tipo_orden = 3 
+                           AND tipo_movimiento = 1";
+        
+        $result_detalles = mysqli_query($con, $sql_detalles);
+        
+        while ($row = mysqli_fetch_assoc($result_detalles)) {
+            $id_producto = $row['id_producto'];
+            $cantidad = $row['cant_movimiento'];
+            
+            // Insertar nuevo movimiento para ARCE BASE
+            $sql_insert = "INSERT INTO movimiento 
+                          (tipo_orden, id_orden, tipo_movimiento, id_almacen, id_ubicacion, 
+                           id_producto, cant_movimiento, id_personal, fec_movimiento, est_movimiento) 
+                          VALUES 
+                          (3, $id_devolucion, 1, 1, 1, $id_producto, $cantidad, $id_personal, NOW(), 1)";
+            
+            if (!mysqli_query($con, $sql_insert)) {
+                $error = mysqli_error($con);
+                mysqli_close($con);
+                return "ERROR insertando movimiento ARCE: " . $error;
+            }
+        }
     }
 
     mysqli_close($con);
