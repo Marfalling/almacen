@@ -184,7 +184,7 @@ function AprobarPedidoTecnica(id_pedido) {
                                                     <td>
                                                         <div class="d-flex flex-wrap gap-2">
                                                             <!-- Botón Ver Detalle -->
-                                                            <button type="button" data-toggle="tooltip"
+                                                            <button type="button"
                                                                     class="btn btn-info btn-sm" 
                                                                     data-toggle="modal" 
                                                                     data-target="#modalDetallePedido<?php echo $pedido['id_pedido']; ?>" 
