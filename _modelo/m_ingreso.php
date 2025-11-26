@@ -923,7 +923,7 @@ function ObtenerDetalleIngresoDirecto($id_ingreso)
                     FROM ingreso i
                     INNER JOIN almacen a ON i.id_almacen = a.id_almacen
                     INNER JOIN ubicacion u ON i.id_ubicacion = u.id_ubicacion
-                    INNER JOIN {$bd_complemento}.subestacion o ON a.id_obra = o.id_subestacion
+                    LEFT JOIN {$bd_complemento}.subestacion o ON a.id_obra = o.id_subestacion
                     INNER JOIN {$bd_complemento}.cliente c ON a.id_cliente = c.id_cliente
                     LEFT JOIN {$bd_complemento}.personal p ON i.id_personal = p.id_personal
                     WHERE i.id_ingreso = '$id_ingreso' 
@@ -1055,7 +1055,7 @@ function MostrarTodosLosIngresos()
             FROM ingreso i
             INNER JOIN almacen al ON i.id_almacen = al.id_almacen
             INNER JOIN ubicacion ub ON i.id_ubicacion = ub.id_ubicacion
-            INNER JOIN {$bd_complemento}.subestacion ob ON al.id_obra = ob.id_subestacion
+            LEFT JOIN {$bd_complemento}.subestacion ob ON al.id_obra = ob.id_subestacion
             INNER JOIN {$bd_complemento}.cliente cl ON al.id_cliente = cl.id_cliente
             LEFT JOIN {$bd_complemento}.personal pe ON i.id_personal = pe.id_personal
             WHERE i.id_compra IS NULL
@@ -1185,7 +1185,7 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
             FROM ingreso i
             INNER JOIN almacen al ON i.id_almacen = al.id_almacen
             INNER JOIN ubicacion ub ON i.id_ubicacion = ub.id_ubicacion
-            INNER JOIN {$bd_complemento}.subestacion ob ON al.id_obra = ob.id_subestacion
+            LEFT JOIN {$bd_complemento}.subestacion ob ON al.id_obra = ob.id_subestacion
             INNER JOIN {$bd_complemento}.cliente cl ON al.id_cliente = cl.id_cliente
             LEFT JOIN {$bd_complemento}.personal pe ON i.id_personal = pe.id_personal
             WHERE i.id_compra IS NULL
