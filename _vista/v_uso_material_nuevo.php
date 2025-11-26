@@ -29,14 +29,19 @@
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Almacén <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <select name="id_almacen" class="form-control" required>
+                                    <select name="id_almacen" id="id_almacen" class="form-control" required>
                                         <option value="">Seleccionar</option>
                                         <?php foreach ($almacenes as $almacen) { ?>
-                                            <option value="<?php echo $almacen['id_almacen']; ?>">
+                                            <option value="<?php echo $almacen['id_almacen']; ?>" 
+                                                    data-cliente="<?php echo isset($almacen['nom_cliente']) ? htmlspecialchars($almacen['nom_cliente']) : '-'; ?>"
+                                                    data-obra="<?php echo isset($almacen['nom_obra']) ? htmlspecialchars($almacen['nom_obra']) : '-'; ?>">
                                                 <?php echo $almacen['nom_almacen']; ?>
                                             </option>
                                         <?php } ?>
                                     </select>
+                                    <small class="form-text text-muted" id="info-almacen" style="display: none;">
+                                        <strong>Cliente/Obra:</strong> <span id="texto-cliente-obra"></span>
+                                    </small>
                                 </div>
                             </div>
 
@@ -520,7 +525,32 @@ document.addEventListener('DOMContentLoaded', function() {
     // Controlar cambios en almacén y ubicación
     const selectAlmacen = document.querySelector('select[name="id_almacen"]');
     const selectUbicacion = document.querySelector('select[name="id_ubicacion"]');
-    
+    const infoAlmacen = document.getElementById('info-almacen');
+    const textoClienteObra = document.getElementById('texto-cliente-obra');
+
+    // NUEVO: Mostrar cliente/obra del almacén seleccionado (CON SELECT2)
+    if (selectAlmacen && infoAlmacen && textoClienteObra) {
+        // Usar el evento 'select2:select' en lugar de 'change'
+        $(selectAlmacen).on('select2:select', function(e) {
+            const selectedOption = e.params.data.element;
+            
+            if (this.value) {
+                const cliente = selectedOption.getAttribute('data-cliente') || '-';
+                const obra = selectedOption.getAttribute('data-obra') || '-';
+                
+                textoClienteObra.textContent = cliente + ' / ' + obra;
+                infoAlmacen.style.display = 'block';
+            } else {
+                infoAlmacen.style.display = 'none';
+            }
+        });
+        
+        // También manejar cuando se limpia el select
+        $(selectAlmacen).on('select2:clear', function() {
+            infoAlmacen.style.display = 'none';
+        });
+    }
+
     // Aplicar los event listeners específicos
     if (selectAlmacen) manejarCambioAlmacen(selectAlmacen);
     if (selectUbicacion) manejarCambioUbicacion(selectUbicacion);
