@@ -19,6 +19,31 @@ function GrabarAlmacen($id_cliente, $id_obra, $nom, $est)
             VALUES ($id_cliente, $id_obra, '$nom', $est)";
     
     if (mysqli_query($con, $sql)) {
+        
+        // Obtener el nombre de la obra
+        $sql_obra = "SELECT nom_subestacion FROM {$bd_complemento}.subestacion WHERE id_subestacion = $id_obra";
+        $resultado_obra = mysqli_query($con, $sql_obra);
+        $obra = mysqli_fetch_assoc($resultado_obra);
+        
+        if ($obra) {
+            $nom_almacen_principal = strtoupper($obra['nom_subestacion'] . ' ARCE');
+            
+            // Verificar si ya existe el almacén principal para evitar duplicados
+            $sql_verificar_principal = "SELECT COUNT(*) as total FROM almacen 
+                                        WHERE nom_almacen = '$nom_almacen_principal' 
+                                        AND id_cliente = 9 
+                                        AND id_obra = $id_obra";
+            $resultado_verificar_principal = mysqli_query($con, $sql_verificar_principal);
+            $fila_principal = mysqli_fetch_assoc($resultado_verificar_principal);
+            
+            // Solo crear si no existe
+            if ($fila_principal['total'] == 0) {
+                $sql_principal = "INSERT INTO almacen (id_cliente, id_obra, nom_almacen, est_almacen) 
+                                  VALUES (9, $id_obra, '$nom_almacen_principal', $est)";
+                mysqli_query($con, $sql_principal);
+            }
+        }
+        
         mysqli_close($con);
         return "SI";
     } else {
@@ -43,6 +68,7 @@ function MostrarAlmacenes()
                ON a.id_cliente = c.id_cliente
         LEFT JOIN {$bd_complemento}.subestacion s 
                ON a.id_obra = s.id_subestacion
+        WHERE a.id_almacen != 1
         ORDER BY a.nom_almacen ASC;
     ";
 
@@ -70,6 +96,7 @@ function MostrarAlmacenesActivos()
         LEFT JOIN {$bd_complemento}.subestacion s 
                ON a.id_obra = s.id_subestacion
         WHERE a.est_almacen = 1
+        AND a.id_almacen != 1
         ORDER BY a.nom_almacen ASC;
     ";
 

@@ -204,9 +204,15 @@
     </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 let currentSearchButton = null;
 let contadorProductos = 1;
+
+console.log("DEBUG: ubicaciones PHP →", <?php echo json_encode($ubicaciones); ?>);
+
+const ubicacionesAll = <?php echo json_encode($ubicaciones); ?>;
+console.log("DEBUG: ubicacionesAll JS →", ubicacionesAll);
 
 document.addEventListener('DOMContentLoaded', function() {
     // Inicializar eventos
@@ -235,50 +241,209 @@ document.addEventListener('DOMContentLoaded', function() {
         actualizarEventosEliminar();
     });
     
-// Validación del formulario
-document.getElementById('form-ingreso-directo').addEventListener('submit', function(e) {
-    const productosItems = document.querySelectorAll('.producto-item');
-    let hayProductosValidos = false;
-    let errores = [];
-    
-    // Validar almacén y ubicación
-    const almacen = document.querySelector('select[name="id_almacen"]').value;
-    const ubicacion = document.querySelector('select[name="id_ubicacion"]').value;
-    
-    if (!almacen) {
-        errores.push('Debe seleccionar un almacén');
-    }
-    
-    if (!ubicacion) {
-        errores.push('Debe seleccionar una ubicación');
-    }
-    
-    // Validar productos
-    productosItems.forEach((item, index) => {
-        const idProducto = item.querySelector('input[name="id_producto[]"]').value;
-        const cantidad = item.querySelector('input[name="cantidad[]"]').value;
+    // Validación del formulario
+    document.getElementById('form-ingreso-directo').addEventListener('submit', function(e) {
+        const productosItems = document.querySelectorAll('.producto-item');
+        let hayProductosValidos = false;
+        let errores = [];
         
-        if (idProducto && cantidad && parseFloat(cantidad) > 0) {
-            hayProductosValidos = true;
-        } else if (idProducto || cantidad) {
-            errores.push(`Producto ${index + 1}: Complete todos los campos obligatorios`);
+        // Validar almacén y ubicación
+        const almacen = document.querySelector('select[name="id_almacen"]').value;
+        const ubicacion = document.querySelector('select[name="id_ubicacion"]').value;
+        
+        if (!almacen) {
+            errores.push('Debe seleccionar un almacén');
+        }
+        
+        if (!ubicacion) {
+            errores.push('Debe seleccionar una ubicación');
+        }
+        
+        // Validar productos
+        productosItems.forEach((item, index) => {
+            const idProducto = item.querySelector('input[name="id_producto[]"]').value;
+            const cantidad = item.querySelector('input[name="cantidad[]"]').value;
+            
+            if (idProducto && cantidad && parseFloat(cantidad) > 0) {
+                hayProductosValidos = true;
+            } else if (idProducto || cantidad) {
+                errores.push(`Producto ${index + 1}: Complete todos los campos obligatorios`);
+            }
+        });
+        
+        if (!hayProductosValidos) {
+            errores.push('Debe agregar al menos un producto válido');
+        }
+        
+        if (errores.length > 0) {
+            e.preventDefault();
+            mostrarAlerta('error', 'Errores de Validación', errores.join('\n• '));
+            return false;
+        }
+        
+        return true;
+    });
+
+    const selectAlmacen = document.querySelector('select[name="id_almacen"]');
+    const selectUbicacion = document.querySelector('select[name="id_ubicacion"]');
+
+    console.log("DEBUG: selectAlmacen encontrado →", selectAlmacen);
+    console.log("DEBUG: selectUbicacion encontrado →", selectUbicacion);
+
+    selectAlmacen.addEventListener('change', function() {
+        console.log("CAMBIO DE ALMACÉN → ", this.value);
+
+        const almac = this.value;
+        selectUbicacion.innerHTML = '<option value="">Seleccionar Ubicación</option>';
+
+        if (almac == "1") {
+            selectUbicacion.innerHTML += `<option value="1">Ubicación 1</option>`;
+        } else {
+            console.log("CARGANDO ubicacionesAll → ", ubicacionesAll);
+            ubicacionesAll.forEach(u => {
+                console.log("AGREGANDO UBICACION → ", u);
+                selectUbicacion.innerHTML += `
+                    <option value="${u.id_ubicacion}">
+                        ${u.nom_ubicacion}
+                    </option>
+                `;
+            });
         }
     });
-    
-    if (!hayProductosValidos) {
-        errores.push('Debe agregar al menos un producto válido');
-    }
-    
-    if (errores.length > 0) {
-        e.preventDefault();
-        mostrarAlerta('error', 'Errores de Validación', errores.join('\n• '));
-        return false;
-    }
-    
-    return true;
-});
+
 
 });
+
+(function() {
+    try {
+        console.log("DEBUG: inicio script de control de almacén/ubicación");
+
+        // seguridad: la variable php debe imprimirse ya procesada
+        const ubicacionesAll = <?php echo $ubicaciones_json ?? '[]'; ?>;
+        console.log("DEBUG: ubicacionesAll (len):", Array.isArray(ubicacionesAll) ? ubicacionesAll.length : typeof ubicacionesAll, ubicacionesAll);
+
+        // Esperar a que todo cargue (incluido Select2 y jQuery)
+        window.addEventListener('load', init, { once: true });
+
+        // fallback si load no es viable (double-check)
+        setTimeout(function() {
+            if (!window.__ingreso_init_run) init();
+        }, 2000);
+
+    } catch (err) {
+        console.error("ERROR CRÍTICO al iniciar script:", err);
+    }
+
+    function init() {
+        if (window.__ingreso_init_run) return;
+        window.__ingreso_init_run = true;
+
+        try {
+            console.log("DEBUG: init ejecutado. jQuery =>", typeof window.jQuery, " $ =>", typeof window.$);
+
+            const selAlmacen = document.querySelector('select[name="id_almacen"]');
+            const selUbicacion = document.querySelector('select[name="id_ubicacion"]');
+
+            console.log("DEBUG: selAlmacen:", !!selAlmacen, " selUbicacion:", !!selUbicacion);
+
+            if (!selAlmacen || !selUbicacion) {
+                console.warn("WARN: No se encontraron selects. Revisar nombres 'id_almacen' / 'id_ubicacion'.");
+                return;
+            }
+
+            // función para poblar ubicaciones desde el array JS
+            function poblarUbicaciones(array) {
+                selUbicacion.innerHTML = '<option value="">Seleccionar Ubicación</option>';
+                if (!Array.isArray(array) || array.length === 0) return;
+                array.forEach(u => {
+                    // proteger contra valores inesperados
+                    const id = (u.id_ubicacion !== undefined) ? u.id_ubicacion : u.id;
+                    const nombre = (u.nom_ubicacion !== undefined) ? u.nom_ubicacion : u.nombre || ('Ubic ' + id);
+                    const opt = document.createElement('option');
+                    opt.value = id;
+                    opt.textContent = nombre;
+                    selUbicacion.appendChild(opt);
+                });
+            }
+
+            // bind nativo
+            selAlmacen.addEventListener('change', cambioAlmacenHandler);
+
+            // si jQuery y select2 existen, también escuchar con jQuery
+            if (typeof window.jQuery !== 'undefined') {
+                try {
+                    const $ = window.jQuery;
+                    $(selAlmacen).on('change', cambioAlmacenHandler);
+                    // si Select2 está inicializado, escuchar evento específico
+                    if ($.fn && $.fn.select2) {
+                        $(selAlmacen).on('change.select2', cambioAlmacenHandler);
+                    }
+                    console.log("DEBUG: bind jQuery agregado al selectAlmacen");
+                } catch (e) {
+                    console.warn("WARN: error agregando binds jQuery:", e);
+                }
+            }
+
+            // función handler
+            function cambioAlmacenHandler(evt) {
+                try {
+                    const val = (evt && evt.target) ? evt.target.value : (this && this.value) || evt;
+                    console.log("DEBUG: cambioAlmacenHandler -> valor seleccionado:", val);
+
+                    // reset básico
+                    selUbicacion.innerHTML = '<option value="">Seleccionar Ubicación</option>';
+
+                    if (String(val) === "1") {
+                        console.log("DEBUG: almacén 1 seleccionado → mostrar solo ubicación 1");
+                        const opt = document.createElement('option');
+                        opt.value = "1";
+                        opt.textContent = "BASE";
+                        selUbicacion.appendChild(opt);
+                    } else {
+                        console.log("DEBUG: almacén distinto de 1 → poblando todas las ubicaciones desde JS");
+                        if (!ubicacionesAll || !Array.isArray(ubicacionesAll) || ubicacionesAll.length === 0) {
+                            console.warn("WARN: ubicacionesAll vacío. No se agregan opciones.");
+                            return;
+                        }
+                        poblarUbicaciones(ubicacionesAll);
+                    }
+
+                    // si Select2 está activo, refrescarlo via jQuery (si está presente)
+                    if (typeof window.jQuery !== 'undefined' && window.jQuery.fn && window.jQuery.fn.select2) {
+                        try {
+                            window.jQuery(selUbicacion).trigger('change.select2'); // notifica select2
+                            // si quieres forzar render: window.jQuery(selUbicacion).select2();
+                        } catch (e) {
+                            console.warn("WARN: error al notificar select2 del cambio:", e);
+                        }
+                    }
+                } catch (err) {
+                    console.error("ERROR en cambioAlmacenHandler:", err);
+                }
+            }
+
+            // LOG: probar binder manual para debug (no borres)
+            console.log("DEBUG: agregando test de disparo manual (no persistente).");
+            // Para pruebas manuales en consola: window.triggerAlmacen('1') por ejemplo
+            window.triggerAlmacen = function(v) {
+                try {
+                    const ev = new Event('change', { bubbles: true });
+                    selAlmacen.value = v;
+                    selAlmacen.dispatchEvent(ev);
+                } catch (e) {
+                    console.error(e);
+                }
+            };
+
+            console.log("DEBUG: init finalizado correctamente.");
+
+        } catch (errInit) {
+            console.error("ERROR en init():", errInit);
+        }
+
+    } // end init
+
+})();
 
 function buscarMaterial(button) {
     // Validar que se haya seleccionado almacén y ubicación

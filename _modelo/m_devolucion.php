@@ -93,9 +93,6 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devoluc
 {
     include("../_conexion/conexion.php");
 
-    // La ubicación destino SIEMPRE es BASE (id_ubicacion = 1)
-    //$id_ubicacion_destino = 1;
-
     // Insertar devolución principal
     $sql = "INSERT INTO devolucion (
                 id_almacen, id_ubicacion, id_personal, id_cliente_destino,
@@ -141,13 +138,16 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devoluc
                                     )";
                     mysqli_query($con, $sql_mov_resta);
                     
-                    // Movimiento 2: SUMA a BASE del mismo almacén
+                    // Determinar el almacén destino según el cliente
+                    $id_almacen_destino = ($id_cliente_destino == 9) ? 1 : $id_almacen;
+                    
+                    // Movimiento 2: SUMA a BASE del almacén correspondiente
                     $sql_mov_suma = "INSERT INTO movimiento (
                                         id_personal, id_orden, id_producto, id_almacen, 
                                         id_ubicacion, tipo_orden, tipo_movimiento, 
                                         cant_movimiento, fec_movimiento, est_movimiento
                                     ) VALUES (
-                                        $id_personal, $id_devolucion, $id_producto, $id_almacen, 
+                                        $id_personal, $id_devolucion, $id_producto, $id_almacen_destino, 
                                         1, 3, 1, 
                                         $cantidad, NOW(), 2
                                     )";
@@ -536,9 +536,11 @@ function ConfirmarDevolucion($id_devolucion) {
         return "ERROR actualizando salida: " . $error;
     }
 
-    // 4. Actualizar movimiento de ENTRADA (tipo_movimiento = 1) → SIEMPRE est_movimiento = 0
+    $nuevo_estado_entrada = ($id_cliente_destino == 9) ? 1 : 0;
+
+    // 4. Actualizar movimiento de ENTRADA (tipo_movimiento = 1 o 0) según el cliente destino
     $sql_entrada = "UPDATE movimiento 
-                    SET est_movimiento = 0
+                    SET est_movimiento = $nuevo_estado_entrada
                     WHERE id_orden = $id_devolucion 
                       AND tipo_orden = 3 
                       AND tipo_movimiento = 1 
@@ -548,36 +550,6 @@ function ConfirmarDevolucion($id_devolucion) {
         $error = mysqli_error($con);
         mysqli_close($con);
         return "ERROR actualizando entrada: " . $error;
-    }
-
-    // 5. Si el cliente destino es 9 (ARCE), insertar nuevo movimiento
-    if ($id_cliente_destino == 9) {
-        // Obtener los detalles de los movimientos de la devolución para replicarlos
-        $sql_detalles = "SELECT id_producto, cant_movimiento 
-                         FROM movimiento 
-                         WHERE id_orden = $id_devolucion 
-                           AND tipo_orden = 3 
-                           AND tipo_movimiento = 1";
-        
-        $result_detalles = mysqli_query($con, $sql_detalles);
-        
-        while ($row = mysqli_fetch_assoc($result_detalles)) {
-            $id_producto = $row['id_producto'];
-            $cantidad = $row['cant_movimiento'];
-            
-            // Insertar nuevo movimiento para ARCE BASE
-            $sql_insert = "INSERT INTO movimiento 
-                          (tipo_orden, id_orden, tipo_movimiento, id_almacen, id_ubicacion, 
-                           id_producto, cant_movimiento, id_personal, fec_movimiento, est_movimiento) 
-                          VALUES 
-                          (3, $id_devolucion, 1, 1, 1, $id_producto, $cantidad, $id_personal, NOW(), 1)";
-            
-            if (!mysqli_query($con, $sql_insert)) {
-                $error = mysqli_error($con);
-                mysqli_close($con);
-                return "ERROR insertando movimiento ARCE: " . $error;
-            }
-        }
     }
 
     mysqli_close($con);
