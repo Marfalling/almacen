@@ -37,7 +37,8 @@ if (!verificarPermisoEspecifico('crear_ingresos')) {
             require_once("../_modelo/m_ubicacion.php");
 
             // Cargar datos para el formulario
-            $almacenes = MostrarAlmacenesActivos();
+            //$almacenes = MostrarAlmacenesActivos();
+            $almacenes = MostrarAlmacenesActivosConArceBase();
             $ubicaciones = MostrarUbicacionesActivas();
 
             // Variables para alertas
