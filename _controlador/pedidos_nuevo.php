@@ -46,7 +46,7 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
             require_once("../_modelo/m_personal.php");
 
             // Cargar datos para el formulario
-            $almacenes = MostrarAlmacenesActivos();
+            $almacenes = MostrarAlmacenesArce(); // Solo almacenes de ARCE
             $producto_tipos = MostrarProductoTipoActivos();
             $unidades_medida = MostrarUnidadMedidaActiva();
             $material_tipos = MostrarMaterialTipoActivos();

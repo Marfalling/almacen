@@ -106,7 +106,37 @@ function MostrarAlmacenesActivos()
     mysqli_close($con);
     return $resultado;
 }
+//-----------------------------------------------------------------------
+// NUEVA FUNCIÓN: Mostrar solo almacenes de ARCE 
+//-----------------------------------------------------------------------
+function MostrarAlmacenesArce()
+{
+    include("../_conexion/conexion.php");
 
+    $sql = "
+        SELECT 
+            a.id_almacen,
+            a.nom_almacen,
+            a.id_obra,
+            c.nom_cliente,
+            s.nom_subestacion AS nom_obra,
+            a.est_almacen
+        FROM almacen a
+        LEFT JOIN {$bd_complemento}.cliente c 
+               ON a.id_cliente = c.id_cliente
+        LEFT JOIN {$bd_complemento}.subestacion s 
+               ON a.id_obra = s.id_subestacion
+        WHERE a.est_almacen = 1
+          AND a.id_cliente = $id_cliente_arce
+        ORDER BY a.nom_almacen ASC;
+    ";
+
+    $res = mysqli_query($con, $sql);
+    $resultado = mysqli_fetch_all($res, MYSQLI_ASSOC);
+
+    mysqli_close($con);
+    return $resultado;
+}
 function MostrarAlmacenesActivosConArceBase()
 {
     include("../_conexion/conexion.php"); // conexión principal
@@ -114,6 +144,7 @@ function MostrarAlmacenesActivosConArceBase()
     $sql = "
         SELECT 
             a.id_almacen,
+            a.id_cliente,
             a.nom_almacen,
             c.nom_cliente,
             s.nom_subestacion AS nom_obra,

@@ -150,12 +150,12 @@ try {
     
     if ($oc_aprobadas_tecnica > 0) {
         $puede_anular_pedido = false;
-        $mensaje_restriccion[] = "$oc_aprobadas_tecnica orden(es) de compra APROBADA(S) TÉCNICAMENTE";
+        $mensaje_restriccion[] = "$oc_aprobadas_tecnica orden(es) de compra APROBADA(S)";
     }
     
     if ($oc_aprobadas_financiera > 0) {
         $puede_anular_pedido = false;
-        $mensaje_restriccion[] = "$oc_aprobadas_financiera orden(es) de compra APROBADA(S) FINANCIERAMENTE";
+        $mensaje_restriccion[] = "$oc_aprobadas_financiera orden(es) de compra APROBADA(S)";
     }
     
     if ($oc_cerradas > 0) {

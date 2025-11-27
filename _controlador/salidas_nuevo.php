@@ -39,7 +39,7 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
             require_once("../_modelo/m_tipo_material.php");
 
             // Cargar datos para el formulario
-            $almacenes = MostrarAlmacenesActivos();
+            $almacenes = MostrarAlmacenesActivosConArceBase();
             $ubicaciones = MostrarUbicacionesActivas();
             $personal = MostrarPersonal();
             $material_tipos = MostrarMaterialTipoActivos();

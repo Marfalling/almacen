@@ -3152,16 +3152,47 @@ function ObtenerStockEnUbicacion($id_producto, $id_almacen, $id_ubicacion) {
     return floatval($row['stock']);
 }
 
-
 /**
- * Obtener otras ubicaciones del mismo almacén con stock disponible
+ * Obtener otras ubicaciones con stock disponible (VERSIÓN FINAL CORREGIDA)
+ * 
+ * REGLAS:
+ * 1. Mismo cliente Y misma obra Y almacén diferente
+ * 2. Cliente ARCE con obra NULL (BASE ARCE) puede abastecer a cualquier almacén ARCE
  */
 function ObtenerOtrasUbicacionesConStock($id_producto, $id_almacen, $id_ubicacion_excluir) {
     include("../_conexion/conexion.php");
+    
+    // Obtener información del almacén destino (pedido)
+    $sql_destino = "SELECT id_obra, id_cliente FROM almacen WHERE id_almacen = $id_almacen LIMIT 1";
+    $res_destino = mysqli_query($con, $sql_destino);
+    $row_destino = mysqli_fetch_assoc($res_destino);
+    
+    if (!$row_destino) {
+        mysqli_close($con);
+        return [];
+    }
+    
+    $id_obra_destino = intval($row_destino['id_obra']);
+    $id_cliente_destino = intval($row_destino['id_cliente']);
 
     $sql = "SELECT 
                 u.id_ubicacion,
                 u.nom_ubicacion,
+                a.nom_almacen,
+                a.id_almacen,
+                a.id_cliente,
+                a.id_obra,
+                c.nom_cliente,
+                o.nom_subestacion as nom_obra,
+                CASE 
+                    WHEN a.id_almacen = $id_almacen THEN 'Mismo Almacén'
+                    WHEN a.id_obra IS NULL AND a.id_cliente = $id_cliente_arce THEN 'BASE ARCE'
+                    ELSE 'Mismo Cliente - Misma Obra'
+                END as tipo_origen,
+                CASE 
+                    WHEN a.id_cliente = $id_cliente_destino THEN 0
+                    ELSE 1
+                END as es_otro_cliente,
                 COALESCE(
                     SUM(
                         CASE
@@ -3173,27 +3204,60 @@ function ObtenerOtrasUbicacionesConStock($id_producto, $id_almacen, $id_ubicacio
                 ) AS stock
               FROM movimiento m
               INNER JOIN ubicacion u ON m.id_ubicacion = u.id_ubicacion
-              WHERE m.id_producto = ?
-              AND m.id_almacen = ?
-              AND m.id_ubicacion != ?
+              INNER JOIN almacen a ON m.id_almacen = a.id_almacen
+              LEFT JOIN {$bd_complemento}.cliente c ON a.id_cliente = c.id_cliente
+              LEFT JOIN {$bd_complemento}.subestacion o ON a.id_obra = o.id_subestacion
+              WHERE m.id_producto = $id_producto
               AND m.est_movimiento != 0
-              GROUP BY u.id_ubicacion, u.nom_ubicacion
+              AND NOT (a.id_almacen = $id_almacen AND u.id_ubicacion = $id_ubicacion_excluir)
+              AND (
+                  -- ═══════════════════════════════════════════════════════
+                  -- CASO 1: Mismo cliente Y misma obra, almacén diferente
+                  -- ═══════════════════════════════════════════════════════
+                  (
+                      a.id_cliente = $id_cliente_destino
+                      AND a.id_obra = $id_obra_destino
+                  )
+                  
+                  OR
+                  
+                  -- ═══════════════════════════════════════════════════════
+                  -- CASO 2: Cliente ARCE con obra NULL (BASE ARCE)
+                  --         Puede abastecer a cualquier almacén ARCE
+                  -- ═══════════════════════════════════════════════════════
+                  (
+                      a.id_cliente = $id_cliente_arce
+                      AND a.id_obra IS NULL
+                      AND $id_cliente_destino = $id_cliente_arce
+                  )
+              )
+              GROUP BY u.id_ubicacion, u.nom_ubicacion, a.nom_almacen, a.id_almacen, 
+                       a.id_cliente, a.id_obra, c.nom_cliente, o.nom_subestacion
               HAVING stock > 0
-              ORDER BY stock DESC";
+              ORDER BY 
+                  -- Prioridad 1: Mismo almacén primero
+                  CASE WHEN a.id_almacen = $id_almacen THEN 0 ELSE 1 END,
+                  -- Prioridad 2: Mayor stock primero
+                  stock DESC,
+                  -- Prioridad 3: BASE ARCE (obra NULL) antes que otros
+                  CASE WHEN a.id_obra IS NULL THEN 0 ELSE 1 END";
 
-    $stmt = mysqli_prepare($con, $sql);
-    mysqli_stmt_bind_param($stmt, "iii", $id_producto, $id_almacen, $id_ubicacion_excluir);
-    mysqli_stmt_execute($stmt);
-    $result = mysqli_stmt_get_result($stmt);
+    $resultado = mysqli_query($con, $sql);
+    
+    if (!$resultado) {
+        error_log("Error en ObtenerOtrasUbicacionesConStock: " . mysqli_error($con));
+        mysqli_close($con);
+        return [];
+    }
 
     $ubicaciones = [];
-    while ($row = mysqli_fetch_assoc($result)) {
+    while ($row = mysqli_fetch_assoc($resultado)) {
         $ubicaciones[] = $row;
     }
 
+    mysqli_close($con);
     return $ubicaciones;
 }
-
 /**
  * Obtener stock total en todas las ubicaciones del almacén
  */
@@ -3250,6 +3314,7 @@ function ConsultarSalidaPorId($id_salida) {
                     WHEN s.est_salida = 1 THEN 'Pendiente'
                     WHEN s.est_salida = 2 THEN 'Recepcionada'
                     WHEN s.est_salida = 3 THEN 'Aprobada'
+                    WHEN s.est_salida = 4 THEN 'Denegada'
                     ELSE 'Desconocido'
                 END as estado_texto
             FROM salida s
@@ -3274,6 +3339,230 @@ function ConsultarSalidaPorId($id_salida) {
     mysqli_close($con);
     
     return $data;
+}
+
+/**
+ * OBTENER UBICACIONES BLOQUEADAS (SIN CAMBIOS)
+ */
+function ObtenerUbicacionesBloqueadasPorDenegacion($id_producto, $id_pedido_detalle = null)
+{
+    include("../_conexion/conexion.php");
+    
+    $ubicaciones_bloqueadas = [];
+    
+    if ($id_pedido_detalle === null || $id_pedido_detalle <= 0) {
+        mysqli_close($con);
+        return $ubicaciones_bloqueadas;
+    }
+    
+    $sql_bloqueadas = "
+        SELECT DISTINCT 
+            s.id_almacen_origen, 
+            s.id_ubicacion_origen,
+            s.id_salida,
+            s.fec_deniega_salida as fecha_bloqueo,
+            a.nom_almacen,
+            u.nom_ubicacion,
+            p_deniega.nom_personal as personal_que_denego
+        FROM salida s
+        INNER JOIN salida_detalle sd ON s.id_salida = sd.id_salida
+        INNER JOIN almacen a ON s.id_almacen_origen = a.id_almacen
+        INNER JOIN ubicacion u ON s.id_ubicacion_origen = u.id_ubicacion
+        LEFT JOIN {$bd_complemento}.personal p_deniega ON s.id_personal_deniega_salida = p_deniega.id_personal
+        WHERE sd.id_producto = $id_producto
+          AND sd.id_pedido_detalle = $id_pedido_detalle
+          AND s.est_salida = 4
+        ORDER BY s.fec_deniega_salida DESC
+    ";
+    
+    $res_bloqueadas = mysqli_query($con, $sql_bloqueadas);
+    
+    if ($res_bloqueadas) {
+        while ($row_bloq = mysqli_fetch_assoc($res_bloqueadas)) {
+            $key = $row_bloq['id_almacen_origen'] . '_' . $row_bloq['id_ubicacion_origen'];
+            $ubicaciones_bloqueadas[$key] = [
+                'id_almacen' => $row_bloq['id_almacen_origen'],
+                'id_ubicacion' => $row_bloq['id_ubicacion_origen'],
+                'nom_almacen' => $row_bloq['nom_almacen'],
+                'nom_ubicacion' => $row_bloq['nom_ubicacion'],
+                'id_salida_denegada' => $row_bloq['id_salida'],
+                'fecha_bloqueo' => $row_bloq['fecha_bloqueo'],
+                'personal_que_denego' => $row_bloq['personal_que_denego']
+            ];
+            
+            error_log("🚫 Ubicación BLOQUEADA: {$row_bloq['nom_almacen']} - {$row_bloq['nom_ubicacion']} (Salida #{$row_bloq['id_salida']})");
+        }
+    }
+    
+    mysqli_close($con);
+    
+    error_log("🚫 Total ubicaciones BLOQUEADAS para producto $id_producto, detalle $id_pedido_detalle: " . count($ubicaciones_bloqueadas));
+    
+    return $ubicaciones_bloqueadas;
+}
+
+/**
+ * OBTENER OTRAS UBICACIONES CON STOCK (CON LOGGING DETALLADO)
+ */
+function ObtenerOtrasUbicacionesConStockConBloqueo($id_producto, $id_almacen_destino, $id_ubicacion_destino, $id_pedido_detalle = null)
+{
+    include("../_conexion/conexion.php");
+    
+    $ubicaciones = [];
+    
+    // ============================================
+    // PASO 1: Obtener ubicaciones BLOQUEADAS
+    // ============================================
+    $ubicaciones_bloqueadas = [];
+    
+    if ($id_pedido_detalle !== null && $id_pedido_detalle > 0) {
+        $ubicaciones_bloqueadas_data = ObtenerUbicacionesBloqueadasPorDenegacion($id_producto, $id_pedido_detalle);
+        
+        foreach ($ubicaciones_bloqueadas_data as $key => $data) {
+            $ubicaciones_bloqueadas[$key] = true;
+        }
+    }
+    
+    error_log("🔍 Buscando ubicaciones con stock para producto $id_producto (excluyendo " . count($ubicaciones_bloqueadas) . " bloqueadas)");
+    
+    // ============================================
+    // PASO 2: Obtener todas las ubicaciones con stock
+    // ============================================
+    $ubicaciones_desde_funcion_antigua = ObtenerOtrasUbicacionesConStock(
+        $id_producto, 
+        $id_almacen_destino, 
+        $id_ubicacion_destino
+    );
+    
+    error_log("📊 DEBUG: ObtenerOtrasUbicacionesConStock() retornó " . count($ubicaciones_desde_funcion_antigua) . " ubicaciones");
+    
+    $total_encontradas = 0;
+    $total_bloqueadas = 0;
+    
+    // ============================================
+    // LOGGING DETALLADO DE CADA UBICACIÓN
+    // ============================================
+    foreach ($ubicaciones_desde_funcion_antigua as $ub) {
+        $total_encontradas++;
+        
+        $key_ubicacion = $ub['id_almacen'] . '_' . $ub['id_ubicacion'];
+        
+        // LOG DETALLADO
+        error_log("   📦 [$total_encontradas] Almacén: {$ub['id_almacen']} | Ubicación: {$ub['id_ubicacion']} | Key: $key_ubicacion | Nombre: {$ub['nom_almacen']} - {$ub['nom_ubicacion']} | Stock: {$ub['stock']}");
+        
+        // Verificar si está bloqueada
+        $esta_bloqueada = isset($ubicaciones_bloqueadas[$key_ubicacion]);
+        
+        if ($esta_bloqueada) {
+            $total_bloqueadas++;
+            error_log("      🚫 Ubicación EXCLUIDA (bloqueada): {$ub['nom_almacen']} - {$ub['nom_ubicacion']}");
+            continue;
+        }
+        
+        // ✅ AGREGAR UBICACIÓN DISPONIBLE
+        error_log("      ✅ Ubicación DISPONIBLE: {$ub['nom_almacen']} - {$ub['nom_ubicacion']}");
+        $ubicaciones[] = $ub;
+    }
+    
+    mysqli_close($con);
+    
+    error_log("✅ Resultado: {$total_encontradas} encontradas, {$total_bloqueadas} bloqueadas, " . count($ubicaciones) . " disponibles");
+    
+    return $ubicaciones;
+}
+
+/**
+ * CONVERTIR OS A OC (SIN CAMBIOS)
+ */
+function ConvertirCantidadOSaOC($id_pedido_detalle, $cantidad)
+{
+    include("../_conexion/conexion.php");
+    
+    mysqli_begin_transaction($con);
+    
+    try {
+        $id_pedido_detalle = intval($id_pedido_detalle);
+        $cantidad = floatval($cantidad);
+        
+        if ($cantidad <= 0) {
+            throw new Exception("Cantidad inválida para conversión");
+        }
+        
+        error_log("🔄 Convirtiendo $cantidad de OS a OC para detalle $id_pedido_detalle");
+        
+        $sql_get = "SELECT cant_os_pedido_detalle, cant_oc_pedido_detalle 
+                    FROM pedido_detalle 
+                    WHERE id_pedido_detalle = $id_pedido_detalle";
+        
+        $res = mysqli_query($con, $sql_get);
+        $row = mysqli_fetch_assoc($res);
+        
+        if (!$row) {
+            throw new Exception("Detalle de pedido no encontrado");
+        }
+        
+        $cant_os_actual = floatval($row['cant_os_pedido_detalle']);
+        $cant_oc_actual = floatval($row['cant_oc_pedido_detalle']);
+        
+        if ($cantidad > $cant_os_actual) {
+            throw new Exception("No hay suficiente cantidad OS para convertir. Disponible: $cant_os_actual, Solicitado: $cantidad");
+        }
+        
+        $nueva_cant_os = $cant_os_actual - $cantidad;
+        $nueva_cant_oc = $cant_oc_actual + $cantidad;
+        
+        $sql_update = "UPDATE pedido_detalle 
+                       SET cant_os_pedido_detalle = $nueva_cant_os,
+                           cant_oc_pedido_detalle = $nueva_cant_oc
+                       WHERE id_pedido_detalle = $id_pedido_detalle";
+        
+        if (!mysqli_query($con, $sql_update)) {
+            throw new Exception("Error al actualizar cantidades: " . mysqli_error($con));
+        }
+        
+        error_log("✅ Conversión exitosa: OS {$cant_os_actual} → {$nueva_cant_os} | OC {$cant_oc_actual} → {$nueva_cant_oc}");
+        
+        mysqli_commit($con);
+        mysqli_close($con);
+        
+        return [
+            'success' => true,
+            'message' => "✅ Cantidad convertida exitosamente de OS a OC",
+            'cant_os_nueva' => $nueva_cant_os,
+            'cant_oc_nueva' => $nueva_cant_oc,
+            'cantidad_convertida' => $cantidad
+        ];
+        
+    } catch (Exception $e) {
+        mysqli_rollback($con);
+        mysqli_close($con);
+        
+        error_log("❌ Error en ConvertirCantidadOSaOC: " . $e->getMessage());
+        
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * HAY MÁS UBICACIONES DISPONIBLES (SIN CAMBIOS)
+ */
+function HayMasUbicacionesDisponibles($id_producto, $id_almacen_destino, $id_ubicacion_destino, $id_pedido_detalle)
+{
+    $ubicaciones = ObtenerOtrasUbicacionesConStockConBloqueo(
+        $id_producto, 
+        $id_almacen_destino, 
+        $id_ubicacion_destino, 
+        $id_pedido_detalle
+    );
+    
+    $hay_disponibles = (count($ubicaciones) > 0);
+    
+    error_log("🔍 ¿Hay ubicaciones disponibles? " . ($hay_disponibles ? "SÍ (" . count($ubicaciones) . ")" : "NO"));
+    
+    return $hay_disponibles;
 }
 
 /**
@@ -3784,7 +4073,12 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
     // ============================================================
     // PASO 3: Obtener stock en OTRAS ubicaciones
     // ============================================================
-    $otras = ObtenerOtrasUbicacionesConStock($id_producto, $id_almacen, $id_ubicacion);
+    $otras = ObtenerOtrasUbicacionesConStockConBloqueo(
+        $id_producto, 
+        $id_almacen, 
+        $id_ubicacion,
+        $id_pedido_detalle 
+    );
     $stock_otras = 0;
 
     if (is_array($otras)) {

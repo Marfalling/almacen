@@ -1816,11 +1816,11 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
     let estadoClase = 'secondary';
     
     switch(estadoCompra) {
-        case 0: estadoTexto = 'Anulada'; estadoClase = 'danger'; break;
-        case 1: estadoTexto = 'Pendiente'; estadoClase = 'warning'; break;
-        case 2: estadoTexto = 'Aprobada'; estadoClase = 'success'; break;
-        case 3: estadoTexto = 'Cerrada'; estadoClase = 'info'; break;
-        case 4: estadoTexto = 'Pagada'; estadoClase = 'primary'; break;
+        case 0: estadoTexto = 'ANULADA'; estadoClase = 'danger'; break;
+        case 1: estadoTexto = 'PENDIENTE'; estadoClase = 'warning'; break;
+        case 2: estadoTexto = 'APROBADO'; estadoClase = 'info'; break;
+        case 3: estadoTexto = 'CERRADO'; estadoClase = 'dark'; break;
+        case 4: estadoTexto = 'PAGADO'; estadoClase = 'primary'; break;
     }
     
     const badgeTipo = esServicio 

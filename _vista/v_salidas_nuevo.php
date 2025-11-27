@@ -155,10 +155,16 @@
                                         <label class="control-label">Almacén Origen <span class="text-danger">*</span>:</label>
                                        <select name="id_almacen_origen" id="id_almacen_origen" class="form-control" required>
                                             <option value="">Seleccionar</option>
-                                            <?php foreach ($almacenes as $almacen) { 
+                                            <?php 
+                                            foreach ($almacenes as $almacen) { 
                                                 $selected = ($pedido_origen && $pedido_origen['id_almacen'] == $almacen['id_almacen']) ? 'selected' : '';
+                                                
+                                                // Agregar data attributes para JavaScript
                                             ?>
-                                                <option value="<?php echo $almacen['id_almacen']; ?>" <?php echo $selected; ?>>
+                                                <option value="<?php echo $almacen['id_almacen']; ?>" 
+                                                        data-id-cliente="<?php echo $almacen['id_cliente']; ?>"
+                                                        data-id-obra="<?php echo $almacen['ID_OBRA'] ?? ''; ?>"
+                                                        <?php echo $selected; ?>>
                                                     <?php echo $almacen['nom_almacen']; ?>
                                                 </option>
                                             <?php } ?>
@@ -205,8 +211,13 @@
                                         <label class="control-label">Almacén Destino <span class="text-danger">*</span>:</label>
                                         <select name="id_almacen_destino" id="id_almacen_destino" class="form-control" required>
                                             <option value="">Seleccionar</option>
-                                            <?php foreach ($almacenes as $almacen) { ?>
-                                                <option value="<?php echo $almacen['id_almacen']; ?>">
+                                            <?php 
+                                            foreach ($almacenes as $almacen) { 
+                                                // Agregar data attributes para JavaScript
+                                            ?>
+                                                <option value="<?php echo $almacen['id_almacen']; ?>"
+                                                        data-id-cliente="<?php echo $almacen['id_cliente']; ?>"
+                                                        data-id-obra="<?php echo $almacen['ID_OBRA'] ?? ''; ?>">
                                                     <?php echo $almacen['nom_almacen']; ?>
                                                 </option>
                                             <?php } ?>
@@ -418,6 +429,449 @@
     </div>
 </div>
 
+<?php require_once("../_vista/v_script.php"); ?>
+
+<script>
+// Variables globales desde PHP para control de salidas
+window.ID_CLIENTE_ARCE = <?php echo $id_cliente_arce; ?>;
+window.ID_ALMACEN_BASE_ARCE = <?php echo $id_almacen_base_arce; ?>;
+</script>
+
+<script>
+// ============================================
+// CONTROL DE SALIDAS - VERSIÓN ACTUALIZADA
+// BASE ARCE puede trasladar SOLO a almacenes ARCE
+// ============================================
+
+// Variables desde PHP
+const ID_CLIENTE_ARCE = window.ID_CLIENTE_ARCE || 9;
+const ID_ALMACEN_BASE_ARCE = window.ID_ALMACEN_BASE_ARCE || 1;
+const ID_UBICACION_BASE = 1;
+
+
+$(document).ready(function() {
+    
+    const $almacenOrigen = $('#id_almacen_origen');
+    const $ubicacionOrigen = $('#id_ubicacion_origen');
+    const $almacenDestino = $('#id_almacen_destino');
+    const $ubicacionDestino = $('#id_ubicacion_destino');
+    
+    // Verificar que existan los elementos
+    if ($almacenOrigen.length === 0 || $ubicacionOrigen.length === 0 || 
+        $almacenDestino.length === 0 || $ubicacionDestino.length === 0) {
+        console.error('❌ No se encontraron todos los selectores requeridos');
+        return;
+    }
+    
+    // ============================================
+    // GUARDAR OPCIONES ORIGINALES
+    // ============================================
+    let todasUbicacionesOrigen = [];
+    let todasUbicacionesDestino = [];
+    let todosAlmacenesDestino = [];
+    
+    function inicializarOpciones() {
+        // Guardar ubicaciones origen (excluir "Seleccionar")
+        $ubicacionOrigen.find('option').each(function() {
+            if ($(this).val() !== '') {
+                todasUbicacionesOrigen.push($(this).clone());
+            }
+        });
+        
+        // Guardar ubicaciones destino
+        $ubicacionDestino.find('option').each(function() {
+            if ($(this).val() !== '') {
+                todasUbicacionesDestino.push($(this).clone());
+            }
+        });
+        
+        // Guardar almacenes destino
+        $almacenDestino.find('option').each(function() {
+            if ($(this).val() !== '') {
+                todosAlmacenesDestino.push($(this).clone());
+            }
+        });
+        
+        console.log('✅ Opciones guardadas:', {
+            ubicacionesOrigen: todasUbicacionesOrigen.length,
+            ubicacionesDestino: todasUbicacionesDestino.length,
+            almacenesDestino: todosAlmacenesDestino.length
+        });
+    }
+    
+    // ============================================
+    // FUNCIÓN: Filtrar ubicaciones según almacén
+    // ============================================
+    function filtrarUbicaciones(almacenId, $selectUbicacion, listaOpciones, excluirUbicacionId = null) {
+        console.log(`🔄 Filtrando ubicaciones para almacén ${almacenId}`);
+        
+        // Limpiar select (mantener opción "Seleccionar")
+        $selectUbicacion.html('<option value="">Seleccionar</option>');
+        
+        let opcionesVisibles = 0;
+        
+        if (!almacenId) {
+            // Si no hay almacén, mostrar todas
+            listaOpciones.forEach(function(opt) {
+                $selectUbicacion.append(opt.clone());
+                opcionesVisibles++;
+            });
+        } else if (parseInt(almacenId) === ID_ALMACEN_BASE_ARCE) {
+            // ✅ Si es BASE ARCE, solo mostrar ubicación BASE
+            const opcionBase = listaOpciones.find(function(opt) { 
+                return $(opt).val() === '1'; 
+            });
+            if (opcionBase) {
+                $selectUbicacion.append($(opcionBase).clone());
+                opcionesVisibles++;
+            }
+        } else {
+            // Para otros almacenes, mostrar todas excepto la excluida
+            listaOpciones.forEach(function(opt) {
+                const idUbicacion = $(opt).val();
+                if (!excluirUbicacionId || idUbicacion !== excluirUbicacionId.toString()) {
+                    $selectUbicacion.append($(opt).clone());
+                    opcionesVisibles++;
+                }
+            });
+        }
+        
+        // Actualizar Select2
+        if ($selectUbicacion.data('select2')) {
+            $selectUbicacion.val(null).trigger('change');
+        }
+        
+        console.log(`✅ Opciones visibles: ${opcionesVisibles}`);
+        return opcionesVisibles;
+    }
+    
+    // ============================================
+    // FUNCIÓN: Filtrar almacenes destino
+    // ============================================
+    function filtrarAlmacenesDestino(almacenOrigenId) {
+        console.log(`🔄 Filtrando almacenes destino (origen: ${almacenOrigenId})`);
+        
+        // Limpiar select
+        $almacenDestino.html('<option value="">Seleccionar</option>');
+        
+        if (!almacenOrigenId) {
+            // Sin origen seleccionado: mostrar todos excepto BASE ARCE
+            todosAlmacenesDestino.forEach(function(opt) {
+                const idAlmacen = parseInt($(opt).val());
+                if (idAlmacen !== ID_ALMACEN_BASE_ARCE) {
+                    $almacenDestino.append($(opt).clone());
+                }
+            });
+        } else {
+            const almacenOrigenIdInt = parseInt(almacenOrigenId);
+            
+            // ✅ CASO ESPECIAL: Si origen es BASE ARCE
+            if (almacenOrigenIdInt === ID_ALMACEN_BASE_ARCE) {
+                console.log('🎯 Origen es BASE ARCE - Mostrando solo almacenes ARCE');
+                
+                todosAlmacenesDestino.forEach(function(opt) {
+                    const idAlmacen = parseInt($(opt).val());
+                    const idCliente = parseInt($(opt).attr('data-id-cliente'));
+                    
+                    // Mostrar solo almacenes del cliente ARCE, excepto BASE ARCE mismo
+                    if (idCliente === ID_CLIENTE_ARCE && idAlmacen !== ID_ALMACEN_BASE_ARCE) {
+                        $almacenDestino.append($(opt).clone());
+                        console.log(`  ✅ Agregado: ${$(opt).text()} (id: ${idAlmacen}, cliente: ${idCliente})`);
+                    }
+                });
+            } else {
+                // ✅ CASO NORMAL: Otros almacenes
+                todosAlmacenesDestino.forEach(function(opt) {
+                    const idAlmacen = parseInt($(opt).val());
+                    
+                    // REGLA 1: BASE ARCE nunca puede ser destino
+                    if (idAlmacen === ID_ALMACEN_BASE_ARCE) {
+                        return;
+                    }
+                    
+                    // REGLA 2: Destino debe ser igual al origen (mismo almacén)
+                    if (idAlmacen === almacenOrigenIdInt) {
+                        $almacenDestino.append($(opt).clone());
+                    }
+                });
+            }
+        }
+        
+        // Actualizar Select2
+        if ($almacenDestino.data('select2')) {
+            $almacenDestino.val(null).trigger('change');
+        }
+    }
+    
+    // ============================================
+    // FUNCIÓN: Sincronizar almacén destino con origen
+    // ============================================
+    function sincronizarAlmacenDestino(almacenOrigenId) {
+        console.log(`🔗 Sincronizando almacén destino con origen (${almacenOrigenId})`);
+        
+        const almacenOrigenIdInt = parseInt(almacenOrigenId);
+        
+        // ✅ CASO ESPECIAL: Si es BASE ARCE, NO sincronizar automáticamente
+        if (almacenOrigenIdInt === ID_ALMACEN_BASE_ARCE) {
+            console.log('🎯 BASE ARCE - Usuario debe elegir destino manualmente');
+            
+            if ($almacenDestino.data('select2')) {
+                $almacenDestino.val('').trigger('change');
+                $ubicacionDestino.val('').trigger('change');
+            } else {
+                $almacenDestino.val('');
+                $ubicacionDestino.val('');
+            }
+            
+            // Habilitar selectores para que el usuario elija
+            $almacenDestino.prop('disabled', false);
+            $ubicacionDestino.prop('disabled', false);
+            
+            console.log('✅ Destino habilitado para selección manual');
+            return;
+        }
+        
+        // ✅ CASO NORMAL: Para otros almacenes, sincronizar automáticamente
+        if ($almacenDestino.data('select2')) {
+            $almacenDestino.val(almacenOrigenId).trigger('change');
+        } else {
+            $almacenDestino.val(almacenOrigenId);
+        }
+        
+        $almacenDestino.prop('disabled', false);
+        $ubicacionDestino.prop('disabled', false);
+        
+        console.log(`✅ Almacén destino sincronizado a: ${almacenOrigenId}`);
+    }
+    
+    // ============================================
+    // FUNCIÓN: Validar selección
+    // ============================================
+    function validarSalida() {
+        const almOrigen = parseInt($almacenOrigen.val());
+        const ubicOrigen = parseInt($ubicacionOrigen.val());
+        const almDestino = parseInt($almacenDestino.val());
+        const ubicDestino = parseInt($ubicacionDestino.val());
+        
+        console.log('🔍 Validando salida:', {
+            almOrigen,
+            ubicOrigen,
+            almDestino,
+            ubicDestino
+        });
+        
+        // ✅ VALIDACIÓN ESPECIAL: Si origen es BASE ARCE
+        if (almOrigen === ID_ALMACEN_BASE_ARCE) {
+            // Verificar que destino sea un almacén ARCE (pero no BASE ARCE)
+            const opcionDestino = $almacenDestino.find('option:selected');
+            const idClienteDestino = parseInt(opcionDestino.attr('data-id-cliente'));
+            
+            if (almDestino === ID_ALMACEN_BASE_ARCE) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Destino no permitido',
+                    text: 'BASE ARCE no puede trasladar a sí mismo.',
+                    confirmButtonText: 'Entendido'
+                });
+                return false;
+            }
+            
+            if (idClienteDestino !== ID_CLIENTE_ARCE) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Cliente diferente',
+                    text: 'BASE ARCE solo puede trasladar a otros almacenes del cliente ARCE.',
+                    confirmButtonText: 'Entendido'
+                });
+                return false;
+            }
+            
+            // No validar ubicaciones (BASE ARCE puede ir a cualquier ubicación del destino)
+            console.log('✅ Validación BASE ARCE exitosa');
+            return true;
+        }
+        
+        // ✅ VALIDACIÓN NORMAL: Otros almacenes
+        
+        // VALIDACIÓN 1: Almacén origen y destino deben ser iguales
+        if (almOrigen !== almDestino) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Almacenes diferentes',
+                text: 'El almacén origen y destino deben ser el mismo (excepto BASE ARCE).',
+                confirmButtonText: 'Entendido'
+            });
+            return false;
+        }
+        
+        // VALIDACIÓN 2: Ubicaciones deben ser diferentes
+        if (ubicOrigen === ubicDestino) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Ubicaciones idénticas',
+                text: 'La ubicación origen y destino deben ser diferentes.',
+                confirmButtonText: 'Entendido'
+            });
+            return false;
+        }
+        
+        console.log('✅ Validación normal exitosa');
+        return true;
+    }
+    
+    // ============================================
+    // INICIALIZAR OPCIONES
+    // ============================================
+    inicializarOpciones();
+    
+    // ============================================
+    // EVENTOS: Cambio de Almacén Origen (SELECT2)
+    // ============================================
+    $almacenOrigen.on('change', function() {
+        const almacenId = $(this).val();
+        
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('🏢 Cambio de Almacén Origen');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(`Almacén seleccionado: ${almacenId}`);
+        
+        if (!almacenId) {
+            // Reset todo
+            filtrarUbicaciones(null, $ubicacionOrigen, todasUbicacionesOrigen);
+            filtrarAlmacenesDestino(null);
+            filtrarUbicaciones(null, $ubicacionDestino, todasUbicacionesDestino);
+            
+            $almacenDestino.prop('disabled', false);
+            $ubicacionDestino.prop('disabled', false);
+            
+            console.log('⚠️ No hay almacén seleccionado');
+            return;
+        }
+        
+        // Filtrar ubicaciones de origen
+        filtrarUbicaciones(almacenId, $ubicacionOrigen, todasUbicacionesOrigen);
+        
+        // Sincronizar almacén destino (o dejar libre si es BASE ARCE)
+        sincronizarAlmacenDestino(almacenId);
+        
+        // Filtrar almacenes de destino
+        filtrarAlmacenesDestino(almacenId);
+        
+        // Reset ubicación destino
+        filtrarUbicaciones(almacenId, $ubicacionDestino, todasUbicacionesDestino);
+        
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    });
+    
+    // ============================================
+    // EVENTOS: Cambio de Ubicación Origen (SELECT2)
+    // ============================================
+    $ubicacionOrigen.on('change', function() {
+        const ubicacionId = $(this).val();
+        const almacenId = $almacenOrigen.val();
+        
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('📍 Cambio de Ubicación Origen');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log(`Ubicación seleccionada: ${ubicacionId}`);
+        console.log(`Almacén: ${almacenId}`);
+        
+        if (!ubicacionId || !almacenId) {
+            console.log('⚠️ Falta selección');
+            return;
+        }
+        
+        // ✅ Si es BASE ARCE, no filtrar ubicaciones destino
+        if (parseInt(almacenId) === ID_ALMACEN_BASE_ARCE) {
+            console.log('🎯 BASE ARCE - No filtrar ubicaciones destino');
+            // Mostrar todas las ubicaciones en destino (no excluir ninguna)
+            filtrarUbicaciones(null, $ubicacionDestino, todasUbicacionesDestino);
+            $ubicacionDestino.prop('disabled', false);
+        } else {
+            // Para otros almacenes, filtrar excluyendo la seleccionada
+            const opcionesDisponibles = filtrarUbicaciones(
+                almacenId, 
+                $ubicacionDestino, 
+                todasUbicacionesDestino, 
+                ubicacionId
+            );
+            
+            if (opcionesDisponibles === 0) {
+                console.warn('⚠️ No hay ubicaciones disponibles');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Sin ubicaciones disponibles',
+                    text: 'No hay otras ubicaciones disponibles en este almacén para realizar el traslado.',
+                    confirmButtonText: 'Entendido'
+                });
+            }
+        }
+        
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    });
+    
+    // ============================================
+    // EVENTOS: Cambio de Almacén Destino
+    // ============================================
+    $almacenDestino.on('change', function() {
+        const almacenOrigenId = $almacenOrigen.val();
+        const almacenDestinoId = $(this).val();
+        const almacenOrigenIdInt = parseInt(almacenOrigenId);
+        
+        // ✅ Si origen es BASE ARCE, no validar (puede ir a cualquier almacén ARCE)
+        if (almacenOrigenIdInt === ID_ALMACEN_BASE_ARCE) {
+            console.log('🎯 BASE ARCE como origen - Permitir cualquier almacén ARCE como destino');
+            
+            // Actualizar ubicaciones según el almacén destino seleccionado
+            if (almacenDestinoId) {
+                filtrarUbicaciones(almacenDestinoId, $ubicacionDestino, todasUbicacionesDestino);
+            }
+            return;
+        }
+        
+        // ✅ Para otros almacenes, validar que sea el mismo
+        if (almacenOrigenId && almacenDestinoId && almacenDestinoId !== almacenOrigenId) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Almacén no permitido',
+                text: 'El almacén destino debe ser el mismo que el origen (excepto para BASE ARCE).',
+                confirmButtonText: 'Entendido'
+            });
+            
+            if ($almacenDestino.data('select2')) {
+                $almacenDestino.val(almacenOrigenId).trigger('change');
+            } else {
+                $almacenDestino.val(almacenOrigenId);
+            }
+        }
+    });
+    
+    // ============================================
+    // EVENTOS: Validación al enviar formulario
+    // ============================================
+    $('form[action="salidas_nuevo.php"]').on('submit', function(e) {
+        if (!validarSalida()) {
+            e.preventDefault();
+            return false;
+        }
+    });
+    
+    // ============================================
+    // INICIALIZACIÓN: Trigger inicial si hay valor
+    // ============================================
+    setTimeout(function() {
+        const valorInicial = $almacenOrigen.val();
+        console.log('🔍 Verificando valor inicial:', valorInicial);
+        
+        if (valorInicial) {
+            console.log('🔄 Disparando evento change inicial...');
+            $almacenOrigen.trigger('change');
+        }
+    }, 500);
+    
+    console.log('✅ Control de salidas inicializado correctamente con Select2\n');
+});
+</script>
 <script>
 // Variable global para rastrear qué botón de búsqueda se clickeó
 let currentSearchButton = null;

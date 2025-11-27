@@ -9,29 +9,44 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_salidas');
 ?>
 
 <script>
-//  Función para APROBAR salida
+// ============================================
+// FUNCIÓN MEJORADA PARA APROBAR O DENEGAR SALIDA
+// ============================================
 function AprobarSalida(id_salida) {
     Swal.fire({
-        title: '¿Aprobar esta salida?',
+        title: '¿Qué deseas hacer con esta salida?',
         html: `
             <div class="text-left">
-                <p><strong>IMPORTANTE:</strong></p>
+                <p><strong>Opciones:</strong></p>
                 <ul style="text-align: left;">
-                    <li>Se validará el stock disponible</li>
-                    <li>Se generarán los movimientos de inventario</li>
-                    <li>Si no hay stock, la salida será <strong>ANULADA automáticamente</strong></li>
+                    <li><strong>✅ APROBAR:</strong> Se validará el stock y se generarán los movimientos</li>
+                    <li><strong>🚫 DENEGAR:</strong> La salida será rechazada y se bloqueará esta ubicación</li>
                 </ul>
+                <div class="alert alert-info mt-3" style="text-align: left; font-size: 12px;">
+                    <i class="fa fa-info-circle"></i> <strong>Al denegar:</strong>
+                    <ul class="mb-0 mt-1">
+                        <li>Esta ubicación quedará bloqueada para este producto</li>
+                        <li>El sistema buscará automáticamente otras ubicaciones</li>
+                        <li>Si no hay más ubicaciones, convertirá OS a OC</li>
+                    </ul>
+                </div>
             </div>
         `,
         icon: 'question',
+        showDenyButton: true,
         showCancelButton: true,
         confirmButtonColor: '#28a745',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Sí, aprobar',
-        cancelButtonText: 'Cancelar'
+        denyButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fa fa-check"></i> Aprobar',
+        denyButtonText: '<i class="fa fa-ban"></i> Denegar',
+        cancelButtonText: 'Cancelar',
+        width: '600px'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Mostrar loading
+            // ============================================
+            // APROBAR SALIDA
+            // ============================================
             Swal.fire({
                 title: 'Procesando...',
                 html: 'Validando stock y generando movimientos',
@@ -51,7 +66,6 @@ function AprobarSalida(id_salida) {
                         Swal.fire(' Aprobada!', response.message, 'success')
                         .then(() => { location.reload(); });
                     } else if (response.anulada) {
-                        // Anulada por falta de stock
                         Swal.fire({
                             icon: 'warning',
                             title: 'Salida Anulada',
@@ -65,6 +79,107 @@ function AprobarSalida(id_salida) {
                 },
                 error: function() {
                     Swal.fire(' Error', 'No se pudo conectar con el servidor.', 'error');
+                }
+            });
+            
+        } else if (result.isDenied) {
+            // ============================================
+            // DENEGAR SALIDA - Confirmación adicional
+            // ============================================
+            Swal.fire({
+                title: '¿Estás seguro de denegar esta salida?',
+                html: `
+                    <div class="text-left">
+                        <p><strong>Esta acción:</strong></p>
+                        <ul style="text-align: left;">
+                            <li> Bloqueará esta ubicación para este producto</li>
+                            <li> Buscará automáticamente otras ubicaciones disponibles</li>
+                            <li> Convertirá a OC si no hay más ubicaciones</li>
+                        </ul>
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fa fa-ban"></i> Sí, denegar',
+                cancelButtonText: 'Cancelar',
+                width: '500px'
+            }).then((confirmResult) => {
+                if (confirmResult.isConfirmed) {
+                    // Mostrar loading
+                    Swal.fire({
+                        title: 'Procesando denegación...',
+                        html: `
+                            <div class="text-center">
+                                <div class="spinner-border text-danger mb-3" role="status">
+                                    <span class="sr-only">Loading...</span>
+                                </div>
+                                <p>Denegando salida y procesando flujo automático...</p>
+                            </div>
+                        `,
+                        allowOutsideClick: false,
+                        showConfirmButton: false
+                    });
+                    
+                    // EJECUTAR DENEGACIÓN
+                    $.ajax({
+                        url: '../_controlador/salidas_denegar.php',
+                        type: 'POST',
+                        data: { 
+                            id_salida: id_salida,
+                            motivo: 'Salida denegada por el usuario'
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                //  DENEGACIÓN EXITOSA - VERSIÓN SIMPLE
+                                console.log('✅ Respuesta de denegación:', response);
+                                
+                                // Mensaje SIMPLE sin tanto detalle
+                                let mensaje = 'La salida ha sido denegada correctamente.';
+                                
+                                // Solo agregar info si hubo conversiones
+                                if (response.total_convertidos > 0) {
+                                    mensaje += '<br><br><small class="text-muted">';
+                                    mensaje += '<i class="fa fa-info-circle"></i> ';
+                                    mensaje += response.total_convertidos + ' item(s) convertido(s) a OC (sin ubicaciones disponibles)';
+                                    mensaje += '</small>';
+                                }
+                                
+                                // Mostrar resultado SIMPLE
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: ' Salida Denegada',
+                                    html: mensaje,
+                                    confirmButtonText: 'Entendido',
+                                    confirmButtonColor: '#28a745',
+                                    timer: 2500,
+                                    timerProgressBar: true
+                                }).then(() => { 
+                                    location.reload(); 
+                                });
+                                
+                            } else {
+                                //  ERROR
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: ' Error al Denegar',
+                                    text: response.message,
+                                    confirmButtonColor: '#dc3545'
+                                });
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Error AJAX:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: ' Error de Conexión',
+                                text: 'No se pudo conectar con el servidor. Por favor, intenta nuevamente.',
+                                confirmButtonColor: '#dc3545'
+                            });
+                        }
+                    });
                 }
             });
         }
@@ -262,6 +377,9 @@ function AnularSalida(id_salida) {
                                                                 break;
                                                             case 3:
                                                                 echo '<span class="badge badge-success badge_size">APROBADA</span>';
+                                                                break;
+                                                            case 4:
+                                                                echo '<span class="badge badge-dark badge_size">DENEGADA</span>';
                                                                 break;
                                                         }
                                                         ?>

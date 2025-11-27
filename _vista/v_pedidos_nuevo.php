@@ -1402,6 +1402,71 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ============================================
+    // CONTROL DINÁMICO DE UBICACIONES SEGÚN ALMACÉN
+    // ============================================
+    const selectAlmacen = document.querySelector('select[name="id_obra"]');
+    const selectUbicacion = document.querySelector('select[name="id_ubicacion"]');
+
+    // Guardar todas las opciones originales de ubicación
+    let todasUbicaciones = [];
+
+    function inicializarUbicaciones() {
+        todasUbicaciones = Array.from(selectUbicacion.options).slice(1); // Excluir "Seleccionar"
+    }
+
+    function filtrarUbicacionesPorAlmacen() {
+        const almacenSeleccionado = selectAlmacen.value;
+        
+        // Limpiar select de ubicación (mantener opción "Seleccionar")
+        selectUbicacion.innerHTML = '<option value="">Seleccionar</option>';
+        
+        if (!almacenSeleccionado) {
+            // Si no hay almacén seleccionado, mostrar todas
+            todasUbicaciones.forEach(opt => {
+                selectUbicacion.appendChild(opt.cloneNode(true));
+            });
+            if ($(selectUbicacion).data('select2')) {
+                $(selectUbicacion).val(null).trigger('change');
+            }
+            return;
+        }
+        
+        // Si es BASE ARCE (id_almacen = 1), solo mostrar BASE (id_ubicacion = 1)
+        if (almacenSeleccionado === '1') {
+            const opcionBase = todasUbicaciones.find(opt => opt.value === '1');
+            if (opcionBase) {
+                selectUbicacion.appendChild(opcionBase.cloneNode(true));
+                // Seleccionar automáticamente BASE
+                if ($(selectUbicacion).data('select2')) {
+                    $(selectUbicacion).val('1').trigger('change');
+                } else {
+                    selectUbicacion.value = '1';
+                }
+            }
+        } else {
+            // Para otros almacenes de ARCE, mostrar todas las ubicaciones
+            todasUbicaciones.forEach(opt => {
+                selectUbicacion.appendChild(opt.cloneNode(true));
+            });
+            if ($(selectUbicacion).data('select2')) {
+                $(selectUbicacion).val(null).trigger('change');
+            }
+        }
+    }
+
+    // Ejecutar al cambiar almacén
+    if (selectAlmacen && selectUbicacion) {
+        // Inicializar opciones
+        inicializarUbicaciones();
+        
+        // Evento de cambio con Select2
+        $(selectAlmacen).on('change', filtrarUbicacionesPorAlmacen);
+        
+        // Estado inicial
+        setTimeout(filtrarUbicacionesPorAlmacen, 200);
+    }
+
+    // ============================================
     // FUNCIÓN: Crear producto
     // ============================================
     const btnGuardarProducto = document.getElementById('btn-guardar-producto');

@@ -84,6 +84,12 @@ $monedas = MostrarMoneda();
                                     <td><?php echo $pedido['nom_ubicacion']; ?></td>
                                 </tr>
                                 <tr>
+                                    <td style="background-color: #f8f9fa;"><strong>Cliente:</strong></td>
+                                    <td><?php echo $pedido['nom_cliente']; ?></td>
+                                    <td style="background-color: #f8f9fa;"><strong>Obra:</strong></td>
+                                    <td><?php echo $pedido['nom_obra']; ?></td>
+                                </tr>
+                                <tr>
                                     <td style="background-color: #f8f9fa;"><strong>Centro de Costos:</strong></td>
                                     <td><?php echo $pedido['nom_centro_costo']; ?></td>
                                     <td style="background-color: #f8f9fa;"><strong>Solicitante:</strong></td>
@@ -421,29 +427,72 @@ $monedas = MostrarMoneda();
                                     
                                     <!-- Ubicación destino -->
                                     <div class="mb-2 p-1" style="background-color: #fff; border-radius: 3px;">
-                                        <span style="font-size: 10px;">
-                                            <?php echo htmlspecialchars($pedido['nom_ubicacion']); ?> (Destino)
-                                        </span>
-                                        <strong class="ml-2"><?php echo number_format($detalle['stock_ubicacion_destino'], 2); ?></strong>
-                                        <span class="text-muted">/ Necesita: <?php echo number_format($cantidad_pedida, 2); ?></span>
+                                        <div style="font-size: 10px;">
+                                            <span style="font-size: 9px;">
+                                                <?php echo htmlspecialchars($pedido['nom_cliente']); ?> - 
+                                                <?php echo htmlspecialchars($pedido['nom_obra']); ?>
+                                            </span>
+                                            <span class="ml-1"><?php echo htmlspecialchars($pedido['nom_ubicacion']); ?> (Destino)</span>
+                                        </div>
+                                        <div class="mt-1">
+                                            <strong><?php echo number_format($detalle['stock_ubicacion_destino'], 2); ?></strong>
+                                            <span class="text-muted">/ Necesita: <?php echo number_format($cantidad_pedida, 2); ?></span>
+                                        </div>
                                     </div>
+
+                                    <?php
+                                    // Obtener ubicaciones BLOQUEADAS para este producto
+                                    $ubicaciones_bloqueadas_info = ObtenerUbicacionesBloqueadasPorDenegacion(
+                                        $detalle['id_producto'],
+                                        $detalle['id_pedido_detalle']
+                                    );
                                     
+                                    // Crear array de keys bloqueadas para búsqueda rápida
+                                    $ubicaciones_bloqueadas_keys = [];
+                                    foreach ($ubicaciones_bloqueadas_info as $key => $info) {
+                                        $ubicaciones_bloqueadas_keys[$key] = true;
+                                    }
+                                    ?>
+
                                     <!-- Otras ubicaciones -->
                                     <?php if (!empty($detalle['otras_ubicaciones_con_stock'])): ?>
+                                        <?php
+                                        // Ordenar por stock de mayor a menor
+                                        usort($detalle['otras_ubicaciones_con_stock'], function($a, $b) {
+                                            return $b['stock'] - $a['stock'];
+                                        });
+                                        ?>
                                         <div class="mt-2">
                                             <small class="text-muted d-block mb-1">
                                                 <i class="fa fa-list"></i> Otras ubicaciones disponibles:
                                             </small>
                                             <?php foreach ($detalle['otras_ubicaciones_con_stock'] as $ub): ?>
-                                                <div class="ml-3 mb-1" style="font-size: 10px;">
-                                                    <span style="font-size: 9px;">
-                                                        <?php echo htmlspecialchars($ub['nom_ubicacion']); ?>
-                                                    </span>
-                                                    <strong><?php echo number_format($ub['stock'], 2); ?></strong> unidades
+                                                <?php
+                                                // Verificar si esta ubicación está bloqueada
+                                                $key_ub = $ub['id_almacen'] . '_' . $ub['id_ubicacion'];
+                                                $estaBloqueada = isset($ubicaciones_bloqueadas_keys[$key_ub]);
+                                                ?>
+                                                <div class="ml-3 mb-1 p-1" style="font-size: 10px; background-color: #fff; border-radius: 3px;">
+                                                    <div>
+                                                        <span style="font-size: 8px;">
+                                                            <?php echo htmlspecialchars($ub['nom_cliente'] ?? 'Sin cliente'); ?>
+                                                            <?php echo htmlspecialchars($ub['nom_obra'] ?? ''); ?>
+                                                        </span>
+                                                        <span class="ml-1" style="font-size: 9px;">
+                                                            <?php echo htmlspecialchars($ub['nom_ubicacion']); ?>
+                                                        </span>
+                                                        <?php if ($estaBloqueada): ?>
+                                                            <i class="fa fa-ban text-danger ml-1" title="Ubicación bloqueada"></i>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <div class="mt-1">
+                                                        <strong><?php echo number_format($ub['stock'], 2); ?></strong> unidades
+                                                    </div>
                                                 </div>
                                             <?php endforeach; ?>
                                         </div>
                                     <?php endif; ?>
+
                                     
                                     <!-- Resumen de cantidades -->
                                     <?php if (isset($cantidad_para_os) && isset($cantidad_para_oc)): ?>
@@ -1269,15 +1318,18 @@ $monedas = MostrarMoneda();
                                                 if ($salida['est_salida'] == 0) {
                                                     $estado_salida_texto = 'ANULADA';
                                                     $estado_salida_clase = 'badge-danger';
-                                                } elseif ($salida['est_salida'] == 2) {
-                                                    $estado_salida_texto = 'RECEPCIONADA';
-                                                    $estado_salida_clase = 'badge-primary';
                                                 } elseif ($salida['est_salida'] == 1) {
                                                     $estado_salida_texto = 'PENDIENTE';
                                                     $estado_salida_clase = 'badge-warning';
+                                                } elseif ($salida['est_salida'] == 2) {
+                                                    $estado_salida_texto = 'RECEPCIONADA';
+                                                    $estado_salida_clase = 'badge-primary';
                                                 } elseif ($salida['est_salida'] == 3) {
                                                     $estado_salida_texto = 'APROBADA';
                                                     $estado_salida_clase = 'badge-success';
+                                                } elseif ($salida['est_salida'] == 4) {
+                                                    $estado_salida_texto = 'DENEGADA';
+                                                    $estado_salida_clase = 'badge-dark';
                                                 } else {
                                                     $estado_salida_texto = 'DESCONOCIDO';
                                                     $estado_salida_clase = 'badge-secondary';
@@ -1335,12 +1387,12 @@ $monedas = MostrarMoneda();
                                                             </button>
                                                         <?php } ?>
                                                         
-                                                        <?php if ($salida['est_salida'] == 0) { ?>
-                                                            <!-- Solo en estado ANULADA: botones deshabilitados visualmente -->
+                                                        <?php if ($salida['est_salida'] == 0 || $salida['est_salida'] == 4) { ?>
+                                                            <!-- Estados ANULADA (0) o DENEGADA (4): botones deshabilitados -->
                                                             <button class="btn btn-outline-secondary btn-xs ml-1 disabled" disabled>
                                                                 <i class="fa fa-edit"></i>
                                                             </button>
-                                                            <button class="btn btn-outline-secondary btn-xs ml-1 disabled" data-toggle="tooltip" disabled>
+                                                            <button class="btn btn-outline-secondary btn-xs ml-1 disabled" disabled>
                                                                 <i class="fa fa-times"></i>
                                                             </button>
                                                         <?php } ?>
@@ -1834,10 +1886,10 @@ $monedas = MostrarMoneda();
                                             <div class="col-md-6">
                                                 <label style="font-size: 11px; font-weight: bold;">Almacén Origen: <span class="text-danger">*</span></label>
                                                 <select class="form-control form-control-sm" 
-                                                        id="almacen_origen_salida" 
-                                                        name="almacen_origen_salida" 
-                                                        style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
-                                                        required>
+                                                    id="almacen_origen_salida" 
+                                                    name="almacen_origen_salida" 
+                                                    style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
+                                                    required>
                                                     <option value="">Seleccionar almacén...</option>
                                                     <?php foreach ($almacenes as $alm) { 
                                                         $selected_origen = '';
@@ -1864,43 +1916,82 @@ $monedas = MostrarMoneda();
                                                         required>
                                                     <option value="">Seleccionar ubicación...</option>
                                                     <?php 
-                                                    // DETERMINAR QUÉ UBICACIÓN PRE-SELECCIONAR
-                                                    $id_ubicacion_origen_preseleccionada = null;
-                                                    
-                                                    if ($modo_editar_salida && isset($salida_data)) {
-                                                        // MODO EDICIÓN: Usar la ubicación guardada
-                                                        $id_ubicacion_origen_preseleccionada = $salida_data['id_ubicacion_origen'];
-                                                    } else {
-                                                        // MODO CREACIÓN: Buscar la primera ubicación con stock
-                                                        // Necesitamos obtener las ubicaciones con stock del primer item del pedido
-                                                        if (!empty($pedido_detalle)) {
-                                                            $primer_detalle = $pedido_detalle[0];
-                                                            $otras_ubicaciones_stock = ObtenerOtrasUbicacionesConStock(
-                                                                $primer_detalle['id_producto'],
-                                                                $pedido['id_almacen'],
-                                                                $pedido['id_ubicacion']
-                                                            );
-                                                            
-                                                            if (!empty($otras_ubicaciones_stock)) {
-                                                                // Usar la primera ubicación con stock
-                                                                $id_ubicacion_origen_preseleccionada = $otras_ubicaciones_stock[0]['id_ubicacion'];
+                                                    if (!empty($pedido_detalle)) {
+                                                        $primer_detalle = $pedido_detalle[0];
+                                                        
+                                                        // Obtener ubicaciones bloqueadas
+                                                        $ubicaciones_bloqueadas_form = ObtenerUbicacionesBloqueadasPorDenegacion(
+                                                            $primer_detalle['id_producto'],
+                                                            $primer_detalle['id_pedido_detalle']
+                                                        );
+                                                        
+                                                        // Crear array de keys bloqueadas para búsqueda rápida
+                                                        $bloqueadas_keys = [];
+                                                        foreach ($ubicaciones_bloqueadas_form as $key => $info) {
+                                                            $bloqueadas_keys[$key] = true;
+                                                        }
+                                                        
+                                                        // Obtener todas las ubicaciones con stock
+                                                        $ubicaciones_disponibles = ObtenerOtrasUbicacionesConStock(
+                                                            $primer_detalle['id_producto'],
+                                                            $pedido['id_almacen'],
+                                                            $pedido['id_ubicacion']
+                                                        );
+                                                        
+                                                        $id_ubicacion_origen_preseleccionada = null;
+                                                        if ($modo_editar_salida && isset($salida_data)) {
+                                                            $id_ubicacion_origen_preseleccionada = $salida_data['id_ubicacion_origen'];
+                                                        } elseif (!empty($ubicaciones_disponibles)) {
+                                                            // Preseleccionar la primera ubicación NO bloqueada
+                                                            foreach ($ubicaciones_disponibles as $ub) {
+                                                                $key_ub = $ub['id_almacen'] . '_' . $ub['id_ubicacion'];
+                                                                if (!isset($bloqueadas_keys[$key_ub])) {
+                                                                    $id_ubicacion_origen_preseleccionada = $ub['id_ubicacion'];
+                                                                    break;
+                                                                }
                                                             }
                                                         }
-                                                    }
-                                                    
-                                                    foreach ($ubicaciones as $ubi) { 
-                                                        $selected_ubi_origen = '';
-                                                        if ($id_ubicacion_origen_preseleccionada && $id_ubicacion_origen_preseleccionada == $ubi['id_ubicacion']) {
-                                                            $selected_ubi_origen = 'selected';
+                                                        
+                                                        foreach ($ubicaciones_disponibles as $ub) {
+                                                            // Verificar si está bloqueada
+                                                            $key_ub = $ub['id_almacen'] . '_' . $ub['id_ubicacion'];
+                                                            $estaBloqueada = isset($bloqueadas_keys[$key_ub]);
+                                                            
+                                                            $selected = '';
+                                                            if ($id_ubicacion_origen_preseleccionada && $id_ubicacion_origen_preseleccionada == $ub['id_ubicacion']) {
+                                                                $selected = 'selected';
+                                                            }
+                                                            
+                                                            // Formato: "ALMACÉN - UBICACIÓN (Stock: XX.XX)" con ícono si está bloqueada
+                                                            $icono = $estaBloqueada ? '🚫 ' : '';
+                                                            $texto_opcion = sprintf(
+                                                                "%s%s - %s (Stock: %s)",
+                                                                $icono,
+                                                                $ub['nom_almacen'],
+                                                                $ub['nom_ubicacion'],
+                                                                number_format($ub['stock'], 2)
+                                                            );
+                                                            
+                                                            // Si está bloqueada, deshabilitar la opción
+                                                            $disabled = $estaBloqueada ? 'disabled' : '';
+                                                            $estilo = $estaBloqueada ? 'style="color: #dc3545; font-style: italic;"' : '';
+                                                            
+                                                            echo sprintf(
+                                                                '<option value="%d" data-id-almacen="%d" data-stock="%s" %s %s %s>%s</option>',
+                                                                $ub['id_ubicacion'],
+                                                                $ub['id_almacen'],
+                                                                number_format($ub['stock'], 2, '.', ''),
+                                                                $selected,
+                                                                $disabled,
+                                                                $estilo,
+                                                                htmlspecialchars($texto_opcion)
+                                                            );
                                                         }
+                                                    }
                                                     ?>
-                                                        <option value="<?php echo $ubi['id_ubicacion']; ?>" <?php echo $selected_ubi_origen; ?>>
-                                                            <?php echo htmlspecialchars($ubi['nom_ubicacion']); ?>
-                                                        </option>
-                                                    <?php } ?>
                                                 </select>
                                                 <small class="text-muted" style="font-size: 10px;">
-                                                    <i class="fa fa-info-circle"></i> Ubicación de donde saldrá el material
+                                                    <i class="fa fa-info-circle"></i> Selecciona de dónde saldrá el material
                                                 </small>
                                             </div>
                                         </div>
@@ -2490,7 +2581,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 let htmlUbicaciones = '<strong>Disponible en:</strong> ';
                 otrasUbicaciones.forEach((ub, idx) => {
                     if (idx > 0) htmlUbicaciones += ', ';
-                    htmlUbicaciones += `<span class="badge badge-info">${ub.nom_ubicacion}</span> (${parseFloat(ub.stock).toFixed(2)})`;
+                    htmlUbicaciones += `
+                        <div class="mb-1">
+                            <span class="badge badge-${ub.es_otro_cliente == 1 ? 'warning' : 'info'}" style="font-size: 9px;">
+                                ${ub.nom_cliente} - ${ub.nom_obra}
+                            </span>
+                            <span class="ml-1">${ub.nom_ubicacion}</span>
+                            <strong class="ml-2 text-primary">${parseFloat(ub.stock).toFixed(2)}</strong> unidades
+                        </div>
+                    `;
                 });
                 detalleOS.innerHTML = htmlUbicaciones;
             } else {
@@ -2757,163 +2856,214 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function agregarItemASalida(item) {
-        console.log('🚚 agregarItemASalida INICIADO');
-        console.log('📋 Item recibido:', item);
-        
-        // 🔹 VALIDACIÓN MEJORADA
-        let cantidadDisponible = 0;
+    console.log('🚚 agregarItemASalida INICIADO');
+    console.log('📋 Item recibido:', item);
     
-        if (item.cantidadDisponible !== undefined && item.cantidadDisponible !== null) {
-            cantidadDisponible = parseFloat(item.cantidadDisponible);
-        }
-        
-        // Si sigue siendo 0, intentar calcular desde verificada - ordenada
-        if (cantidadDisponible <= 0) {
-            const cantidadVerificada = parseFloat(item.cantidadVerificada) || 0;
-            const cantidadOrdenada = parseFloat(item.cantidadOrdenada) || 0;
-            cantidadDisponible = cantidadVerificada - cantidadOrdenada;
-        }
-        
-        console.log('📦 Cantidad disponible final:', cantidadDisponible);
-        
-        if (cantidadDisponible <= 0) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Sin Stock Disponible',
-                text: 'No hay cantidad disponible para generar salida de este item.',
-                confirmButtonColor: '#3085d6'
-            });
-            return;
-        }
-        
-        // Validar ubicaciones con stock
-        let otrasUbicaciones = [];
-        try {
-            otrasUbicaciones = item.otrasUbicaciones ? JSON.parse(item.otrasUbicaciones) : [];
-        } catch (e) {
-            console.error('Error parseando otras_ubicaciones:', e);
-            otrasUbicaciones = [];
-        }
-        
-        if (otrasUbicaciones.length === 0) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Sin Ubicaciones Disponibles',
-                text: 'No hay ubicaciones con stock para generar la salida.',
-                confirmButtonColor: '#3085d6'
-            });
-            return;
-        }
-        
-        const itemId = 'salida-' + Date.now();
-        console.log('🆔 ID generado:', itemId);
+    // 🔹 VALIDACIÓN MEJORADA - Usar cant_os_pedido_detalle
+    let cantidadDisponible = 0;
 
-        // 🔹 CRÍTICO: Capturar id_pedido_detalle
-        const idPedidoDetalle = parseInt(item.idDetalle) || 0;
-        console.log('🔑 id_pedido_detalle capturado:', idPedidoDetalle);
-        
-        const itemElement = document.createElement('div');
-        itemElement.id = `item-salida-${itemId}`;
-        itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
-        
-        // Construir HTML con información de ubicaciones
-        let htmlUbicaciones = '<div class="mt-2" style="font-size: 11px; background-color: #e8f5e9; padding: 8px; border-radius: 4px;">';
-        htmlUbicaciones += '<strong class="text-success"><i class="fa fa-map-marker"></i> Stock disponible en:</strong><br>';
-        
-        otrasUbicaciones.forEach((ub, index) => {
-            htmlUbicaciones += `<div class="ml-2 mt-1">
-                <span class="badge badge-info" style="font-size: 10px;">${ub.nom_ubicacion}</span>
-                <strong>${parseFloat(ub.stock).toFixed(2)}</strong> unidades
-            </div>`;
-        });
-        htmlUbicaciones += '</div>';
-
-        itemElement.innerHTML = `
-            <input type="hidden" name="items_salida[${itemId}][id_detalle]" value="${item.idDetalle}">
-            <input type="hidden" name="items_salida[${itemId}][id_producto]" value="${item.idProducto}">
-            <input type="hidden" name="items_salida[${itemId}][id_pedido_detalle]" value="${idPedidoDetalle}">
-            <input type="hidden" name="items_salida[${itemId}][almacen_destino]" value="${item.almacenDestino || ''}">
-            <input type="hidden" name="items_salida[${itemId}][ubicacion_destino]" value="${item.ubicacionDestino || ''}">
-            
-            <div class="row align-items-center mb-2">
-                <div class="col-md-11">
-                    <div style="font-size: 12px;">
-                        <strong>Descripción:</strong> ${item.descripcion}
-                        <span class="badge badge-success badge-sm ml-1">SALIDA</span>
-                    </div>
-                    <small class="text-muted" style="font-size: 11px;">
-                        <i class="fa fa-info-circle"></i> Cantidad pendiente OS: <strong>${cantidadDisponible.toFixed(2)}</strong>
-                    </small>
-                </div>
-                <div class="col-md-1 text-right">
-                    <button type="button" class="btn btn-danger btn-sm btn-remover-item-salida" data-id-detalle="${itemId}">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-            
-            ${htmlUbicaciones}
-            
-            <div class="row mt-2">
-                <div class="col-md-4">
-                    <label style="font-size: 11px; font-weight: bold;">Cantidad a Trasladar:</label>
-                    <input type="number" class="form-control form-control-sm cantidad-salida" 
-                        name="items_salida[${itemId}][cantidad]"
-                        value="${cantidadDisponible.toFixed(2)}" 
-                        min="0.01" 
-                        max="${cantidadDisponible.toFixed(2)}" 
-                        step="0.01"
-                        style="font-size: 12px;" required>
-                    <small class="text-info" style="font-size: 10px;">Máx: ${cantidadDisponible.toFixed(2)}</small>
-                </div>
-            </div>
-        `;
-        
-        const contenedorItemsSalida = document.getElementById('contenedor-items-salida');
-        contenedorItemsSalida.appendChild(itemElement);
-        console.log('Item agregado al DOM');
-        
-            if (item.botonOriginal) {
-            item.botonOriginal.disabled = true;
-            item.botonOriginal.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
-            item.botonOriginal.classList.remove('btn-success');
-            item.botonOriginal.classList.add('btn-secondary');
-            console.log('🔒 Botón original deshabilitado');
-        }
-        
-        // Event listener para remover
-        const btnRemover = itemElement.querySelector('.btn-remover-item-salida');
-        if (btnRemover) {  // ← AGREGAR VALIDACIÓN
-            btnRemover.addEventListener('click', function() {
-                removerItemDeSalida(itemId, item.botonOriginal);
-            });
-        }
-        
-        //  RE-VALIDAR DISPONIBILIDAD DESPUÉS DE AGREGAR
-        setTimeout(() => {
-            const hayMasDisponibles = validarItemsDisponiblesParaSalida();
-            const btnNuevaSalida = document.getElementById('btn-nueva-salida');
-            
-            console.log('🔍 Re-validación después de agregar:', {
-                hayMasDisponibles: hayMasDisponibles,
-                estadoBoton: btnNuevaSalida ? btnNuevaSalida.disabled : 'no existe'
-            });
-            
-            if (btnNuevaSalida) {
-                if (hayMasDisponibles) {
-                    btnNuevaSalida.disabled = false;
-                    btnNuevaSalida.title = 'Ver lista de salidas';
-                    console.log('✅ Botón Nueva Salida mantiene habilitado');
-                } else {
-                    btnNuevaSalida.disabled = true;
-                    btnNuevaSalida.title = 'No hay más items disponibles';
-                    console.log('🔒 Botón Nueva Salida deshabilitado - sin items');
-                }
-            }
-        }, 100);
-        
-        console.log('✅ agregarItemASalida COMPLETADO');
+    if (item.cantidadDisponible !== undefined && item.cantidadDisponible !== null) {
+        cantidadDisponible = parseFloat(item.cantidadDisponible);
     }
+    
+    // Si sigue siendo 0, intentar calcular desde verificada - ordenada
+    if (cantidadDisponible <= 0) {
+        const cantidadVerificada = parseFloat(item.cantidadVerificada) || 0;
+        const cantidadOrdenada = parseFloat(item.cantidadOrdenada) || 0;
+        cantidadDisponible = cantidadVerificada - cantidadOrdenada;
+    }
+    
+    console.log('📦 Cantidad disponible OS (cant_os_pedido_detalle - ordenado):', cantidadDisponible);
+    
+    if (cantidadDisponible <= 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Sin Cantidad Disponible para OS',
+            text: 'No hay cantidad pendiente para generar salida de este item.',
+            confirmButtonColor: '#3085d6'
+        });
+        return;
+    }
+    
+    // 🔹 OBTENER STOCK EN UBICACIÓN SELECCIONADA
+    const ubicacionOrigenSelect = document.getElementById('ubicacion_origen_salida');
+    let stockEnUbicacionOrigen = 0;
+    
+    if (ubicacionOrigenSelect && ubicacionOrigenSelect.value) {
+        const optionSeleccionada = ubicacionOrigenSelect.options[ubicacionOrigenSelect.selectedIndex];
+        stockEnUbicacionOrigen = parseFloat(optionSeleccionada.getAttribute('data-stock')) || 0;
+        
+        console.log('📍 Ubicación origen seleccionada:', {
+            id: ubicacionOrigenSelect.value,
+            nombre: optionSeleccionada.text,
+            stock: stockEnUbicacionOrigen
+        });
+    } else {
+        console.warn('⚠️ No hay ubicación origen seleccionada');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Seleccione Ubicación Origen',
+            text: 'Debe seleccionar primero la ubicación de origen para continuar.',
+            confirmButtonColor: '#3085d6'
+        });
+        return;
+    }
+    
+    // 🔹 CRÍTICO: La cantidad MÁXIMA es el MENOR entre:
+    // - Lo que falta por ordenar (cantidadDisponible)
+    // - Lo que hay en la ubicación origen (stockEnUbicacionOrigen)
+    const cantidadMaximaReal = Math.min(cantidadDisponible, stockEnUbicacionOrigen);
+    
+    console.log('🎯 Validación de cantidades:', {
+        cantidadDisponibleOS: cantidadDisponible,
+        stockEnUbicacion: stockEnUbicacionOrigen,
+        cantidadMaximaFinal: cantidadMaximaReal
+    });
+    
+    if (cantidadMaximaReal <= 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Sin Stock en Ubicación Origen',
+            text: 'La ubicación seleccionada no tiene stock disponible para este producto.',
+            confirmButtonColor: '#3085d6'
+        });
+        return;
+    }
+    
+    // Validar ubicaciones con stock
+    let otrasUbicaciones = [];
+    try {
+        otrasUbicaciones = item.otrasUbicaciones ? JSON.parse(item.otrasUbicaciones) : [];
+    } catch (e) {
+        console.error('Error parseando otras_ubicaciones:', e);
+        otrasUbicaciones = [];
+    }
+    
+    if (otrasUbicaciones.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Sin Ubicaciones Disponibles',
+            text: 'No hay ubicaciones con stock para generar la salida.',
+            confirmButtonColor: '#3085d6'
+        });
+        return;
+    }
+    
+    const itemId = 'salida-' + Date.now();
+    console.log('🆔 ID generado:', itemId);
+
+    // 🔹 CRÍTICO: Capturar id_pedido_detalle
+    const idPedidoDetalle = parseInt(item.idDetalle) || 0;
+    console.log('🔑 id_pedido_detalle capturado:', idPedidoDetalle);
+    
+    const itemElement = document.createElement('div');
+    itemElement.id = `item-salida-${itemId}`;
+    itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
+    
+    // Construir HTML con información de ubicaciones
+    let htmlUbicaciones = '<div class="mt-2" style="font-size: 11px; background-color: #e8f5e9; padding: 8px; border-radius: 4px;">';
+    htmlUbicaciones += '<strong class="text-success"><i class="fa fa-map-marker"></i> Stock disponible en:</strong><br>';
+    
+    otrasUbicaciones.forEach((ub, index) => {
+        htmlUbicaciones += `<div class="ml-2 mt-1">
+            <span class="badge badge-info" style="font-size: 10px;">${ub.nom_ubicacion}</span>
+            <strong>${parseFloat(ub.stock).toFixed(2)}</strong> unidades
+        </div>`;
+    });
+    htmlUbicaciones += '</div>';
+
+    // 🔹 USAR cantidadMaximaReal EN LUGAR DE cantidadDisponible
+    itemElement.innerHTML = `
+        <input type="hidden" name="items_salida[${itemId}][id_detalle]" value="${item.idDetalle}">
+        <input type="hidden" name="items_salida[${itemId}][id_producto]" value="${item.idProducto}">
+        <input type="hidden" name="items_salida[${itemId}][id_pedido_detalle]" value="${idPedidoDetalle}">
+        <input type="hidden" name="items_salida[${itemId}][almacen_destino]" value="${item.almacenDestino || ''}">
+        <input type="hidden" name="items_salida[${itemId}][ubicacion_destino]" value="${item.ubicacionDestino || ''}">
+        
+        <div class="row align-items-center mb-2">
+            <div class="col-md-11">
+                <div style="font-size: 12px;">
+                    <strong>Descripción:</strong> ${item.descripcion}
+                    <span class="badge badge-success badge-sm ml-1">SALIDA</span>
+                </div>
+                <small class="text-muted" style="font-size: 11px;">
+                    <i class="fa fa-info-circle"></i> Cantidad pendiente OS: <strong>${cantidadDisponible.toFixed(2)}</strong> | 
+                    Stock en ubicación: <strong>${stockEnUbicacionOrigen.toFixed(2)}</strong>
+                </small>
+            </div>
+            <div class="col-md-1 text-right">
+                <button type="button" class="btn btn-danger btn-sm btn-remover-item-salida" data-id-detalle="${itemId}">
+                    <i class="fa fa-trash"></i>
+                </button>
+            </div>
+        </div>
+        
+        ${htmlUbicaciones}
+        
+        <div class="row mt-2">
+            <div class="col-md-4">
+                <label style="font-size: 11px; font-weight: bold;">Cantidad a Trasladar:</label>
+                <input type="number" class="form-control form-control-sm cantidad-salida" 
+                    name="items_salida[${itemId}][cantidad]"
+                    value="${cantidadMaximaReal.toFixed(2)}" 
+                    min="0.01" 
+                    max="${cantidadMaximaReal.toFixed(2)}" 
+                    step="0.01"
+                    data-cantidad-maxima="${cantidadMaximaReal}"
+                    data-cantidad-maxima-os="${cantidadDisponible}"
+                    style="font-size: 12px;" required>
+                <small class="text-info" style="font-size: 10px;">
+                    <i class="fa fa-arrow-up"></i> Máx: ${cantidadMaximaReal.toFixed(2)}
+                </small>
+            </div>
+        </div>
+    `;
+    
+    const contenedorItemsSalida = document.getElementById('contenedor-items-salida');
+    contenedorItemsSalida.appendChild(itemElement);
+    console.log('✅ Item agregado al DOM');
+    
+    if (item.botonOriginal) {
+        item.botonOriginal.disabled = true;
+        item.botonOriginal.innerHTML = '<i class="fa fa-check-circle"></i> Agregado';
+        item.botonOriginal.classList.remove('btn-success');
+        item.botonOriginal.classList.add('btn-secondary');
+        console.log('🔒 Botón original deshabilitado');
+    }
+    
+    // Event listener para remover
+    const btnRemover = itemElement.querySelector('.btn-remover-item-salida');
+    if (btnRemover) {
+        btnRemover.addEventListener('click', function() {
+            removerItemDeSalida(itemId, item.botonOriginal);
+        });
+    }
+    
+    // 🔹 RE-VALIDAR DISPONIBILIDAD DESPUÉS DE AGREGAR
+    setTimeout(() => {
+        const hayMasDisponibles = validarItemsDisponiblesParaSalida();
+        const btnNuevaSalida = document.getElementById('btn-nueva-salida');
+        
+        console.log('🔍 Re-validación después de agregar:', {
+            hayMasDisponibles: hayMasDisponibles,
+            estadoBoton: btnNuevaSalida ? btnNuevaSalida.disabled : 'no existe'
+        });
+        
+        if (btnNuevaSalida) {
+            if (hayMasDisponibles) {
+                btnNuevaSalida.disabled = false;
+                btnNuevaSalida.title = 'Ver lista de salidas';
+                console.log('✅ Botón Nueva Salida mantiene habilitado');
+            } else {
+                btnNuevaSalida.disabled = true;
+                btnNuevaSalida.title = 'No hay más items disponibles';
+                console.log('🔒 Botón Nueva Salida deshabilitado - sin items');
+            }
+        }
+    }, 100);
+    
+    console.log('✅ agregarItemASalida COMPLETADO');
+}
     
     function removerItemDeSalida(idDetalle, botonOriginal) {
         const itemElement = document.getElementById(`item-salida-${idDetalle}`);
@@ -2949,69 +3099,69 @@ document.addEventListener('DOMContentLoaded', function() {
         const almacenDestino = document.getElementById('almacen_destino_salida');
         const ubicacionDestino = document.getElementById('ubicacion_destino_salida');
         
-        // Filtrar ubicaciones según almacén origen
-        almacenOrigen.addEventListener('change', function() {
-            const idAlmacenOrigen = this.value;
-            const opcionesUbicacionOrigen = ubicacionOrigen.querySelectorAll('option');
-            
-            opcionesUbicacionOrigen.forEach(option => {
-                if (option.value === '') {
-                    option.style.display = 'block';
-                    return;
-                }
+            // Filtrar ubicaciones según almacén origen
+            almacenOrigen.addEventListener('change', function() {
+                const idAlmacenOrigen = this.value;
+                const opcionesUbicacionOrigen = ubicacionOrigen.querySelectorAll('option');
                 
-                const almacenOption = option.getAttribute('data-almacen');
-                if (almacenOption === idAlmacenOrigen) {
-                    option.style.display = 'block';
-                } else {
-                    option.style.display = 'none';
-                }
-            });
-            
-            ubicacionOrigen.value = '';
-        });
-        
-        // Filtrar ubicaciones según almacén destino
-        almacenDestino.addEventListener('change', function() {
-            const idAlmacenDestino = this.value;
-            const opcionesUbicacionDestino = ubicacionDestino.querySelectorAll('option');
-            
-            opcionesUbicacionDestino.forEach(option => {
-                if (option.value === '') {
-                    option.style.display = 'block';
-                    return;
-                }
-                
-                const almacenOption = option.getAttribute('data-almacen');
-                if (almacenOption === idAlmacenDestino) {
-                    option.style.display = 'block';
-                } else {
-                    option.style.display = 'none';
-                }
-            });
-            
-            ubicacionDestino.value = '';
-        });
-        
-        // Validar que origen y destino sean diferentes
-        [ubicacionOrigen, ubicacionDestino].forEach(elemento => {
-            elemento.addEventListener('change', function() {
-                if (almacenOrigen.value && ubicacionOrigen.value && 
-                    almacenDestino.value && ubicacionDestino.value) {
-                    
-                    if (almacenOrigen.value === almacenDestino.value && 
-                        ubicacionOrigen.value === ubicacionDestino.value) {
-                        
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Ubicaciones idénticas',
-                            text: 'El origen y destino no pueden ser la misma ubicación.',
-                            confirmButtonText: 'Entendido'
-                        });
-                        
-                        ubicacionOrigen.value = '';
+                opcionesUbicacionOrigen.forEach(option => {
+                    if (option.value === '') {
+                        option.style.display = 'block';
+                        return;
                     }
-                }
+                    
+                    const almacenOption = option.getAttribute('data-almacen');
+                    if (almacenOption === idAlmacenOrigen) {
+                        option.style.display = 'block';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+                
+                ubicacionOrigen.value = '';
+            });
+            
+            // Filtrar ubicaciones según almacén destino
+            almacenDestino.addEventListener('change', function() {
+                const idAlmacenDestino = this.value;
+                const opcionesUbicacionDestino = ubicacionDestino.querySelectorAll('option');
+                
+                opcionesUbicacionDestino.forEach(option => {
+                    if (option.value === '') {
+                        option.style.display = 'block';
+                        return;
+                    }
+                    
+                    const almacenOption = option.getAttribute('data-almacen');
+                    if (almacenOption === idAlmacenDestino) {
+                        option.style.display = 'block';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+                
+                ubicacionDestino.value = '';
+            });
+            
+            // Validar que origen y destino sean diferentes
+            [ubicacionOrigen, ubicacionDestino].forEach(elemento => {
+                elemento.addEventListener('change', function() {
+                    if (almacenOrigen.value && ubicacionOrigen.value && 
+                        almacenDestino.value && ubicacionDestino.value) {
+                        
+                        if (almacenOrigen.value === almacenDestino.value && 
+                            ubicacionOrigen.value === ubicacionDestino.value) {
+                            
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Ubicaciones idénticas',
+                                text: 'El origen y destino no pueden ser la misma ubicación.',
+                                confirmButtonText: 'Entendido'
+                            });
+                            
+                            ubicacionOrigen.value = '';
+                        }
+                    }
             });
         });
     }
@@ -3054,6 +3204,7 @@ document.addEventListener('DOMContentLoaded', function() {
             case 1: estadoClase = 'warning'; break;
             case 2: estadoClase = 'info'; break;
             case 3: estadoClase = 'success'; break;
+            case 4: estadoClase = 'dark'; break;
         }
         
         // Formatear fecha
@@ -4852,7 +5003,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
-
+        
+        // 🔹 LISTENER: Cambio de ubicación origen - actualiza máx de todos los items
+        const ubicacionOrigenSelect = document.getElementById('ubicacion_origen_salida');
+        if (ubicacionOrigenSelect) {
+            ubicacionOrigenSelect.addEventListener('change', function() {
+                console.log('🔄 Cambio de ubicación origen detectado');
+                
+                const optionSeleccionada = this.options[this.selectedIndex];
+                const stockNuevo = parseFloat(optionSeleccionada.getAttribute('data-stock')) || 0;
+                
+                console.log(`📦 Nuevo stock en ubicación: ${stockNuevo}`);
+                
+                // Actualizar todos los items del formulario
+                document.querySelectorAll('.cantidad-salida').forEach(input => {
+                    const cantidadOS = parseFloat(input.getAttribute('data-cantidad-maxima-os')) || 0;
+                    const nuevoMax = Math.min(cantidadOS, stockNuevo);
+                    
+                    console.log(`  ↳ Item actualizado: OS=${cantidadOS}, Stock=${stockNuevo}, Nuevo Max=${nuevoMax}`);
+                    
+                    input.setAttribute('max', nuevoMax.toFixed(2));
+                    input.setAttribute('data-cantidad-maxima', nuevoMax);
+                    
+                    // Si la cantidad actual excede el nuevo max, ajustarla
+                    const valorActual = parseFloat(input.value) || 0;
+                    if (valorActual > nuevoMax) {
+                        input.value = nuevoMax.toFixed(2);
+                        console.log(`  ⚠️ Cantidad ajustada de ${valorActual} a ${nuevoMax}`);
+                    }
+                    
+                    // Actualizar texto de ayuda
+                    const small = input.parentElement.querySelector('small.text-info');
+                    if (small) {
+                        small.innerHTML = `<i class="fa fa-arrow-up"></i> Máx: ${nuevoMax.toFixed(2)}`;
+                    }
+                });
+            });
+        }
     }
     
     function configurarExclusividadCheckboxes() {
@@ -6276,6 +6463,75 @@ if (btnReverificar) {
             recalcularEstadoItems();
         }, tiempoEspera);
     }
+
+
+
+    function configurarControlOrigenDinamico() {
+    const ubicacionOrigenSelect = document.getElementById('ubicacion_origen_salida');
+    const almacenOrigenSelect = document.getElementById('almacen_origen_salida');
     
+    if (!ubicacionOrigenSelect || !almacenOrigenSelect) {
+        console.warn('⚠️ No se encontraron los selectores de origen');
+        return;
+    }
+    
+    console.log('🔧 Configurando control de origen dinámico...');
+    
+    ubicacionOrigenSelect.addEventListener('change', function() {
+        const ubicacionSeleccionada = parseInt(this.value);
+        
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('🔄 Cambio de Ubicación Origen');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        console.log('📍 ID Ubicación:', ubicacionSeleccionada);
+        
+        if (!ubicacionSeleccionada) {
+            console.log('⚠️ No hay ubicación seleccionada');
+            return;
+        }
+        
+        // Obtener datos del option seleccionado
+        const optionSeleccionada = this.options[this.selectedIndex];
+        const idAlmacen = parseInt(optionSeleccionada.getAttribute('data-id-almacen'));
+        const stock = parseFloat(optionSeleccionada.getAttribute('data-stock'));
+        
+        console.log('📊 Datos de la ubicación:', {
+            ubicacion: ubicacionSeleccionada,
+            almacen: idAlmacen,
+            stock: stock
+        });
+        
+        // ✅ CRÍTICO: Actualizar almacén origen
+        if (idAlmacen && almacenOrigenSelect) {
+            almacenOrigenSelect.value = idAlmacen;
+            console.log(`🏢 Almacén actualizado a ID: ${idAlmacen}`);
+        } else {
+            console.error('❌ No se pudo actualizar el almacén:', { idAlmacen, almacenOrigenSelect });
+        }
+        
+        // Actualizar cantidad máxima
+        if (stock > 0) {
+            actualizarCantidadMaximaPorUbicacion(ubicacionSeleccionada, stock);
+        } else {
+            console.warn('⚠️ Stock no válido:', stock);
+        }
+        
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+    });
+    
+    // Trigger inicial si ya hay una ubicación preseleccionada
+    setTimeout(() => {
+        const valorInicial = ubicacionOrigenSelect.value;
+        console.log('🔍 Verificando valor inicial:', valorInicial);
+        
+        if (valorInicial) {
+            console.log('🔄 Disparando evento change inicial...');
+            ubicacionOrigenSelect.dispatchEvent(new Event('change'));
+        }
+    }, 300);
+}
+
+// Inicializar
+setTimeout(configurarControlOrigenDinamico, 500);
 }); // ← FIN DOMContentLoaded - ASEGÚRATE QUE SOLO HAY UNO
 </script>

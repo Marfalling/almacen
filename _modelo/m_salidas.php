@@ -391,6 +391,90 @@ function AprobarSalidaConMovimientos($id_salida, $id_personal_aprueba)
         ];
     }
 }
+/**
+ * DENEGAR SALIDA
+ * Marca la salida como denegada (estado 4) sin generar movimientos
+ * Registra quién deniega y cuándo
+ */
+function DenegarSalida($id_salida, $id_personal_deniega_salida)
+{
+    include("../_conexion/conexion.php");
+
+    mysqli_begin_transaction($con);
+
+    try {
+        $id_salida = intval($id_salida);
+        $id_personal_deniega_salida = intval($id_personal_deniega_salida);
+        
+        //  OBTENER DATOS DE LA SALIDA
+        $sql_sel = "SELECT id_salida, id_pedido, est_salida 
+                    FROM salida 
+                    WHERE id_salida = $id_salida 
+                    LIMIT 1";
+        
+        $res_sel = mysqli_query($con, $sql_sel);
+        
+        if (!$res_sel) {
+            throw new Exception("Error al consultar la salida: " . mysqli_error($con));
+        }
+        
+        $row = mysqli_fetch_assoc($res_sel);
+        
+        if (!$row) {
+            throw new Exception("Salida no encontrada.");
+        }
+        
+        $estado_actual = intval($row['est_salida']);
+        
+        error_log(" Denegando salida ID: $id_salida | Estado: $estado_actual");
+
+        //  VALIDAR QUE ESTÉ PENDIENTE
+        if ($estado_actual != 1) {
+            $estados = [
+                0 => 'ANULADA',
+                2 => 'RECEPCIONADA',
+                3 => 'APROBADA',
+                4 => 'DENEGADA'
+            ];
+            $nombre_estado = $estados[$estado_actual] ?? 'DESCONOCIDO';
+            throw new Exception("No se puede denegar. La salida está en estado $nombre_estado");
+        }
+
+        //  DENEGAR LA SALIDA
+        $sql_denegar = "UPDATE salida 
+                       SET est_salida = 4,
+                           id_personal_deniega_salida = $id_personal_deniega_salida,
+                           fec_deniega_salida = NOW()
+                       WHERE id_salida = $id_salida";
+        
+        if (!mysqli_query($con, $sql_denegar)) {
+            throw new Exception("Error al denegar: " . mysqli_error($con));
+        }
+        
+        error_log(" Salida denegada - Estado cambiado a 4 por personal ID: $id_personal_deniega_salida");
+
+        //  COMMIT
+        mysqli_commit($con);
+        mysqli_close($con);
+
+        error_log(" Denegación completada exitosamente");
+        
+        return [
+            'success' => true,
+            'message' => ' Salida denegada correctamente.'
+        ];
+        
+    } catch (Exception $e) {
+        mysqli_rollback($con);
+        mysqli_close($con);
+        error_log(" Error al denegar salida: " . $e->getMessage());
+        
+        return [
+            'success' => false,
+            'message' => $e->getMessage()
+        ];
+    }
+}
 function RecepcionarSalida($id_salida, $id_personal_recepciona)
 {
     include("../_conexion/conexion.php");
@@ -2024,4 +2108,292 @@ function AprobarSalida($id_salida, $id_personal)
 
     mysqli_close($con);
     return $res_update;
+}
+
+/**
+ * ============================================
+ * PROCESAR FLUJO DESPUÉS DE DENEGAR SALIDA
+ * ============================================
+ * Esta función se ejecuta DESPUÉS de denegar una salida
+ * y maneja la lógica completa:
+ * 1. Verifica si hay más ubicaciones disponibles
+ * 2. Si NO hay → convierte OS a OC
+ * 3. Actualiza estados del pedido
+ * 
+ * @param int $id_salida - ID de la salida denegada
+ * @return array - Resultado del procesamiento
+ */
+function ProcesarFlujoDespuesDeDenegar($id_salida)
+{
+    include("../_conexion/conexion.php");
+    
+    try {
+        $id_salida = intval($id_salida);
+        
+        error_log(" ProcesarFlujoDespuesDeDenegar - Salida ID: $id_salida");
+        
+        //  Obtener información de la salida denegada
+        $sql_salida = "
+            SELECT 
+                s.id_pedido,
+                s.id_almacen_destino,
+                s.id_ubicacion_destino
+            FROM salida s
+            WHERE s.id_salida = $id_salida
+              AND s.est_salida = 4
+        ";
+        
+        $res_salida = mysqli_query($con, $sql_salida);
+        
+        if (!$res_salida || mysqli_num_rows($res_salida) == 0) {
+            throw new Exception("Salida no encontrada o no está denegada");
+        }
+        
+        $salida = mysqli_fetch_assoc($res_salida);
+        $id_pedido = intval($salida['id_pedido']);
+        $id_almacen_destino = intval($salida['id_almacen_destino']);
+        $id_ubicacion_destino = intval($salida['id_ubicacion_destino']);
+        
+        error_log(" Pedido: $id_pedido | Destino: Almacén $id_almacen_destino, Ubicación $id_ubicacion_destino");
+        
+        //  Obtener detalles de la salida denegada
+        $sql_detalles = "
+            SELECT 
+                sd.id_salida_detalle,
+                sd.id_pedido_detalle,
+                sd.id_producto,
+                sd.cant_salida_detalle,
+                p.nom_producto
+            FROM salida_detalle sd
+            INNER JOIN producto p ON sd.id_producto = p.id_producto
+            WHERE sd.id_salida = $id_salida
+              AND sd.est_salida_detalle = 1
+        ";
+        
+        $res_detalles = mysqli_query($con, $sql_detalles);
+        
+        if (!$res_detalles) {
+            throw new Exception("Error al obtener detalles: " . mysqli_error($con));
+        }
+        
+        $items_procesados = [];
+        $items_convertidos = [];
+        
+        //  Procesar cada detalle
+        while ($detalle = mysqli_fetch_assoc($res_detalles)) {
+            $id_producto = intval($detalle['id_producto']);
+            $id_pedido_detalle = intval($detalle['id_pedido_detalle']);
+            $cantidad = floatval($detalle['cant_salida_detalle']);
+            $nombre_producto = $detalle['nom_producto'];
+            
+            error_log("    Procesando: $nombre_producto (Cantidad: $cantidad)");
+            
+            // Verificar si hay más ubicaciones disponibles
+            require_once("../_modelo/m_pedidos.php");
+            
+            $hay_mas_ubicaciones = HayMasUbicacionesDisponibles(
+                $id_producto,
+                $id_almacen_destino,
+                $id_ubicacion_destino,
+                $id_pedido_detalle
+            );
+            
+            if ($hay_mas_ubicaciones) {
+                //  HAY MÁS UBICACIONES - Botón OS sigue habilitado
+                error_log("    Hay más ubicaciones disponibles - OS sigue habilitado");
+                
+                $items_procesados[] = [
+                    'producto' => $nombre_producto,
+                    'accion' => 'os_disponible',
+                    'mensaje' => "Hay otras ubicaciones con stock disponible"
+                ];
+                
+            } else {
+                //  NO HAY MÁS UBICACIONES - Convertir OS a OC
+                error_log("    NO hay más ubicaciones - Convirtiendo OS a OC");
+                
+                $resultado_conversion = ConvertirCantidadOSaOC($id_pedido_detalle, $cantidad);
+                
+                if ($resultado_conversion['success']) {
+                    $items_convertidos[] = [
+                        'producto' => $nombre_producto,
+                        'cantidad' => $cantidad,
+                        'cant_os_nueva' => $resultado_conversion['cant_os_nueva'],
+                        'cant_oc_nueva' => $resultado_conversion['cant_oc_nueva']
+                    ];
+                    
+                    error_log("    Convertido: $cantidad unidades de OS a OC");
+                } else {
+                    error_log("    Error al convertir: " . $resultado_conversion['message']);
+                }
+                
+                $items_procesados[] = [
+                    'producto' => $nombre_producto,
+                    'accion' => 'convertido_a_oc',
+                    'mensaje' => "Cantidad convertida a OC: $cantidad",
+                    'resultado' => $resultado_conversion
+                ];
+            }
+        }
+        
+        //  Actualizar estados del pedido
+        if ($id_pedido > 0) {
+            require_once("../_modelo/m_pedidos.php");
+            
+            // Re-verificar items afectados
+            foreach ($items_procesados as $item_proc) {
+                $sql_det = "SELECT id_pedido_detalle 
+                           FROM salida_detalle 
+                           WHERE id_salida = $id_salida 
+                           LIMIT 1";
+                $res_det = mysqli_query($con, $sql_det);
+                if ($row_det = mysqli_fetch_assoc($res_det)) {
+                    ReverificarItemAutomaticamente(intval($row_det['id_pedido_detalle']));
+                }
+            }
+            
+            // Actualizar estado del pedido
+            ActualizarEstadoPedidoUnificado($id_pedido);
+            
+            error_log(" Estados del pedido actualizados");
+        }
+        
+        mysqli_close($con);
+        
+        //  Preparar respuesta
+        $mensaje_resumen = " Salida denegada correctamente.\n\n";
+        
+        if (count($items_convertidos) > 0) {
+            $mensaje_resumen .= " Cantidades convertidas de OS a OC:\n";
+            foreach ($items_convertidos as $item_conv) {
+                $mensaje_resumen .= "• {$item_conv['producto']}: {$item_conv['cantidad']} unidades\n";
+            }
+        }
+        
+        if (count($items_procesados) - count($items_convertidos) > 0) {
+            $mensaje_resumen .= "\n Items con ubicaciones alternativas disponibles:\n";
+            foreach ($items_procesados as $item_proc) {
+                if ($item_proc['accion'] == 'os_disponible') {
+                    $mensaje_resumen .= "• {$item_proc['producto']}\n";
+                }
+            }
+        }
+        
+        return [
+            'success' => true,
+            'message' => $mensaje_resumen,
+            'items_procesados' => $items_procesados,
+            'items_convertidos' => $items_convertidos,
+            'total_convertidos' => count($items_convertidos)
+        ];
+        
+    } catch (Exception $e) {
+        if (isset($con)) {
+            mysqli_close($con);
+        }
+        
+        error_log(" Error en ProcesarFlujoDespuesDeDenegar: " . $e->getMessage());
+        
+        return [
+            'success' => false,
+            'message' => "Error al procesar: " . $e->getMessage()
+        ];
+    }
+}
+
+/**
+ * ============================================
+ * DENEGAR SALIDA CON FLUJO COMPLETO
+ * ============================================
+ * Versión mejorada que incluye el procesamiento automático
+ * después de la denegación
+ * 
+ * @param int $id_salida - ID de la salida a denegar
+ * @param int $id_personal_deniega - ID del personal que deniega
+ * @param string $motivo - Motivo de la denegación (opcional)
+ * @return array - Resultado completo
+ */
+function DenegarSalidaConFlujoCompleto($id_salida, $id_personal_deniega, $motivo = '')
+{
+    //  Denegar la salida (función existente)
+    $resultado_denegacion = DenegarSalida($id_salida, $id_personal_deniega);
+    
+    if (!$resultado_denegacion['success']) {
+        return $resultado_denegacion;
+    }
+    
+    error_log("✅ Salida denegada - Iniciando flujo de procesamiento");
+    
+    //  Procesar flujo post-denegación
+    $resultado_flujo = ProcesarFlujoDespuesDeDenegar($id_salida);
+    
+    if (!$resultado_flujo['success']) {
+        // Aunque falle el flujo, la denegación ya está hecha
+        return [
+            'success' => true,
+            'message' => $resultado_denegacion['message'] . "\n⚠️ Advertencia: " . $resultado_flujo['message'],
+            'denegacion_exitosa' => true,
+            'flujo_completo' => false
+        ];
+    }
+    
+    //  Combinar resultados
+    return [
+        'success' => true,
+        'message' => $resultado_flujo['message'],
+        'denegacion_exitosa' => true,
+        'flujo_completo' => true,
+        'items_procesados' => $resultado_flujo['items_procesados'] ?? [],
+        'items_convertidos' => $resultado_flujo['items_convertidos'] ?? [],
+        'total_convertidos' => $resultado_flujo['total_convertidos'] ?? 0
+    ];
+}
+
+/**
+ * ============================================
+ * OBTENER HISTORIAL DE DENEGACIONES PARA UN PEDIDO DETALLE
+ * ============================================
+ * Retorna el historial de salidas denegadas para un detalle específico
+ * 
+ * @param int $id_pedido_detalle - ID del detalle del pedido
+ * @return array - Array de denegaciones
+ */
+function ObtenerHistorialDenegacionesPorDetalle($id_pedido_detalle)
+{
+    include("../_conexion/conexion.php");
+    
+    $id_pedido_detalle = intval($id_pedido_detalle);
+    
+    $sql = "
+        SELECT 
+            s.id_salida,
+            s.id_almacen_origen,
+            s.id_ubicacion_origen,
+            s.fec_deniega_salida,
+            a.nom_almacen,
+            u.nom_ubicacion,
+            CONCAT(p.nom_personal, ' ', p.ape_personal) as personal_que_denego,
+            sd.cant_salida_detalle as cantidad_denegada
+        FROM salida s
+        INNER JOIN salida_detalle sd ON s.id_salida = sd.id_salida
+        INNER JOIN almacen a ON s.id_almacen_origen = a.id_almacen
+        INNER JOIN ubicacion u ON s.id_ubicacion_origen = u.id_ubicacion
+        LEFT JOIN {$bd_complemento}.personal p ON s.id_personal_deniega_salida = p.id_personal
+        WHERE sd.id_pedido_detalle = $id_pedido_detalle
+          AND s.est_salida = 4
+        ORDER BY s.fec_deniega_salida DESC
+    ";
+    
+    $resultado = mysqli_query($con, $sql);
+    $historial = [];
+    
+    if ($resultado) {
+        while ($row = mysqli_fetch_assoc($resultado)) {
+            $historial[] = $row;
+        }
+    }
+    
+    mysqli_close($con);
+    
+    return $historial;
 }

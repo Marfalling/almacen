@@ -1202,7 +1202,7 @@ if ($id_pedido > 0) {
         $proveedor = MostrarProveedores();
         $moneda = MostrarMoneda();
         $obras = MostrarObras();
-        $almacenes = MostrarAlmacenesActivos();
+        $almacenes = MostrarAlmacenesActivosConArceBase();
         $ubicaciones = MostrarUbicacionesActivas();
         $tiene_salida_activa = TieneSalidaActivaPedido($id_pedido);
 
