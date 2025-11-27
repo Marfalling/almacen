@@ -30,6 +30,9 @@ $fecha_fin = isset($_GET['fecha_fin']) && $_GET['fecha_fin'] !== ''
 
 // Obtener compras con el rango seleccionado
 $compras = MostrarComprasFecha($fecha_inicio, $fecha_fin);
+foreach ($compras as $i => $compra) {
+    $compras[$i]['id_producto_tipo'] = ObtenerTipoProductoPorCompra($compra['id_compra']);
+}
 
 ?>
 

@@ -69,6 +69,7 @@ function MostrarAlmacenes()
         LEFT JOIN {$bd_complemento}.subestacion s 
                ON a.id_obra = s.id_subestacion
         WHERE a.id_almacen != 1
+        AND a.id_cliente != 9
         ORDER BY a.nom_almacen ASC;
     ";
 
@@ -87,6 +88,7 @@ function MostrarAlmacenesActivos()
         SELECT 
             a.id_almacen,
             a.nom_almacen,
+            a.id_cliente,
             c.nom_cliente,
             s.nom_subestacion AS nom_obra,
             a.est_almacen
@@ -434,51 +436,30 @@ function ConsultarAlmacenArce()
             END), 0
         ) AS Stock_Disponible,
         
-        -- STOCK EN DEVOLUCIÓN (solo en BASE)
+        -- STOCK EN DEVOLUCIÓN (pendiente)
         COALESCE(
-            (
-                SELECT SUM(md.cant_movimiento)
-                FROM movimiento md
-                WHERE md.id_producto = pro.id_producto
-                  AND (
-                      -- De TODOS los almacenes: solo BASE
-                      (md.id_almacen != 3 AND md.id_ubicacion = 1)
-                      OR
-                      -- De ARCE: todas las ubicaciones pero solo BASE para devoluciones
-                      (md.id_almacen = 3 AND md.id_ubicacion = 1)
-                  )
-                  AND md.tipo_orden = 3         -- Devoluciones
-                  AND md.tipo_movimiento = 1    -- Ingresos
-                  AND md.est_movimiento = 2     -- Pendiente
+            SUM(
+                CASE
+                    WHEN mov.tipo_orden = 3 AND mov.tipo_movimiento = 1 AND mov.est_movimiento = 2 THEN mov.cant_movimiento
+                    ELSE 0
+                END
             ), 0
         ) AS Stock_Devolucion
-        
+
     FROM movimiento mov
     INNER JOIN producto pro ON mov.id_producto = pro.id_producto
-        INNER JOIN producto_tipo pti ON pro.id_producto_tipo = pti.id_producto_tipo
-        INNER JOIN material_tipo mti ON pro.id_material_tipo = mti.id_material_tipo
-        INNER JOIN unidad_medida umi ON pro.id_unidad_medida = umi.id_unidad_medida
-    INNER JOIN {$bd_complemento}.personal per ON mov.id_personal = per.id_personal
+    INNER JOIN producto_tipo pti ON pro.id_producto_tipo = pti.id_producto_tipo
+    INNER JOIN material_tipo mti ON pro.id_material_tipo = mti.id_material_tipo
+    INNER JOIN unidad_medida umi ON pro.id_unidad_medida = umi.id_unidad_medida
     INNER JOIN almacen alm ON mov.id_almacen = alm.id_almacen
-        INNER JOIN {$bd_complemento}.cliente cli ON alm.id_cliente = cli.id_cliente
-        LEFT JOIN {$bd_complemento}.subestacion obr ON alm.id_obra = obr.id_subestacion
-    INNER JOIN ubicacion ubi ON mov.id_ubicacion = ubi.id_ubicacion
-    
+    INNER JOIN {$bd_complemento}.cliente cli ON alm.id_cliente = cli.id_cliente
+
     WHERE mov.est_movimiento != 0
-      AND pro.id_producto_tipo <> 2  -- EXCLUIR SERVICIOS
-      AND (
-          -- ✅ De TODOS los almacenes: solo BASE (ubicación 1)
-          mov.id_ubicacion = 1
-          OR
-          -- ✅ Del almacén ARCE (id=3): TODAS las ubicaciones
-          mov.id_almacen = 3
-      )
-      
-    GROUP BY 
-        pro.id_producto
-        
-    ORDER BY 
-        pro.nom_producto
+    AND pro.id_producto_tipo <> 2          -- Excluir servicios
+    AND cli.id_cliente = 9                 -- Solo almacenes del cliente ARCE
+
+    GROUP BY pro.id_producto
+    ORDER BY pro.nom_producto
     ";
     
     $resc = mysqli_query($con, $sqlc);

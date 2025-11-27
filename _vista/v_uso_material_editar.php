@@ -415,7 +415,7 @@ function cargarProductos(idAlmacen, idUbicacion) {
         "serverSide": true,
         "responsive": true,
         "ajax": {
-            "url": "material_mostrar_modal.php",
+            "url": "uso_material_mostrar_modal.php",
             "type": "POST",
             "data": function(d) {
                 d.id_almacen = idAlmacen;

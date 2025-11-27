@@ -549,3 +549,18 @@ function esCompraPagada($id_compra)
     // ================================================================
     return $total_pagado >= $total_compra;
 }
+
+function ObtenerTipoProductoPorCompra($id_compra) {
+    include("../_conexion/conexion.php");
+
+    $sql = "SELECT p.id_producto_tipo 
+            FROM compra c
+            INNER JOIN pedido p ON p.id_pedido = c.id_pedido
+            WHERE c.id_compra = $id_compra
+            LIMIT 1";
+
+    $resp = mysqli_query($con, $sql);
+    $data = mysqli_fetch_assoc($resp);
+
+    return $data ? intval($data['id_producto_tipo']) : 0;
+}

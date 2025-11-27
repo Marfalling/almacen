@@ -2,13 +2,26 @@
 //=======================================================================
 // VISTA: v_ingresos_detalle.php - CORREGIDO
 //=======================================================================
+// Detectar si es servicio
+$esServicio = isset($detalle_ingreso['compra']['id_producto_tipo']) && $detalle_ingreso['compra']['id_producto_tipo'] == 2;
+
+// Valores dinámicos
+$TIT_COMPRA     = $esServicio ? "Servicio"      : "Compra";
+$TIT_COMPRAS    = $esServicio ? "Servicios"     : "Compras";
+$TIT_INGRESO    = $esServicio ? "Validación"    : "Ingreso";
+$TIT_INGRESO2    = $esServicio ? "validación"    : "ingreso";
+$TIT_INGRESOS   = $esServicio ? "Validaciones"  : "Ingresos";
+$TIT_INGRESOS2   = $esServicio ? "validaciones"  : "ingresos";
+$TIT_INGRESADOS = $esServicio ? "Validados"     : "Ingresados";
+$TIT_INGRESADA = $esServicio ? "Validada"     : "Ingresada";
+
 ?>
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
         <div class="page-title">
             <div class="title_left">
-                <h3>Detalle de Ingresos por Orden de Compra</h3>
+                <h3>Detalle de <?= $TIT_INGRESOS ?> por Orden de <?= $TIT_COMPRA ?></h3>
             </div>
         </div>
 
@@ -20,7 +33,7 @@
                     <div class="x_title">
                         <div class="row">
                             <div class="col-sm-10">
-                                <h2>Orden de Compra: C00<?php echo $detalle_ingreso['compra']['id_compra']; ?> / <small><?php echo "Pedido: " . $detalle_ingreso['compra']['cod_pedido']; ?></small></h2>
+                                <h2>Orden de <?= $TIT_COMPRA ?>: C00<?php echo $detalle_ingreso['compra']['id_compra']; ?> / <small><?php echo "Pedido: " . $detalle_ingreso['compra']['cod_pedido']; ?></small></h2>
                             </div>
                             <div class="col-sm-2">
                                 <a href="ingresos_mostrar.php" class="btn btn-outline-secondary btn-sm btn-block">
@@ -43,7 +56,7 @@
                                     <div class="x_content">
                                         <table class="table table-striped">
                                             <tr>
-                                                <td><strong>N° Orden de Compra:</strong></td>
+                                                <td><strong>N° Orden de <?= $TIT_COMPRA ?>:</strong></td>
                                                 <td><?php echo $detalle_ingreso['compra']['id_compra']; ?></td>
                                             </tr>
                                             <tr>
@@ -90,7 +103,7 @@
                             <div class="col-md-6">
                                 <div class="x_panel">
                                     <div class="x_title">
-                                        <h2><i class="fa fa-chart-bar"></i> Resumen de Ingresos</h2>
+                                        <h2><i class="fa fa-chart-bar"></i> Resumen de <?= $TIT_INGRESOS ?></h2>
                                         <div class="clearfix"></div>
                                     </div>
                                     <div class="x_content">
@@ -100,11 +113,11 @@
                                                 <td><span class="badge badge-primary badge_size"><?php echo $detalle_ingreso['resumen']['total_productos']; ?></span></td>
                                             </tr>
                                             <tr>
-                                                <td><strong>Completamente Ingresados:</strong></td>
+                                                <td><strong>Completamente <?= $TIT_INGRESADOS ?>:</strong></td>
                                                 <td><span class="badge badge-success badge_size"><?php echo $detalle_ingreso['resumen']['productos_completos']; ?></span></td>
                                             </tr>
                                             <tr>
-                                                <td><strong>Parcialmente Ingresados:</strong></td>
+                                                <td><strong>Parcialmente <?= $TIT_INGRESADOS ?>:</strong></td>
                                                 <td><span class="badge badge-warning badge_size"><?php echo $detalle_ingreso['resumen']['productos_parciales']; ?></span></td>
                                             </tr>
                                             <tr>
@@ -151,8 +164,10 @@
                                                         <th style="width: 30%;">Producto</th>
                                                         <th style="width: 8%;">Unidad</th>
                                                         <th style="width: 12%;">Cantidad Pedida</th>
-                                                        <th style="width: 12%;">Cantidad Ingresada</th>
-                                                        <th style="width: 15%;">Último Ingreso</th>
+                                                        <th style="width: 12%;">Cantidad <?= $TIT_INGRESADA ?></th>
+                                                        <th style="width: 15%;">
+                                                            <?= $esServicio ? 'Última Validación' : 'Último Ingreso' ?>
+                                                        </th>
                                                         <th style="width: 8%;">Estado</th>
                                                     </tr>
                                                 </thead>
@@ -188,7 +203,7 @@
                                                                 <?php if (!empty($producto['fecha_ultimo_ingreso'])) { ?>
                                                                     <small><?php echo date('d/m/Y H:i', strtotime($producto['fecha_ultimo_ingreso'])); ?></small>
                                                                 <?php } else { ?>
-                                                                    <span class="text-muted">Sin ingresos</span>
+                                                                    <span class="text-muted">Sin <?= $TIT_INGRESOS2 ?></span>
                                                                 <?php } ?>
                                                             </td>
                                                             <td class="text-center"><?php echo $estado_badge; ?></td>
@@ -211,7 +226,7 @@
                             <div class="col-md-12">
                                 <div class="x_panel">
                                     <div class="x_title">
-                                        <h2><i class="fa fa-history"></i> Historial de Ingresos Detallado</h2>
+                                        <h2><i class="fa fa-history"></i> Historial de <?= $TIT_INGRESOS ?> Detallado</h2>
                                         <div class="clearfix"></div>
                                     </div>
                                     <div class="x_content">
@@ -224,8 +239,8 @@
                                                             <th>Usuario</th>
                                                             <th>Producto</th>
                                                             <th>Código</th>
-                                                            <th>Cantidad Ingresada</th>
-                                                            <th>ID Ingreso</th>
+                                                            <th>Cantidad <?= $TIT_INGRESADA ?></th>
+                                                            <th>ID <?= $TIT_INGRESO ?></th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -256,7 +271,7 @@
                                         <?php } else { ?>
                                             <div class="alert alert-info text-center">
                                                 <i class="fa fa-info-circle"></i> 
-                                                No se han registrado ingresos para esta orden de compra aún.
+                                                No se han registrado <?= $TIT_INGRESOS2 ?> para esta orden de compra aún.
                                             </div>
                                         <?php } ?>
                                     </div>
@@ -331,7 +346,7 @@
                                         <?php } else { ?>
                                             <div class="alert alert-info text-center">
                                                 <i class="fa fa-info-circle"></i> 
-                                                No se han adjuntado documentos para este ingreso.
+                                                No se han adjuntado documentos para este <?= $TIT_INGRESO2 ?>.
                                             </div>
                                         <?php } ?>
                                     </div>
@@ -367,7 +382,8 @@
                                         </a>
                                     <?php } elseif (!$hay_pendientes && $detalle_ingreso['compra']['est_compra'] != 0) { ?>
                                         <span class="btn btn-success disabled">
-                                            <i class="fa fa-check-circle"></i> Ingreso Completo
+                                            <i class="fa fa-check-circle"></i> 
+                                            <?= $esServicio ? 'Validación Completa' : 'Ingreso Completo' ?>
                                         </span>
                                     <?php } ?>
                                     <button type="button" class="btn btn-primary" onclick="window.print()">

@@ -34,14 +34,14 @@ $listaObras = MostrarObrasActivas();
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Nombre del Almacén <span class="text-danger">*</span> :</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="nom" class="form-control" placeholder="Nombre del almacén" required="required">
+                                    <input type="text" id="nom_almacen" name="nom" class="form-control" placeholder="Nombre del almacén" readonly required="required">
                                 </div>
                             </div>
 
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Cliente <span class="text-danger">*</span> :</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <select name="id_cliente" class="form-control" required="required">
+                                    <select name="id_cliente" id="select_cliente" class="form-control" required="required">
                                         <option value="">Seleccione un cliente</option>
                                         <?php
                                         if ($listaClientes && count($listaClientes) > 0) {
@@ -57,7 +57,7 @@ $listaObras = MostrarObrasActivas();
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Obra <span class="text-danger">*</span> :</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <select name="id_obra" class="form-control" required="required">
+                                    <select name="id_obra" id="select_obra" class="form-control" required="required">
                                         <option value="">Seleccione una obra</option>
                                         <?php
                                         if ($listaObras && count($listaObras) > 0) {
@@ -109,3 +109,51 @@ $listaObras = MostrarObrasActivas();
     </div>
 </div>
 <!-- /page content -->
+
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+
+        function actualizarNombreAlmacen() {
+            // Obtener texto de obra
+            var obraText = "";
+            if ($("#select_obra").hasClass("select2-hidden-accessible")) {
+                var obraData = $("#select_obra").select2('data');
+                obraText = obraData.length ? obraData[0].text : "";
+            } else {
+                obraText = $("#select_obra option:selected").text() || "";
+            }
+
+            // Ignorar texto de placeholder
+            if (obraText.toLowerCase() === "seleccione una obra") obraText = "";
+
+            // Obtener texto de cliente
+            var clienteText = $("#select_cliente option:selected").text() || "";
+            if (clienteText.toLowerCase() === "seleccione un cliente") clienteText = "";
+
+            // Construir nombre
+            var nombre = "";
+            if (obraText && !clienteText) {
+                nombre = obraText + " 'CLIENTE'";
+            } else if (!obraText && clienteText) {
+                nombre = "'OBRA' " + clienteText;
+            } else if (obraText && clienteText) {
+                nombre = obraText + " " + clienteText;
+            }
+
+            $("#nom_almacen").val(nombre.toUpperCase());
+        }
+
+        // Eventos
+        $("#select_cliente").on("change", actualizarNombreAlmacen);
+        $("#select_obra").on("select2:select select2:unselect", actualizarNombreAlmacen);
+
+        // Inicializar al cargar
+        actualizarNombreAlmacen();
+    });
+</script>

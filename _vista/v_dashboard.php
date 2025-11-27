@@ -297,7 +297,7 @@
               <table class="table table-striped jambo_table">
                 <thead>
                   <tr>
-                    <th>Almacén</th>
+                    <th>Centro de Costo</th>
                     <th>Total Órdenes</th>
                     <th>Atendidas</th>
                     <th>Pendientes</th>
@@ -394,7 +394,7 @@
               <table class="table table-striped jambo_table">
                 <thead>
                   <tr>
-                    <th>Almacén</th>
+                    <th>Centro de Costo</th>
                     <th>Total Órdenes</th>
                     <th>Pagadas</th>
                     <th>Pendientes</th>

@@ -145,7 +145,8 @@ try {
             "tipo_mensaje" => "success",
             "mensaje" => "Ingreso procesado exitosamente.\n\n" .
                         "$resultados_exitosos producto(s) agregado(s) al stock.\n" .
-                        "Documentos adjuntos: " . count($documentos_ingreso)
+                        "Documentos adjuntos: " . count($documentos_ingreso),
+            "doc_adjuntos" => count($documentos_ingreso)
         ];
     } elseif ($resultados_exitosos > 0) {
         $mensaje_parcial = "Ingreso parcial: $resultados_exitosos de $total_productos productos ingresados correctamente.";
@@ -163,7 +164,8 @@ try {
         }
         $response = [
             "tipo_mensaje" => "error",
-            "mensaje" => $mensaje_error
+            "mensaje" => $mensaje_error,
+            "doc_adjuntos" => count($documentos_ingreso)
         ];
     }
 

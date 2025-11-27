@@ -592,11 +592,29 @@ function enviarFormularioAjax() {
     })
     .then(response => response.json())
     .then(data => {
+
+        const mensajeExito = ES_SERVICIO ? '¡Servicio Validado!' : '¡Ingreso exitoso!';
+        const mensajeError = ES_SERVICIO ? 'Error en la validación' : 'Error en el ingreso';
+
+        const mensajeServicio = 
+            "Validación de servicio exitosa.\n" +
+            "Documentos adjuntos: " + data.doc_adjuntos;
+
+        // 🆕 Si es servicio → usar mensaje personalizado  
+        //    Si no → usar el mensaje original del backend
+        const mensajeFinal = ES_SERVICIO ? mensajeServicio : data.mensaje;
+
+        const mensajeErrorServicio = 
+            "No se pudo procesar la validación del servicio.\n" +
+            "Documentos adjuntos: " + data.doc_adjuntos;
+
+        const mensajeErrorFinal = ES_SERVICIO ? mensajeErrorServicio : data.mensaje;
+
         if (data.tipo_mensaje === 'success') {
             Swal.fire({
                 icon: 'success',
-                title: '¡Ingreso exitoso!',
-                text: data.mensaje,
+                title: mensajeExito,
+                text: mensajeFinal,
                 confirmButtonColor: '#28a745',
             }).then(() => {
                 window.location.reload();
@@ -613,8 +631,8 @@ function enviarFormularioAjax() {
         } else {
             Swal.fire({
                 icon: 'error',
-                title: 'Error en el ingreso',
-                text: data.mensaje,
+                title: mensajeError,
+                text: mensajeErrorFinal,
                 confirmButtonColor: '#dc3545',
             });
         }

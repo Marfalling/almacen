@@ -220,7 +220,12 @@
                                                                         } elseif ($est_compra == 3) {
                                                                             //$estado_final = 'INGRESADO';
                                                                             //$badge_class = 'badge-success';
-                                                                            ?><span class="badge badge-success badge_size">INGRESADO</span><?php
+                                                                            // SI EL TIPO DE PRODUCTO ES SERVICIO (2) → VALIDADO
+                                                                            if (!empty($ingreso['id_producto_tipo']) && $ingreso['id_producto_tipo'] == 2) { 
+                                                                                ?><span class="badge badge-success badge_size">VALIDADO</span><?php
+                                                                            } else {
+                                                                                ?><span class="badge badge-success badge_size">INGRESADO</span><?php
+                                                                            }
 
                                                                         } elseif ($est_compra == 1) {
 
@@ -373,18 +378,42 @@
                                                             <td>
                                                                 <?php 
                                                                 $est_compra = intval($est_compra);
-                                                                
-                                                                if ($est_compra == 0) { ?>
-                                                                    <span class="badge badge-danger badge_size">Anulado</span>
-                                                                <?php } elseif ($est_compra == 1) { ?>
-                                                                    <span class="badge badge-warning badge_size">Pendiente</span>
-                                                                <?php } elseif ($est_compra == 2) { ?>
-                                                                    <span class="badge badge-success badge_size">Aprobado</span>
-                                                                <?php } elseif ($est_compra == 3) { ?>
-                                                                    <span class="badge badge-info badge_size">Cerrada</span>
-                                                                <?php } elseif ($est_compra == 4) { ?>
-                                                                    <span class="badge badge-primary badge_size">Pagada</span>
-                                                                <?php } ?>
+
+                                                                        if ($est_compra == 2 && $ingreso['pagado']==1) {
+                                                                            //$estado_final = 'PAGADO';
+                                                                            //$badge_class = 'badge-primary';
+                                                                            ?><span class="badge badge-primary badge_size">PAGADO</span><?php
+                                                                        } elseif ($est_compra == 3 && $ingreso['pagado']==1) {
+                                                                            //$estado_final = 'CERRADO';
+                                                                            //$badge_class = 'badge-dark';
+                                                                            ?><span class="badge badge-dark badge_size">CERRADO</span><?php
+
+                                                                        } elseif ($est_compra == 2) {
+                                                                            //$estado_final = 'APROBADO';
+                                                                            //$badge_class = 'badge-info';
+                                                                            ?><span class="badge badge-info badge_size">APROBADO</span><?php
+
+                                                                        } elseif ($est_compra == 3) {
+                                                                            //$estado_final = 'INGRESADO';
+                                                                            //$badge_class = 'badge-success';
+                                                                            // SI EL TIPO DE PRODUCTO ES SERVICIO (2) → VALIDADO
+                                                                            if (!empty($ingreso['id_producto_tipo']) && $ingreso['id_producto_tipo'] == 2) { 
+                                                                                ?><span class="badge badge-success badge_size">VALIDADO</span><?php
+                                                                            } else {
+                                                                                ?><span class="badge badge-success badge_size">INGRESADO</span><?php
+                                                                            }
+
+                                                                        } elseif ($est_compra == 1) {
+
+                                                                            //$estado_final = 'PENDIENTE';
+                                                                            //$badge_class = 'badge-warning';
+                                                                            ?><span class="badge badge-warning badge_size">PENDIENTE</span><?php
+
+                                                                        } else {
+                                                                            //$estado_final = 'ANULADO';
+                                                                            //$badge_class = 'badge-danger';
+                                                                            ?><span class="badge badge-danger badge_size">ANULADO</span><?php
+                                                                        }?>
                                                             </td>
                                                             <td>
                                                                 <div class="d-flex flex-wrap gap-2"> 
@@ -541,6 +570,10 @@
                                                         $est_compra = isset($ingreso['est_compra']) ? $ingreso['est_compra'] : (isset($ingreso['estado']) ? $ingreso['estado'] : 0);
                                                         $fec_compra = isset($ingreso['fec_compra']) ? $ingreso['fec_compra'] : (isset($ingreso['fecha']) ? $ingreso['fecha'] : '');
                                                         $nom_proveedor = isset($ingreso['nom_proveedor']) ? $ingreso['nom_proveedor'] : (isset($ingreso['origen']) ? $ingreso['origen'] : '');
+                                                        //  CALCULAR SI HAY PRODUCTOS PENDIENTES
+                                                        $cantidad_pedida = isset($ingreso['cantidad_total_pedida']) ? floatval($ingreso['cantidad_total_pedida']) : 0;
+                                                        $cantidad_ingresada = isset($ingreso['cantidad_total_ingresada']) ? floatval($ingreso['cantidad_total_ingresada']) : 0;
+                                                        $hay_pendientes = ($cantidad_ingresada < $cantidad_pedida);
                                                     ?>
                                                         <tr>
                                                             <td><?php echo $contador; ?></td>
@@ -566,26 +599,66 @@
                                                             <td>
                                                                 <?php 
                                                                 $est_compra = intval($est_compra);
-                                                                
-                                                                if ($est_compra == 0) { ?>
-                                                                    <span class="badge badge-danger badge_size">Anulado</span>
-                                                                <?php } elseif ($est_compra == 1) { ?>
-                                                                    <span class="badge badge-warning badge_size">Pendiente</span>
-                                                                <?php } elseif ($est_compra == 2) { ?>
-                                                                    <span class="badge badge-success badge_size">Aprobado</span>
-                                                                <?php } elseif ($est_compra == 3) { ?>
-                                                                    <span class="badge badge-info badge_size">Cerrada</span>
-                                                                <?php } elseif ($est_compra == 4) { ?>
-                                                                    <span class="badge badge-primary badge_size">Pagada</span>
-                                                                <?php } ?>
+
+                                                                        if ($est_compra == 2 && $ingreso['pagado']==1) {
+                                                                            //$estado_final = 'PAGADO';
+                                                                            //$badge_class = 'badge-primary';
+                                                                            ?><span class="badge badge-primary badge_size">PAGADO</span><?php
+                                                                        } elseif ($est_compra == 3 && $ingreso['pagado']==1) {
+                                                                            //$estado_final = 'CERRADO';
+                                                                            //$badge_class = 'badge-dark';
+                                                                            ?><span class="badge badge-dark badge_size">CERRADO</span><?php
+
+                                                                        } elseif ($est_compra == 2) {
+                                                                            //$estado_final = 'APROBADO';
+                                                                            //$badge_class = 'badge-info';
+                                                                            ?><span class="badge badge-info badge_size">APROBADO</span><?php
+
+                                                                        } elseif ($est_compra == 3) {
+                                                                            //$estado_final = 'INGRESADO';
+                                                                            //$badge_class = 'badge-success';
+                                                                            // SI EL TIPO DE PRODUCTO ES SERVICIO (2) → VALIDADO
+                                                                            if (!empty($ingreso['id_producto_tipo']) && $ingreso['id_producto_tipo'] == 2) { 
+                                                                                ?><span class="badge badge-success badge_size">VALIDADO</span><?php
+                                                                            } else {
+                                                                                ?><span class="badge badge-success badge_size">INGRESADO</span><?php
+                                                                            }
+
+                                                                        } elseif ($est_compra == 1) {
+
+                                                                            //$estado_final = 'PENDIENTE';
+                                                                            //$badge_class = 'badge-warning';
+                                                                            ?><span class="badge badge-warning badge_size">PENDIENTE</span><?php
+
+                                                                        } else {
+                                                                            //$estado_final = 'ANULADO';
+                                                                            //$badge_class = 'badge-danger';
+                                                                            ?><span class="badge badge-danger badge_size">ANULADO</span><?php
+                                                                        }?>
                                                             </td>
                                                             <td>
-                                                                <a href="compras_detalle.php?id_compra=<?php echo $id_compra; ?>" 
-                                                                   class="btn btn-secondary btn-sm"
-                                                                   data-toggle="tooltip"
-                                                                   title="Ver detalles">
-                                                                    <i class="fa fa-eye"></i>
-                                                                </a>
+                                                                <div class="d-flex flex-wrap gap-2">
+                                                                    <?php 
+                                                                        $est_compra = intval($est_compra);
+                                                                    ?>
+                                                                        <?php
+                                                                        // MOSTRAR BOTÓN SOLO SI NO está anulada Y hay pendientes
+                                                                        if ($est_compra != 0 && $hay_pendientes) { 
+                                                                        ?>
+                                                                        <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
+                                                                           class="btn btn-success btn-sm"
+                                                                           title="Verificar ingreso">
+                                                                            <i class="fa fa-check"></i>
+                                                                        </a>
+                                                                        <?php } ?>
+                                                                        
+                                                                        <a href="ingresos_detalle.php?id_compra=<?php echo $id_compra; ?>" 
+                                                                            class="btn btn-secondary btn-sm"
+                                                                            data-toggle="tooltip"
+                                                                            title="Ver detalles">
+                                                                            <i class="fa fa-eye"></i>
+                                                                        </a>
+                                                                </div>
                                                             </td>
                                                         </tr>
                                                     <?php 

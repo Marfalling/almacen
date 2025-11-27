@@ -12,6 +12,7 @@ if (!verificarPermisoEspecifico('ver_ingresos')) {
 }
 
 require_once("../_modelo/m_ingreso.php");
+require_once("../_modelo/m_compras.php");
 
 // ========================================================================
 // Filtro de fechas 
@@ -29,6 +30,7 @@ $fecha_fin = isset($_GET['fecha_fin']) && $_GET['fecha_fin'] !== ''
 
 // Obtener ingresos (compras + directos) con el filtro seleccionado
 $ingresos = MostrarIngresosFecha($fecha_inicio, $fecha_fin);
+
 ?>
 
 <!DOCTYPE html>

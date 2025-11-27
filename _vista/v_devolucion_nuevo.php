@@ -29,7 +29,8 @@
                                     <select id="id_almacen" name="id_almacen" class="form-control" required>
                                         <option value="">Seleccionar Almacén</option>
                                         <?php foreach ($almacenes as $almacen) { ?>
-                                            <option value="<?php echo $almacen['id_almacen']; ?>">
+                                            <option value="<?php echo $almacen['id_almacen']; ?>"
+                                                data-id-cliente="<?php echo $almacen['id_cliente']; ?>">
                                                 <?php echo $almacen['nom_almacen']; ?>
                                             </option>
                                         <?php } ?>
@@ -42,13 +43,7 @@
                                 <div class="col-md-9">
                                     <select id="id_ubicacion" name="id_ubicacion" class="form-control" required>
                                         <option value="">Seleccionar Ubicación</option>
-                                        <?php foreach ($ubicaciones as $ubicacion) { ?>
-                                            <?php if ($ubicacion['id_ubicacion'] != 1) { ?>
-                                                <option value="<?php echo $ubicacion['id_ubicacion']; ?>">
-                                                    <?php echo $ubicacion['nom_ubicacion']; ?>
-                                                </option>
-                                            <?php } ?>
-                                        <?php } ?>
+                                        
                                     </select>
                                 </div>
                             </div>
@@ -199,6 +194,8 @@
 <script>
 
 let currentSearchButton = null;
+var ubicaciones = <?php echo json_encode($ubicaciones, JSON_UNESCAPED_UNICODE); ?>;
+console.log("UBICACIONES CARGADAS DESDE PHP:", ubicaciones);
 
 function buscarMaterial(button) {
     const idAlmacen = document.getElementById('id_almacen').value;
@@ -346,11 +343,34 @@ $('#buscar_producto').on('hidden.bs.modal', function () {
 
 document.addEventListener('DOMContentLoaded', function() {
 
+    // Verificar si jQuery está disponible
+    const useJQuery = typeof $ !== 'undefined';
+    
     let contadorMateriales = 1;
+    let isUpdatingLocation = false; // Flag para evitar loops
+
+    // --- Funciones auxiliares ---
+    function getElement(selector) {
+        return useJQuery ? $(selector) : document.querySelector(selector);
+    }
+
+    function getValue(element) {
+        return useJQuery ? $(element).val() : element.value;
+    }
+
+    function setValue(element, value) {
+        if (useJQuery) {
+            $(element).val(value);
+        } else {
+            element.value = value;
+        }
+    }
 
     // --- Agregar / eliminar materiales (clon)
     function actualizarEventosEliminar() {
         document.querySelectorAll('.eliminar-material').forEach(btn => {
+            // Remover listeners anteriores
+            btn.onclick = null;
             btn.onclick = function() {
                 if (document.querySelectorAll('.material-item').length > 1) {
                     this.closest('.material-item').remove();
@@ -421,6 +441,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function configurarEventosCantidad() {
         document.querySelectorAll('input[name="cantidad[]"]').forEach(input => {
+            // Limpiar listeners anteriores
+            input.oninput = null;
+            input.onblur = null;
             // evitar duplicar listeners
             input.oninput = function(e) {
                 const materialItem = input.closest('.material-item');
@@ -631,6 +654,79 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // -----------------------------------------------------
+    // Variables DOM (comprueba existencia por seguridad)
+    // -----------------------------------------------------
+    var $almacen = $('#id_almacen');
+    var $ubicacion = $('#id_ubicacion');
+
+    // Si no existen los selects, salimos (evita errores)
+    if ($almacen.length === 0 || $ubicacion.length === 0) {
+        console.warn("id_almacen o id_ubicacion no encontrados en DOM.");
+        return;
+    }
+
+    // -----------------------------------------------------
+    // Manejo del filtro de ubicaciones (usa la variable 'ubicaciones' provista por PHP)
+    // -----------------------------------------------------
+    // Asegúrate que `ubicaciones` exista y sea array
+    if (typeof ubicaciones === 'undefined' || !Array.isArray(ubicaciones)) {
+        console.warn("La variable 'ubicaciones' no está definida o no es array.", ubicaciones);
+    }
+
+    // Limpia y rellena ubicaciones según almacén seleccionado
+    function rellenarUbicacionesSegunAlmacen(idCliente) {
+        // limpiar select
+        $ubicacion.empty();
+        $ubicacion.append($('<option>', { value: '', text: 'Seleccionar Ubicación' }));
+
+        if (!Array.isArray(ubicaciones)) return;
+
+        ubicaciones.forEach(function (u) {
+            // u.id_ubicacion y u.nom_ubicacion deben existir
+            var idU = Number(u.id_ubicacion);
+            if (isNaN(idU)) return;
+
+            // regla: si idCliente != 9 entonces NO incluir id_ubicacion == 1
+            if (Number(idCliente) !== 9 && idU === 1) return;
+
+            $ubicacion.append($('<option>', { value: u.id_ubicacion, text: u.nom_ubicacion }));
+        });
+
+        // si estás usando Select2, actualiza la UI
+        if ($.fn.select2 && $ubicacion.hasClass('select2-hidden-accessible')) {
+            $ubicacion.trigger('change.select2'); // actualiza Select2
+        } else {
+            $ubicacion.trigger('change'); // trigger normal
+        }
+    }
+
+    // Desactivar listeners anteriores (por si hay duplicados) y asignar el handler jQuery
+    $almacen.off('change.filtroUbicaciones').on('change.filtroUbicaciones', function () {
+        // obtenemos id_cliente desde el option seleccionado
+        var idCliente = $(this).find(':selected').data('idCliente');
+
+        // si por alguna razón data devuelve undefined, intenta la otra notación
+        if (typeof idCliente === 'undefined') {
+            idCliente = $(this).find(':selected').data('id-cliente') || $(this).find(':selected').attr('data-id-cliente');
+        }
+
+        console.log("ID CLIENTE DEL ALMACÉN:", idCliente);
+
+        rellenarUbicacionesSegunAlmacen(Number(idCliente));
+    });
+
+    // Si quieres que al cargar la página se rellene según opción seleccionada por defecto:
+    (function inicializarRelleno() {
+        var sel = $almacen.find(':selected');
+        if (sel.length > 0 && sel.val() !== "") {
+            var idCli = sel.data('idCliente');
+            if (typeof idCli === 'undefined') idCli = sel.data('id-cliente') || sel.attr('data-id-cliente');
+            rellenarUbicacionesSegunAlmacen(Number(idCli));
+        }
+    })();
+
 });
 
 /*document.addEventListener('DOMContentLoaded', function() {
@@ -698,6 +794,7 @@ $(document).ready(function() {
     $('button[data-toggle="modal"][title]').on('click', function() {
         $('.custom-tooltip').remove();
     });
+
 
 });
 

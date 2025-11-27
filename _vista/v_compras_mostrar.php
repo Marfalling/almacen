@@ -555,9 +555,13 @@ function EliminarDocumento(id_doc) {
                                                         $badge_class = 'badge-info';
 
                                                     } elseif ($compra['est_compra'] == 3) {
-                                                        $estado_final = 'INGRESADO';
-                                                        $badge_class = 'badge-success';
-
+                                                        if (isset($compra['id_producto_tipo']) && $compra['id_producto_tipo'] == 2) {
+                                                            $estado_final = 'VALIDADO';
+                                                            $badge_class = 'badge-success';
+                                                        } else {
+                                                            $estado_final = 'INGRESADO';
+                                                            $badge_class = 'badge-success';
+                                                        }
                                                     } elseif ($compra['est_compra'] == 1) {
 
                                                         if ($tiene_financiera && !$tiene_tecnica) {

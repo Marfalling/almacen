@@ -17,6 +17,7 @@ function ObtenerDetalleIngresoPorCompra($id_compra)
                     c.fec_compra,
                     c.est_compra,
                     p.cod_pedido,
+                    p.id_producto_tipo,
                     pr.nom_proveedor,
                     al.nom_almacen,
                     pe1.nom_personal as registrado_por,

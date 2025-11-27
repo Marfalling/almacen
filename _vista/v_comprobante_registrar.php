@@ -324,7 +324,7 @@ require_once("../_modelo/m_detraccion.php");
                                                     <i class="fa fa-edit"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-success btn-sm" title="Subir Voucher" data-toggle="tooltip" onclick="AbrirModalVoucher(<?php echo $comp['id_comprobante']; ?>)">
+                                                <button class="btn btn-success btn-sm" title="Subir Voucher" data-toggle="tooltip" onclick="AbrirModalVoucher(<?php echo $comp['id_comprobante']; ?>, '<?php echo $comp['num_comprobante']; ?>')">
                                                     <i class="fa fa-upload"></i>
                                                 </button>
                                                 
@@ -880,6 +880,7 @@ require_once("../_modelo/m_detraccion.php");
             <div class="modal-body">
                 <input type="hidden" name="accion" value="subir_voucher">
                 <input type="hidden" name="id_comprobante" id="voucher_id_comprobante">
+                <input type="hidden" id="voucher_num_comprobante">
                 
                 <div class="form-group">
                     <label>Archivo de Voucher <span class="text-danger">*</span></label>
@@ -1467,8 +1468,9 @@ function CargarModalEditar(id_comprobante) {
     });
 }
 
-function AbrirModalVoucher(id_comprobante) {
+function AbrirModalVoucher(id_comprobante, numComprobante) {
     document.getElementById('voucher_id_comprobante').value = id_comprobante;
+    document.getElementById('voucher_num_comprobante').value = numComprobante.trim();
     
     // Inicializar SOLO cuando se abre el modal
     setTimeout(() => {
@@ -2096,6 +2098,24 @@ function validarVoucherPago(e) {
             icon: 'warning',
             title: 'Formato incorrecto',
             text: `El archivo "${nombre}" no cumple el formato "SERIE-NUMERO". Ej: F001-00012345.pdf`
+        });
+        e.target.value = "";
+        return;
+    }
+
+    // ============================
+    // 🚨 VALIDAR QUE SEA EL MISMO COMPROBANTE
+    // ============================
+    const numComprobante = document.getElementById('voucher_num_comprobante').value.trim();
+
+    // Extraer nombre sin extensión
+    const nombreSinExt = nombre.split('.').slice(0, -1).join('.');
+
+    if (nombreSinExt.toUpperCase() !== numComprobante.toUpperCase()) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Voucher incorrecto',
+            text: `El nombre del archivo debe coincidir exactamente con "${numComprobante}".`
         });
         e.target.value = "";
         return;
