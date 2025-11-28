@@ -115,7 +115,7 @@ function GrabarComprobante($datos)
 //-----------------------------------------------------------------------
 // Subir voucher de pago a un comprobante existente
 //-----------------------------------------------------------------------
-function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $id_personal_voucher, $enviar_proveedor = false, $enviar_contabilidad = false, $enviar_tesoreria = false, $fec_voucher)
+function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $id_personal_voucher, $enviar_proveedor = false, $enviar_contabilidad = false, $enviar_tesoreria = false, $enviar_compras = false, $fec_voucher)
 {
     include("../_conexion/conexion.php");
 
@@ -142,11 +142,15 @@ function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $id_personal
                          p.nom_proveedor, 
                          p.ruc_proveedor, 
                          p.mail_proveedor,
-                         m.nom_moneda
+                         m.nom_moneda,
+                         ped.id_personal as id_personal_pedido,
+                         pers.email_personal as email_personal_pedido
                   FROM comprobante c
                   INNER JOIN compra co ON c.id_compra = co.id_compra
                   INNER JOIN proveedor p ON co.id_proveedor = p.id_proveedor
                   INNER JOIN moneda m ON c.id_moneda = m.id_moneda
+                  LEFT JOIN pedido ped ON co.id_pedido = ped.id_pedido
+                  LEFT JOIN {$bd_complemento}.personal pers ON ped.id_personal = pers.id_personal
                   WHERE c.id_comprobante = $id_comprobante AND c.est_comprobante = 2";
     
     // 🔍 DEBUG
@@ -358,10 +362,15 @@ function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $id_personal
     // ================================================================
     // Enviar correo de confirmación (si aplica)
     // ================================================================
-    if ($enviar_proveedor || $enviar_contabilidad || $enviar_tesoreria) {
+    if ($enviar_proveedor || $enviar_contabilidad || $enviar_tesoreria || $enviar_compras) {
 
         // Base de destinatarios
         $destinatarios = [];
+
+        // NUEVO: Siempre enviar al personal que registró el pedido
+        if (!empty($comprobante['email_personal_pedido'])) {
+            $destinatarios[] = trim($comprobante['email_personal_pedido']);
+        }
 
         // 1️⃣ Enviar al proveedor
         if ($enviar_proveedor && !empty($comprobante['mail_proveedor'])) {
@@ -376,6 +385,11 @@ function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $id_personal
         // 3️⃣ Enviar a tesorería
         if ($enviar_tesoreria) {
             $destinatarios[] = "tesoreria@arceperu.pe";
+        }
+
+        // NUEVO: Enviar a compras
+        if ($enviar_compras) {
+            $destinatarios[] = "compras@arceperu.pe";
         }
 
         // Solo continuar si hay al menos un destinatario
@@ -1090,7 +1104,6 @@ function ConsultarCompraCom($id_compra)
                        WHEN m.id_moneda = 2 THEN 'US$'
                        ELSE 'S/.'
                    END AS simbolo_moneda,
-                   -- ÚNICA afectación (detracción / retención / percepción)
                     COALESCE(d_det.nombre_detraccion, d_ret.nombre_detraccion, d_per.nombre_detraccion)
                         AS nombre_detraccion,
                     COALESCE(d_det.porcentaje, d_ret.porcentaje, d_per.porcentaje)
@@ -1103,11 +1116,9 @@ function ConsultarCompraCom($id_compra)
             INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor
             LEFT JOIN proveedor_cuenta pc ON pc.id_proveedor = p.id_proveedor
             INNER JOIN moneda m ON c.id_moneda = m.id_moneda
-            -- Solo unimos, pero luego devolvemos un solo valor
             LEFT JOIN detraccion d_det ON d_det.id_detraccion = c.id_detraccion
             LEFT JOIN detraccion d_ret ON d_ret.id_detraccion = c.id_retencion
             LEFT JOIN detraccion d_per ON d_per.id_detraccion = c.id_percepcion
-
             LEFT JOIN {$bd_complemento}.personal per ON per.id_personal = c.id_personal
             LEFT JOIN {$bd_complemento}.personal per_fin ON per_fin.id_personal = c.id_personal_aprueba_financiera
             WHERE c.id_compra = $id_compra";
@@ -1167,7 +1178,7 @@ function ConsultarCompraCom($id_compra)
 
     // ============================================================
     // 5. OBTENER TODOS LOS COMPROBANTES DE LA COMPRA Y SI TIENEN VOUCHER PAGADO (fg=1/fg=2)
-    //    NOTA: comprobante_pago NO TIENE monto, por eso inferimos lo pagado por comprobante
+    //    NOTA: comprobante_pago NO TIENE monto, inferimos lo pagado por comprobante
     // ============================================================
     /*$sql_pagado = "
         SELECT COALESCE(SUM(total_pagar),0) AS total_pagado
@@ -1181,14 +1192,15 @@ function ConsultarCompraCom($id_compra)
             c.monto_total_igv AS monto_total_igv_comprobante,
             c.total_pagar AS total_pagar_comprobante,
             c.id_detraccion AS id_detraccion_comprobante,
-            -- existen vouchers aprobados (est_comprobante_pago = 1) por fg
+            d.id_detraccion_tipo,
             MAX(CASE WHEN cp.fg_comprobante_pago = 1 AND cp.est_comprobante_pago = 1 THEN 1 ELSE 0 END) AS has_fg1_paid,
             MAX(CASE WHEN cp.fg_comprobante_pago = 2 AND cp.est_comprobante_pago = 1 THEN 1 ELSE 0 END) AS has_fg2_paid,
             COUNT(cp.id_comprobante_pago) AS total_vouchers
         FROM comprobante c
         LEFT JOIN comprobante_pago cp ON cp.id_comprobante = c.id_comprobante
+        LEFT JOIN detraccion d ON d.id_detraccion = c.id_detraccion
         WHERE c.id_compra = $id_compra
-        GROUP BY c.id_comprobante, c.monto_total_igv, c.total_pagar, c.id_detraccion
+        GROUP BY c.id_comprobante, c.monto_total_igv, c.total_pagar, c.id_detraccion, d.id_detraccion_tipo
     ";
 
     $res_comp = mysqli_query($con, $sql_comprobantes);
@@ -1199,9 +1211,6 @@ function ConsultarCompraCom($id_compra)
     }
 
     $total_pagado = 0.0;
-
-    // identificación de percepción por id específico:
-    $ID_PERCEPCION_DEF = 13; 
 
     while ($rowC = mysqli_fetch_assoc($res_comp)) {
         $c_id = intval($rowC['id_comprobante']);
@@ -1217,12 +1226,8 @@ function ConsultarCompraCom($id_compra)
         // se considera que solo se usa fg=1 y que fg=1 paga TOTAL_PAGAR (que incluye la percepción).
         $es_percepcion = false;
         if (!empty($id_det_comprobante)) {
-            // si id_det_comprobante coincide con id_percepcion de la compra (si tu tabla compra guarda id_percepcion)
-            if (!empty($compra['id_percepcion']) && $id_det_comprobante == $compra['id_percepcion']) {
-                $es_percepcion = true;
-            }
-            // o si tu sistema usa un id fijo para percepción (por ejemplo 13), lo consideramos también
-            if ($id_det_comprobante == $ID_PERCEPCION_DEF) {
+            // si id_det_comprobante coincide con id_percepcion de la compra
+            if (!empty($rowC['id_detraccion_tipo']) && intval($rowC['id_detraccion_tipo']) == 3) {
                 $es_percepcion = true;
             }
         }

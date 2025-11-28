@@ -918,6 +918,12 @@ require_once("../_modelo/m_detraccion.php");
                             Enviar a Tesorería
                         </label>
                     </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" name="enviar_compras" id="enviar_compras" value="1" checked>
+                        <label class="form-check-label" for="enviar_compras">
+                            Enviar a Compras
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -1932,7 +1938,8 @@ async function registrarArchivosMasivo() {
         archivos_a_registrar: archivos_a_registrar,
         enviar_proveedor: document.getElementById('enviarProveedor').checked ? 1 : 0,
         enviar_contabilidad: document.getElementById('enviarContabilidad').checked ? 1 : 0,
-        enviar_tesoreria: document.getElementById('enviarTesoreria').checked ? 1 : 0
+        enviar_tesoreria: document.getElementById('enviarTesoreria').checked ? 1 : 0,
+        enviar_compras: document.getElementById('enviarCompras').checked ? 1 : 0
     };
 
     try {

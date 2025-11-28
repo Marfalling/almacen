@@ -34,6 +34,8 @@ if (!$comprobante) {
 }
 
 $oc = ConsultarCompraCom($comprobante['id_compra']); 
+error_log("ConsultarCompraCom " . $comprobante['id_compra']);
+
 $total_oc      = floatval($oc['total_con_igv']);
 $registrado    = ObtenerTotalComprobantesRegistrados($comprobante['id_compra']);
 

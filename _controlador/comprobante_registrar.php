@@ -275,6 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
     $enviar_proveedor = isset($_POST['enviar_proveedor']) ? true : false;
     $enviar_contabilidad = isset($_POST['enviar_contabilidad']) ? true : false;
     $enviar_tesoreria = isset($_POST['enviar_tesoreria']) ? true : false;
+    $enviar_compras = isset($_POST['enviar_compras']) ? true : false;
     $fec_voucher = !empty($_POST['fec_voucher']) ? $_POST['fec_voucher'] : null;
 
     $error_archivo = false;
@@ -308,6 +309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             $enviar_proveedor,
             $enviar_contabilidad,
             $enviar_tesoreria,
+            $enviar_compras,
             $fec_voucher
         );
 
@@ -456,39 +458,37 @@ if (isset($_GET['alert']) && $_GET['alert'] === 'success') {
     </div>
 
     <?php require_once("../_vista/v_script.php"); ?>
-    <?php  require_once("../_vista/v_alertas.php"); ?>
     <?php
-    
     // ====================================================================
     // MOSTRAR ALERTAS CON SWEETALERT2
     // ====================================================================
     if ($mostrar_alerta) {
         ?>
         <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            Swal.fire({
-                icon: '<?php echo $tipo_alerta; ?>',
-                title: '<?php echo $titulo_alerta; ?>',
-                html: '<?php echo $mensaje_alerta; ?>',
-                confirmButtonText: 'Entendido',
-                confirmButtonColor: '<?php echo ($tipo_alerta == "error") ? "#d33" : "#3085d6"; ?>',
-                <?php if ($tipo_alerta === 'success'): ?>
-                timer: 3000,
-                timerProgressBar: true
-                <?php endif; ?>
-            }).then(function() {
-                <?php if (isset($_GET['alert'])): ?>
-                if (window.history.replaceState) {
-                    const url = new URL(window.location);
-                    url.searchParams.delete('alert');
-                    url.searchParams.delete('tipo');
-                    url.searchParams.delete('id');
-                    window.history.replaceState({}, document.title, url);
-                }
-                <?php endif; ?>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire({
+                    icon: '<?php echo $tipo_alerta; ?>',
+                    title: '<?php echo $titulo_alerta; ?>',
+                    html: '<?php echo $mensaje_alerta; ?>',
+                    confirmButtonText: 'Entendido',
+                    confirmButtonColor: '<?php echo ($tipo_alerta == "error") ? "#d33" : "#3085d6"; ?>'
+                    <?php if ($tipo_alerta === 'success'){ ?>,
+                    timer: 3000,
+                    timerProgressBar: true
+                    <?php } ?>
+                }).then(function() {
+                    <?php if (isset($_GET['alert'])): ?>
+                    if (window.history.replaceState) {
+                        const url = new URL(window.location);
+                        url.searchParams.delete('alert');
+                        url.searchParams.delete('tipo');
+                        url.searchParams.delete('id');
+                        window.history.replaceState({}, document.title, url);
+                    }
+                    <?php endif; ?>
+                });
             });
-        });
-        </script>
+            </script>
         <?php
     }
     ?>

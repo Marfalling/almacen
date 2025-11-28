@@ -21,19 +21,26 @@
                         <form class="form-horizontal form-label-left" action="almacen_editar.php" method="post">
                             
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Nombre del Almacén <span class="text-danger">*</span> :</label>
+                                <label class="control-label col-md-3 col-sm-3">
+                                    Nombre del Almacén <span class="text-danger">*</span> :
+                                </label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="nom" value="<?php echo $nom; ?>" class="form-control" placeholder="Nombre del almacén" required="required">
+                                    <input type="text" value="<?php echo $nom; ?>" class="form-control" disabled>
+                                    <!-- Para enviar el valor -->
+                                    <input type="hidden" name="nom" value="<?php echo $nom; ?>">
                                 </div>
                             </div>
 
+                            <!-- Cliente (solo lectura) -->
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Cliente <span class="text-danger">*</span> :</label>
+                                <label class="control-label col-md-3 col-sm-3">
+                                    Cliente <span class="text-danger">*</span> :
+                                </label>
                                 <div class="col-md-9 col-sm-9">
-                                    <select name="id_cliente" class="form-control" required="required">
+                                    <select class="form-control" disabled>
                                         <option value="">Seleccione un cliente</option>
                                         <?php
-                                        if ($listaClientes && count($listaClientes) > 0) {
+                                        if ($listaClientes) {
                                             foreach ($listaClientes as $cliente) {
                                                 $selected = ($cliente['id_cliente'] == $id_cliente) ? 'selected' : '';
                                                 echo '<option value="' . $cliente['id_cliente'] . '" ' . $selected . '>' . htmlspecialchars($cliente['nom_cliente']) . '</option>';
@@ -41,16 +48,21 @@
                                         }
                                         ?>
                                     </select>
+                                    <!-- Para enviar el valor -->
+                                    <input type="hidden" name="id_cliente" value="<?php echo $id_cliente; ?>">
                                 </div>
                             </div>
 
+                            <!-- Obra (solo lectura) -->
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Obra <span class="text-danger">*</span> :</label>
+                                <label class="control-label col-md-3 col-sm-3">
+                                    Obra <span class="text-danger">*</span> :
+                                </label>
                                 <div class="col-md-9 col-sm-9">
-                                    <select name="id_obra" class="form-control" required="required">
+                                    <select class="form-control" disabled>
                                         <option value="">Seleccione una obra</option>
                                         <?php
-                                        if ($listaObras && count($listaObras) > 0) {
+                                        if ($listaObras) {
                                             foreach ($listaObras as $obra) {
                                                 $selected = ($obra['id_subestacion'] == $id_obra) ? 'selected' : '';
                                                 echo '<option value="' . $obra['id_subestacion'] . '" ' . $selected . '>' . htmlspecialchars($obra['nom_subestacion']) . '</option>';
@@ -58,6 +70,8 @@
                                         }
                                         ?>
                                     </select>
+                                    <!-- Para enviar el valor -->
+                                    <input type="hidden" name="id_obra" value="<?php echo $id_obra; ?>">
                                 </div>
                             </div>
 

@@ -193,11 +193,22 @@ function ActualizarAlmacen($id_almacen, $id_cliente, $id_obra, $nom, $est)
             est_almacen = $est 
             WHERE id_almacen = $id_almacen";
     
-    if (mysqli_query($con, $sql)) {
-        mysqli_close($con);
+    $ok1 = mysqli_query($con, $sql);
+
+    // Actualizar el almacén que tiene el mismo id_obra y cliente = 9
+    $sql2 = "UPDATE almacen SET 
+                est_almacen = $est
+            WHERE id_obra = $id_obra 
+              AND id_cliente = 9 
+              AND id_almacen != $id_almacen";
+
+    $ok2 = mysqli_query($con, $sql2);
+
+    mysqli_close($con);
+
+    if ($ok1) {
         return "SI";
     } else {
-        mysqli_close($con);
         return "ERROR";
     }
 }
