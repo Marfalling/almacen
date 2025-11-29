@@ -652,7 +652,29 @@ $(document).ready(function () {
 });
 
 </script>
+<!-- Personal encargado y receptor (v_pedido_verificar.php) -->
+<script>
+$(document).ready(function () {
+  function initSelect2($el, placeholder) {
+    if ($el.length) {
+      $el.select2({
+        placeholder: placeholder,
+        allowClear: true,           
+        width: '100%',
+        minimumInputLength: 0,
+        language: {
+          noResults: function () { return 'No se encontraron resultados'; },
+          searching: function () { return 'Buscando...'; }
+        }
+      });
+    }
+  }
 
+  // Inicializar Select2 para personal encargado y receptor
+  initSelect2($('#personal_encargado_salida'), 'Seleccionar personal encargado...');
+  initSelect2($('#personal_recibe_salida'), 'Seleccionar personal que recibe...');
+});
+</script>
 
 
 

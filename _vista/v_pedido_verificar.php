@@ -2172,6 +2172,93 @@ $monedas = MostrarMoneda();
                                                         </select>
                                                     </div>
                                                 </div>
+                                                <!-- PERSONAL ENCARGADO Y RECEPTOR -->
+                                                <div class="row mb-2">
+                                                    <!-- Personal Encargado (Quien aprueba) -->
+                                                    <div class="col-md-6">
+                                                        <label style="font-size: 11px; font-weight: bold;">
+                                                            Personal Encargado: <span class="text-danger">*</span>
+                                                        </label>
+                                                        <select class="form-control form-control-sm" 
+                                                                id="personal_encargado_salida" 
+                                                                name="personal_encargado_salida" 
+                                                                style="font-size: 12px;" 
+                                                                required>
+                                                            <option value="">Seleccionar personal...</option>
+                                                            <?php 
+                                                            if (isset($personal_lista) && !empty($personal_lista)) {
+                                                                foreach ($personal_lista as $pers) {
+                                                                    $selected = '';
+                                                                    
+                                                                    // 🔹 LÓGICA CORREGIDA DE PRESELECCIÓN
+                                                                    if ($modo_editar_salida && isset($salida_data)) {
+                                                                        // MODO EDICIÓN: Respetar el valor guardado en BD
+                                                                        if ($salida_data['id_personal_encargado'] == $pers['id_personal']) {
+                                                                            $selected = 'selected';
+                                                                        }
+                                                                    } else {
+                                                                        // MODO CREACIÓN: Preseleccionar usuario de la sesión
+                                                                        if ($pers['id_personal'] == $id_personal) {
+                                                                            $selected = 'selected';
+                                                                        }
+                                                                    }
+                                                                    ?>
+                                                                    <option value="<?php echo $pers['id_personal']; ?>" 
+                                                                            data-email="<?php echo htmlspecialchars($pers['email_personal']); ?>" 
+                                                                            <?php echo $selected; ?>>
+                                                                        <?php echo htmlspecialchars($pers['nom_personal']); ?>
+                                                                    </option>
+                                                                    <?php
+                                                                }
+                                                            }
+                                                            ?>
+                                                        </select>
+                                                        <small class="text-muted" style="font-size: 10px;">
+                                                            <i class="fa fa-user"></i> 
+                                                            <?php if (!$modo_editar_salida): ?>
+                                                                Por defecto: Usuario actual (puede cambiarse)
+                                                            <?php else: ?>
+                                                                Personal que aprueba la salida
+                                                            <?php endif; ?>
+                                                        </small>
+                                                    </div>
+
+                                                    <!-- Personal que Recibe -->
+                                                    <div class="col-md-6">
+                                                        <label style="font-size: 11px; font-weight: bold;">
+                                                            Personal que Recibe:
+                                                        </label>
+                                                        <select class="form-control form-control-sm" 
+                                                                id="personal_recibe_salida" 
+                                                                name="personal_recibe_salida" 
+                                                                style="font-size: 12px;">
+                                                            <option value="0">Sin asignar</option>
+                                                            <?php 
+                                                            if (isset($personal_lista) && !empty($personal_lista)) {
+                                                                foreach ($personal_lista as $pers) {
+                                                                    $selected = '';
+                                                                    
+                                                                    // 🔹 MODO EDICIÓN: Respetar el valor guardado
+                                                                    if ($modo_editar_salida && isset($salida_data)) {
+                                                                        if ($salida_data['id_personal_recibe'] == $pers['id_personal']) {
+                                                                            $selected = 'selected';
+                                                                        }
+                                                                    }
+                                                                    // MODO CREACIÓN: Sin preselección (queda en "Sin asignar")
+                                                                    ?>
+                                                                    <option value="<?php echo $pers['id_personal']; ?>" <?php echo $selected; ?>>
+                                                                        <?php echo htmlspecialchars($pers['nom_personal']); ?>
+                                                                    </option>
+                                                                    <?php
+                                                                }
+                                                            }
+                                                            ?>
+                                                        </select>
+                                                        <small class="text-muted" style="font-size: 10px;">
+                                                            <i class="fa fa-info-circle"></i> Opcional: quien recibirá el material
+                                                        </small>
+                                                    </div>
+                                                </div>
 
                                                 <!-- Observaciones -->
                                                 <div class="row mb-2">

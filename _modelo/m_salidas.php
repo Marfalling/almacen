@@ -1683,10 +1683,8 @@ function AnularSalida($id_salida, $id_usuario_anulacion = null)
         ];
     }
 }
-
-
 // ============================================================================
-// OBTENER DATOS DE UNA SALIDA POR ID (para edición)
+// OBTENER DATOS DE UNA SALIDA POR ID (para edición) - CORREGIDO
 // ============================================================================
 function ObtenerSalidaPorId($id_salida) {
     include("../_conexion/conexion.php");
@@ -1698,13 +1696,17 @@ function ObtenerSalidaPorId($id_salida) {
                    uo.nom_ubicacion as ubicacion_origen_nombre,
                    ad.nom_almacen as almacen_destino_nombre,
                    ud.nom_ubicacion as ubicacion_destino_nombre,
-                   CONCAT(per.ape_personal, ' ', per.nom_personal) as personal_nombre
+                   per.nom_personal as personal_nombre,
+                   pe.nom_personal as personal_encargado_nombre,
+                   pr.nom_personal as personal_recibe_nombre
             FROM salida s
             LEFT JOIN almacen ao ON s.id_almacen_origen = ao.id_almacen
             LEFT JOIN ubicacion uo ON s.id_ubicacion_origen = uo.id_ubicacion
             LEFT JOIN almacen ad ON s.id_almacen_destino = ad.id_almacen
             LEFT JOIN ubicacion ud ON s.id_ubicacion_destino = ud.id_ubicacion
-            LEFT JOIN personal per ON s.id_personal = per.id_personal
+            LEFT JOIN {$bd_complemento}.personal per ON s.id_personal = per.id_personal
+            LEFT JOIN {$bd_complemento}.personal pe ON s.id_personal_encargado = pe.id_personal
+            LEFT JOIN {$bd_complemento}.personal pr ON s.id_personal_recibe = pr.id_personal
             WHERE s.id_salida = ?";
     
     $stmt = $con->prepare($sql);

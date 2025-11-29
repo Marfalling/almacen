@@ -22,7 +22,8 @@ require_once("../_modelo/m_detraccion.php");
 require_once("../_modelo/m_movimientos.php"); 
 require_once("../_modelo/m_almacen.php");
 require_once("../_modelo/m_ubicacion.php");
-require_once("../_modelo/m_salidas.php");        
+require_once("../_modelo/m_salidas.php");   
+require_once("../_modelo/m_personal.php");         
 
 $id_pedido = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : 0;
 $id_compra_editar = isset($_REQUEST['id_compra']) ? intval($_REQUEST['id_compra']) : 0;
@@ -532,12 +533,21 @@ if (isset($_REQUEST['crear_salida'])) {
         $id_ubicacion_destino = intval($_REQUEST['ubicacion_destino_salida']);
         $obs_salida = mysqli_real_escape_string($con, trim($_REQUEST['observaciones_salida']));
         
+        // 🔹 CAPTURAR PERSONAL ENCARGADO Y RECEPTOR
+        $id_personal_encargado = isset($_REQUEST['personal_encargado_salida']) 
+                                ? intval($_REQUEST['personal_encargado_salida']) 
+                                : 0;
+        $id_personal_recibe = isset($_REQUEST['personal_recibe_salida']) 
+                            ? intval($_REQUEST['personal_recibe_salida']) 
+                            : 0;
+        
         // VALIDACIONES BÁSICAS
         if (empty($ndoc_salida)) {
             echo json_encode([
                 'success' => false,
                 'message' => 'El número de documento es obligatorio'
             ]);
+            mysqli_close($con);
             exit;
         }
         
@@ -546,6 +556,17 @@ if (isset($_REQUEST['crear_salida'])) {
                 'success' => false,
                 'message' => 'La fecha de salida es obligatoria'
             ]);
+            mysqli_close($con);
+            exit;
+        }
+        
+        // 🔹 VALIDAR PERSONAL ENCARGADO (OBLIGATORIO)
+        if ($id_personal_encargado <= 0) {
+            echo json_encode([
+                'success' => false,
+                'message' => '⚠️ Debe seleccionar un personal encargado para aprobar la salida'
+            ]);
+            mysqli_close($con);
             exit;
         }
         
@@ -554,6 +575,7 @@ if (isset($_REQUEST['crear_salida'])) {
                 'success' => false,
                 'message' => 'Debe seleccionar almacén y ubicación de origen'
             ]);
+            mysqli_close($con);
             exit;
         }
         
@@ -562,8 +584,11 @@ if (isset($_REQUEST['crear_salida'])) {
                 'success' => false,
                 'message' => 'Debe seleccionar almacén y ubicación de destino'
             ]);
+            mysqli_close($con);
             exit;
         }
+        
+        error_log("👤 Personal - Encargado: $id_personal_encargado | Receptor: $id_personal_recibe");
         
         // DECODIFICAR JSON DE MATERIALES
         $materiales = [];
@@ -577,6 +602,7 @@ if (isset($_REQUEST['crear_salida'])) {
                         'success' => false,
                         'message' => 'Error al decodificar items: ' . json_last_error_msg()
                     ]);
+                    mysqli_close($con);
                     exit;
                 }
             } else {
@@ -592,12 +618,10 @@ if (isset($_REQUEST['crear_salida'])) {
                     $id_producto = intval($item['id_producto']);
                     $cantidad = floatval($item['cantidad']);
                     
-                    //   Obtener descripción DESDE LA BD si no viene en el JSON
                     $descripcion = '';
                     if (isset($item['descripcion']) && !empty(trim($item['descripcion']))) {
                         $descripcion = trim($item['descripcion']);
                     } else {
-                        
                         $sql_desc = "SELECT nom_producto FROM producto WHERE id_producto = $id_producto";
                         $res_desc = mysqli_query($con, $sql_desc);
                         if ($res_desc && $row_desc = mysqli_fetch_assoc($res_desc)) {
@@ -616,6 +640,7 @@ if (isset($_REQUEST['crear_salida'])) {
                             'success' => false,
                             'message' => "La cantidad para '{$descripcion}' debe ser mayor a 0"
                         ]);
+                        mysqli_close($con);
                         exit;
                     }
                     
@@ -634,10 +659,11 @@ if (isset($_REQUEST['crear_salida'])) {
                 'success' => false,
                 'message' => 'Debe agregar al menos un material a la salida'
             ]);
+            mysqli_close($con);
             exit;
         }
         
-        // LLAMAR A LA FUNCIÓN GRABAR SALIDA
+        //  LLAMAR A LA FUNCIÓN GRABAR SALIDA 
         $resultado = GrabarSalida(
             2,
             $id_almacen_origen,
@@ -647,9 +673,9 @@ if (isset($_REQUEST['crear_salida'])) {
             $ndoc_salida,
             $fec_salida,
             $obs_salida,
-            $id_personal,
-            $id_personal,
-            $id_personal,
+            $id_personal_encargado,    
+            $id_personal_recibe,       
+            $id_personal,              
             $materiales,
             $id_pedido
         );
@@ -657,20 +683,19 @@ if (isset($_REQUEST['crear_salida'])) {
         // PROCESAR RESULTADO
         if (is_array($resultado)) {
             if (isset($resultado['success']) && $resultado['success'] === true) {
-                error_log(" Salida creada correctamente - ID: " . ($resultado['id_salida'] ?? 'N/A'));
-                
-                // ============================================================================
-                //  SUBIDA DE ARCHIVOS
-                // ============================================================================
                 $id_salida = isset($resultado['id_salida']) ? intval($resultado['id_salida']) : 0;
                 
+                error_log("✅ Salida creada correctamente - ID: $id_salida");
+                
+                // ============================================================================
+                // 🔹 SUBIDA DE ARCHIVOS
+                // ============================================================================
                 if ($id_salida > 0 && isset($_FILES['documentos_salida']) && count($_FILES['documentos_salida']['name']) > 0) {
                     include_once("../_modelo/m_documentos.php");
                     
                     $entidad = "salidas";
                     $target_dir = __DIR__ . "/../uploads/" . $entidad . "/";
                     
-                    // Crear directorio si no existe
                     if (!is_dir($target_dir)) {
                         mkdir($target_dir, 0777, true);
                     }
@@ -680,21 +705,17 @@ if (isset($_REQUEST['crear_salida'])) {
                     
                     foreach ($_FILES['documentos_salida']['name'] as $i => $nombre_original) {
                         if (!empty($nombre_original) && $_FILES['documentos_salida']['error'][$i] === UPLOAD_ERR_OK) {
-                            // Limpiar nombre del archivo
                             $nombre_limpio = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $nombre_original);
                             if ($nombre_limpio === false || trim($nombre_limpio) === '') {
                                 $nombre_limpio = $nombre_original;
                             }
                             
-                            // Remover caracteres especiales
                             $nombre_limpio = preg_replace('/[^A-Za-z0-9._-]/', '_', $nombre_limpio);
                             $nombre_limpio = trim($nombre_limpio, '_');
                             
-                            // Generar nombre único
                             $nombre_archivo = $entidad . "_" . $id_salida . "_" . time() . "_" . $i . "_" . basename($nombre_limpio);
                             $target_file = $target_dir . $nombre_archivo;
                             
-                            // Mover archivo
                             if (move_uploaded_file($_FILES["documentos_salida"]["tmp_name"][$i], $target_file)) {
                                 GuardarDocumento($entidad, $id_salida, $nombre_archivo, $_SESSION['id_personal']);
                                 $archivos_subidos++;
@@ -717,28 +738,42 @@ if (isset($_REQUEST['crear_salida'])) {
                     
                     error_log("📁 Resultado subida: $archivos_subidos exitosos, $archivos_fallidos fallidos");
                 }
-                // ============================================================================
-                // FIN DE SUBIDA DE ARCHIVOS
-                // ============================================================================
                 
-                //  ENVÍO DE CORREO 
+                // ============================================================================
+                // 🔹 ENVÍO DE CORREO (SIN INTERRUMPIR LA RESPUESTA JSON)
+                // ============================================================================
                 if ($id_salida > 0) {
-                    // Enviar correo al encargado
-                    EnviarCorreoSalidaCreada($id_salida);
-                    error_log(" Correo de salida creada enviado para salida ID: $id_salida");
+                    // Suprimir warnings y errores de mail() para que no rompan el JSON
+                    set_error_handler(function($errno, $errstr, $errfile, $errline) {
+                        // Capturar el error silenciosamente
+                        error_log("⚠️ Error de correo suprimido: $errstr");
+                        return true; // No propagar el error
+                    });
+                    
+                    try {
+                        EnviarCorreoSalidaCreada($id_salida);
+                        error_log("📧 Intento de envío de correo completado para salida ID: $id_salida");
+                    } catch (Exception $e) {
+                        error_log("❌ Excepción en envío de correo: " . $e->getMessage());
+                    }
+                    
+                    // Restaurar el manejador de errores por defecto
+                    restore_error_handler();
                 }
                 
+                // ============================================================================
+                // 🔹 RESPUESTA JSON EXITOSA
+                // ============================================================================
                 mysqli_close($con);
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Salida creada correctamente' . ($mensaje_archivos ?? '')
+                    'message' => 'Salida creada correctamente'
                 ]);
                 exit;
             } else {
                 $mensaje_error = isset($resultado['message']) ? $resultado['message'] : 'Error desconocido al crear la salida';
                 error_log("❌ Error al crear salida: $mensaje_error");
                 
-                // 🔥 VERIFICAR SI ES ERROR DE STOCK
                 if (strpos($mensaje_error, 'ERROR DE STOCK') !== false || 
                     strpos($mensaje_error, 'Stock insuficiente') !== false) {
                     
@@ -794,7 +829,11 @@ if (isset($_REQUEST['crear_salida'])) {
                         }
                     }
                 }
-                // ============================================================================
+                
+                // 🔹 ENVIAR CORREO
+                if ($id_salida > 0) {
+                    EnviarCorreoSalidaCreada($id_salida);
+                }
                 
                 mysqli_close($con);
                 echo json_encode(['success' => true]);
@@ -803,7 +842,6 @@ if (isset($_REQUEST['crear_salida'])) {
                 $mensaje_error = str_replace(['ERROR: ', 'ERROR DE VALIDACIÓN: ', 'ERROR DE STOCK: '], '', $resultado);
                 error_log("❌ Error al crear salida: $mensaje_error");
                 
-                // 🔥 VERIFICAR SI ES ERROR DE STOCK
                 if (strpos($resultado, 'ERROR DE STOCK') !== false || 
                     strpos($resultado, 'Stock insuficiente') !== false) {
                     
@@ -862,13 +900,32 @@ if (isset($_REQUEST['actualizar_salida'])) {
     $id_almacen_destino = intval($_REQUEST['almacen_destino_salida']);
     $id_ubicacion_destino = intval($_REQUEST['ubicacion_destino_salida']);
     $obs_salida = mysqli_real_escape_string($con, trim($_REQUEST['observaciones_salida']));
-    $id_personal = $_SESSION['id_personal'] ?? 0;
+    
+    $id_personal = $_SESSION['id_personal'] ?? 0; // Quien edita (sesión actual)
+    
+    $id_personal_encargado = isset($_REQUEST['personal_encargado_salida']) 
+                            ? intval($_REQUEST['personal_encargado_salida']) 
+                            : 0;
+    
+    $id_personal_recibe = isset($_REQUEST['personal_recibe_salida']) 
+                        ? intval($_REQUEST['personal_recibe_salida']) 
+                        : 0;
     
     // VALIDACIONES BÁSICAS
     if (empty($ndoc_salida) || empty($fec_salida)) {
         echo json_encode([
             'success' => false,
             'message' => 'Complete todos los campos obligatorios'
+        ]);
+        mysqli_close($con);
+        exit;
+    }
+    
+    //  VALIDAR PERSONAL ENCARGADO (OBLIGATORIO)
+    if ($id_personal_encargado <= 0) {
+        echo json_encode([
+            'success' => false,
+            'message' => '⚠️ Debe seleccionar un personal encargado para aprobar la salida'
         ]);
         mysqli_close($con);
         exit;
@@ -883,6 +940,8 @@ if (isset($_REQUEST['actualizar_salida'])) {
         mysqli_close($con);
         exit;
     }
+    
+    error_log("👤 ACTUALIZAR - Personal sesión: $id_personal | Encargado: $id_personal_encargado | Receptor: $id_personal_recibe");
     
     // 🔹 CONSTRUIR ARRAY DE MATERIALES
     $materiales = [];
@@ -940,8 +999,8 @@ if (isset($_REQUEST['actualizar_salida'])) {
         $ndoc_salida,
         $fec_salida,
         $obs_salida,
-        $id_personal,
-        $id_personal,
+        $id_personal_encargado,    
+        $id_personal_recibe,       
         $materiales
     );
     
@@ -971,7 +1030,6 @@ if (isset($_REQUEST['actualizar_salida'])) {
     
     exit;
 }
-
 // ============================================================================
 // OBTENER STOCK ACTUALIZADO (cuando cambia ubicación origen)
 // ============================================================================
@@ -1244,6 +1302,7 @@ if ($id_pedido > 0) {
         $almacenes = MostrarAlmacenesActivosConArceBase();
         $ubicaciones = MostrarUbicacionesActivas();
         $tiene_salida_activa = TieneSalidaActivaPedido($id_pedido);
+        $personal_lista = MostrarPersonal();
 
         // Cargar datos de orden si está en modo edición
         $orden_data = null;
