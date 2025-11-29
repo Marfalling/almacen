@@ -1095,11 +1095,40 @@ if ($id_pedido > 0) {
     if (!empty($pedido_data)) {
         $pedido = $pedido_data[0];
         $estado_pedido = intval($pedido['est_pedido']);
-        
+        // Detectar si es pedido BASE ARCE
+        include("../_conexion/conexion.php");
+        $id_almacen_pedido = intval($pedido['id_almacen']);
+        $sql_almacen = "SELECT id_cliente, id_obra FROM almacen WHERE id_almacen = $id_almacen_pedido";
+        $res_almacen = mysqli_query($con, $sql_almacen);
+        $row_almacen = mysqli_fetch_assoc($res_almacen);
+        mysqli_close($con);
+
+        $id_cliente_pedido = $row_almacen ? intval($row_almacen['id_cliente']) : 0;
+        $id_obra_pedido = $row_almacen ? $row_almacen['id_obra'] : null;
+        $es_pedido_base_arce = ($id_cliente_pedido == $id_cliente_arce && $id_obra_pedido === NULL);
         // ============================================================
         //  RE-VERIFICACIÓN AUTOMÁTICA (SIEMPRE)
         // ============================================================
-        if ($estado_pedido != 0 && $estado_pedido != 5 && $estado_pedido != 4) { //  NO verificar si está en estado 4 (Ingresado)
+    if ($estado_pedido != 0 && $estado_pedido != 5 && $estado_pedido != 4) {
+        //  VALIDAR: NO reverificar si es BASE ARCE
+        include("../_conexion/conexion.php");
+        
+        // Obtener id_cliente del almacén asociado al pedido
+        $id_almacen_pedido = intval($pedido['id_almacen']);
+        $sql_almacen = "SELECT id_cliente, id_obra FROM almacen WHERE id_almacen = $id_almacen_pedido";
+        $res_almacen = mysqli_query($con, $sql_almacen);
+        $row_almacen = mysqli_fetch_assoc($res_almacen);
+        
+        $id_cliente_pedido = $row_almacen ? intval($row_almacen['id_cliente']) : 0;
+        $id_obra_pedido = $row_almacen ? $row_almacen['id_obra'] : null;
+        
+        mysqli_close($con);
+        
+        $es_base_arce = ($id_cliente_pedido == $id_cliente_arce && $id_obra_pedido === NULL);
+        
+        if ($es_base_arce) {
+            error_log(" Pedido BASE ARCE detectado (ID: $id_pedido) - NO se reverifica");
+        } else {
         error_log("🔄 RE-VERIFICACIÓN AUTOMÁTICA - Pedido $id_pedido");
         
         include("../_conexion/conexion.php");
@@ -1139,6 +1168,7 @@ if ($id_pedido > 0) {
         
         mysqli_close($con);
     }
+} 
         
         // ============================================================
         // CARGAR DETALLE CON STOCK CALCULADO
@@ -1238,64 +1268,105 @@ if ($id_pedido > 0) {
                 exit;
             }
             
-            // Obtener datos de la salida
-            $salida_data = ObtenerSalidaPorId($id_salida_editar);
-            if (!$salida_data) {
-                header("Location: pedido_verificar.php?id=$id_pedido&error=salida_no_encontrada");
-                exit;
-            }
-            
-            $salida_detalle = ObtenerDetalleSalida($id_salida_editar);
-            
-            
-            require_once("../_modelo/m_documentos.php");
-            $documentos_salida = MostrarDocumentos('salidas', $id_salida_editar);            
-            // ABRIR CONEXIÓN PARA CONSULTAS
-            include("../_conexion/conexion.php");
-            
-            //  CALCULAR CANTIDAD MÁXIMA POR ITEM
-            foreach ($salida_detalle as &$item_sal) {
-                $id_pedido_detalle = intval($item_sal['id_pedido_detalle']);
-                $id_producto = intval($item_sal['id_producto']);
-                
-                //  PASO 1: Obtener cantidad verificada para OS
-                $cant_os_verificada = 0;
-                foreach ($pedido_detalle as $det) {
-                    if ($det['id_pedido_detalle'] == $id_pedido_detalle) {
-                        $cant_os_verificada = floatval($det['cant_os_pedido_detalle']);
-                        break;
-                    }
-                }
-                
-                //  PASO 2: Cantidad ya ordenada en OTRAS salidas activas (excluyendo la actual)
-                $sql_otras_salidas = "SELECT COALESCE(SUM(sd.cant_salida_detalle), 0) as total_otras
-                                    FROM salida_detalle sd
-                                    INNER JOIN salida s ON sd.id_salida = s.id_salida
-                                    WHERE sd.id_pedido_detalle = $id_pedido_detalle
-                                        AND s.est_salida = 1
-                                        AND s.id_salida != $id_salida_editar";
-                $res_otras = mysqli_query($con, $sql_otras_salidas);
-                $row_otras = mysqli_fetch_assoc($res_otras);
-                $ordenado_otras_salidas = floatval($row_otras['total_otras']);
-                
-                //  PASO 3: Cantidad actual en ESTA salida
-                $cantidad_actual_salida = floatval($item_sal['cant_salida_detalle']);
-                
-                //  PASO 4: Calcular máximo disponible
-                $item_sal['cantidad_maxima'] = ($cant_os_verificada - $ordenado_otras_salidas);
-                
-                //  LOG DEBUG
-                error_log("   Calculando max para detalle $id_pedido_detalle:");
-                error_log("   Verificado OS: $cant_os_verificada");
-                error_log("   Otras salidas: $ordenado_otras_salidas");
-                error_log("   Actual en salida: $cantidad_actual_salida");
-                error_log("   MAX FINAL: " . $item_sal['cantidad_maxima']);
-            }
-            unset($item_sal); // Liberar referencia
-            
-            //  CERRAR CONEXIÓN
-            mysqli_close($con);
+                // Obtener datos de la salida
+        $salida_data = ObtenerSalidaPorId($id_salida_editar);
+        if (!$salida_data) {
+            header("Location: pedido_verificar.php?id=$id_pedido&error=salida_no_encontrada");
+            exit;
         }
+        
+        $salida_detalle = ObtenerDetalleSalida($id_salida_editar);
+        
+        require_once("../_modelo/m_documentos.php");
+        $documentos_salida = MostrarDocumentos('salidas', $id_salida_editar);            
+        
+        // ABRIR CONEXIÓN PARA CONSULTAS
+        include("../_conexion/conexion.php");
+        
+        //  OBTENER STOCK REAL EN LA UBICACIÓN ORIGEN ACTUAL
+        $id_ubicacion_origen_actual = intval($salida_data['id_ubicacion_origen']);
+        $id_almacen_origen_actual = intval($salida_data['id_almacen_origen']);
+        
+        error_log("🔍 Ubicación origen actual: Almacén $id_almacen_origen_actual, Ubicación $id_ubicacion_origen_actual");
+        
+        // 🔹 CALCULAR CANTIDAD MÁXIMA POR ITEM (CORREGIDO)
+        foreach ($salida_detalle as &$item_sal) {
+            $id_pedido_detalle = intval($item_sal['id_pedido_detalle']);
+            $id_producto = intval($item_sal['id_producto']);
+            
+            // PASO 1: Obtener cantidad verificada para OS
+            $cant_os_verificada = 0;
+            foreach ($pedido_detalle as $det) {
+                if ($det['id_pedido_detalle'] == $id_pedido_detalle) {
+                    $cant_os_verificada = floatval($det['cant_os_pedido_detalle']);
+                    break;
+                }
+            }
+            
+            // PASO 2: Cantidad ya ordenada en OTRAS salidas activas (excluyendo la actual)
+            $sql_otras_salidas = "SELECT COALESCE(SUM(sd.cant_salida_detalle), 0) as total_otras
+                                FROM salida_detalle sd
+                                INNER JOIN salida s ON sd.id_salida = s.id_salida
+                                WHERE sd.id_pedido_detalle = $id_pedido_detalle
+                                    AND s.est_salida = 1
+                                    AND s.id_salida != $id_salida_editar";
+            $res_otras = mysqli_query($con, $sql_otras_salidas);
+            $row_otras = mysqli_fetch_assoc($res_otras);
+            $ordenado_otras_salidas = floatval($row_otras['total_otras']);
+            
+            // PASO 3: Cantidad actual en ESTA salida
+            $cantidad_actual_salida = floatval($item_sal['cant_salida_detalle']);
+            
+            // PASO 4: Calcular pendiente de OS (sin contar esta salida)
+            $pendiente_os = $cant_os_verificada - $ordenado_otras_salidas;
+            
+            // PASO 5: OBTENER STOCK FÍSICO EN LA UBICACIÓN ORIGEN 
+            $sql_stock_origen = "SELECT COALESCE(SUM(
+                                    CASE
+                                        WHEN mov.tipo_movimiento = 1 THEN
+                                            CASE
+                                                --  Devoluciones confirmadas SÍ cuentan
+                                                WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                                                --  Ingresos normales SÍ cuentan
+                                                WHEN mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                                --  Devoluciones pendientes NO cuentan
+                                                ELSE 0
+                                            END
+                                        --  Salidas siempre restan
+                                        WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+                                        ELSE 0
+                                    END
+                                ), 0) as stock_fisico
+                                FROM movimiento mov
+                                WHERE mov.id_producto = $id_producto
+                                    AND mov.id_almacen = $id_almacen_origen_actual
+                                    AND mov.id_ubicacion = $id_ubicacion_origen_actual
+                                    AND mov.est_movimiento = 1";
+            
+            $res_stock = mysqli_query($con, $sql_stock_origen);
+            $row_stock = mysqli_fetch_assoc($res_stock);
+            $stock_fisico_origen = floatval($row_stock['stock_fisico']);
+            
+            //  PASO 6: EL MÁXIMO ES EL MENOR ENTRE:
+            // - Lo que falta por ordenar de OS
+            // - Lo que hay físicamente en la ubicación origen
+            $item_sal['cantidad_maxima'] = min($pendiente_os, $stock_fisico_origen);
+            
+            // LOG DEBUG
+            error_log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            error_log("📦 Producto ID: $id_producto");
+            error_log("   Verificado OS: $cant_os_verificada");
+            error_log("   Otras salidas: $ordenado_otras_salidas");
+            error_log("   Pendiente OS: $pendiente_os");
+            error_log("   Stock físico origen: $stock_fisico_origen");
+            error_log("   Actual en salida: $cantidad_actual_salida");
+            error_log("   🎯 MAX FINAL: " . $item_sal['cantidad_maxima']);
+            error_log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        }
+        unset($item_sal);
+        
+        mysqli_close($con);
+    }
 
         $pedido = $pedido_data[0];
         

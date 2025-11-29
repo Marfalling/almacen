@@ -209,7 +209,7 @@ $monedas = MostrarMoneda();
                                     
                                 // Obtener directamente la descripción SST/MA/CA
                                 $descripcion_sst_completa = !empty($detalle['req_pedido']) ? $detalle['req_pedido'] : '';
-                                   
+                                
                                 // Variables básicas
                                 $cantidad_pedida = floatval($detalle['cant_pedido_detalle']);
                                 $esVerificado = (!is_null($detalle['cant_oc_pedido_detalle']) || !is_null($detalle['cant_os_pedido_detalle']));
@@ -232,9 +232,30 @@ $monedas = MostrarMoneda();
                                     }
                                 } else {
                                     //  MATERIALES
-                                
+                                    if ($es_pedido_base_arce && !$esVerificado) {
+                                    // ═══════════════════════════════════════════════════════
+                                    // LÓGICA ESPECIAL PARA BASE ARCE
+                                    // ═══════════════════════════════════════════════════════
+                                    
+                                    // Calcular si está todo ordenado
+                                    $cant_total_pedida = floatval($detalle['cant_pedido_detalle']);
+                                    $cant_total_ordenada = ObtenerCantidadYaOrdenadaOCPorDetalle($detalle['id_pedido_detalle']);
+                                    
+                                    if ($cant_total_ordenada >= $cant_total_pedida) {
+                                        // TODO ORDENADO → FINALIZADO
+                                        $colorBorde = '#1abc9c';
+                                        $claseTexto = 'text-success';
+                                        $icono = 'fa-check-circle';
+                                        $estadoTexto = 'Finalizado';
+                                    } else {
+                                        //  PENDIENTE → BASE ARCE
+                                        $colorBorde = '#17a2b8';
+                                        $claseTexto = 'text-info';
+                                        $icono = 'fa-warehouse';
+                                        $estadoTexto = 'BASE ARCE';
+                                    }
                                     //  PRIORIDAD 1: Verificar si está CERRADO MANUALMENTE
-                                    if ($detalle['est_pedido_detalle'] == 2) {
+                                    } elseif ($detalle['est_pedido_detalle'] == 2) {
                                         $colorBorde = '#dc3545';
                                         $claseTexto = 'text-danger';
                                         $icono = 'fa-times-circle';
@@ -517,6 +538,58 @@ $monedas = MostrarMoneda();
 
                                 <!-- ********************** HASTA AQUI ******************* -->
 
+                                <!-- ======================================= -->
+                                <!--  SECCIÓN DE VERIFICADO / ORDENADO / PENDIENTE -->
+                                <!-- ======================================= -->
+
+                                <?php
+                                    // ======================================
+                                    // 🔹 VARIABLES DE CANTIDADES UNIFICADAS
+                                    // ======================================
+                                    $id_detalle = $detalle['id_pedido_detalle'];
+
+                                    // Cantidad PEDIDA (original)
+                                    $cant_pedida_item = floatval($detalle['cant_pedido_detalle']);
+
+                                    // Cantidad VERIFICADA y ORDENADA
+                                    if ($es_pedido_base_arce) {
+                                        // BASE ARCE: Auto-calculada
+                                        $cant_oc_db = floatval($detalle['cant_oc_pedido_detalle']);
+                                        
+                                        // 🔹 CORRECCIÓN: Si no tiene OC verificada, usar cantidad pedida
+                                        if ($cant_oc_db > 0) {
+                                            $cant_verificada_item = $cant_oc_db;
+                                        } else {
+                                            // Fallback: usar cantidad pedida si no se ha reverificado
+                                            $cant_verificada_item = $cant_pedida_item;
+                                        }
+                                        
+                                        $cant_ya_ordenada_item = floatval(ObtenerCantidadYaOrdenadaOCPorDetalle($id_detalle));
+                                    } else {
+                                        // NORMAL: Manual
+                                        $cant_verificada_item = floatval($detalle['cant_oc_pedido_detalle']);
+                                        $cant_ya_ordenada_item = isset($detalle['cantidad_ya_ordenada_oc'])
+                                            ? floatval($detalle['cantidad_ya_ordenada_oc'])
+                                            : 0;
+                                    }
+
+                                    // Cantidad PENDIENTE real
+                                    $cant_pendiente_item = max(0, $cant_verificada_item - $cant_ya_ordenada_item);
+                                ?>
+
+                                <!--div style="font-size: 11px; background: #f9fafc; border-radius: 4px; padding: 6px 10px; border-left: 3px solid <?php echo $colorBorde; ?>; margin-bottom: 8px;">
+                                    <strong><i class="fa fa-info-circle"></i> Detalle de cantidades</strong>
+                                    <div class="mt-1" style="line-height: 1.5;">
+                                        <div><strong>Verificado:</strong> <?php echo number_format($cant_pedida_item, 2); ?></div>
+                                        <div><strong>Ordenado:</strong> <?php echo number_format($cant_ya_ordenada_item, 2); ?></div>
+                                        <div><strong>Pendiente:</strong> <span class="text-warning"><?php echo number_format($cant_pendiente_item, 2); ?></span></div>
+
+                                        <?php if ($es_pedido_base_arce): ?>
+                                            <span class="badge badge-info mt-2"><i class="fa fa-warehouse"></i> BASE ARCE</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div-->
+
                                 <!-- BOTONES DE ACCIÓN -->
                                 <div class="mt-2">
                                     <?php
@@ -608,26 +681,38 @@ $monedas = MostrarMoneda();
                                         // ========================================
                                         // MATERIALES - LÓGICA HÍBRIDA (OS Nueva + OC Antigua)
                                         // ========================================
-                                        
+                                        $cantidad_ya_ordenada_oc = ObtenerCantidadYaOrdenadaOCPorDetalle($id_detalle);
+                                        $cantidad_ya_ordenada_os = ObtenerCantidadRecepcionadaOSPorDetalle($id_detalle);
                                         //---------------------------------------------
                                         // CASO 0: Reglas base
                                         //---------------------------------------------
                                         
-                                        //  PARA OS: Usar lógica NUEVA (con funciones)
+                                        // PARA OS: Usar lógica NUEVA (con funciones)
                                         $total_os_verificado = floatval($detalle['cant_os_pedido_detalle']);
                                         $os_trasladada = ObtenerCantidadYaOrdenadaOSPorDetalle($id_detalle);
                                         $os_verificada_total = $total_os_verificado + $os_trasladada;
                                         $pendiente_os = max(0, $total_os_verificado - $os_trasladada); // Pendiente real después de restar ordenado
                                         
-                                        //  PARA OC: Usar lógica ANTIGUA (desde $detalle)
+                                        // PARA OC: Usar lógica ANTIGUA (desde $detalle)
                                         $cant_oc_verificada = isset($detalle['cant_oc_pedido_detalle']) ? floatval($detalle['cant_oc_pedido_detalle']) : 0;
                                         $ya_ordenado_oc = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                         $pendiente_oc = isset($detalle['cantidad_pendiente_oc']) ? floatval($detalle['cantidad_pendiente_oc']) : 0;
                                         
+                                        //  IMPORTANTE: Para BASE ARCE, calcular todo desde la BD
+                                        if ($es_pedido_base_arce) {
+                                            $total_ordenado_oc = ObtenerCantidadYaOrdenadaOCPorDetalle($id_detalle);
+                                            $pendiente_oc = max(0, $cantidad_pedida - $total_ordenado_oc);
+
+                                            error_log(" BASE ARCE - Calculando pendiente: Pedida=$cantidad_pedida | Ordenada=$total_ordenado_oc | Pendiente=$pendiente_oc");
+                                        } else {
+                                            $total_ordenado_oc = $ya_ordenado_oc;
+                                            $pendiente_oc = isset($detalle['cantidad_pendiente_oc']) ? floatval($detalle['cantidad_pendiente_oc']) : 0;
+                                        }
+
                                         // Estados finales
                                         $os_completada = ($os_verificada_total > 0 && $pendiente_os <= 0);
                                         $oc_completada = ($cant_oc_verificada > 0 && $pendiente_oc <= 0);
-                                        
+
                                         $se_verifico_os = ($os_verificada_total > 0);
                                         $se_verifico_oc = ($cant_oc_verificada > 0);
 
@@ -654,17 +739,19 @@ $monedas = MostrarMoneda();
                                         //---------------------------------------------
                                         // CASO 3: Solo OC verificada y pendiente
                                         //---------------------------------------------
-                                        elseif ($se_verifico_oc && !$se_verifico_os && $pendiente_oc > 0 && !$pedidoAnulado) { ?>
+                                        elseif (($se_verifico_oc || $es_pedido_base_arce) && !$se_verifico_os && $pendiente_oc > 0 && !$pedidoAnulado) { ?>
+                                            <!-- BOTÓN FUNCIONAL INTEGRADO -->
                                             <button type="button" 
                                                     class="btn btn-primary btn-sm btn-agregarOrden"
                                                     data-id-detalle="<?= $id_detalle ?>"
                                                     data-id-producto="<?= $detalle['id_producto'] ?>"
                                                     data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
-                                                    data-cantidad-verificada="<?= $cant_oc_verificada ?>"
-                                                    data-cantidad-ordenada="<?= $ya_ordenado_oc ?>"
-                                                    data-cantidad-pendiente="<?= $pendiente_oc ?>"
+                                                    data-cantidad-verificada="<?= $cant_pedida_item ?>"
+                                                    data-cantidad-ordenada="<?= $cant_ya_ordenada_item ?>"
+                                                    data-cantidad-pendiente="<?= $cant_pendiente_item ?>"
+                                                    data-es-base-arce="<?= $es_pedido_base_arce ? 1 : 0 ?>"
                                                     style="padding:2px 8px;font-size:11px;">
-                                                <i class="fa fa-shopping-cart"></i> Agregar a OC (<?= number_format($pendiente_oc,2) ?>)
+                                                <i class="fa fa-shopping-cart"></i> Agregar a OC (<?= number_format($cant_pendiente_item,2) ?>)
                                             </button>
                                         <?php 
                                         }
@@ -735,21 +822,23 @@ $monedas = MostrarMoneda();
                                         // CASO 8: Ambos verificados, OC pendiente, OS completada
                                         //---------------------------------------------
                                         elseif ($se_verifico_oc && $se_verifico_os && $pendiente_oc > 0 && $os_completada && !$pedidoAnulado) { ?>
-                                            
+                                                
                                             <span class="badge badge-success" style="font-size: 10px;margin-right:4px;">
                                                 <i class="fa fa-check-circle"></i> OS Completada
                                             </span>
 
+                                            <!-- BOTÓN FUNCIONAL INTEGRADO -->
                                             <button type="button" 
                                                     class="btn btn-primary btn-sm btn-agregarOrden"
                                                     data-id-detalle="<?= $id_detalle ?>"
                                                     data-id-producto="<?= $detalle['id_producto'] ?>"
                                                     data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
-                                                    data-cantidad-verificada="<?= $cant_oc_verificada ?>"
-                                                    data-cantidad-ordenada="<?= $ya_ordenado_oc ?>"
-                                                    data-cantidad-pendiente="<?= $pendiente_oc ?>"
+                                                    data-cantidad-verificada="<?= $cant_pedida_item ?>"
+                                                    data-cantidad-ordenada="<?= $cant_ya_ordenada_item ?>"
+                                                    data-cantidad-pendiente="<?= $cant_pendiente_item ?>"
+                                                    data-es-base-arce="<?= $es_pedido_base_arce ? 1 : 0 ?>"
                                                     style="padding:2px 8px;font-size:11px;">
-                                                <i class="fa fa-shopping-cart"></i> Agregar a OC (<?= number_format($pendiente_oc, 2) ?>)
+                                                <i class="fa fa-shopping-cart"></i> Agregar a OC (<?= number_format($cant_pendiente_item, 2) ?>)
                                             </button>
                                         <?php 
                                         }
@@ -771,37 +860,61 @@ $monedas = MostrarMoneda();
                                                 <i class="fa fa-truck"></i> OS (<?= number_format($pendiente_os, 2) ?>)
                                             </button>
                                             
+                                            <!-- BOTÓN FUNCIONAL INTEGRADO -->
                                             <button type="button" 
                                                     class="btn btn-primary btn-sm btn-agregarOrden" 
                                                     data-id-detalle="<?= $id_detalle ?>"
                                                     data-id-producto="<?= $detalle['id_producto'] ?>"
                                                     data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
-                                                    data-cantidad-verificada="<?= $cant_oc_verificada ?>"
-                                                    data-cantidad-ordenada="<?= $ya_ordenado_oc ?>"
-                                                    data-cantidad-pendiente="<?= $pendiente_oc ?>"
+                                                    data-cantidad-verificada="<?= $cant_pedida_item ?>"
+                                                    data-cantidad-ordenada="<?= $cant_ya_ordenada_item ?>"
+                                                    data-cantidad-pendiente="<?= $cant_pendiente_item ?>"
+                                                    data-es-base-arce="<?= $es_pedido_base_arce ? 1 : 0 ?>"
                                                     style="padding: 2px 8px; font-size: 11px;">
-                                                <i class="fa fa-shopping-cart"></i> OC (<?= number_format($pendiente_oc, 2) ?>)
+                                                <i class="fa fa-shopping-cart"></i> OC (<?= number_format($cant_pendiente_item, 2) ?>)
                                             </button>
                                         <?php
                                         }
 
                                         //---------------------------------------------
-                                        // CASO 10: Pendiente verificar
+                                        // CASO 10: Pendiente verificar o BASE ARCE
                                         //---------------------------------------------
-                                        elseif (!$esVerificado && !$pedidoAnulado) { ?>
-                                            <button type="button" class="btn btn-warning btn-xs verificar-btn"
-                                                    data-id-detalle="<?= $id_detalle ?>"
-                                                    data-cantidad-pedida="<?= $cantidad_pedida ?>"
-                                                    data-stock-destino="<?= $stock_destino ?>"
-                                                    data-stock-otras-ubicaciones="<?= isset($stock_otras_ubicaciones) ? $stock_otras_ubicaciones : 0 ?>"
-                                                    data-otras-ubicaciones='<?= json_encode($detalle['otras_ubicaciones_con_stock']) ?>'
-                                                    style="padding: 2px 8px; font-size: 11px;">
-                                                <i class="fa fa-check"></i> Verificar
-                                            </button>
-                                        <?php
+                                        elseif (!$esVerificado && !$pedidoAnulado) { 
+                                            if ($es_pedido_base_arce) { 
+                                                // BASE ARCE: Solo mostrar botón de OC si hay pendiente
+                                                // 🔹 Calcular pendiente para BASE ARCE
+                                                $cantidad_pendiente_base_arce = max(0, $cantidad_pedida - $cantidad_ya_ordenada_oc);
+                                                
+                                                if ($cantidad_pendiente_base_arce > 0) {
+                                                    // ✅ HAY PENDIENTE: Mostrar botón
+                                                    ?>
+                                                    <button type="button" 
+                                                            class="btn btn-primary btn-sm btn-agregarOrden"
+                                                            data-id-detalle="<?= $id_detalle ?>"
+                                                            data-id-producto="<?= $detalle['id_producto'] ?>"
+                                                            data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
+                                                            data-cantidad-verificada="<?= $cantidad_pedida ?>"
+                                                            data-cantidad-ordenada="<?= $cantidad_ya_ordenada_oc ?>"
+                                                            data-cantidad-pendiente="<?= $cantidad_pendiente_base_arce ?>"
+                                                            data-es-base-arce="1"
+                                                            style="padding: 2px 8px; font-size: 11px;">
+                                                        <i class="fa fa-shopping-cart"></i> Agregar a OC (<?= number_format($cantidad_pendiente_base_arce, 2) ?>)
+                                                    </button>
+                                                <?php 
+                                                } else {
+                                                    // ✅ TODO ORDENADO: Mostrar badge
+                                                    ?>
+                                                    <span class="badge badge-success" style="padding: 4px 8px; font-size: 11px;">
+                                                        <i class="fa fa-check-circle"></i> TODO ORDENADO
+                                                    </span>
+                                                <?php 
+                                                }
+                                            }
                                         }
+                                    
                                     }
                                     ?>
+
                                 </div>
 
                                 <!-- Descripción del producto -->
@@ -845,7 +958,7 @@ $monedas = MostrarMoneda();
                                     </div>
                                     <?php endif; ?>
 
-                                    <!-- SEGUNDA LÍNEA: Estado de verificación y ordenamiento -->
+                                    <!-- TERCERA LÍNEA: Estado de verificación y ordenamiento -->
                                     <?php 
                                     // MOSTRAR INFORMACIÓN DE ORDENAMIENTO
                                     if ($esAutoOrden) {
@@ -879,7 +992,7 @@ $monedas = MostrarMoneda();
                                         $cant_oc_ordenada = isset($detalle['cantidad_ya_ordenada_oc']) ? floatval($detalle['cantidad_ya_ordenada_oc']) : 0;
                                         $cant_os_ordenada = isset($detalle['cantidad_ya_ordenada_os']) ? floatval($detalle['cantidad_ya_ordenada_os']) : 0;
                                         
-                                       // Obtener salidas históricas reales
+                                    // Obtener salidas históricas reales
                                         $cant_os_ordenada_historica = ObtenerCantidadYaOrdenadaOSPorDetalle($detalle['id_pedido_detalle']);
                                         
                                         // Si no hay OS verificada PERO hay salidas históricas, mostrarlas
@@ -963,7 +1076,7 @@ $monedas = MostrarMoneda();
                                         <?php }
                                     }
                                     ?>
-                        
+                    
                                 </div>
                             </div>
                             <?php 
@@ -981,1242 +1094,1265 @@ $monedas = MostrarMoneda();
                 </div>
             </div>
 
-            <!-- COLUMNA DERECHA - Órdenes y Salidas -->
-            <div class="col-md-6">
-                <div class="x_panel">
-                    <div class="x_title" style="padding: 8px 15px;">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h2 style="margin: 0; font-size: 16px;">
-                                <?php 
-                                if ($modo_editar) {
-                                    echo 'Editando Orden';
-                                } elseif ($modo_editar_salida) {
-                                    echo 'Editando Salida';
-                                } else {
-                                    echo 'Gestión de Pedido';
-                                }
-                                ?>
-                                <small id="contador-verificados"></small>
-                            </h2>
-                            
-                            <?php if (!$modo_editar && !$modo_editar_salida && !$pedido_anulado): ?>
-                            <div class="btn-group" role="group">
-                                <?php if (!$modo_editar && !$pedido_anulado): ?>
-                                    <?php
-                                    // Verificar si hay items disponibles para agregar a orden
-                                    $tiene_items_disponibles = false;
-                                    foreach ($pedido_detalle as $detalle) {
-                                        $esVerificado = !is_null($detalle['cant_oc_pedido_detalle']);
-
-                                        $detalle['cantidad_ya_ordenada_oc'] = ObtenerCantidadYaOrdenadaOCPorDetalle($detalle['id_pedido_detalle']);
-                                        $detalle['cantidad_pendiente_oc'] = floatval($detalle['cant_oc_pedido_detalle']) - $detalle['cantidad_ya_ordenada_oc'];
-
-                                        $pendiente_oc = isset($detalle['cantidad_pendiente_oc']) ? floatval($detalle['cantidad_pendiente_oc']) : 0;
-
-                                        $stockInsuficiente = $detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle'];
-                                        $esAutoOrden = ($pedido['id_producto_tipo'] == 2);
-                                        $estaCerrado = ($detalle['est_pedido_detalle'] == 2);
-                                        
-                                        // Si es auto-orden, verificado con stock insuficiente, y no está cerrado
-                                        if (($esAutoOrden || ($esVerificado && $pendiente_oc>0)) && !$estaCerrado) {
-                                            $tiene_items_disponibles = true;
-                                            break;
+                    <!-- COLUMNA DERECHA - Órdenes y Salidas -->
+                    <div class="col-md-6">
+                        <div class="x_panel">
+                            <div class="x_title" style="padding: 8px 15px;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h2 style="margin: 0; font-size: 16px;">
+                                        <?php 
+                                        if ($modo_editar) {
+                                            echo 'Editando Orden';
+                                        } elseif ($modo_editar_salida) {
+                                            echo 'Editando Salida';
+                                        } else {
+                                            echo 'Gestión de Pedido';
                                         }
-                                    }
-                                    ?>
+                                        ?>
+                                        <small id="contador-verificados"></small>
+                                    </h2>
                                     
-                                    <?php if ($tiene_items_disponibles): ?>
-                                        <button type="button" data-toggle="tooltip" class="btn btn-primary btn-sm" id="btn-nueva-orden" style="padding: 4px 8px; font-size: 12px;" title="Crear una nueva orden de compra con los items verificados">
-                                            <i class="fa fa-shopping-cart"></i> Nueva Orden
-                                        </button>
-                                    <?php else: ?>
-                                        <button type="button" data-toggle="tooltip" class="btn btn-secondary btn-sm" disabled title="No hay items disponibles para agregar" style="padding: 4px 8px; font-size: 12px;">
-                                            <i class="fa fa-ban"></i> Nueva Orden
-                                        </button>
-                                    <?php endif; ?>
-                                <?php endif; ?>
-
-                                
-                                
-                                <!-- Botón Nueva Salida - Solo para MATERIALES -->
-                                <?php if ($pedido['id_producto_tipo'] != 2 && !$modo_editar_salida && !$pedido_anulado): ?>
-                                <?php
-                                // VALIDAR ITEMS DISPONIBLES PARA SALIDA
-                                $tiene_items_para_salida = false;
-                                
-                                foreach ($pedido_detalle as $detalle_validacion) {
-                                    // Solo evaluar MATERIALES
-                                    if ($pedido['id_producto_tipo'] != 2) {
-                                        $cant_os_verificada = floatval($detalle_validacion['cant_os_pedido_detalle']);
-                                        
-                                        if ($cant_os_verificada > 0) {
-                                            $detalle_validacion['cantidad_ya_ordenada_os'] = ObtenerCantidadYaOrdenadaOSPorDetalle($detalle_validacion['id_pedido_detalle']);
-                                            $pendiente_os = $cant_os_verificada - $detalle_validacion['cantidad_ya_ordenada_os'];
-                                            
-                                            if ($pendiente_os > 0) {
-                                                $tiene_items_para_salida = true;
-                                                break; 
-                                            }
-                                        }
-                                    }
-                                }
-                                ?>
-                                
-                                <!--  SIEMPRE RENDERIZAR EL BOTÓN (solo cambiar estado) -->
-                                <button type="button" data-toggle="tooltip"
-                                        class="btn btn-<?php echo $tiene_items_para_salida ? 'success' : 'secondary'; ?> btn-sm" 
-                                        id="btn-nueva-salida" 
-                                        <?php echo !$tiene_items_para_salida ? 'disabled' : ''; ?>
-                                        title="<?php 
-                                            if ($tiene_items_para_salida) {
-                                                echo 'Crear una nueva orden de salida ';
-                                            } else {
-                                                echo 'No hay items disponibles para generar salida';
-                                            }
-                                        ?>"
-                                        style="padding: 4px 8px; font-size: 12px;">
-                                    <i class="fa fa-<?php echo $tiene_items_para_salida ? 'truck' : 'ban'; ?>"></i> Nueva Salida
-                                </button>
-                            <?php endif; ?>
-
-                                <!-- Fin Modificado -->
-
-                                <!-- Botón Nueva Salida Anterior-->
-                                <!--<button type="button" class="btn btn-success btn-sm" id="btn-nueva-salida" style="padding: 4px 8px; font-size: 12px;">
-                                    <i class="fa fa-truck"></i> Nueva Salida
-                                </button>-->
-                            </div>
-                            <?php endif; ?>
-                        </div>
-                        <div class="clearfix"></div>
-                    </div>
-                    
-                    <div class="x_content" style="max-height: 650px; overflow-y: auto; padding: 5px;">
-                        <!-- TABS PARA ÓRDENES Y SALIDAS -->
-                        <ul class="nav nav-tabs" id="myTab" role="tablist" <?php echo ($modo_editar || $modo_editar_salida) ? 'style="display: none;"' : 'style="display: flex;"'; ?>>
-                            <li class="nav-item">
-                                <a class="nav-link active" id="ordenes-tab" data-toggle="tab" href="#ordenes" role="tab">
-                                    <i class="fa fa-shopping-cart"></i> Órdenes de Compra 
-                                    <span><?php echo count($pedido_compra); ?></span>
-                                </a>
-                            </li>
-                            
-                            <!--  SOLO MOSTRAR TAB DE SALIDAS SI NO ES SERVICIO -->
-                            <?php if ($pedido['id_producto_tipo'] != 2): ?>
-                            <li class="nav-item">
-                                <a class="nav-link" id="salidas-tab" data-toggle="tab" href="#salidas" role="tab">
-                                    <i class="fa fa-truck"></i> Salidas 
-                                    <span><?php echo count($pedido_salidas); ?></span>
-                                </a>
-                            </li>
-                            <?php endif; ?>
-                        </ul>
-
-
-                        <div class="tab-content" id="myTabContent" <?php echo ($modo_editar || $modo_editar_salida) ? 'style="display: none;"' : 'style="display: block;"'; ?>>
-                            <!-- TAB: ÓRDENES DE COMPRA -->
-                            <div class="tab-pane fade show active" id="ordenes" role="tabpanel">
-                                <div class="table-responsive mt-2">
-                                    <table class="table table-striped table-bordered" style="font-size: 12px;">
-                                        <thead style="background-color: #007bff; color: white;">
-                                            <tr>
-                                                <th style="width: 15%;">N° Orden</th>
-                                                <th style="width: 20%;">Proveedor</th>
-                                                <th style="width: 15%;">Fecha</th>
-                                                <th style="width: 15%;">Estado</th>
-                                                <th style="width: 20%;">Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="tbody-ordenes">
-                                            <?php if (!empty($pedido_compra)) { ?>
-                                                <?php foreach ($pedido_compra as $compra) {
-                                                    $estado_texto = '';
-                                                    $estado_clase = '';
-
-                                                    /*switch ($compra['est_compra']) {
-                                                        case 0:
-                                                            $estado_texto = 'Anulada';
-                                                            $estado_clase = 'danger';
-                                                            break;
-                                                        case 1:
-                                                            $estado_texto = 'Pendiente';
-                                                            $estado_clase = 'warning';
-                                                            break;
-                                                        case 2:
-                                                            $estado_texto = 'Aprobada';
-                                                            $estado_clase = 'info';
-                                                            $puede_agregar_pago = true;
-                                                            break;
-                                                        case 3:
-                                                            $estado_texto = 'Ingresada';
-                                                            $estado_clase = 'success';
-                                                            $puede_agregar_pago = true;
-                                                            break;
-                                                        case 4:
-                                                            $estado_texto = 'Pagada';
-                                                            $estado_clase = 'primary';
-                                                            $puede_agregar_pago = false;
-                                                            break;
-                                                        default:
-                                                            $estado_texto = 'Desconocido';
-                                                            $estado_clase = 'secondary';
-                                                    }*/
-
-                                                    if ($compra['est_compra'] == 2 && $compra['pagado'] == 1) {
-                                                        $estado_texto = 'PAGADO';
-                                                        $estado_clase = 'badge-primary';
-
-                                                    } elseif ($compra['est_compra'] == 3 && $compra['pagado'] == 1) {
-                                                        $estado_texto = 'CERRADO';
-                                                        $estado_clase = 'badge-dark';
-
-                                                    } elseif ($compra['est_compra'] == 2) {
-                                                        $estado_texto = 'APROBADO';
-                                                        $estado_clase = 'badge-info';
-
-                                                    } elseif ($compra['est_compra'] == 3) {
-                                                        $estado_texto = 'INGRESADO';
-                                                        $estado_clase = 'badge-success';
-
-                                                    } elseif ($compra['est_compra'] == 1) {
-                                                        $estado_texto = 'PENDIENTE';
-                                                        $estado_clase = 'badge-warning';
-                                                    } else {
-                                                        $estado_texto = 'ANULADO';
-                                                        $estado_clase = 'badge-danger';
-                                                    }
-
-                                                    $fecha_formateada = date('d/m/Y', strtotime($compra['fec_compra']));
-                                                ?>
-                                                    <tr>
-                                                        <td><strong>C00<?php echo $compra['id_compra']; ?></strong></td>
-                                                        <td><?php echo htmlspecialchars($compra['nom_proveedor']); ?></td>
-                                                        <td><?php echo $fecha_formateada; ?></td>
-                                                        <td>
-                                                            <span class="badge <?php echo $estado_clase; ?> badge_size">
-                                                                <?php echo $estado_texto; ?>
-                                                            </span>
-                                                        </td>
-                                                        <td>
-                                                            <!-- Botón Ver Detalles -->
-                                                            <button class="btn btn-info btn-xs btn-ver-detalle" data-toggle="tooltip"
-                                                                    title="Ver detalles"
-                                                                    data-id-compra="<?php echo $compra['id_compra']; ?>">
-                                                                <i class="fa fa-eye"></i>
-                                                            </button>
-
-                                                            <?php
-                                                            // Verificar si tiene aprobaciones
-                                                            $tiene_aprobacion_tecnica = !empty($compra['id_personal_aprueba_tecnica']);
-                                                            $tiene_aprobacion_financiera = !empty($compra['id_personal_aprueba_financiera']);
-                                                            $tiene_alguna_aprobacion = $tiene_aprobacion_tecnica || $tiene_aprobacion_financiera;
-
-                                                            // Solo se puede editar si está PENDIENTE y SIN aprobaciones
-                                                            $puede_editar = ($compra['est_compra'] == 1 && !$tiene_alguna_aprobacion);
-
-                                                            if ($puede_editar) { ?>
-                                                                <!-- Botón Editar HABILITADO -->
-                                                                <button class="btn btn-warning btn-xs ml-1 btn-editar-orden" data-toggle="tooltip"
-                                                                        title="Editar esta orden de compra"
-                                                                        data-id-compra="<?php echo $compra['id_compra']; ?>">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </button>
-                                                            <?php } else {
-                                                                if ($compra['est_compra'] == 0) {
-                                                                    $mensaje = "No se puede editar - Orden anulada";
-                                                                } elseif ($compra['est_compra'] == 2) {
-                                                                    $mensaje = "No se puede editar - Orden aprobada completamente";
-                                                                } elseif ($compra['est_compra'] == 3) {
-                                                                    $mensaje = "No se puede editar - Orden cerrada";
-                                                                } elseif ($compra['est_compra'] == 4) {
-                                                                    $mensaje = "No se puede editar - Orden pagada";
-                                                                } elseif ($tiene_alguna_aprobacion) {
-                                                                    $mensaje = "No se puede editar - Orden con aprobación iniciada";
-                                                                } else {
-                                                                    $mensaje = "No se puede editar";
-                                                                }
-                                                            ?>
-                                                                <!-- Botón Editar DESHABILITADO -->
-                                                                <button class="btn btn-outline-secondary btn-xs ml-1"
-                                                                        title="<?php echo $mensaje; ?>"
-                                                                        disabled>
-                                                                    <i class="fa fa-edit"></i>
-                                                                </button>
-                                                            <?php } ?>
-
-                                                            <!-- Botón Anular -->
-                                                            <?php
-                                                            $puede_anular = ($compra['est_compra'] != 0 && !$tiene_alguna_aprobacion);
-
-                                                            if ($puede_anular) { ?>
-                                                                <button class="btn btn-danger btn-xs ml-1 btn-anular-orden"
-                                                                        title="Anular Orden"
-                                                                        data-toggle="tooltip"
-                                                                        data-id-compra="<?php echo $compra['id_compra']; ?>"
-                                                                        data-id-pedido="<?php echo $id_pedido; ?>">
-                                                                    <i class="fa fa-times"></i>
-                                                                </button>
-                                                            <?php } else {
-                                                                if ($compra['est_compra'] == 0) {
-                                                                    $mensaje_anular = "Orden anulada";
-                                                                } elseif ($compra['est_compra'] == 2) {
-                                                                    $mensaje_anular = "No se puede anular - Orden aprobada completamente";
-                                                                } elseif ($compra['est_compra'] == 3) {
-                                                                    $mensaje_anular = "No se puede anular - Orden cerrada";
-                                                                } elseif ($compra['est_compra'] == 4) {
-                                                                    $mensaje_anular = "No se puede anular - Orden pagada";
-                                                                } elseif ($tiene_alguna_aprobacion) {
-                                                                    $mensaje_anular = "No se puede anular - Orden con aprobación iniciada";
-                                                                } else {
-                                                                    $mensaje_anular = "No se puede anular";
-                                                                }
-                                                            ?>
-                                                                <button class="btn btn-outline-secondary btn-xs ml-1"
-                                                                        title="<?php echo $mensaje_anular; ?>"
-                                                                        disabled>
-                                                                    <i class="fa fa-times"></i>
-                                                                </button>
-                                                            <?php } ?>
-                                                        </td>
-                                                    </tr>
-                                                <?php } ?>
-                                            <?php } else { ?>
-                                                <tr>
-                                                    <td colspan="5" class="text-center p-3">
-                                                        <i class="fa fa-file-text-o fa-2x text-info mb-2"></i>
-                                                        <h5 class="text-info">Sin órdenes de compra</h5>
-                                                        <p class="text-muted" style="font-size: 12px;">
-                                                            Las órdenes de compra aparecerán aquí.
-                                                        </p>
-                                                    </td>
-                                                </tr>
-                                            <?php } ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            <!-- TAB: SALIDAS -->
-                            <div class="tab-pane fade" id="salidas" role="tabpanel">
-                                <div class="table-responsive mt-2">
-                                    <table class="table table-striped table-bordered" style="font-size: 12px;">
-                                        <thead style="background-color: #28a745; color: white;">
-                                            <tr>
-                                                <th style="width: 12%;">N° Salida</th>
-                                                <th style="width: 18%;">Destino</th>
-                                                <th style="width: 12%;">Fecha Requerida</th>
-                                                <th style="width: 18%;">Recepcionado Por</th>
-                                                <th style="width: 12%;">Estado</th>
-                                                <th style="width: 18%;">Acciones</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody id="tbody-salidas">
-                                        <?php if (!empty($pedido_salidas)) { ?>
-                                            <?php foreach ($pedido_salidas as $salida) {
-
-                                                // Estado
-                                                if ($salida['est_salida'] == 0) {
-                                                    $estado_salida_texto = 'ANULADA';
-                                                    $estado_salida_clase = 'badge-danger';
-                                                } elseif ($salida['est_salida'] == 1) {
-                                                    $estado_salida_texto = 'PENDIENTE';
-                                                    $estado_salida_clase = 'badge-warning';
-                                                } elseif ($salida['est_salida'] == 2) {
-                                                    $estado_salida_texto = 'RECEPCIONADA';
-                                                    $estado_salida_clase = 'badge-primary';
-                                                } elseif ($salida['est_salida'] == 3) {
-                                                    $estado_salida_texto = 'APROBADA';
-                                                    $estado_salida_clase = 'badge-success';
-                                                } elseif ($salida['est_salida'] == 4) {
-                                                    $estado_salida_texto = 'DENEGADA';
-                                                    $estado_salida_clase = 'badge-dark';
-                                                } else {
-                                                    $estado_salida_texto = 'DESCONOCIDO';
-                                                    $estado_salida_clase = 'badge-secondary';
-                                                }
-
-                                                $fecha_salida = date('d/m/Y', strtotime($salida['fec_req_salida']));
-                                            ?>
-                                                <tr>
-                                                    <td><strong>S00<?php echo $salida['id_salida']; ?></strong></td>
-                                                    <td><?php echo htmlspecialchars($salida['nom_ubicacion_destino']); ?></td>
-                                                    <td><?php echo $fecha_salida; ?></td>
-
-                                                    <td>
-                                                        <?php if ($salida['est_salida'] == 2) { ?>
-                                                            <?php echo htmlspecialchars($salida['nom_personal_recepciona']); ?>
-                                                            <?php if (!empty($salida['fec_aprueba_salida'])) { ?>
-                                                                <br><small class="text-muted">
-                                                                    <?php echo date('d/m/Y H:i', strtotime($salida['fec_aprueba_salida'])); ?>
-                                                                </small>
-                                                            <?php } ?>
-                                                        <?php } else { ?>
-                                                            <span class="text-muted">-</span>
-                                                        <?php } ?>
-                                                    </td>
-
-                                                    <td>
-                                                        <span class="badge <?php echo $estado_salida_clase; ?> badge_size">
-                                                            <?php echo $estado_salida_texto; ?>
-                                                        </span>
-                                                    </td>
-
-                                                    <td>
-                                                        <!-- Botón Ver Detalles - SIEMPRE VISIBLE -->
-                                                        <button class="btn btn-info btn-xs btn-ver-salida"
-                                                                data-toggle="tooltip"
-                                                                title="Ver detalles completos de esta salida"
-                                                                data-id-salida="<?php echo $salida['id_salida']; ?>">
-                                                            <i class="fa fa-eye"></i>
-                                                        </button>
-
-                                                        <?php if ($salida['est_salida'] == 1) { ?>
-                                                            <!-- Solo en estado PENDIENTE: mostrar Editar y Anular -->
-                                                            <button class="btn btn-warning btn-xs ml-1 btn-editar-salida"
-                                                                    data-toggle="tooltip"
-                                                                    title="Editar esta orden de salida"
-                                                                    data-id-salida="<?php echo $salida['id_salida']; ?>">
-                                                                <i class="fa fa-edit"></i>
-                                                            </button>
-
-                                                            <button class="btn btn-danger btn-xs ml-1 btn-anular-salida"
-                                                                    data-toggle="tooltip"
-                                                                    title="Anular Salida"
-                                                                    data-id-salida="<?php echo $salida['id_salida']; ?>">
-                                                                <i class="fa fa-times"></i>
-                                                            </button>
-                                                        <?php } ?>
-                                                        
-                                                        <?php if ($salida['est_salida'] == 0 || $salida['est_salida'] == 4) { ?>
-                                                            <!-- Estados ANULADA (0) o DENEGADA (4): botones deshabilitados -->
-                                                            <button class="btn btn-outline-secondary btn-xs ml-1 disabled" disabled>
-                                                                <i class="fa fa-edit"></i>
-                                                            </button>
-                                                            <button class="btn btn-outline-secondary btn-xs ml-1 disabled" disabled>
-                                                                <i class="fa fa-times"></i>
-                                                            </button>
-                                                        <?php } ?>
-                                                        
-                                                        <!-- Estados 2 (RECEPCIONADA) y 3 (APROBADA): solo mostrar el ojo, sin más botones -->
-                                                    </td>
-                                                </tr>
-                                            <?php } ?>
-                                        <?php } else { ?>
-                                            <tr>
-                                                <td colspan="6" class="text-center p-3">
-                                                    <i class="fa fa-truck fa-2x text-success mb-2"></i>
-                                                    <h5 class="text-success">Sin salidas registradas</h5>
-                                                    <p class="text-muted" style="font-size: 12px;">
-                                                        Las salidas de almacén aparecerán aquí.
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                        <?php } ?>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- FORMULARIO PARA CREAR/EDITAR ORDEN DE COMPRA  -->
-                        <div id="contenedor-nueva-orden" <?php echo $modo_editar ? 'style="display: block;"' : 'style="display: none;"'; ?>>
-                            <form id="form-nueva-orden" method="POST" action="" enctype="multipart/form-data">
-                                <?php if ($modo_editar): ?>
-                                <input type="hidden" name="actualizar_orden" value="1">
-                                <input type="hidden" name="id_compra" value="<?php echo $id_compra_editar; ?>">
-                                <?php else: ?>
-                                <input type="hidden" name="crear_orden" value="1">
-                                <?php endif; ?>
-                                <input type="hidden" name="id" value="<?php echo $id_pedido; ?>">
-                                
-                                <div class="card">
-                                    <div class="card-header" style="padding: 8px 12px; background-color: <?php echo $modo_editar ? '#fff3cd' : '#e3f2fd'; ?>;">
-                                        <h6 class="mb-0">
-                                            <i class="fa <?php echo $modo_editar ? 'fa-edit text-warning' : 'fa-plus-circle text-primary'; ?>"></i>
-                                            <?php 
-                                            if ($modo_editar) {
-                                                echo 'Editar Orden';
-                                            } else {
-                                                echo ($pedido['id_producto_tipo'] == 2) ? 'Nueva Orden de Servicio' : 'Nueva Orden de Compra';
-                                            }
-                                            echo $modo_editar ? ' C00' . $id_compra_editar : ''; 
-                                            ?>
-                                        </h6>
-                                    </div>
-                                    <div class="card-body" style="padding: 12px;">
-                                        <div class="row mb-2">
-                                            <div class="col-md-6">
-                                                <label style="font-size: 11px; font-weight: bold;">Fecha: <span class="text-danger">*</span></label>
-                                                <input type="date" class="form-control form-control-sm" id="fecha_orden" name="fecha_orden" 
-                                                    value="<?php echo $modo_editar && $orden_data ? date('Y-m-d', strtotime($orden_data['fec_compra'])) : date('Y-m-d'); ?>" 
-                                                    min="<?php echo date('Y-m-d'); ?>"
-                                                    style="font-size: 12px;" required>
-                                            </div>
-
-                                            <!-- Proveedor -->
-                                            <div class="col-md-5">
-                                                <div class="form-group mb-3">
-                                                    <label class="mb-1" style="font-size:11px;font-weight:bold;">
-                                                        Proveedor: <span class="text-danger">*</span>
-                                                    </label>
-
-                                                    <div class="proveedor-row d-flex align-items-center">
-                                                        <select id="proveedor_orden" name="proveedor_orden"
-                                                                class="form-control form-control-sm flex-grow-1"
-                                                                style="font-size:12px;" required>
-                                                            <option value="">Seleccionar proveedor...</option>
-                                                            <?php foreach ($proveedor as $prov) {
-                                                                $sel = ($modo_editar && $orden_data && $orden_data['id_proveedor']==$prov['id_proveedor']) ? 'selected' : '';
-                                                                echo '<option value="'.htmlspecialchars($prov['id_proveedor']).'" '.$sel.'>'.
-                                                                        htmlspecialchars($prov['nom_proveedor']).'</option>';
-                                                            } ?>
-                                                        </select>
-
-                                                        <button type="button"
-                                                                class="btn btn-info btn-sm btn-plus"
-                                                                id="btn-agregar-proveedor"
-                                                                data-toggle="tooltip"
-                                                                title="Agregar Proveedor">
-                                                            <i class="fa fa-plus"></i>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="row mb-2">
-                                            <div class="col-md-6">
-                                                <label style="font-size: 11px; font-weight: bold;">Moneda: <span class="text-danger">*</span></label>
-                                                <select class="form-control form-control-sm" id="moneda_orden" name="moneda_orden" 
-                                                        style="font-size: 12px;" required>
-                                                    <option value="">Seleccionar moneda...</option>
-                                                    <?php
-                                                    foreach ($moneda as $mon) {
-                                                        $selected = ($modo_editar && $orden_data && $orden_data['id_moneda'] == $mon['id_moneda']) ? 'selected' : '';
-                                                        echo '<option value="' . htmlspecialchars($mon['id_moneda']) . '" ' . $selected . '>' . htmlspecialchars($mon['nom_moneda']) . '</option>';
-                                                    }
-                                                    ?>
-                                                </select>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label style="font-size: 11px; font-weight: bold;">Plazo de Entrega (días):</label>
-                                                <input type="number" 
-                                                    class="form-control form-control-sm" 
-                                                    id="plazo_entrega" 
-                                                    name="plazo_entrega"
-                                                    value="<?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['plaz_compra']) : ''; ?>"
-                                                    placeholder="Dejar vacío o 0 para pago al contado"
-                                                    min="0"
-                                                    step="1"
-                                                    style="font-size: 12px;">
-                                                <small class="form-text text-muted">
-                                                    Si no ingresa plazo, se considera pago al contado (sin alertas)
-                                                </small>
-                                            </div>
-                                        </div>
-                                        <div class="row mb-2">
-                                            <div class="col-md-12">
-                                                <label style="font-size: 11px; font-weight: bold;">Dirección de Envío:</label>
-                                                <textarea class="form-control form-control-sm" id="direccion_envio" name="direccion_envio"
-                                                        rows="2" placeholder="Ingrese la dirección de envío..." 
-                                                        style="font-size: 12px; resize: none;"><?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['denv_compra']) : ''; ?></textarea>
-                                            </div>
-                                        </div>
-                                        <div class="row mb-2">
-                                            <div class="col-md-12">
-                                                <label style="font-size: 11px; font-weight: bold;">Observaciones:</label>
-                                                <textarea class="form-control form-control-sm" id="observaciones_orden" name="observaciones_orden"
-                                                        rows="2" placeholder="Observaciones adicionales..." 
-                                                        style="font-size: 12px; resize: none;"><?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['obs_compra']) : ''; ?></textarea>
-                                            </div>
-                                        </div>
-                                        <div class="row mb-2">
-                                            <div class="col-md-12">
-                                                <label style="font-size: 11px; font-weight: bold;">Tipo de Porte:</label>
-                                                <input type="text" class="form-control form-control-sm" id="tipo_porte" name="tipo_porte"
-                                                    value="<?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['port_compra']) : ''; ?>"
-                                                    placeholder="Ej. Marítimo, Terrestre, Aéreo" style="font-size: 12px;">
-                                            </div>
-                                        </div>
-                                        <!-- SECCIÓN DE DETRACCIÓN, RETENCIÓN Y PERCEPCIÓN -->
-                                        <div class="row mb-2">
-                                            <div class="col-md-12">
-                                                <div class="card" style="border: 1px solid #dee2e6;">
-                                                    <div class="card-header" style="background-color: #f8f9fa; padding: 8px 12px; cursor: pointer;" 
-                                                        data-toggle="collapse" 
-                                                        data-target="#afectacionesCollapse"
-                                                        aria-expanded="false"
-                                                        aria-controls="afectacionesCollapse">
-                                                        <div class="d-flex justify-content-between align-items-center">
-                                                            <h6 class="mb-0" style="font-size: 13px;">
-                                                                <i class="fa fa-percent text-info"></i> 
-                                                                Detracción, Retención y Percepción
-                                                            </h6>
-                                                            <i class="fa fa-chevron-down" id="icon-toggle-afectaciones"></i>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div class="collapse" id="afectacionesCollapse">
-                                                        <div class="card-body" style="padding: 12px;">
-                                                            <!-- DETRACCIÓN -->
-                                                            <div class="mb-3">
-                                                                <label style="font-size: 11px; font-weight: bold;">Detracción:</label>
-                                                                <div id="contenedor-detracciones" style="padding: 8px; background-color: #fff3cd; border-radius: 4px; border: 1px solid #ffc107;">
-                                                                    <?php
-                                                                    $detracciones = ObtenerDetraccionesPorTipo('DETRACCION');
-                                                                    $detraccion_seleccionada = ($modo_editar && isset($orden_data['id_detraccion'])) ? $orden_data['id_detraccion'] : null;
-                                                                    
-                                                                    if (!empty($detracciones)) {
-                                                                        foreach ($detracciones as $detraccion) {
-                                                                            $checked = ($detraccion_seleccionada == $detraccion['id_detraccion']) ? 'checked' : '';
-                                                                            ?>
-                                                                            <div class="form-check" style="margin-bottom: 5px;">
-                                                                                <input class="form-check-input detraccion-checkbox" 
-                                                                                    type="checkbox" 
-                                                                                    name="id_detraccion" 
-                                                                                    value="<?php echo $detraccion['id_detraccion']; ?>" 
-                                                                                    data-porcentaje="<?php echo $detraccion['porcentaje']; ?>" 
-                                                                                    data-nombre="<?php echo htmlspecialchars($detraccion['nombre_detraccion']); ?>"
-                                                                                    id="detraccion_<?php echo $detraccion['id_detraccion']; ?>" 
-                                                                                    <?php echo $checked; ?>>
-                                                                                <label class="form-check-label" 
-                                                                                    for="detraccion_<?php echo $detraccion['id_detraccion']; ?>" 
-                                                                                    style="font-size: 12px; cursor: pointer;">
-                                                                                    <?php echo htmlspecialchars($detraccion['nombre_detraccion']); ?> 
-                                                                                    <strong>(<?php echo $detraccion['porcentaje']; ?>%)</strong>
-                                                                                </label>
-                                                                            </div>
-                                                                            <?php
-                                                                        }
-                                                                    } else {
-                                                                        echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay detracciones configuradas</p>';
-                                                                    }
-                                                                    ?>
-                                                                </div>
-                                                                <small class="form-text text-muted">Se aplica sobre el total después de IGV</small>
-                                                            </div>
-
-                                                            <!-- RETENCIÓN -->
-                                                            <div class="mb-3">
-                                                                <label style="font-size: 11px; font-weight: bold;">Retención:</label>
-                                                                <div id="contenedor-retenciones" style="padding: 8px; background-color: #e7f3ff; border-radius: 4px; border: 1px solid #2196f3;">
-                                                                    <?php
-                                                                    $retenciones = ObtenerDetraccionesPorTipo('RETENCION');
-                                                                    $retencion_seleccionada = ($modo_editar && isset($orden_data['id_retencion'])) ? $orden_data['id_retencion'] : null;
-                                                                    
-                                                                    if (!empty($retenciones)) {
-                                                                        foreach ($retenciones as $retencion) {
-                                                                            $checked = ($retencion_seleccionada == $retencion['id_detraccion']) ? 'checked' : '';
-                                                                            ?>
-                                                                            <div class="form-check" style="margin-bottom: 5px;">
-                                                                                <input class="form-check-input retencion-checkbox" 
-                                                                                    type="checkbox" 
-                                                                                    name="id_retencion" 
-                                                                                    value="<?php echo $retencion['id_detraccion']; ?>" 
-                                                                                    data-porcentaje="<?php echo $retencion['porcentaje']; ?>" 
-                                                                                    data-nombre="<?php echo htmlspecialchars($retencion['nombre_detraccion']); ?>"
-                                                                                    id="retencion_<?php echo $retencion['id_detraccion']; ?>" 
-                                                                                    <?php echo $checked; ?>>
-                                                                                <label class="form-check-label" 
-                                                                                    for="retencion_<?php echo $retencion['id_detraccion']; ?>" 
-                                                                                    style="font-size: 12px; cursor: pointer;">
-                                                                                    <?php echo htmlspecialchars($retencion['nombre_detraccion']); ?> 
-                                                                                    <strong>(<?php echo $retencion['porcentaje']; ?>%)</strong>
-                                                                                </label>
-                                                                            </div>
-                                                                            <?php
-                                                                        }
-                                                                    } else {
-                                                                        echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay retenciones configuradas</p>';
-                                                                    }
-                                                                    ?>
-                                                                </div>
-                                                                <small class="form-text text-muted">Se aplica sobre el total después de IGV</small>
-                                                            </div>
-
-                                                            <!-- PERCEPCIÓN -->
-                                                            <div class="mb-2">
-                                                                <label style="font-size: 11px; font-weight: bold;">Percepción:</label>
-                                                                <div id="contenedor-percepciones" style="padding: 8px; background-color: #e8f5e9; border-radius: 4px; border: 1px solid #4caf50;">
-                                                                    <?php
-                                                                    $percepciones = ObtenerDetraccionesPorTipo('PERCEPCION');
-                                                                    $percepcion_seleccionada = ($modo_editar && isset($orden_data['id_percepcion'])) ? $orden_data['id_percepcion'] : null;
-                                                                    
-                                                                    if (!empty($percepciones)) {
-                                                                        foreach ($percepciones as $percepcion) {
-                                                                            $checked = ($percepcion_seleccionada == $percepcion['id_detraccion']) ? 'checked' : '';
-                                                                            ?>
-                                                                            <div class="form-check" style="margin-bottom: 5px;">
-                                                                                <input class="form-check-input percepcion-checkbox" 
-                                                                                    type="checkbox" 
-                                                                                    name="id_percepcion" 
-                                                                                    value="<?php echo $percepcion['id_detraccion']; ?>" 
-                                                                                    data-porcentaje="<?php echo $percepcion['porcentaje']; ?>" 
-                                                                                    data-nombre="<?php echo htmlspecialchars($percepcion['nombre_detraccion']); ?>"
-                                                                                    id="percepcion_<?php echo $percepcion['id_detraccion']; ?>" 
-                                                                                    <?php echo $checked; ?>>
-                                                                                <label class="form-check-label" 
-                                                                                    for="percepcion_<?php echo $percepcion['id_detraccion']; ?>" 
-                                                                                    style="font-size: 12px; cursor: pointer;">
-                                                                                    <?php echo htmlspecialchars($percepcion['nombre_detraccion']); ?> 
-                                                                                    <strong>(<?php echo $percepcion['porcentaje']; ?>%)</strong>
-                                                                                </label>
-                                                                            </div>
-                                                                            <?php
-                                                                        }
-                                                                    } else {
-                                                                        echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay percepciones configuradas</p>';
-                                                                    }
-                                                                    ?>
-                                                                </div>
-                                                                <small class="form-text text-muted">Se aplica sobre el total después de IGV</small>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div id="contenedor-items-orden" class="mb-3">
-                                    <?php if ($modo_editar && !empty($orden_detalle)): ?>
-                                        <?php foreach ($orden_detalle as $item): 
-                                            // CORRECCIÓN: Obtener id_pedido_detalle del item
-                                            $id_pedido_detalle = isset($item['id_pedido_detalle']) ? $item['id_pedido_detalle'] : 0;
-                                            
-                                            // OBTENER DATOS DE VALIDACIÓN PARA ESTE DETALLE ESPECÍFICO
-                                            $cantidad_verificada_item = 0;
-                                            $cantidad_ordenada_item = 0;
-                                            
-                                            // Buscar por id_pedido_detalle
+                                    <?php if (!$modo_editar && !$modo_editar_salida && !$pedido_anulado): ?>
+                                    <div class="btn-group" role="group">
+                                        <?php if (!$modo_editar && !$pedido_anulado): ?>
+                                            <?php
+                                            // Verificar si hay items disponibles para agregar a orden
+                                            $tiene_items_disponibles = false;
                                             foreach ($pedido_detalle as $detalle) {
-                                                if ($detalle['id_pedido_detalle'] == $id_pedido_detalle) {
-                                                    $cantidad_verificada_item = isset($detalle['cant_oc_pedido_detalle']) ? $detalle['cant_oc_pedido_detalle'] : 0;
-                                                    $cantidad_ordenada_item = isset($detalle['cantidad_ya_ordenada']) ? $detalle['cantidad_ya_ordenada'] : 0;
+                                                $esVerificado = !is_null($detalle['cant_oc_pedido_detalle']);
+
+                                                $detalle['cantidad_ya_ordenada_oc'] = ObtenerCantidadYaOrdenadaOCPorDetalle($detalle['id_pedido_detalle']);
+                                                $detalle['cantidad_pendiente_oc'] = floatval($detalle['cant_oc_pedido_detalle']) - $detalle['cantidad_ya_ordenada_oc'];
+
+                                                $pendiente_oc = isset($detalle['cantidad_pendiente_oc']) ? floatval($detalle['cantidad_pendiente_oc']) : 0;
+
+                                                $stockInsuficiente = $detalle['cantidad_disponible_almacen'] < $detalle['cant_pedido_detalle'];
+                                                $esAutoOrden = ($pedido['id_producto_tipo'] == 2);
+                                                $estaCerrado = ($detalle['est_pedido_detalle'] == 2);
+                                                
+                                                // Si es auto-orden, verificado con stock insuficiente, y no está cerrado
+                                                if (($esAutoOrden || ($esVerificado && $pendiente_oc>0)) && !$estaCerrado) {
+                                                    $tiene_items_disponibles = true;
                                                     break;
                                                 }
                                             }
+                                            ?>
+                                            
+                                            <?php if ($tiene_items_disponibles): ?>
+                                                <button type="button" data-toggle="tooltip" class="btn btn-primary btn-sm" id="btn-nueva-orden" style="padding: 4px 8px; font-size: 12px;" 
+                                                        title="<?php echo $pedido['id_producto_tipo'] == 2 ? 'Crear una nueva orden de servicio' : 'Crear una nueva orden de compra con los items verificados'; ?>">
+                                                    <i class="fa fa-shopping-cart"></i> Nueva Orden
+                                                </button>
+                                            <?php else: ?>
+                                                <button type="button" data-toggle="tooltip" class="btn btn-secondary btn-sm" disabled 
+                                                        title="<?php echo $pedido['id_producto_tipo'] == 2 ? 'No hay servicios disponibles para agregar' : 'No hay items disponibles para agregar'; ?>" 
+                                                        style="padding: 4px 8px; font-size: 12px;">
+                                                    <i class="fa fa-ban"></i> Nueva Orden
+                                                </button>
+                                            <?php endif; ?>
+                                        <?php endif; ?>
+
+                                        
+                                        
+                                        <!-- Botón Nueva Salida - Solo para MATERIALES -->
+                                        <?php if ($pedido['id_producto_tipo'] != 2 && !$modo_editar_salida && !$pedido_anulado): ?>
+                                        <?php
+                                        // VALIDAR ITEMS DISPONIBLES PARA SALIDA
+                                        $tiene_items_para_salida = false;
+                                        
+                                        foreach ($pedido_detalle as $detalle_validacion) {
+                                            // Solo evaluar MATERIALES
+                                            if ($pedido['id_producto_tipo'] != 2) {
+                                                $cant_os_verificada = floatval($detalle_validacion['cant_os_pedido_detalle']);
+                                                
+                                                if ($cant_os_verificada > 0) {
+                                                    $detalle_validacion['cantidad_ya_ordenada_os'] = ObtenerCantidadYaOrdenadaOSPorDetalle($detalle_validacion['id_pedido_detalle']);
+                                                    $pendiente_os = $cant_os_verificada - $detalle_validacion['cantidad_ya_ordenada_os'];
+                                                    
+                                                    if ($pendiente_os > 0) {
+                                                        $tiene_items_para_salida = true;
+                                                        break; 
+                                                    }
+                                                }
+                                            }
+                                        }
                                         ?>
-                                        <div class="alert alert-light p-2 mb-2" id="item-orden-<?php echo $item['id_compra_detalle']; ?>">
-                                            <!-- CRÍTICO: Guardar id_pedido_detalle -->
-                                            <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_compra_detalle]" value="<?php echo $item['id_compra_detalle']; ?>">
-                                            <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_pedido_detalle]" value="<?php echo $id_pedido_detalle; ?>">
-                                            <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_producto]" value="<?php echo $item['id_producto']; ?>">
-                                            <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][es_nuevo]" value="0">
+                                        
+                                        <!--  SIEMPRE RENDERIZAR EL BOTÓN (solo cambiar estado) -->
+                                        <button type="button" data-toggle="tooltip"
+                                                class="btn btn-<?php echo $tiene_items_para_salida ? 'success' : 'secondary'; ?> btn-sm" 
+                                                id="btn-nueva-salida" 
+                                                <?php echo !$tiene_items_para_salida ? 'disabled' : ''; ?>
+                                                title="<?php 
+                                                    if ($tiene_items_para_salida) {
+                                                        echo 'Crear una nueva orden de salida ';
+                                                    } else {
+                                                        echo 'No hay items disponibles para generar salida';
+                                                    }
+                                                ?>"
+                                                style="padding: 4px 8px; font-size: 12px;">
+                                            <i class="fa fa-<?php echo $tiene_items_para_salida ? 'truck' : 'ban'; ?>"></i> Nueva Salida
+                                        </button>
+                                    <?php endif; ?>
+
+                                        <!-- Fin Modificado -->
+
+                                        <!-- Botón Nueva Salida Anterior-->
+                                        <!--<button type="button" class="btn btn-success btn-sm" id="btn-nueva-salida" style="padding: 4px 8px; font-size: 12px;">
+                                            <i class="fa fa-truck"></i> Nueva Salida
+                                        </button>-->
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="clearfix"></div>
+                            </div>
+                            
+                            <div class="x_content" style="max-height: 650px; overflow-y: auto; padding: 5px;">
+                                <!-- TABS PARA ÓRDENES Y SALIDAS -->
+                                <ul class="nav nav-tabs" id="myTab" role="tablist" <?php echo ($modo_editar || $modo_editar_salida) ? 'style="display: none;"' : 'style="display: flex;"'; ?>>
+                                    <li class="nav-item">
+                                        <a class="nav-link active" id="ordenes-tab" data-toggle="tab" href="#ordenes" role="tab">
+                                            <i class="fa fa-<?php echo $pedido['id_producto_tipo'] == 2 ? 'wrench' : 'shopping-cart'; ?>"></i> 
+                                            <?php echo $pedido['id_producto_tipo'] == 2 ? 'Órdenes de Servicio' : 'Órdenes de Compra'; ?> 
+                                            <span><?php echo count($pedido_compra); ?></span>
+                                        </a>
+                                    </li>
+                                    
+                                    <!--  SOLO MOSTRAR TAB DE SALIDAS SI NO ES SERVICIO -->
+                                    <?php if ($pedido['id_producto_tipo'] != 2): ?>
+                                    <li class="nav-item">
+                                        <a class="nav-link" id="salidas-tab" data-toggle="tab" href="#salidas" role="tab">
+                                            <i class="fa fa-truck"></i> Salidas 
+                                            <span><?php echo count($pedido_salidas); ?></span>
+                                        </a>
+                                    </li>
+                                    <?php endif; ?>
+                                </ul>
+
+
+                                <div class="tab-content" id="myTabContent" <?php echo ($modo_editar || $modo_editar_salida) ? 'style="display: none;"' : 'style="display: block;"'; ?>>
+                                    <!-- TAB: ÓRDENES DE COMPRA -->
+                                    <div class="tab-pane fade show active" id="ordenes" role="tabpanel">
+                                        <div class="table-responsive mt-2">
+                                            <table class="table table-striped table-bordered" style="font-size: 12px;">
+                                                <thead style="background-color: #007bff; color: white;">
+                                                    <tr>
+                                                        <th style="width: 15%;">N° Orden</th>
+                                                        <th style="width: 20%;">Proveedor</th>
+                                                        <th style="width: 15%;">Fecha</th>
+                                                        <th style="width: 15%;">Estado</th>
+                                                        <th style="width: 20%;">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="tbody-ordenes">
+                                                    <?php if (!empty($pedido_compra)) { ?>
+                                                        <?php foreach ($pedido_compra as $compra) {
+                                                            $estado_texto = '';
+                                                            $estado_clase = '';
+
+                                                            /*switch ($compra['est_compra']) {
+                                                                case 0:
+                                                                    $estado_texto = 'Anulada';
+                                                                    $estado_clase = 'danger';
+                                                                    break;
+                                                                case 1:
+                                                                    $estado_texto = 'Pendiente';
+                                                                    $estado_clase = 'warning';
+                                                                    break;
+                                                                case 2:
+                                                                    $estado_texto = 'Aprobada';
+                                                                    $estado_clase = 'info';
+                                                                    $puede_agregar_pago = true;
+                                                                    break;
+                                                                case 3:
+                                                                    $estado_texto = 'Ingresada';
+                                                                    $estado_clase = 'success';
+                                                                    $puede_agregar_pago = true;
+                                                                    break;
+                                                                case 4:
+                                                                    $estado_texto = 'Pagada';
+                                                                    $estado_clase = 'primary';
+                                                                    $puede_agregar_pago = false;
+                                                                    break;
+                                                                default:
+                                                                    $estado_texto = 'Desconocido';
+                                                                    $estado_clase = 'secondary';
+                                                            }*/
+
+                                                            if ($compra['est_compra'] == 2 && $compra['pagado'] == 1) {
+                                                                $estado_texto = 'PAGADO';
+                                                                $estado_clase = 'badge-primary';
+
+                                                            } elseif ($compra['est_compra'] == 3 && $compra['pagado'] == 1) {
+                                                                $estado_texto = 'CERRADO';
+                                                                $estado_clase = 'badge-dark';
+
+                                                            } elseif ($compra['est_compra'] == 2) {
+                                                                $estado_texto = 'APROBADO';
+                                                                $estado_clase = 'badge-info';
+
+                                                            } elseif ($compra['est_compra'] == 3) {
+                                                                $estado_texto = 'INGRESADO';
+                                                                $estado_clase = 'badge-success';
+
+                                                            } elseif ($compra['est_compra'] == 1) {
+                                                                $estado_texto = 'PENDIENTE';
+                                                                $estado_clase = 'badge-warning';
+                                                            } else {
+                                                                $estado_texto = 'ANULADO';
+                                                                $estado_clase = 'badge-danger';
+                                                            }
+
+                                                            $fecha_formateada = date('d/m/Y', strtotime($compra['fec_compra']));
+                                                        ?>
+                                                            <tr>
+                                                                <td><strong>C00<?php echo $compra['id_compra']; ?></strong></td>
+                                                                <td><?php echo htmlspecialchars($compra['nom_proveedor']); ?></td>
+                                                                <td><?php echo $fecha_formateada; ?></td>
+                                                                <td>
+                                                                    <span class="badge <?php echo $estado_clase; ?> badge_size">
+                                                                        <?php echo $estado_texto; ?>
+                                                                    </span>
+                                                                </td>
+                                                                <td>
+                                                                    <!-- Botón Ver Detalles -->
+                                                                    <button class="btn btn-info btn-xs btn-ver-detalle" data-toggle="tooltip"
+                                                                            title="Ver detalles"
+                                                                            data-id-compra="<?php echo $compra['id_compra']; ?>">
+                                                                        <i class="fa fa-eye"></i>
+                                                                    </button>
+
+                                                                    <?php
+                                                                    // Verificar si tiene aprobaciones
+                                                                    $tiene_aprobacion_tecnica = !empty($compra['id_personal_aprueba_tecnica']);
+                                                                    $tiene_aprobacion_financiera = !empty($compra['id_personal_aprueba_financiera']);
+                                                                    $tiene_alguna_aprobacion = $tiene_aprobacion_tecnica || $tiene_aprobacion_financiera;
+
+                                                                    // Solo se puede editar si está PENDIENTE y SIN aprobaciones
+                                                                    $puede_editar = ($compra['est_compra'] == 1 && !$tiene_alguna_aprobacion);
+
+                                                                    if ($puede_editar) { ?>
+                                                                        <!-- Botón Editar HABILITADO -->
+                                                                        <button class="btn btn-warning btn-xs ml-1 btn-editar-orden" data-toggle="tooltip"
+                                                                                title="<?php echo $pedido['id_producto_tipo'] == 2 ? 'Editar esta orden de servicio' : 'Editar esta orden de compra'; ?>"
+                                                                                data-id-compra="<?php echo $compra['id_compra']; ?>">
+                                                                            <i class="fa fa-edit"></i>
+                                                                        </button>
+                                                                    <?php } else {
+                                                                        if ($compra['est_compra'] == 0) {
+                                                                            $mensaje = $pedido['id_producto_tipo'] == 2 ? "No se puede editar - Orden de servicio anulada" : "No se puede editar - Orden anulada";
+                                                                        } elseif ($compra['est_compra'] == 2) {
+                                                                            $mensaje = $pedido['id_producto_tipo'] == 2 ? "No se puede editar - Orden de servicio aprobada completamente" : "No se puede editar - Orden aprobada completamente";
+                                                                        } elseif ($compra['est_compra'] == 3) {
+                                                                            $mensaje = $pedido['id_producto_tipo'] == 2 ? "No se puede editar - Orden de servicio cerrada" : "No se puede editar - Orden cerrada";
+                                                                        } elseif ($compra['est_compra'] == 4) {
+                                                                            $mensaje = $pedido['id_producto_tipo'] == 2 ? "No se puede editar - Orden de servicio pagada" : "No se puede editar - Orden pagada";
+                                                                        } elseif ($tiene_alguna_aprobacion) {
+                                                                            $mensaje = $pedido['id_producto_tipo'] == 2 ? "No se puede editar - Orden de servicio con aprobación iniciada" : "No se puede editar - Orden con aprobación iniciada";
+                                                                        } else {
+                                                                            $mensaje = "No se puede editar";
+                                                                        }
+                                                                    ?>
+                                                                        <!-- Botón Editar DESHABILITADO -->
+                                                                        <button class="btn btn-outline-secondary btn-xs ml-1"
+                                                                                title="<?php echo $mensaje; ?>"
+                                                                                disabled>
+                                                                            <i class="fa fa-edit"></i>
+                                                                        </button>
+                                                                    <?php } ?>
+
+                                                                    <!-- Botón Anular -->
+                                                                    <?php
+                                                                    $puede_anular = ($compra['est_compra'] != 0 && !$tiene_alguna_aprobacion);
+
+                                                                    if ($puede_anular) { ?>
+                                                                        <button class="btn btn-danger btn-xs ml-1 btn-anular-orden"
+                                                                                title="Anular Orden"
+                                                                                data-toggle="tooltip"
+                                                                                data-id-compra="<?php echo $compra['id_compra']; ?>"
+                                                                                data-id-pedido="<?php echo $id_pedido; ?>">
+                                                                            <i class="fa fa-times"></i>
+                                                                        </button>
+                                                                    <?php } else {
+                                                                        if ($compra['est_compra'] == 0) {
+                                                                            $mensaje_anular = "Orden anulada";
+                                                                        } elseif ($compra['est_compra'] == 2) {
+                                                                            $mensaje_anular = "No se puede anular - Orden aprobada completamente";
+                                                                        } elseif ($compra['est_compra'] == 3) {
+                                                                            $mensaje_anular = "No se puede anular - Orden cerrada";
+                                                                        } elseif ($compra['est_compra'] == 4) {
+                                                                            $mensaje_anular = "No se puede anular - Orden pagada";
+                                                                        } elseif ($tiene_alguna_aprobacion) {
+                                                                            $mensaje_anular = "No se puede anular - Orden con aprobación iniciada";
+                                                                        } else {
+                                                                            $mensaje_anular = "No se puede anular";
+                                                                        }
+                                                                    ?>
+                                                                        <button class="btn btn-outline-secondary btn-xs ml-1"
+                                                                                title="<?php echo $mensaje_anular; ?>"
+                                                                                disabled>
+                                                                            <i class="fa fa-times"></i>
+                                                                        </button>
+                                                                    <?php } ?>
+                                                                </td>
+                                                            </tr>
+                                                        <?php } ?>
+                                                    <?php } else { ?>
+                                                        <tr>
+                                                            <td colspan="5" class="text-center p-3">
+                                                                <i class="fa fa-<?php echo $pedido['id_producto_tipo'] == 2 ? 'wrench' : 'file-text-o'; ?> fa-2x text-info mb-2"></i>
+                                                                <h5 class="text-info">
+                                                                    <?php echo $pedido['id_producto_tipo'] == 2 ? 'Sin órdenes de servicio' : 'Sin órdenes de compra'; ?>
+                                                                </h5>
+                                                                <p class="text-muted" style="font-size: 12px;">
+                                                                    <?php echo $pedido['id_producto_tipo'] == 2 ? 'Las órdenes de servicio aparecerán aquí.' : 'Las órdenes de compra aparecerán aquí.'; ?>
+                                                                </p>
+                                                            </td>
+                                                        </tr>
+                                                    <?php } ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- TAB: SALIDAS -->
+                                    <div class="tab-pane fade" id="salidas" role="tabpanel">
+                                        <div class="table-responsive mt-2">
+                                            <table class="table table-striped table-bordered" style="font-size: 12px;">
+                                                <thead style="background-color: #28a745; color: white;">
+                                                    <tr>
+                                                        <th style="width: 12%;">N° Salida</th>
+                                                        <th style="width: 18%;">Destino</th>
+                                                        <th style="width: 12%;">Fecha Requerida</th>
+                                                        <th style="width: 18%;">Recepcionado Por</th>
+                                                        <th style="width: 12%;">Estado</th>
+                                                        <th style="width: 18%;">Acciones</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="tbody-salidas">
+                                                <?php if (!empty($pedido_salidas)) { ?>
+                                                    <?php foreach ($pedido_salidas as $salida) {
+
+                                                        // Estado
+                                                        if ($salida['est_salida'] == 0) {
+                                                            $estado_salida_texto = 'ANULADA';
+                                                            $estado_salida_clase = 'badge-danger';
+                                                        } elseif ($salida['est_salida'] == 1) {
+                                                            $estado_salida_texto = 'PENDIENTE';
+                                                            $estado_salida_clase = 'badge-warning';
+                                                        } elseif ($salida['est_salida'] == 2) {
+                                                            $estado_salida_texto = 'RECEPCIONADA';
+                                                            $estado_salida_clase = 'badge-primary';
+                                                        } elseif ($salida['est_salida'] == 3) {
+                                                            $estado_salida_texto = 'APROBADA';
+                                                            $estado_salida_clase = 'badge-success';
+                                                        } elseif ($salida['est_salida'] == 4) {
+                                                            $estado_salida_texto = 'DENEGADA';
+                                                            $estado_salida_clase = 'badge-dark';
+                                                        } else {
+                                                            $estado_salida_texto = 'DESCONOCIDO';
+                                                            $estado_salida_clase = 'badge-secondary';
+                                                        }
+
+                                                        $fecha_salida = date('d/m/Y', strtotime($salida['fec_req_salida']));
+                                                    ?>
+                                                        <tr>
+                                                            <td><strong>S00<?php echo $salida['id_salida']; ?></strong></td>
+                                                            <td><?php echo htmlspecialchars($salida['nom_ubicacion_destino']); ?></td>
+                                                            <td><?php echo $fecha_salida; ?></td>
+
+                                                            <td>
+                                                                <?php if ($salida['est_salida'] == 2) { ?>
+                                                                    <?php echo htmlspecialchars($salida['nom_personal_recepciona']); ?>
+                                                                    <?php if (!empty($salida['fec_aprueba_salida'])) { ?>
+                                                                        <br><small class="text-muted">
+                                                                            <?php echo date('d/m/Y H:i', strtotime($salida['fec_aprueba_salida'])); ?>
+                                                                        </small>
+                                                                    <?php } ?>
+                                                                <?php } else { ?>
+                                                                    <span class="text-muted">-</span>
+                                                                <?php } ?>
+                                                            </td>
+
+                                                            <td>
+                                                                <span class="badge <?php echo $estado_salida_clase; ?> badge_size">
+                                                                    <?php echo $estado_salida_texto; ?>
+                                                                </span>
+                                                            </td>
+
+                                                            <td>
+                                                                <!-- Botón Ver Detalles - SIEMPRE VISIBLE -->
+                                                                <button class="btn btn-info btn-xs btn-ver-salida"
+                                                                        data-toggle="tooltip"
+                                                                        title="Ver detalles completos de esta salida"
+                                                                        data-id-salida="<?php echo $salida['id_salida']; ?>">
+                                                                    <i class="fa fa-eye"></i>
+                                                                </button>
+
+                                                                <?php if ($salida['est_salida'] == 1) { ?>
+                                                                    <!-- Solo en estado PENDIENTE: mostrar Editar y Anular -->
+                                                                    <button class="btn btn-warning btn-xs ml-1 btn-editar-salida"
+                                                                            data-toggle="tooltip"
+                                                                            title="Editar esta orden de salida"
+                                                                            data-id-salida="<?php echo $salida['id_salida']; ?>">
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </button>
+
+                                                                    <button class="btn btn-danger btn-xs ml-1 btn-anular-salida"
+                                                                            data-toggle="tooltip"
+                                                                            title="Anular Salida"
+                                                                            data-id-salida="<?php echo $salida['id_salida']; ?>">
+                                                                        <i class="fa fa-times"></i>
+                                                                    </button>
+                                                                <?php } ?>
+                                                                
+                                                                <?php if ($salida['est_salida'] == 0 || $salida['est_salida'] == 4) { ?>
+                                                                    <!-- Estados ANULADA (0) o DENEGADA (4): botones deshabilitados -->
+                                                                    <button class="btn btn-outline-secondary btn-xs ml-1 disabled" disabled>
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </button>
+                                                                    <button class="btn btn-outline-secondary btn-xs ml-1 disabled" disabled>
+                                                                        <i class="fa fa-times"></i>
+                                                                    </button>
+                                                                <?php } ?>
+                                                                
+                                                                <!-- Estados 2 (RECEPCIONADA) y 3 (APROBADA): solo mostrar el ojo, sin más botones -->
+                                                            </td>
+                                                        </tr>
+                                                    <?php } ?>
+                                                <?php } else { ?>
+                                                    <tr>
+                                                        <td colspan="6" class="text-center p-3">
+                                                            <i class="fa fa-truck fa-2x text-success mb-2"></i>
+                                                            <h5 class="text-success">Sin salidas registradas</h5>
+                                                            <p class="text-muted" style="font-size: 12px;">
+                                                                Las salidas de almacén aparecerán aquí.
+                                                            </p>
+                                                        </td>
+                                                    </tr>
+                                                <?php } ?>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- FORMULARIO PARA CREAR/EDITAR ORDEN DE COMPRA  -->
+                                <div id="contenedor-nueva-orden" <?php echo $modo_editar ? 'style="display: block;"' : 'style="display: none;"'; ?>>
+                                    <form id="form-nueva-orden" method="POST" action="" enctype="multipart/form-data">
+                                        <?php if ($modo_editar): ?>
+                                        <input type="hidden" name="actualizar_orden" value="1">
+                                        <input type="hidden" name="id_compra" value="<?php echo $id_compra_editar; ?>">
+                                        <?php else: ?>
+                                        <input type="hidden" name="crear_orden" value="1">
+                                        <?php endif; ?>
+                                        <input type="hidden" name="id" value="<?php echo $id_pedido; ?>">
+                                        
+                                        <div class="card">
+                                            <div class="card-header" style="padding: 8px 12px; background-color: <?php echo $modo_editar ? '#fff3cd' : '#e3f2fd'; ?>;">
+                                                <h6 class="mb-0">
+                                                    <i class="fa <?php echo $modo_editar ? 'fa-edit text-warning' : 'fa-plus-circle text-primary'; ?>"></i>
+                                                    <?php 
+                                                    if ($modo_editar) {
+                                                        echo 'Editar Orden';
+                                                    } else {
+                                                        echo ($pedido['id_producto_tipo'] == 2) ? 'Nueva Orden de Servicio' : 'Nueva Orden de Compra';
+                                                    }
+                                                    echo $modo_editar ? ' C00' . $id_compra_editar : ''; 
+                                                    ?>
+                                                </h6>
+                                            </div>
+                                            <div class="card-body" style="padding: 12px;">
+                                                <div class="row mb-2">
+                                                    <div class="col-md-6">
+                                                        <label style="font-size: 11px; font-weight: bold;">Fecha: <span class="text-danger">*</span></label>
+                                                        <input type="date" class="form-control form-control-sm" id="fecha_orden" name="fecha_orden" 
+                                                            value="<?php echo $modo_editar && $orden_data ? date('Y-m-d', strtotime($orden_data['fec_compra'])) : date('Y-m-d'); ?>" 
+                                                            min="<?php echo date('Y-m-d'); ?>"
+                                                            style="font-size: 12px;" required>
+                                                    </div>
+
+                                                    <!-- Proveedor -->
+                                                    <div class="col-md-5">
+                                                        <div class="form-group mb-3">
+                                                            <label class="mb-1" style="font-size:11px;font-weight:bold;">
+                                                                Proveedor: <span class="text-danger">*</span>
+                                                            </label>
+
+                                                            <div class="proveedor-row d-flex align-items-center">
+                                                                <select id="proveedor_orden" name="proveedor_orden"
+                                                                        class="form-control form-control-sm flex-grow-1"
+                                                                        style="font-size:12px;" required>
+                                                                    <option value="">Seleccionar proveedor...</option>
+                                                                    <?php foreach ($proveedor as $prov) {
+                                                                        $sel = ($modo_editar && $orden_data && $orden_data['id_proveedor']==$prov['id_proveedor']) ? 'selected' : '';
+                                                                        echo '<option value="'.htmlspecialchars($prov['id_proveedor']).'" '.$sel.'>'.
+                                                                                htmlspecialchars($prov['nom_proveedor']).'</option>';
+                                                                    } ?>
+                                                                </select>
+
+                                                                <button type="button"
+                                                                        class="btn btn-info btn-sm btn-plus"
+                                                                        id="btn-agregar-proveedor"
+                                                                        data-toggle="tooltip"
+                                                                        title="Agregar Proveedor">
+                                                                    <i class="fa fa-plus"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="row mb-2">
+                                                    <div class="col-md-6">
+                                                        <label style="font-size: 11px; font-weight: bold;">Moneda: <span class="text-danger">*</span></label>
+                                                        <select class="form-control form-control-sm" id="moneda_orden" name="moneda_orden" 
+                                                                style="font-size: 12px;" required>
+                                                            <option value="">Seleccionar moneda...</option>
+                                                            <?php
+                                                            foreach ($moneda as $mon) {
+                                                                $selected = ($modo_editar && $orden_data && $orden_data['id_moneda'] == $mon['id_moneda']) ? 'selected' : '';
+                                                                echo '<option value="' . htmlspecialchars($mon['id_moneda']) . '" ' . $selected . '>' . htmlspecialchars($mon['nom_moneda']) . '</option>';
+                                                            }
+                                                            ?>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label style="font-size: 11px; font-weight: bold;">Plazo de Entrega (días):</label>
+                                                        <input type="number" 
+                                                            class="form-control form-control-sm" 
+                                                            id="plazo_entrega" 
+                                                            name="plazo_entrega"
+                                                            value="<?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['plaz_compra']) : ''; ?>"
+                                                            placeholder="Dejar vacío o 0 para pago al contado"
+                                                            min="0"
+                                                            step="1"
+                                                            style="font-size: 12px;">
+                                                        <small class="form-text text-muted">
+                                                            Si no ingresa plazo, se considera pago al contado (sin alertas)
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                                <div class="row mb-2">
+                                                    <div class="col-md-12">
+                                                        <label style="font-size: 11px; font-weight: bold;">Dirección de Envío:</label>
+                                                        <textarea class="form-control form-control-sm" id="direccion_envio" name="direccion_envio"
+                                                                rows="2" placeholder="Ingrese la dirección de envío..." 
+                                                                style="font-size: 12px; resize: none;"><?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['denv_compra']) : ''; ?></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="row mb-2">
+                                                    <div class="col-md-12">
+                                                        <label style="font-size: 11px; font-weight: bold;">Observaciones:</label>
+                                                        <textarea class="form-control form-control-sm" id="observaciones_orden" name="observaciones_orden"
+                                                                rows="2" placeholder="Observaciones adicionales..." 
+                                                                style="font-size: 12px; resize: none;"><?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['obs_compra']) : ''; ?></textarea>
+                                                    </div>
+                                                </div>
+                                                <div class="row mb-2">
+                                                    <div class="col-md-12">
+                                                        <label style="font-size: 11px; font-weight: bold;">Tipo de Porte:</label>
+                                                        <input type="text" class="form-control form-control-sm" id="tipo_porte" name="tipo_porte"
+                                                            value="<?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['port_compra']) : ''; ?>"
+                                                            placeholder="Ej. Marítimo, Terrestre, Aéreo" style="font-size: 12px;">
+                                                    </div>
+                                                </div>
+                                                <!-- SECCIÓN DE DETRACCIÓN, RETENCIÓN Y PERCEPCIÓN -->
+                                                <div class="row mb-2">
+                                                    <div class="col-md-12">
+                                                        <div class="card" style="border: 1px solid #dee2e6;">
+                                                            <div class="card-header" style="background-color: #f8f9fa; padding: 8px 12px; cursor: pointer;" 
+                                                                data-toggle="collapse" 
+                                                                data-target="#afectacionesCollapse"
+                                                                aria-expanded="false"
+                                                                aria-controls="afectacionesCollapse">
+                                                                <div class="d-flex justify-content-between align-items-center">
+                                                                    <h6 class="mb-0" style="font-size: 13px;">
+                                                                        <i class="fa fa-percent text-info"></i> 
+                                                                        Detracción, Retención y Percepción
+                                                                    </h6>
+                                                                    <i class="fa fa-chevron-down" id="icon-toggle-afectaciones"></i>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="collapse" id="afectacionesCollapse">
+                                                                <div class="card-body" style="padding: 12px;">
+                                                                    <!-- DETRACCIÓN -->
+                                                                    <div class="mb-3">
+                                                                        <label style="font-size: 11px; font-weight: bold;">Detracción:</label>
+                                                                        <div id="contenedor-detracciones" style="padding: 8px; background-color: #fff3cd; border-radius: 4px; border: 1px solid #ffc107;">
+                                                                            <?php
+                                                                            $detracciones = ObtenerDetraccionesPorTipo('DETRACCION');
+                                                                            $detraccion_seleccionada = ($modo_editar && isset($orden_data['id_detraccion'])) ? $orden_data['id_detraccion'] : null;
+                                                                            
+                                                                            if (!empty($detracciones)) {
+                                                                                foreach ($detracciones as $detraccion) {
+                                                                                    $checked = ($detraccion_seleccionada == $detraccion['id_detraccion']) ? 'checked' : '';
+                                                                                    ?>
+                                                                                    <div class="form-check" style="margin-bottom: 5px;">
+                                                                                        <input class="form-check-input detraccion-checkbox" 
+                                                                                            type="checkbox" 
+                                                                                            name="id_detraccion" 
+                                                                                            value="<?php echo $detraccion['id_detraccion']; ?>" 
+                                                                                            data-porcentaje="<?php echo $detraccion['porcentaje']; ?>" 
+                                                                                            data-nombre="<?php echo htmlspecialchars($detraccion['nombre_detraccion']); ?>"
+                                                                                            id="detraccion_<?php echo $detraccion['id_detraccion']; ?>" 
+                                                                                            <?php echo $checked; ?>>
+                                                                                        <label class="form-check-label" 
+                                                                                            for="detraccion_<?php echo $detraccion['id_detraccion']; ?>" 
+                                                                                            style="font-size: 12px; cursor: pointer;">
+                                                                                            <?php echo htmlspecialchars($detraccion['nombre_detraccion']); ?> 
+                                                                                            <strong>(<?php echo $detraccion['porcentaje']; ?>%)</strong>
+                                                                                        </label>
+                                                                                    </div>
+                                                                                    <?php
+                                                                                }
+                                                                            } else {
+                                                                                echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay detracciones configuradas</p>';
+                                                                            }
+                                                                            ?>
+                                                                        </div>
+                                                                        <small class="form-text text-muted">Se aplica sobre el total después de IGV</small>
+                                                                    </div>
+
+                                                                    <!-- RETENCIÓN -->
+                                                                    <div class="mb-3">
+                                                                        <label style="font-size: 11px; font-weight: bold;">Retención:</label>
+                                                                        <div id="contenedor-retenciones" style="padding: 8px; background-color: #e7f3ff; border-radius: 4px; border: 1px solid #2196f3;">
+                                                                            <?php
+                                                                            $retenciones = ObtenerDetraccionesPorTipo('RETENCION');
+                                                                            $retencion_seleccionada = ($modo_editar && isset($orden_data['id_retencion'])) ? $orden_data['id_retencion'] : null;
+                                                                            
+                                                                            if (!empty($retenciones)) {
+                                                                                foreach ($retenciones as $retencion) {
+                                                                                    $checked = ($retencion_seleccionada == $retencion['id_detraccion']) ? 'checked' : '';
+                                                                                    ?>
+                                                                                    <div class="form-check" style="margin-bottom: 5px;">
+                                                                                        <input class="form-check-input retencion-checkbox" 
+                                                                                            type="checkbox" 
+                                                                                            name="id_retencion" 
+                                                                                            value="<?php echo $retencion['id_detraccion']; ?>" 
+                                                                                            data-porcentaje="<?php echo $retencion['porcentaje']; ?>" 
+                                                                                            data-nombre="<?php echo htmlspecialchars($retencion['nombre_detraccion']); ?>"
+                                                                                            id="retencion_<?php echo $retencion['id_detraccion']; ?>" 
+                                                                                            <?php echo $checked; ?>>
+                                                                                        <label class="form-check-label" 
+                                                                                            for="retencion_<?php echo $retencion['id_detraccion']; ?>" 
+                                                                                            style="font-size: 12px; cursor: pointer;">
+                                                                                            <?php echo htmlspecialchars($retencion['nombre_detraccion']); ?> 
+                                                                                            <strong>(<?php echo $retencion['porcentaje']; ?>%)</strong>
+                                                                                        </label>
+                                                                                    </div>
+                                                                                    <?php
+                                                                                }
+                                                                            } else {
+                                                                                echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay retenciones configuradas</p>';
+                                                                            }
+                                                                            ?>
+                                                                        </div>
+                                                                        <small class="form-text text-muted">Se aplica sobre el total después de IGV</small>
+                                                                    </div>
+
+                                                                    <!-- PERCEPCIÓN -->
+                                                                    <div class="mb-2">
+                                                                        <label style="font-size: 11px; font-weight: bold;">Percepción:</label>
+                                                                        <div id="contenedor-percepciones" style="padding: 8px; background-color: #e8f5e9; border-radius: 4px; border: 1px solid #4caf50;">
+                                                                            <?php
+                                                                            $percepciones = ObtenerDetraccionesPorTipo('PERCEPCION');
+                                                                            $percepcion_seleccionada = ($modo_editar && isset($orden_data['id_percepcion'])) ? $orden_data['id_percepcion'] : null;
+                                                                            
+                                                                            if (!empty($percepciones)) {
+                                                                                foreach ($percepciones as $percepcion) {
+                                                                                    $checked = ($percepcion_seleccionada == $percepcion['id_detraccion']) ? 'checked' : '';
+                                                                                    ?>
+                                                                                    <div class="form-check" style="margin-bottom: 5px;">
+                                                                                        <input class="form-check-input percepcion-checkbox" 
+                                                                                            type="checkbox" 
+                                                                                            name="id_percepcion" 
+                                                                                            value="<?php echo $percepcion['id_detraccion']; ?>" 
+                                                                                            data-porcentaje="<?php echo $percepcion['porcentaje']; ?>" 
+                                                                                            data-nombre="<?php echo htmlspecialchars($percepcion['nombre_detraccion']); ?>"
+                                                                                            id="percepcion_<?php echo $percepcion['id_detraccion']; ?>" 
+                                                                                            <?php echo $checked; ?>>
+                                                                                        <label class="form-check-label" 
+                                                                                            for="percepcion_<?php echo $percepcion['id_detraccion']; ?>" 
+                                                                                            style="font-size: 12px; cursor: pointer;">
+                                                                                            <?php echo htmlspecialchars($percepcion['nombre_detraccion']); ?> 
+                                                                                            <strong>(<?php echo $percepcion['porcentaje']; ?>%)</strong>
+                                                                                        </label>
+                                                                                    </div>
+                                                                                    <?php
+                                                                                }
+                                                                            } else {
+                                                                                echo '<p class="text-muted" style="font-size: 11px; margin: 0;"><i class="fa fa-info-circle"></i> No hay percepciones configuradas</p>';
+                                                                            }
+                                                                            ?>
+                                                                        </div>
+                                                                        <small class="form-text text-muted">Se aplica sobre el total después de IGV</small>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div id="contenedor-items-orden" class="mb-3">
+                                            <?php if ($modo_editar && !empty($orden_detalle)): ?>
+                                                <?php foreach ($orden_detalle as $item): 
+                                                    // CORRECCIÓN: Obtener id_pedido_detalle del item
+                                                    $id_pedido_detalle = isset($item['id_pedido_detalle']) ? $item['id_pedido_detalle'] : 0;
+                                                    
+                                                    // OBTENER DATOS DE VALIDACIÓN PARA ESTE DETALLE ESPECÍFICO
+                                                    $cantidad_verificada_item = 0;
+                                                    $cantidad_ordenada_item = 0;
+
+                                                    // Buscar por id_pedido_detalle
+                                                    foreach ($pedido_detalle as $detalle) {
+                                                        if ($detalle['id_pedido_detalle'] == $id_pedido_detalle) {
+                                                            //  PARA BASE ARCE: usar cantidad pedida, NO verificada
+                                                            if ($es_pedido_base_arce) {
+                                                                $cantidad_verificada_item = isset($detalle['cant_pedido_detalle']) ? floatval($detalle['cant_pedido_detalle']) : 0;
+                                                            } else {
+                                                                $cantidad_verificada_item = isset($detalle['cant_oc_pedido_detalle']) ? floatval($detalle['cant_oc_pedido_detalle']) : 0;
+                                                            }
+                                                            $cantidad_ordenada_item = isset($detalle['cantidad_ya_ordenada']) ? floatval($detalle['cantidad_ya_ordenada']) : 0;
+                                                            break;
+                                                        }
+                                                    }
+                                                ?>
+                                                <div class="alert alert-light p-2 mb-2" id="item-orden-<?php echo $item['id_compra_detalle']; ?>">
+                                                    <!-- CRÍTICO: Guardar id_pedido_detalle -->
+                                                    <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_compra_detalle]" value="<?php echo $item['id_compra_detalle']; ?>">
+                                                    <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_pedido_detalle]" value="<?php echo $id_pedido_detalle; ?>">
+                                                    <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][id_producto]" value="<?php echo $item['id_producto']; ?>">
+                                                    <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][es_nuevo]" value="0">
+                                                    <input type="hidden" name="items_orden[<?php echo $item['id_compra_detalle']; ?>][es_base_arce]" value="<?php echo $es_pedido_base_arce ? '1' : '0'; ?>">
+                                                    <!-- Descripción del producto -->
+                                                    <div class="row align-items-center mb-2">
+                                                        <div class="col-md-11">
+                                                            <div style="font-size: 12px;">
+                                                                <strong>Descripción:</strong> <?php echo htmlspecialchars($item['nom_producto']); ?>
+                                                                <?php if ($modo_editar): ?>
+                                                                <span class="badge badge-info badge-sm ml-1">EDITANDO</span>
+                                                                <?php endif; ?>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-1 text-right">
+                                                            <button type="button" class="btn btn-danger btn-sm btn-remover-item" 
+                                                                    data-id-detalle="<?php echo $item['id_compra_detalle']; ?>"
+                                                                    data-id-compra-detalle="<?php echo $item['id_compra_detalle']; ?>">
+                                                                <i class="fa fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <!-- Campos en una sola línea: Cantidad, Precio, IGV, Homologación -->
+                                                    <div class="row">
+                                                        <!-- Cantidad -->
+                                                        <div class="col-md-2">
+                                                            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Cantidad:</label>
+                                                            <input type="number" 
+                                                                class="form-control form-control-sm cantidad-item" 
+                                                                name="items_orden[<?php echo $item['id_compra_detalle']; ?>][cantidad]"
+                                                                data-id-detalle="<?php echo $item['id_compra_detalle']; ?>"
+                                                                data-id-producto="<?php echo $item['id_producto']; ?>"
+                                                                data-cantidad-verificada="<?php echo $cantidad_verificada_item; ?>"
+                                                                data-cantidad-ordenada="<?php echo $cantidad_ordenada_item; ?>"
+                                                                data-es-base-arce="<?php echo $es_pedido_base_arce ? '1' : '0'; ?>"
+                                                                value="<?php echo $item['cant_compra_detalle']; ?>"
+                                                                min="0.01" 
+                                                                step="0.01"
+                                                                style="font-size: 12px;"
+                                                                required>
+                                                        </div>
+                                                        
+                                                        <!-- Precio Unitario -->
+                                                        <div class="col-md-2">
+                                                            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Precio Unit.:</label>
+                                                            <div class="input-group input-group-sm">
+                                                                <div class="input-group-prepend">
+                                                                    <span class="input-group-text" style="font-size: 11px; background-color: #f8f9fa; border: 1px solid #ced4da;">
+                                                                        <?php echo ($orden_data['id_moneda'] == 1) ? 'S/.' : 'US$'; ?>
+                                                                    </span>
+                                                                </div>
+                                                                <input type="number" 
+                                                                    class="form-control form-control-sm precio-item" 
+                                                                    name="items_orden[<?php echo $item['id_compra_detalle']; ?>][precio_unitario]"
+                                                                    data-id-detalle="<?php echo $item['id_compra_detalle']; ?>"
+                                                                    value="<?php echo $item['prec_compra_detalle']; ?>"
+                                                                    step="0.01" 
+                                                                    min="0"
+                                                                    style="font-size: 11px;"
+                                                                    required>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <!-- IGV (%) -->
+                                                        <div class="col-md-2">
+                                                            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">IGV (%):</label>
+                                                            <input type="number" 
+                                                                class="form-control form-control-sm igv-item" 
+                                                                name="items_orden[<?php echo $item['id_compra_detalle']; ?>][igv]"
+                                                                data-id-detalle="<?php echo $item['id_compra_detalle']; ?>"
+                                                                value="<?php echo $item['igv_compra_detalle'] ?? 18; ?>"
+                                                                min="0" 
+                                                                max="100"
+                                                                step="0.01"
+                                                                style="font-size: 12px;"
+                                                                required>
+                                                        </div>
             
-                                            <!-- Descripción del producto -->
-                                            <div class="row align-items-center mb-2">
-                                                <div class="col-md-11">
-                                                    <div style="font-size: 12px;">
-                                                        <strong>Descripción:</strong> <?php echo htmlspecialchars($item['nom_producto']); ?>
-                                                        <?php if ($modo_editar): ?>
-                                                        <span class="badge badge-info badge-sm ml-1">EDITANDO</span>
+                                                        
+                                                        <!-- Homologación -->
+                                                        <div class="col-md-3">
+                                                            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Homologación:</label>
+                                                            
+                                                            <?php if (!empty($item['hom_compra_detalle'])): ?>
+                                                                <div style="margin-bottom: 5px; padding: 5px; background-color: #d4edda; border-radius: 4px; border: 1px solid #c3e6cb;">
+                                                                    <a href="../_archivos/homologaciones/<?php echo htmlspecialchars($item['hom_compra_detalle']); ?>" 
+                                                                    target="_blank" 
+                                                                    class="text-success" 
+                                                                    style="font-size: 11px; display: block; text-decoration: none;">
+                                                                        <i class="fa fa-file-pdf-o"></i> 
+                                                                        <strong>Archivo actual:</strong>
+                                                                        <br>
+                                                                        <small class="text-muted"><?php echo htmlspecialchars($item['hom_compra_detalle']); ?></small>
+                                                                    </a>
+                                                                </div>
+                                                                <small class="text-info d-block mb-2" style="font-size: 10px;">
+                                                                    <i class="fa fa-info-circle"></i> Subir nuevo archivo para reemplazar
+                                                                </small>
+                                                            <?php endif; ?>
+                                                            
+                                                            <input type="file" 
+                                                                class="form-control-file" 
+                                                                name="homologacion[<?php echo $item['id_compra_detalle']; ?>]"
+                                                                accept=".pdf,.jpg,.jpeg,.png"
+                                                                style="font-size: 11px;">
+                                                            
+                                                            <?php if (empty($item['hom_compra_detalle'])): ?>
+                                                                <small class="text-muted" style="font-size: 10px;">PDF, JPG, PNG (máx. 5MB)</small>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                        
+                                                        <!-- Cálculos (Subtotal, IGV, Total) -->
+                                                        <div class="col-md-3 text-right">
+                                                            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block; visibility: hidden;">-</label>
+                                                            <div class="calculo-item" id="calculo-<?php echo $item['id_compra_detalle']; ?>" 
+                                                                style="font-size: 11px; line-height: 1.4;">
+                                                                <div class="subtotal-text">Subtotal: --</div>
+                                                                <div class="igv-text">IGV: --</div>
+                                                                <div class="total-text" style="font-weight: bold; color: #28a745;">Total: --</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
+                                        </div>
+                                        
+                                        <div class="text-center mt-2" style="padding: 8px;">
+                                            <a href="pedido_verificar.php?id=<?php echo $id_pedido; ?>" class="btn btn-secondary btn-sm mr-2">
+                                                <i class="fa fa-times"></i> Cancelar
+                                            </a>
+                                            <button type="submit" data-toggle="tooltip" class="btn btn-<?php echo $modo_editar ? 'warning' : 'primary'; ?> btn-sm">
+                                                <i class="fa fa-save"></i> <?php echo $modo_editar ? 'Actualizar Orden' : 'Guardar Orden'; ?>
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <!-- FORMULARIO PARA CREAR/EDITAR SALIDA -->
+                                <div id="contenedor-nueva-salida" <?php echo $modo_editar_salida ? 'style="display: block;"' : 'style="display: none;"'; ?>>
+                                    <form id="form-nueva-salida" method="POST" action="" enctype="multipart/form-data">
+                                        <?php if ($modo_editar_salida): ?>
+                                        <input type="hidden" name="actualizar_salida" value="1">
+                                        <input type="hidden" name="id_salida" value="<?php echo $id_salida_editar; ?>">
+                                        <?php else: ?>
+                                        <input type="hidden" name="crear_salida" value="1">
+                                        <?php endif; ?>
+                                        <input type="hidden" name="id_pedido" value="<?php echo $id_pedido; ?>">
+                                        
+                                        <div class="card">
+                                            <div class="card-header" style="padding: 8px 12px; background-color: <?php echo $modo_editar_salida ? '#fff3cd' : '#d4edda'; ?>;">
+                                                <h6 class="mb-0">
+                                                    <i class="fa <?php echo $modo_editar_salida ? 'fa-edit text-warning' : 'fa-truck text-success'; ?>"></i>
+                                                    <?php echo $modo_editar_salida ? 'Editar Salida S00' . $id_salida_editar : 'Nueva Salida'; ?>
+                                                </h6>
+                                            </div>
+                                            <div class="card-body" style="padding: 12px;">
+                                                <!-- Fecha de la salida -->
+                                                <div class="row mb-2">
+                                                    <div class="col-md-6">
+                                                        <label style="font-size: 11px; font-weight: bold;">Fecha Requerida de Salida: <span class="text-danger">*</span></label>
+                                                        <input type="date" class="form-control form-control-sm" id="fecha_salida" name="fecha_salida" 
+                                                            value="<?php 
+                                                                if ($modo_editar_salida && isset($salida_data)) {
+                                                                    echo date('Y-m-d', strtotime($salida_data['fec_req_salida']));
+                                                                } else {
+                                                                    //echo date('Y-m-d', strtotime($pedido['fec_req_pedido']));
+                                                                    echo date('Y-m-d');
+                                                                }
+                                                            ?>" 
+                                                            style="font-size: 12px;" required>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label style="font-size: 11px; font-weight: bold;">N° Documento de Salida:</label>
+                                                        <input type="text" class="form-control form-control-sm" name="ndoc_salida" 
+                                                            value="<?php echo ($modo_editar_salida && isset($salida_data)) ? htmlspecialchars($salida_data['ndoc_salida']) : ''; ?>"
+                                                            placeholder="" style="font-size: 12px;">
+                                                    </div>
+                                                </div>
+
+                                                <!-- ALMACÉN Y UBICACIÓN ORIGEN -->
+                                                <div class="row mb-2">
+                                                    <!-- Almacén Origen -->
+                                                    <div class="col-md-6">
+                                                        <label style="font-size: 11px; font-weight: bold;">Almacén Origen: <span class="text-danger">*</span></label>
+                                                        <select class="form-control form-control-sm" 
+                                                            id="almacen_origen_salida" 
+                                                            name="almacen_origen_salida" 
+                                                            style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
+                                                            required>
+                                                            <option value="">Seleccionar almacén...</option>
+                                                            <?php foreach ($almacenes as $alm) { 
+                                                                $selected_origen = '';
+                                                                if ($modo_editar_salida && isset($salida_data) && $salida_data['id_almacen_origen'] == $alm['id_almacen']) {
+                                                                    $selected_origen = 'selected';
+                                                                } elseif (!$modo_editar_salida && $alm['id_almacen'] == $pedido['id_almacen']) {
+                                                                    $selected_origen = 'selected';
+                                                                }
+                                                            ?>
+                                                                <option value="<?php echo $alm['id_almacen']; ?>" <?php echo $selected_origen; ?>>
+                                                                    <?php echo htmlspecialchars($alm['nom_almacen']); ?>
+                                                                </option>
+                                                            <?php } ?>
+                                                        </select>
+                                                    </div>
+
+                                                    <!-- Ubicación Origen -->
+                                                    <div class="col-md-6">
+                                                        <label style="font-size: 11px; font-weight: bold;">Ubicación Origen: <span class="text-danger">*</span></label>
+                                                        <select class="form-control form-control-sm" 
+                                                                id="ubicacion_origen_salida" 
+                                                                name="ubicacion_origen_salida" 
+                                                                style="font-size: 12px;" 
+                                                                required>
+                                                            <option value="">Seleccionar ubicación...</option>
+                                                            <?php 
+                                                            if (!empty($pedido_detalle)) {
+                                                                $primer_detalle = $pedido_detalle[0];
+                                                                
+                                                                // Obtener ubicaciones bloqueadas
+                                                                $ubicaciones_bloqueadas_form = ObtenerUbicacionesBloqueadasPorDenegacion(
+                                                                    $primer_detalle['id_producto'],
+                                                                    $primer_detalle['id_pedido_detalle']
+                                                                );
+                                                                
+                                                                // Crear array de keys bloqueadas para búsqueda rápida
+                                                                $bloqueadas_keys = [];
+                                                                foreach ($ubicaciones_bloqueadas_form as $key => $info) {
+                                                                    $bloqueadas_keys[$key] = true;
+                                                                }
+                                                                
+                                                                // Obtener todas las ubicaciones con stock
+                                                                $ubicaciones_disponibles = ObtenerOtrasUbicacionesConStock(
+                                                                    $primer_detalle['id_producto'],
+                                                                    $pedido['id_almacen'],
+                                                                    $pedido['id_ubicacion']
+                                                                );
+                                                                
+                                                                $id_ubicacion_origen_preseleccionada = null;
+                                                                if ($modo_editar_salida && isset($salida_data)) {
+                                                                    $id_ubicacion_origen_preseleccionada = $salida_data['id_ubicacion_origen'];
+                                                                } elseif (!empty($ubicaciones_disponibles)) {
+                                                                    // Preseleccionar la primera ubicación NO bloqueada
+                                                                    foreach ($ubicaciones_disponibles as $ub) {
+                                                                        $key_ub = $ub['id_almacen'] . '_' . $ub['id_ubicacion'];
+                                                                        if (!isset($bloqueadas_keys[$key_ub])) {
+                                                                            $id_ubicacion_origen_preseleccionada = $ub['id_ubicacion'];
+                                                                            break;
+                                                                        }
+                                                                    }
+                                                                }
+                                                                
+                                                                foreach ($ubicaciones_disponibles as $ub) {
+                                                                    // Verificar si está bloqueada
+                                                                    $key_ub = $ub['id_almacen'] . '_' . $ub['id_ubicacion'];
+                                                                    $estaBloqueada = isset($bloqueadas_keys[$key_ub]);
+                                                                    
+                                                                    $selected = '';
+                                                                    if ($id_ubicacion_origen_preseleccionada && $id_ubicacion_origen_preseleccionada == $ub['id_ubicacion']) {
+                                                                        $selected = 'selected';
+                                                                    }
+                                                                    
+                                                                    // Formato: "ALMACÉN - UBICACIÓN (Stock: XX.XX)" con ícono si está bloqueada
+                                                                    $icono = $estaBloqueada ? '🚫 ' : '';
+                                                                    $texto_opcion = sprintf(
+                                                                        "%s%s - %s (Stock: %s)",
+                                                                        $icono,
+                                                                        $ub['nom_almacen'],
+                                                                        $ub['nom_ubicacion'],
+                                                                        number_format($ub['stock'], 2)
+                                                                    );
+                                                                    
+                                                                    // Si está bloqueada, deshabilitar la opción
+                                                                    $disabled = $estaBloqueada ? 'disabled' : '';
+                                                                    $estilo = $estaBloqueada ? 'style="color: #dc3545; font-style: italic;"' : '';
+                                                                    
+                                                                    echo sprintf(
+                                                                        '<option value="%d" data-id-almacen="%d" data-stock="%s" %s %s %s>%s</option>',
+                                                                        $ub['id_ubicacion'],
+                                                                        $ub['id_almacen'],
+                                                                        number_format($ub['stock'], 2, '.', ''),
+                                                                        $selected,
+                                                                        $disabled,
+                                                                        $estilo,
+                                                                        htmlspecialchars($texto_opcion)
+                                                                    );
+                                                                }
+                                                            }
+                                                            ?>
+                                                        </select>
+                                                        <small class="text-muted" style="font-size: 10px;">
+                                                            <i class="fa fa-info-circle"></i> Selecciona de dónde saldrá el material
+                                                        </small>
+                                                    </div>
+                                                </div>
+
+                                                <!-- ALMACÉN Y UBICACIÓN DESTINO -->
+                                                <div class="row mb-2">
+                                                    <!-- Almacén Destino -->
+                                                    <div class="col-md-6">
+                                                        <label style="font-size: 11px; font-weight: bold;">Almacén Destino: <span class="text-danger">*</span></label>
+                                                        <select class="form-control form-control-sm" 
+                                                                id="almacen_destino_salida" 
+                                                                name="almacen_destino_salida" 
+                                                                style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
+                                                                required>
+                                                            <option value="">Seleccionar almacén...</option>
+                                                            <?php foreach ($almacenes as $alm) { 
+                                                                $selected_destino = '';
+                                                                if ($modo_editar_salida && isset($salida_data) && $salida_data['id_almacen_destino'] == $alm['id_almacen']) {
+                                                                    $selected_destino = 'selected';
+                                                                } elseif (!$modo_editar_salida && $alm['id_almacen'] == $pedido['id_almacen']) {
+                                                                    $selected_destino = 'selected';
+                                                                }
+                                                            ?>
+                                                                <option value="<?php echo $alm['id_almacen']; ?>" <?php echo $selected_destino; ?>>
+                                                                    <?php echo htmlspecialchars($alm['nom_almacen']); ?>
+                                                                </option>
+                                                            <?php } ?>
+                                                        </select>
+                                                    </div>
+
+                                                    <!-- Ubicación Destino -->
+                                                    <div class="col-md-6">
+                                                        <label style="font-size: 11px; font-weight: bold;">Ubicación Destino: <span class="text-danger">*</span></label>
+                                                        <select class="form-control form-control-sm" 
+                                                                id="ubicacion_destino_salida" 
+                                                                name="ubicacion_destino_salida" 
+                                                                style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
+                                                                required>
+                                                            <option value="">Seleccionar ubicación...</option>
+                                                            <?php foreach ($ubicaciones as $ubi) { 
+                                                                $selected_ubi_destino = '';
+                                                                if ($modo_editar_salida && isset($salida_data) && $salida_data['id_ubicacion_destino'] == $ubi['id_ubicacion']) {
+                                                                    $selected_ubi_destino = 'selected';
+                                                                } elseif (!$modo_editar_salida && $ubi['id_ubicacion'] == $pedido['id_ubicacion']) {
+                                                                    // ← AQUÍ: Toma la ubicación del pedido
+                                                                    $selected_ubi_destino = 'selected';
+                                                                }
+                                                            ?>
+                                                                <option value="<?php echo $ubi['id_ubicacion']; ?>" <?php echo $selected_ubi_destino; ?>>
+                                                                    <?php echo htmlspecialchars($ubi['nom_ubicacion']); ?>
+                                                                </option>
+                                                            <?php } ?>
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Observaciones -->
+                                                <div class="row mb-2">
+                                                    <div class="col-md-12">
+                                                        <label style="font-size: 11px; font-weight: bold;">Observaciones:</label>
+                                                        <textarea class="form-control form-control-sm" id="observaciones_salida" name="observaciones_salida"
+                                                                rows="2" placeholder="Observaciones adicionales..." 
+                                                                style="font-size: 12px; resize: none;"><?php echo ($modo_editar_salida && isset($salida_data)) ? htmlspecialchars($salida_data['obs_salida']) : ''; ?></textarea>
+                                                    </div>
+                                                </div>
+
+                                                <!--  Subir Documentos -->
+                                                <div class="row mb-2">
+                                                    <div class="col-md-12">
+                                                        <label style="font-size: 11px; font-weight: bold;">
+                                                            Subir Documentos: <span class="text-danger">*</span>
+                                                        </label>
+                                                        <input type="file" name="documentos_salida[]" id="documentos_salida" 
+                                                            class="form-control form-control-sm" 
+                                                            multiple 
+                                                            <?php echo !$modo_editar_salida ? 'required' : ''; ?>
+                                                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                                            style="font-size: 12px;">
+                                                        <small class="text-muted" style="font-size: 10px;">
+                                                            <i class="fa fa-info-circle"></i> 
+                                                            <strong><?php echo $modo_editar_salida ? 'Opcional en modo edición.' : 'Obligatorio.'; ?></strong> 
+                                                            Formatos permitidos: PDF, JPG, PNG, DOC, DOCX. Máximo 5MB por archivo.
+                                                        </small>
+                                                        
+                                                        <?php if ($modo_editar_salida && isset($documentos_salida) && !empty($documentos_salida)): ?>
+                                                        <!-- 🔥 MOSTRAR DOCUMENTOS EXISTENTES CON ESTILO DE HOMOLOGACIÓN -->
+                                                        <div class="mt-2">
+                                                            <?php foreach ($documentos_salida as $doc): 
+                                                                $ruta_archivo = "../uploads/salidas/" . $doc['documento'];
+                                                                $extension = strtolower(pathinfo($doc['documento'], PATHINFO_EXTENSION));
+                                                                
+                                                                // Determinar icono según extensión
+                                                                $icono = 'fa-file';
+                                                                
+                                                                if ($extension == 'pdf') {
+                                                                    $icono = 'fa-file-pdf-o';
+                                                                } elseif (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
+                                                                    $icono = 'fa-file-image-o';
+                                                                } elseif (in_array($extension, ['doc', 'docx'])) {
+                                                                    $icono = 'fa-file-word-o';
+                                                                } elseif (in_array($extension, ['xls', 'xlsx'])) {
+                                                                    $icono = 'fa-file-excel-o';
+                                                                }
+                                                                
+                                                                // Nombre amigable (sin prefijo de timestamp)
+                                                                $nombre_mostrar = preg_replace('/^salidas_\d+_\d+_\d+_/', '', $doc['documento']);
+                                                            ?>
+                                                            <div style="margin-bottom: 5px; padding: 5px; background-color: #d4edda; border-radius: 4px; border: 1px solid #c3e6cb;">
+                                                                <a href="<?php echo $ruta_archivo; ?>" 
+                                                                target="_blank" 
+                                                                class="text-success" 
+                                                                style="font-size: 11px; display: block; text-decoration: none;">
+                                                                    <i class="fa <?php echo $icono; ?>"></i> 
+                                                                    <strong>Archivo actual:</strong>
+                                                                    <br>
+                                                                    <small class="text-muted"><?php echo htmlspecialchars($nombre_mostrar); ?></small>
+                                                                </a>
+                                                            </div>
+                                                            <?php endforeach; ?>
+                                                            <small class="text-info d-block mb-2" style="font-size: 10px;">
+                                                                <i class="fa fa-info-circle"></i> Subir nuevos archivos para agregar más documentos
+                                                            </small>
+                                                        </div>
+                                                        <?php elseif ($modo_editar_salida): ?>
+                                                        <div class="alert alert-warning mt-2" style="padding: 8px; font-size: 11px; margin-bottom: 0;">
+                                                            <i class="fa fa-exclamation-triangle"></i> 
+                                                            <strong>Sin documentos:</strong> Esta salida no tiene archivos adjuntos. Puedes agregar nuevos arriba.
+                                                        </div>
                                                         <?php endif; ?>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-1 text-right">
-                                                    <button type="button" class="btn btn-danger btn-sm btn-remover-item" 
-                                                            data-id-detalle="<?php echo $item['id_compra_detalle']; ?>"
-                                                            data-id-compra-detalle="<?php echo $item['id_compra_detalle']; ?>">
-                                                        <i class="fa fa-trash"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Campos en una sola línea: Cantidad, Precio, IGV, Homologación -->
-                                            <div class="row">
-                                                <!-- Cantidad -->
-                                                <div class="col-md-2">
-                                                    <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Cantidad:</label>
-                                                    <input type="number" 
-                                                        class="form-control form-control-sm cantidad-item" 
-                                                        name="items_orden[<?php echo $item['id_compra_detalle']; ?>][cantidad]"
-                                                        data-id-detalle="<?php echo $item['id_compra_detalle']; ?>"
-                                                        data-id-producto="<?php echo $item['id_producto']; ?>"
-                                                        data-cantidad-verificada="<?php echo $cantidad_verificada_item; ?>"
-                                                        data-cantidad-ordenada="<?php echo $cantidad_ordenada_item; ?>"
-                                                        value="<?php echo $item['cant_compra_detalle']; ?>"
-                                                        min="0.01" 
-                                                        step="0.01"
-                                                        style="font-size: 12px;"
-                                                        required>
-                                                </div>
-                                                
-                                                <!-- Precio Unitario -->
-                                                <div class="col-md-2">
-                                                    <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Precio Unit.:</label>
-                                                    <div class="input-group input-group-sm">
-                                                        <div class="input-group-prepend">
-                                                            <span class="input-group-text" style="font-size: 11px; background-color: #f8f9fa; border: 1px solid #ced4da;">
-                                                                <?php echo ($orden_data['id_moneda'] == 1) ? 'S/.' : 'US$'; ?>
-                                                            </span>
-                                                        </div>
-                                                        <input type="number" 
-                                                            class="form-control form-control-sm precio-item" 
-                                                            name="items_orden[<?php echo $item['id_compra_detalle']; ?>][precio_unitario]"
-                                                            data-id-detalle="<?php echo $item['id_compra_detalle']; ?>"
-                                                            value="<?php echo $item['prec_compra_detalle']; ?>"
-                                                            step="0.01" 
-                                                            min="0"
-                                                            style="font-size: 11px;"
-                                                            required>
-                                                    </div>
-                                                </div>
-                                                
-                                                <!-- IGV (%) -->
-                                                <div class="col-md-2">
-                                                    <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">IGV (%):</label>
-                                                    <input type="number" 
-                                                        class="form-control form-control-sm igv-item" 
-                                                        name="items_orden[<?php echo $item['id_compra_detalle']; ?>][igv]"
-                                                        data-id-detalle="<?php echo $item['id_compra_detalle']; ?>"
-                                                        value="<?php echo $item['igv_compra_detalle'] ?? 18; ?>"
-                                                        min="0" 
-                                                        max="100"
-                                                        step="0.01"
-                                                        style="font-size: 12px;"
-                                                        required>
-                                                </div>
-    
-                                                
-                                                <!-- Homologación -->
-                                                <div class="col-md-3">
-                                                    <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Homologación:</label>
+                                        
+                                        <!-- Contenedor de items de salida -->
+                                        <div id="contenedor-items-salida" class="mb-3">
+                                            <?php if ($modo_editar_salida && !empty($salida_detalle)): ?>
+                                                <?php foreach ($salida_detalle as $item): 
+                                                    $cantidad_maxima = isset($item['cantidad_maxima']) ? floatval($item['cantidad_maxima']) : 0;
+                                                    $cant_actual_en_salida = floatval($item['cant_salida_detalle']);
                                                     
-                                                    <?php if (!empty($item['hom_compra_detalle'])): ?>
-                                                        <div style="margin-bottom: 5px; padding: 5px; background-color: #d4edda; border-radius: 4px; border: 1px solid #c3e6cb;">
-                                                            <a href="../_archivos/homologaciones/<?php echo htmlspecialchars($item['hom_compra_detalle']); ?>" 
-                                                            target="_blank" 
-                                                            class="text-success" 
-                                                            style="font-size: 11px; display: block; text-decoration: none;">
-                                                                <i class="fa fa-file-pdf-o"></i> 
-                                                                <strong>Archivo actual:</strong>
-                                                                <br>
-                                                                <small class="text-muted"><?php echo htmlspecialchars($item['hom_compra_detalle']); ?></small>
-                                                            </a>
-                                                        </div>
-                                                        <small class="text-info d-block mb-2" style="font-size: 10px;">
-                                                            <i class="fa fa-info-circle"></i> Subir nuevo archivo para reemplazar
-                                                        </small>
-                                                    <?php endif; ?>
-                                                    
-                                                    <input type="file" 
-                                                        class="form-control-file" 
-                                                        name="homologacion[<?php echo $item['id_compra_detalle']; ?>]"
-                                                        accept=".pdf,.jpg,.jpeg,.png"
-                                                        style="font-size: 11px;">
-                                                    
-                                                    <?php if (empty($item['hom_compra_detalle'])): ?>
-                                                        <small class="text-muted" style="font-size: 10px;">PDF, JPG, PNG (máx. 5MB)</small>
-                                                    <?php endif; ?>
-                                                </div>
-                                                
-                                                <!-- Cálculos (Subtotal, IGV, Total) -->
-                                                <div class="col-md-3 text-right">
-                                                    <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block; visibility: hidden;">-</label>
-                                                    <div class="calculo-item" id="calculo-<?php echo $item['id_compra_detalle']; ?>" 
-                                                        style="font-size: 11px; line-height: 1.4;">
-                                                        <div class="subtotal-text">Subtotal: --</div>
-                                                        <div class="igv-text">IGV: --</div>
-                                                        <div class="total-text" style="font-weight: bold; color: #28a745;">Total: --</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </div>
-                                
-                                <div class="text-center mt-2" style="padding: 8px;">
-                                    <a href="pedido_verificar.php?id=<?php echo $id_pedido; ?>" class="btn btn-secondary btn-sm mr-2">
-                                        <i class="fa fa-times"></i> Cancelar
-                                    </a>
-                                    <button type="submit" data-toggle="tooltip" class="btn btn-<?php echo $modo_editar ? 'warning' : 'primary'; ?> btn-sm">
-                                        <i class="fa fa-save"></i> <?php echo $modo_editar ? 'Actualizar Orden' : 'Guardar Orden'; ?>
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-
-                        <!-- FORMULARIO PARA CREAR/EDITAR SALIDA -->
-                        <div id="contenedor-nueva-salida" <?php echo $modo_editar_salida ? 'style="display: block;"' : 'style="display: none;"'; ?>>
-                            <form id="form-nueva-salida" method="POST" action="" enctype="multipart/form-data">
-                                <?php if ($modo_editar_salida): ?>
-                                <input type="hidden" name="actualizar_salida" value="1">
-                                <input type="hidden" name="id_salida" value="<?php echo $id_salida_editar; ?>">
-                                <?php else: ?>
-                                <input type="hidden" name="crear_salida" value="1">
-                                <?php endif; ?>
-                                <input type="hidden" name="id_pedido" value="<?php echo $id_pedido; ?>">
-                                
-                                <div class="card">
-                                    <div class="card-header" style="padding: 8px 12px; background-color: <?php echo $modo_editar_salida ? '#fff3cd' : '#d4edda'; ?>;">
-                                        <h6 class="mb-0">
-                                            <i class="fa <?php echo $modo_editar_salida ? 'fa-edit text-warning' : 'fa-truck text-success'; ?>"></i>
-                                            <?php echo $modo_editar_salida ? 'Editar Salida S00' . $id_salida_editar : 'Nueva Salida'; ?>
-                                        </h6>
-                                    </div>
-                                    <div class="card-body" style="padding: 12px;">
-                                        <!-- Fecha de la salida -->
-                                        <div class="row mb-2">
-                                            <div class="col-md-6">
-                                                <label style="font-size: 11px; font-weight: bold;">Fecha Requerida de Salida: <span class="text-danger">*</span></label>
-                                                <input type="date" class="form-control form-control-sm" id="fecha_salida" name="fecha_salida" 
-                                                    value="<?php 
-                                                        if ($modo_editar_salida && isset($salida_data)) {
-                                                            echo date('Y-m-d', strtotime($salida_data['fec_req_salida']));
-                                                        } else {
-                                                            //echo date('Y-m-d', strtotime($pedido['fec_req_pedido']));
-                                                            echo date('Y-m-d');
-                                                        }
-                                                    ?>" 
-                                                    style="font-size: 12px;" required>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label style="font-size: 11px; font-weight: bold;">N° Documento de Salida:</label>
-                                                <input type="text" class="form-control form-control-sm" name="ndoc_salida" 
-                                                    value="<?php echo ($modo_editar_salida && isset($salida_data)) ? htmlspecialchars($salida_data['ndoc_salida']) : ''; ?>"
-                                                    placeholder="" style="font-size: 12px;">
-                                            </div>
-                                        </div>
-
-                                        <!-- ALMACÉN Y UBICACIÓN ORIGEN -->
-                                        <div class="row mb-2">
-                                            <!-- Almacén Origen -->
-                                            <div class="col-md-6">
-                                                <label style="font-size: 11px; font-weight: bold;">Almacén Origen: <span class="text-danger">*</span></label>
-                                                <select class="form-control form-control-sm" 
-                                                    id="almacen_origen_salida" 
-                                                    name="almacen_origen_salida" 
-                                                    style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
-                                                    required>
-                                                    <option value="">Seleccionar almacén...</option>
-                                                    <?php foreach ($almacenes as $alm) { 
-                                                        $selected_origen = '';
-                                                        if ($modo_editar_salida && isset($salida_data) && $salida_data['id_almacen_origen'] == $alm['id_almacen']) {
-                                                            $selected_origen = 'selected';
-                                                        } elseif (!$modo_editar_salida && $alm['id_almacen'] == $pedido['id_almacen']) {
-                                                            $selected_origen = 'selected';
-                                                        }
-                                                    ?>
-                                                        <option value="<?php echo $alm['id_almacen']; ?>" <?php echo $selected_origen; ?>>
-                                                            <?php echo htmlspecialchars($alm['nom_almacen']); ?>
-                                                        </option>
-                                                    <?php } ?>
-                                                </select>
-                                            </div>
-
-                                            <!-- Ubicación Origen -->
-                                            <div class="col-md-6">
-                                                <label style="font-size: 11px; font-weight: bold;">Ubicación Origen: <span class="text-danger">*</span></label>
-                                                <select class="form-control form-control-sm" 
-                                                        id="ubicacion_origen_salida" 
-                                                        name="ubicacion_origen_salida" 
-                                                        style="font-size: 12px;" 
-                                                        required>
-                                                    <option value="">Seleccionar ubicación...</option>
-                                                    <?php 
-                                                    if (!empty($pedido_detalle)) {
-                                                        $primer_detalle = $pedido_detalle[0];
-                                                        
-                                                        // Obtener ubicaciones bloqueadas
-                                                        $ubicaciones_bloqueadas_form = ObtenerUbicacionesBloqueadasPorDenegacion(
-                                                            $primer_detalle['id_producto'],
-                                                            $primer_detalle['id_pedido_detalle']
-                                                        );
-                                                        
-                                                        // Crear array de keys bloqueadas para búsqueda rápida
-                                                        $bloqueadas_keys = [];
-                                                        foreach ($ubicaciones_bloqueadas_form as $key => $info) {
-                                                            $bloqueadas_keys[$key] = true;
-                                                        }
-                                                        
-                                                        // Obtener todas las ubicaciones con stock
-                                                        $ubicaciones_disponibles = ObtenerOtrasUbicacionesConStock(
-                                                            $primer_detalle['id_producto'],
-                                                            $pedido['id_almacen'],
-                                                            $pedido['id_ubicacion']
-                                                        );
-                                                        
-                                                        $id_ubicacion_origen_preseleccionada = null;
-                                                        if ($modo_editar_salida && isset($salida_data)) {
-                                                            $id_ubicacion_origen_preseleccionada = $salida_data['id_ubicacion_origen'];
-                                                        } elseif (!empty($ubicaciones_disponibles)) {
-                                                            // Preseleccionar la primera ubicación NO bloqueada
-                                                            foreach ($ubicaciones_disponibles as $ub) {
-                                                                $key_ub = $ub['id_almacen'] . '_' . $ub['id_ubicacion'];
-                                                                if (!isset($bloqueadas_keys[$key_ub])) {
-                                                                    $id_ubicacion_origen_preseleccionada = $ub['id_ubicacion'];
-                                                                    break;
-                                                                }
-                                                            }
-                                                        }
-                                                        
-                                                        foreach ($ubicaciones_disponibles as $ub) {
-                                                            // Verificar si está bloqueada
-                                                            $key_ub = $ub['id_almacen'] . '_' . $ub['id_ubicacion'];
-                                                            $estaBloqueada = isset($bloqueadas_keys[$key_ub]);
-                                                            
-                                                            $selected = '';
-                                                            if ($id_ubicacion_origen_preseleccionada && $id_ubicacion_origen_preseleccionada == $ub['id_ubicacion']) {
-                                                                $selected = 'selected';
-                                                            }
-                                                            
-                                                            // Formato: "ALMACÉN - UBICACIÓN (Stock: XX.XX)" con ícono si está bloqueada
-                                                            $icono = $estaBloqueada ? '🚫 ' : '';
-                                                            $texto_opcion = sprintf(
-                                                                "%s%s - %s (Stock: %s)",
-                                                                $icono,
-                                                                $ub['nom_almacen'],
-                                                                $ub['nom_ubicacion'],
-                                                                number_format($ub['stock'], 2)
-                                                            );
-                                                            
-                                                            // Si está bloqueada, deshabilitar la opción
-                                                            $disabled = $estaBloqueada ? 'disabled' : '';
-                                                            $estilo = $estaBloqueada ? 'style="color: #dc3545; font-style: italic;"' : '';
-                                                            
-                                                            echo sprintf(
-                                                                '<option value="%d" data-id-almacen="%d" data-stock="%s" %s %s %s>%s</option>',
-                                                                $ub['id_ubicacion'],
-                                                                $ub['id_almacen'],
-                                                                number_format($ub['stock'], 2, '.', ''),
-                                                                $selected,
-                                                                $disabled,
-                                                                $estilo,
-                                                                htmlspecialchars($texto_opcion)
-                                                            );
+                                                    //  OBTENER CANTIDAD OS ORIGINAL (sin límite de stock)
+                                                    $cant_os_original = 0;
+                                                    foreach ($pedido_detalle as $det) {
+                                                        if ($det['id_pedido_detalle'] == $item['id_pedido_detalle']) {
+                                                            $cant_os_original = floatval($det['cant_os_pedido_detalle']);
+                                                            break;
                                                         }
                                                     }
-                                                    ?>
-                                                </select>
-                                                <small class="text-muted" style="font-size: 10px;">
-                                                    <i class="fa fa-info-circle"></i> Selecciona de dónde saldrá el material
-                                                </small>
-                                            </div>
-                                        </div>
-
-                                        <!-- ALMACÉN Y UBICACIÓN DESTINO -->
-                                        <div class="row mb-2">
-                                            <!-- Almacén Destino -->
-                                            <div class="col-md-6">
-                                                <label style="font-size: 11px; font-weight: bold;">Almacén Destino: <span class="text-danger">*</span></label>
-                                                <select class="form-control form-control-sm" 
-                                                        id="almacen_destino_salida" 
-                                                        name="almacen_destino_salida" 
-                                                        style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
-                                                        required>
-                                                    <option value="">Seleccionar almacén...</option>
-                                                    <?php foreach ($almacenes as $alm) { 
-                                                        $selected_destino = '';
-                                                        if ($modo_editar_salida && isset($salida_data) && $salida_data['id_almacen_destino'] == $alm['id_almacen']) {
-                                                            $selected_destino = 'selected';
-                                                        } elseif (!$modo_editar_salida && $alm['id_almacen'] == $pedido['id_almacen']) {
-                                                            $selected_destino = 'selected';
-                                                        }
-                                                    ?>
-                                                        <option value="<?php echo $alm['id_almacen']; ?>" <?php echo $selected_destino; ?>>
-                                                            <?php echo htmlspecialchars($alm['nom_almacen']); ?>
-                                                        </option>
-                                                    <?php } ?>
-                                                </select>
-                                            </div>
-
-                                            <!-- Ubicación Destino -->
-                                            <div class="col-md-6">
-                                                <label style="font-size: 11px; font-weight: bold;">Ubicación Destino: <span class="text-danger">*</span></label>
-                                                <select class="form-control form-control-sm" 
-                                                        id="ubicacion_destino_salida" 
-                                                        name="ubicacion_destino_salida" 
-                                                        style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
-                                                        required>
-                                                    <option value="">Seleccionar ubicación...</option>
-                                                    <?php foreach ($ubicaciones as $ubi) { 
-                                                        $selected_ubi_destino = '';
-                                                        if ($modo_editar_salida && isset($salida_data) && $salida_data['id_ubicacion_destino'] == $ubi['id_ubicacion']) {
-                                                            $selected_ubi_destino = 'selected';
-                                                        } elseif (!$modo_editar_salida && $ubi['id_ubicacion'] == $pedido['id_ubicacion']) {
-                                                            // ← AQUÍ: Toma la ubicación del pedido
-                                                            $selected_ubi_destino = 'selected';
-                                                        }
-                                                    ?>
-                                                        <option value="<?php echo $ubi['id_ubicacion']; ?>" <?php echo $selected_ubi_destino; ?>>
-                                                            <?php echo htmlspecialchars($ubi['nom_ubicacion']); ?>
-                                                        </option>
-                                                    <?php } ?>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <!-- Observaciones -->
-                                        <div class="row mb-2">
-                                            <div class="col-md-12">
-                                                <label style="font-size: 11px; font-weight: bold;">Observaciones:</label>
-                                                <textarea class="form-control form-control-sm" id="observaciones_salida" name="observaciones_salida"
-                                                        rows="2" placeholder="Observaciones adicionales..." 
-                                                        style="font-size: 12px; resize: none;"><?php echo ($modo_editar_salida && isset($salida_data)) ? htmlspecialchars($salida_data['obs_salida']) : ''; ?></textarea>
-                                            </div>
-                                        </div>
-
-                                        <!--  Subir Documentos -->
-                                        <div class="row mb-2">
-                                            <div class="col-md-12">
-                                                <label style="font-size: 11px; font-weight: bold;">
-                                                    Subir Documentos: <span class="text-danger">*</span>
-                                                </label>
-                                                <input type="file" name="documentos_salida[]" id="documentos_salida" 
-                                                    class="form-control form-control-sm" 
-                                                    multiple 
-                                                    <?php echo !$modo_editar_salida ? 'required' : ''; ?>
-                                                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                                                    style="font-size: 12px;">
-                                                <small class="text-muted" style="font-size: 10px;">
-                                                    <i class="fa fa-info-circle"></i> 
-                                                    <strong><?php echo $modo_editar_salida ? 'Opcional en modo edición.' : 'Obligatorio.'; ?></strong> 
-                                                    Formatos permitidos: PDF, JPG, PNG, DOC, DOCX. Máximo 5MB por archivo.
-                                                </small>
-                                                
-                                                <?php if ($modo_editar_salida && isset($documentos_salida) && !empty($documentos_salida)): ?>
-                                                <!-- 🔥 MOSTRAR DOCUMENTOS EXISTENTES CON ESTILO DE HOMOLOGACIÓN -->
-                                                <div class="mt-2">
-                                                    <?php foreach ($documentos_salida as $doc): 
-                                                        $ruta_archivo = "../uploads/salidas/" . $doc['documento'];
-                                                        $extension = strtolower(pathinfo($doc['documento'], PATHINFO_EXTENSION));
-                                                        
-                                                        // Determinar icono según extensión
-                                                        $icono = 'fa-file';
-                                                        
-                                                        if ($extension == 'pdf') {
-                                                            $icono = 'fa-file-pdf-o';
-                                                        } elseif (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
-                                                            $icono = 'fa-file-image-o';
-                                                        } elseif (in_array($extension, ['doc', 'docx'])) {
-                                                            $icono = 'fa-file-word-o';
-                                                        } elseif (in_array($extension, ['xls', 'xlsx'])) {
-                                                            $icono = 'fa-file-excel-o';
-                                                        }
-                                                        
-                                                        // Nombre amigable (sin prefijo de timestamp)
-                                                        $nombre_mostrar = preg_replace('/^salidas_\d+_\d+_\d+_/', '', $doc['documento']);
-                                                    ?>
-                                                    <div style="margin-bottom: 5px; padding: 5px; background-color: #d4edda; border-radius: 4px; border: 1px solid #c3e6cb;">
-                                                        <a href="<?php echo $ruta_archivo; ?>" 
-                                                        target="_blank" 
-                                                        class="text-success" 
-                                                        style="font-size: 11px; display: block; text-decoration: none;">
-                                                            <i class="fa <?php echo $icono; ?>"></i> 
-                                                            <strong>Archivo actual:</strong>
-                                                            <br>
-                                                            <small class="text-muted"><?php echo htmlspecialchars($nombre_mostrar); ?></small>
-                                                        </a>
+                                                    error_log("📝 HTML: Item '{$item['nom_producto']}' | Max: $cantidad_maxima | Actual: $cant_actual_en_salida");
+                                                ?>
+                                                <div class="alert alert-light p-2 mb-2" id="item-salida-<?php echo $item['id_salida_detalle']; ?>">
+                                                    <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_salida_detalle]" value="<?php echo $item['id_salida_detalle']; ?>">
+                                                    <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_pedido_detalle]" value="<?php echo $item['id_pedido_detalle']; ?>">
+                                                    <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_producto]" value="<?php echo $item['id_producto']; ?>">
+                                                    <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][es_nuevo]" value="0">
+                                                    <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][descripcion]" value="<?php echo htmlspecialchars($item['nom_producto']); ?>">
+                                                    
+                                                    <div class="row align-items-center mb-2">
+                                                        <div class="col-md-11">
+                                                            <div style="font-size: 12px;">
+                                                                <strong>Descripción:</strong> <?php echo htmlspecialchars($item['nom_producto']); ?>
+                                                                <span class="badge badge-warning badge-sm ml-1">EDITANDO</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-1 text-right">
+                                                            <button type="button" class="btn btn-danger btn-sm btn-remover-item-salida" data-toggle="tooltip"
+                                                                    data-id-detalle="<?php echo $item['id_salida_detalle']; ?>">
+                                                                <i class="fa fa-trash"></i>
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <?php endforeach; ?>
-                                                    <small class="text-info d-block mb-2" style="font-size: 10px;">
-                                                        <i class="fa fa-info-circle"></i> Subir nuevos archivos para agregar más documentos
-                                                    </small>
-                                                </div>
-                                                <?php elseif ($modo_editar_salida): ?>
-                                                <div class="alert alert-warning mt-2" style="padding: 8px; font-size: 11px; margin-bottom: 0;">
-                                                    <i class="fa fa-exclamation-triangle"></i> 
-                                                    <strong>Sin documentos:</strong> Esta salida no tiene archivos adjuntos. Puedes agregar nuevos arriba.
-                                                </div>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                
-                                <!-- Contenedor de items de salida -->
-                                <div id="contenedor-items-salida" class="mb-3">
-                                    <?php if ($modo_editar_salida && !empty($salida_detalle)): ?>
-                                        <?php foreach ($salida_detalle as $item): 
-                                            $cantidad_maxima = isset($item['cantidad_maxima']) ? floatval($item['cantidad_maxima']) : 0;
-                                            $cant_actual_en_salida = floatval($item['cant_salida_detalle']);
-                                            
-                                            
-                                            error_log("📝 HTML: Item '{$item['nom_producto']}' | Max: $cantidad_maxima | Actual: $cant_actual_en_salida");
-                                        ?>
-                                        <div class="alert alert-light p-2 mb-2" id="item-salida-<?php echo $item['id_salida_detalle']; ?>">
-                                            <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_salida_detalle]" value="<?php echo $item['id_salida_detalle']; ?>">
-                                            <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_pedido_detalle]" value="<?php echo $item['id_pedido_detalle']; ?>">
-                                            <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][id_producto]" value="<?php echo $item['id_producto']; ?>">
-                                            <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][es_nuevo]" value="0">
-                                            <input type="hidden" name="items_salida[<?php echo $item['id_salida_detalle']; ?>][descripcion]" value="<?php echo htmlspecialchars($item['nom_producto']); ?>">
-                                            
-                                            <div class="row align-items-center mb-2">
-                                                <div class="col-md-11">
-                                                    <div style="font-size: 12px;">
-                                                        <strong>Descripción:</strong> <?php echo htmlspecialchars($item['nom_producto']); ?>
-                                                        <span class="badge badge-warning badge-sm ml-1">EDITANDO</span>
+                                                    
+                                                    <div class="row">
+                                                        <div class="col-md-4">
+                                                            <label style="font-size: 11px; font-weight: bold;">Cantidad a Trasladar:</label>
+                                                            <input type="number" 
+                                                                class="form-control form-control-sm cantidad-salida" 
+                                                                name="items_salida[<?php echo $item['id_salida_detalle']; ?>][cantidad]"
+                                                                value="<?php echo number_format($cant_actual_en_salida, 2, '.', ''); ?>" 
+                                                                min="0.01" 
+                                                                max="<?php echo number_format($cantidad_maxima, 2, '.', ''); ?>" 
+                                                                step="0.01"
+                                                                data-cantidad-maxima="<?php echo number_format($cantidad_maxima, 2, '.', ''); ?>"
+                                                                data-cantidad-maxima-os="<?php echo number_format($cantidad_maxima, 2, '.', ''); ?>"
+                                                                style="font-size: 12px;" 
+                                                                required>
+                                                            <small class="text-info" style="font-size: 10px;">
+                                                                <i class="fa fa-arrow-up"></i> Máx: <?php echo number_format($cantidad_maxima, 2); ?>
+                                                            </small>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-1 text-right">
-                                                    <button type="button" class="btn btn-danger btn-sm btn-remover-item-salida" data-toggle="tooltip"
-                                                            data-id-detalle="<?php echo $item['id_salida_detalle']; ?>">
-                                                        <i class="fa fa-trash"></i>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="row">
-                                                <div class="col-md-4">
-                                                    <label style="font-size: 11px; font-weight: bold;">Cantidad a Trasladar:</label>
-                                                    <input type="number" 
-                                                        class="form-control form-control-sm cantidad-salida" 
-                                                        name="items_salida[<?php echo $item['id_salida_detalle']; ?>][cantidad]"
-                                                        value="<?php echo number_format($cant_actual_en_salida, 2, '.', ''); ?>" 
-                                                        min="0.01" 
-                                                        max="<?php echo number_format($cantidad_maxima, 2, '.', ''); ?>" 
-                                                        step="0.01"
-                                                        data-cantidad-maxima="<?php echo number_format($cantidad_maxima, 2, '.', ''); ?>"
-                                                        style="font-size: 12px;" 
-                                                        required>
-                                                    <small class="text-info" style="font-size: 10px;">
-                                                        <i class="fa fa-arrow-up"></i> Máx: <?php echo number_format($cantidad_maxima, 2); ?>
-                                                    </small>
-                                                </div>
-                                            </div>
+                                                <?php endforeach; ?>
+                                            <?php endif; ?>
                                         </div>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
+                                        
+                                        <!-- Botones de acción -->
+                                        <div class="text-center mt-2" style="padding: 8px;">
+                                            <a href="pedido_verificar.php?id=<?php echo $id_pedido; ?>" class="btn btn-secondary btn-sm mr-2">
+                                                <i class="fa fa-times"></i> Cancelar
+                                            </a>
+                                            <button type="submit" data-toggle="tooltip" class="btn btn-<?php echo $modo_editar_salida ? 'warning' : 'success'; ?> btn-sm">
+                                                <i class="fa fa-save"></i> <?php echo $modo_editar_salida ? 'Actualizar Salida' : 'Guardar Salida'; ?>
+                                            </button>
+                                        </div>
+                                    </form>
                                 </div>
-                                
-                                <!-- Botones de acción -->
-                                <div class="text-center mt-2" style="padding: 8px;">
-                                    <a href="pedido_verificar.php?id=<?php echo $id_pedido; ?>" class="btn btn-secondary btn-sm mr-2">
-                                        <i class="fa fa-times"></i> Cancelar
-                                    </a>
-                                    <button type="submit" data-toggle="tooltip" class="btn btn-<?php echo $modo_editar_salida ? 'warning' : 'success'; ?> btn-sm">
-                                        <i class="fa fa-save"></i> <?php echo $modo_editar_salida ? 'Actualizar Salida' : 'Guardar Salida'; ?>
-                                    </button>
-                                </div>
-                            </form>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
-<div class="row">
-    <div class="col-md-12">
-        <div class="x_panel">
-            <div class="x_content text-center" style="padding: 15px;">
-                <div class="row">
-                    <div class="col-md-6 offset-md-3">
-                        <a href="pedidos_mostrar.php" class="btn btn-outline-secondary btn-sm btn-block">
-                            <i class="fa fa-arrow-left"></i> Volver
-                        </a>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="x_panel">
+                    <div class="x_content text-center" style="padding: 15px;">
+                        <div class="row">
+                            <div class="col-md-6 offset-md-3">
+                                <a href="pedidos_mostrar.php" class="btn btn-outline-secondary btn-sm btn-block">
+                                    <i class="fa fa-arrow-left"></i> Volver
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <?php if ($pedido['id_producto_tipo'] != 2): ?>
+                        <div class="col-md-12 mt-2">
+                            <p class="text-muted" style="font-size: 12px;">
+                                <i class="fa fa-info-circle"></i> 
+                                Recuerda verificar todos los items antes de generar órdenes o salidas
+                            </p>
+                        </div>
+                        <?php endif; ?>
                     </div>
-                </div>
-                <div class="col-md-12 mt-2">
-                    <p class="text-muted" style="font-size: 12px;">
-                        <i class="fa fa-info-circle"></i> 
-                        Recuerda verificar todos los items antes de generar órdenes o salidas
-                    </p>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 <!-- ============================================ -->
 <!-- MODALES -->
 <!-- ============================================ -->
@@ -3733,37 +3869,89 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function validarCantidadesCliente(itemsOrden) {
     const errores = [];
+
+    // Obtener ID de compra actual
     const inputIdCompra = document.querySelector('input[name="id_compra"]');
     const idCompraActual = inputIdCompra ? parseInt(inputIdCompra.value) : null;
-    
+
     console.log('🔍 validarCantidadesCliente - ID Compra actual:', idCompraActual);
-    
+
     itemsOrden.forEach(itemElement => {
+
+        // Inputs necesarios por item
         const idProductoInput = itemElement.querySelector('input[name*="[id_producto]"]');
         const cantidadInput = itemElement.querySelector('.cantidad-item');
         const esNuevoInput = itemElement.querySelector('input[name*="[es_nuevo]"]');
         const idDetalleInput = itemElement.querySelector('input[name*="[id_pedido_detalle]"]');
-        const idDetalleActual = idDetalleInput ? parseInt(idDetalleInput.value) : null;
+        const esBaseArceInput = itemElement.querySelector('input[name*="[es_base_arce]"]');
 
-        console.log('📦 Validando item:', {
-            id_pedido_detalle: idDetalleActual,
-            id_producto: idProductoInput ? idProductoInput.value : 'N/A',
-            cantidad: cantidadInput ? cantidadInput.value : 'N/A'
-        });
-
+        // Validar elementos obligatorios
         if (!idProductoInput || !cantidadInput) {
-            console.warn('⚠️ Faltan inputs necesarios');
+            console.warn('⚠️ Faltan inputs necesarios en item:', itemElement);
             return;
         }
-        
+
+        // Valores principales del item
         const idProducto = parseInt(idProductoInput.value);
         const cantidadNueva = parseFloat(cantidadInput.value) || 0;
         const esNuevo = esNuevoInput && esNuevoInput.value === '1';
-        
-        // 🔹 CORRECCIÓN: Usar los data-attributes del input cantidad
+        const idDetalleActual = idDetalleInput ? parseInt(idDetalleInput.value) : null;
+
+        //  Detectar BASE ARCE por data-attribute + input oculto
+        const esBaseArce =
+            cantidadInput.getAttribute('data-es-base-arce') === '1' ||
+            (esBaseArceInput && esBaseArceInput.value === '1');
+
+        console.log(' Validando item:', {
+            id_pedido_detalle: idDetalleActual,
+            esBaseArce: esBaseArce,
+            esNuevo: esNuevo,
+            modoEditar: modoEditar
+        });
+
+        //  Obtener cantidades verificada/ordenada
         let cantidadVerificada = parseFloat(cantidadInput.getAttribute('data-cantidad-verificada')) || 0;
         let cantidadOrdenada = parseFloat(cantidadInput.getAttribute('data-cantidad-ordenada')) || 0;
+
         
+        let cantidadDisponible = 0;
+        
+        if (modoEditar && idCompraActual) {
+            // ═══════════════════════════════════════════════════════
+            // MODO EDICIÓN: Permitir usar TODA la cantidad verificada
+            // ═══════════════════════════════════════════════════════
+            if (esBaseArce) {
+                // BASE ARCE: Máximo = cantidad pedida (verificada)
+                cantidadDisponible = cantidadVerificada;
+                console.log(' BASE ARCE EDICIÓN: Máximo permitido =', cantidadVerificada);
+            } else {
+                // NORMAL: Máximo = cantidad verificada
+                cantidadDisponible = cantidadVerificada;
+                console.log(' NORMAL EDICIÓN: Máximo permitido =', cantidadVerificada);
+            }
+        } else {
+            // ═══════════════════════════════════════════════════════
+            // MODO CREAR: Validar contra pendiente
+            // ═══════════════════════════════════════════════════════
+            cantidadDisponible = cantidadVerificada - cantidadOrdenada;
+            
+            if (esBaseArce) {
+                console.log(' BASE ARCE CREAR: Pendiente =', cantidadDisponible);
+            } else {
+                console.log(' NORMAL CREAR: Pendiente =', cantidadDisponible);
+            }
+        }
+
+        console.log(' Cálculo final:', {
+            esBaseArce: esBaseArce,
+            modoEditar: modoEditar,
+            verificada: cantidadVerificada,
+            ordenada: cantidadOrdenada,
+            disponible: cantidadDisponible,
+            intentaOrdenar: cantidadNueva
+        });
+
+        // Obtener descripción del producto (para el pop-up de errores)
         let descripcionProducto = '';
         const rowElement = cantidadInput.closest('[id^="item-orden-"]');
         if (rowElement) {
@@ -3772,36 +3960,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 descripcionProducto = descripcionElement.nextSibling.textContent.trim();
             }
         }
-        
-        // Calcular disponible correctamente
-        let cantidadDisponible = cantidadVerificada - cantidadOrdenada;
-        
-        console.log('🔢 Cálculo:', {
-            verificada: cantidadVerificada,
-            ordenada: cantidadOrdenada,
-            disponible: cantidadDisponible,
-            intentaOrdenar: cantidadNueva
-        });
-        
-        //  Validar que no exceda lo disponible
+
+        //  Validación final: excede disponible
         if (cantidadNueva > cantidadDisponible) {
-            const descripcionCorta = descripcionProducto.length > 50 
-                ? descripcionProducto.substring(0, 50) + '...' 
+            const descripcionCorta = descripcionProducto.length > 50
+                ? descripcionProducto.substring(0, 50) + '...'
                 : descripcionProducto;
-            
+
             const tipoItem = esNuevo ? '[NUEVO]' : '[EDITANDO]';
             
-            const error = `<strong>${tipoItem} ${descripcionCorta}:</strong><br>` +
-                `Cantidad ingresada: <strong>${cantidadNueva}</strong><br>` +
-                `Verificado: ${cantidadVerificada} | Ya ordenado: ${cantidadOrdenada} | ` +
-                `<strong style="color: #28a745;">Disponible: ${cantidadDisponible.toFixed(2)}</strong>`;
+            let mensaje = '';
             
-            errores.push(error);
+            if (modoEditar) {
+                // Mensaje para modo edición
+                mensaje = `
+                    <strong>${tipoItem} ${descripcionCorta}:</strong><br>
+                    Cantidad ingresada: <strong>${cantidadNueva}</strong><br>
+                    Máximo permitido: <strong style="color: #28a745;">${cantidadDisponible.toFixed(2)}</strong><br>
+                    <small class="text-muted">(En modo edición, puedes ordenar hasta la cantidad total ${esBaseArce ? 'pedida' : 'verificada'})</small>
+                `;
+            } else {
+                // Mensaje para modo crear
+                mensaje = `
+                    <strong>${tipoItem} ${descripcionCorta}:</strong><br>
+                    Cantidad ingresada: <strong>${cantidadNueva}</strong><br>
+                    ${esBaseArce ? 'Pedida' : 'Verificada'}: ${cantidadVerificada} |
+                    Ya ordenado: ${cantidadOrdenada} |
+                    <strong style="color: #28a745;">Disponible: ${cantidadDisponible.toFixed(2)}</strong>
+                `;
+            }
+
+            errores.push(mensaje);
         }
     });
-    
+
     return errores;
 }
+
 
     function obtenerCantidadActualEnOrden(idProducto, idCompraActual) {
         let cantidadActual = 0;
@@ -4534,16 +4729,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         <label style="font-size: 11px; font-weight: bold;">Cantidad a Trasladar:</label>
                         <input type="number" 
                             class="form-control form-control-sm cantidad-salida" 
-                            name="items_salida[${item.id_salida_detalle}][cantidad]"
-                            value="${cantActualEnSalida.toFixed(2)}" 
+                            name="items_salida[<?php echo $item['id_salida_detalle']; ?>][cantidad]"
+                            value="<?php echo number_format($cant_actual_en_salida, 2, '.', ''); ?>" 
                             min="0.01" 
-                            max="${cantidadMaxima.toFixed(2)}" 
+                            max="<?php echo number_format($cantidad_maxima, 2, '.', ''); ?>" 
                             step="0.01"
-                            data-cantidad-maxima="${cantidadMaxima}"
+                            data-cantidad-maxima="<?php echo number_format($cantidad_maxima, 2, '.', ''); ?>"
+                            data-cantidad-maxima-os="<?php echo number_format($cant_os_original, 2, '.', ''); ?>"
                             style="font-size: 12px;" 
                             required>
                         <small class="text-info" style="font-size: 10px;">
-                            <i class="fa fa-arrow-up"></i> Máx: ${cantidadMaxima.toFixed(2)}
+                            <i class="fa fa-arrow-up"></i> Máx: <?php echo number_format($cantidad_maxima, 2); ?>
                         </small>
                     </div>
                 </div>
@@ -4551,8 +4747,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             contenedor.appendChild(div);
         });
-        
-        console.log('✅ Items cargados en modo edición');
+
     }
     
     // ============================================
@@ -4787,14 +4982,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     ordenada: cantidadOrdenada,
                     pendiente: (cantidadVerificada - cantidadOrdenada).toFixed(2)
                 });
-                
+                                
                 agregarItemAOrden({
                     idDetalle: btnAgregar.dataset.idDetalle,
                     idProducto: btnAgregar.dataset.idProducto,
                     descripcion: btnAgregar.dataset.descripcion,
                     cantidadVerificada: parseFloat(btnAgregar.dataset.cantidadVerificada) || 0,
                     cantidadOrdenada: parseFloat(btnAgregar.dataset.cantidadOrdenada) || 0,
-                    cantidadPendiente: parseFloat(btnAgregar.dataset.cantidadPendiente) || 0,  // NUEVO
+                    cantidadPendiente: parseFloat(btnAgregar.dataset.cantidadPendiente) || 0,
+                    es_base_arce: btnAgregar.dataset.esBaseArce,   // 🏢 AGREGAR ESTO
                     botonOriginal: btnAgregar
                 });
             }
@@ -5224,112 +5420,126 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-        function agregarItemAOrden(item) {
-        console.log('🎯 agregarItemAOrden INICIADO');
-        console.log('📋 Item recibido:', item);
+function agregarItemAOrden(item) {
+    console.log('🎯 agregarItemAOrden INICIADO');
+    console.log('📋 Item recibido:', item);
+    
+    try {
+        const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
         
-        try {
-            const contenedorItemsOrden = document.getElementById('contenedor-items-orden');
-            
-            if (!contenedorItemsOrden) {
-                console.error('❌ CRÍTICO: No existe el elemento con id="contenedor-items-orden"');
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error del Sistema',
-                    text: 'No se encontró el contenedor de items. Recarga la página.',
-                });
-                return;
-            }
-            
-            const selectMoneda = document.getElementById('moneda_orden');
-            let simboloMoneda = 'S/.';
-            
-            if (selectMoneda && selectMoneda.value) {
-                const idMonedaSeleccionada = selectMoneda.value;
-                simboloMoneda = idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
-            }
-            
-            const itemId = 'nuevo-' + Date.now();
-            
-            // 🔹 USAR cantidadPendiente DIRECTAMENTE
-            let cantidadVerificada = parseFloat(item.cantidadVerificada) || 0;
-            let cantidadOrdenada = parseFloat(item.cantidadOrdenada) || 0;
-            let cantidadPendiente = 0;
-            
-            if (item.cantidadPendiente !== undefined && item.cantidadPendiente !== null) {
-                cantidadPendiente = parseFloat(item.cantidadPendiente) || 0;
-            } else {
-                cantidadPendiente = cantidadVerificada - cantidadOrdenada;
-            }
-            
-            console.log(' Cantidades FINALES:', {
-                verificada: cantidadVerificada,
-                ordenada: cantidadOrdenada,
-                pendiente: cantidadPendiente
+        if (!contenedorItemsOrden) {
+            console.error('❌ CRÍTICO: No existe el elemento con id="contenedor-items-orden"');
+            Swal.fire({
+                icon: 'error',
+                title: 'Error del Sistema',
+                text: 'No se encontró el contenedor de items. Recarga la página.',
             });
+            return;
+        }
+        
+        const selectMoneda = document.getElementById('moneda_orden');
+        let simboloMoneda = 'S/.';
+        
+        if (selectMoneda && selectMoneda.value) {
+            const idMonedaSeleccionada = selectMoneda.value;
+            simboloMoneda = idMonedaSeleccionada == '1' ? 'S/.' : (idMonedaSeleccionada == '2' ? 'US$' : 'S/.');
+        }
+        
+        const itemId = 'nuevo-' + Date.now();
+        
+        // 🔹 DETECTAR SI ES BASE ARCE desde el botón original
+        const esBaseArce = 
+            item.es_base_arce === '1' || 
+            item.es_base_arce === 1 ||
+            (item.botonOriginal && item.botonOriginal.dataset.esBaseArce === '1');
+        
+        console.log('🏢 ¿Es BASE ARCE?', esBaseArce);
+        
+        // 🔹 USAR cantidadPendiente DIRECTAMENTE
+        let cantidadVerificada = parseFloat(item.cantidadVerificada) || 0;
+        let cantidadOrdenada = parseFloat(item.cantidadOrdenada) || 0;
+        let cantidadPendiente = 0;
+        
+        if (item.cantidadPendiente !== undefined && item.cantidadPendiente !== null) {
+            cantidadPendiente = parseFloat(item.cantidadPendiente) || 0;
+        } else {
+            cantidadPendiente = cantidadVerificada - cantidadOrdenada;
+        }
+        
+        console.log('📊 Cantidades FINALES:', {
+            esBaseArce: esBaseArce,
+            verificada: cantidadVerificada,
+            ordenada: cantidadOrdenada,
+            pendiente: cantidadPendiente
+        });
+        
+        if (cantidadPendiente <= 0) {
+            console.warn('⚠️ No hay cantidad pendiente');
+            Swal.fire({
+                icon: 'info',
+                title: 'Sin cantidad disponible',
+                text: 'Este item ya fue completamente ordenado.',
+            });
+            return;
+        }
+        
+        const itemElement = document.createElement('div');
+        itemElement.id = `item-orden-${itemId}`;
+        itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
+        
+        const badgeTipo = esOrdenServicio 
+            ? '<span class="badge badge-primary badge-sm ml-1">SERVICIO</span>'
+            : (modoEditar ? '<span class="badge badge-info badge-sm ml-1">NUEVO</span>' : '');
+        
+        //  Badge especial para BASE ARCE
+        const badgeBaseArce = esBaseArce ? '<span class="badge badge-info badge-sm ml-1">BASE ARCE</span>' : '';
+        
+        const etiquetaCantidad = (esOrdenServicio || esBaseArce) ? 'Cantidad Original' : 'Cantidad Verificada';
+        
+        // 🔹 CRÍTICO: value="${cantidadPendiente.toFixed(2)}"
+        itemElement.innerHTML = `
+            <input type="hidden" name="items_orden[${itemId}][id_detalle]" value="${item.idDetalle}">
+            <input type="hidden" name="items_orden[${itemId}][id_pedido_detalle]" value="${item.idDetalle}">
+            <input type="hidden" name="items_orden[${itemId}][id_producto]" value="${item.idProducto}">
+            <input type="hidden" name="items_orden[${itemId}][es_nuevo]" value="1">
+            <input type="hidden" name="items_orden[${itemId}][es_base_arce]" value="${esBaseArce ? '1' : '0'}">
             
-            if (cantidadPendiente <= 0) {
-                console.warn('⚠️ No hay cantidad pendiente');
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Sin cantidad disponible',
-                    text: 'Este item ya fue completamente ordenado.',
-                });
-                return;
-            }
-            
-            const itemElement = document.createElement('div');
-            itemElement.id = `item-orden-${itemId}`;
-            itemElement.classList.add('alert', 'alert-light', 'p-2', 'mb-2');
-            
-            const badgeTipo = esOrdenServicio 
-                ? '<span class="badge badge-primary badge-sm ml-1">SERVICIO</span>'
-                : (modoEditar ? '<span class="badge badge-info badge-sm ml-1">NUEVO</span>' : '');
-            
-            const etiquetaCantidad = esOrdenServicio ? 'Cantidad Original' : 'Cantidad Verificada';
-            
-            // 🔹 CRÍTICO: value="${cantidadPendiente.toFixed(2)}"
-            itemElement.innerHTML = `
-                <input type="hidden" name="items_orden[${itemId}][id_detalle]" value="${item.idDetalle}">
-                <input type="hidden" name="items_orden[${itemId}][id_pedido_detalle]" value="${item.idDetalle}">
-                <input type="hidden" name="items_orden[${itemId}][id_producto]" value="${item.idProducto}">
-                <input type="hidden" name="items_orden[${itemId}][es_nuevo]" value="1">
-                
-                <div class="row align-items-center mb-2">
-                    <div class="col-md-11">
-                        <div style="font-size: 12px;">
-                            <strong>Descripción:</strong> ${item.descripcion}
-                            ${badgeTipo}
-                        </div>
-                    <small class="text-muted" style="font-size: 11px;">
-                        ${etiquetaCantidad}: ${cantidadVerificada.toFixed(2)} | 
-                        Ya ordenado: ${cantidadOrdenada.toFixed(2)} | 
-                        <strong class="text-warning">Pendiente: ${cantidadPendiente.toFixed(2)}</strong>
-                    </small>
+            <div class="row align-items-center mb-2">
+                <div class="col-md-11">
+                    <div style="font-size: 12px;">
+                        <strong>Descripción:</strong> ${item.descripcion}
+                        ${badgeTipo}${badgeBaseArce}
                     </div>
-                    <div class="col-md-1 text-right">
-                        <button type="button" class="btn btn-danger btn-sm btn-remover-item" data-id-detalle="${itemId}">
-                            <i class="fa fa-trash"></i>
-                        </button>
-                    </div>
+                <small class="text-muted" style="font-size: 11px;">
+                    ${etiquetaCantidad}: ${cantidadVerificada.toFixed(2)} | 
+                    Ya ordenado: ${cantidadOrdenada.toFixed(2)} | 
+                    <strong class="text-warning">Pendiente: ${cantidadPendiente.toFixed(2)}</strong>
+                </small>
                 </div>
-                
-                <div class="row">
-                    <div class="col-md-2">
-                        <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Cantidad:</label>
-                        <input type="number" class="form-control form-control-sm cantidad-item" 
-                            name="items_orden[${itemId}][cantidad]" 
-                            data-id-detalle="${itemId}"
-                            data-id-producto="${item.idProducto}"
-                            data-cantidad-verificada="${cantidadVerificada}"
-                            data-cantidad-ordenada="${cantidadOrdenada}"
-                            value="${cantidadPendiente.toFixed(2)}" 
-                            min="0.01" 
-                            max="${cantidadPendiente.toFixed(2)}" 
-                            step="0.01"
-                            style="font-size: 12px;" required>
-                        <small class="text-info" style="font-size: 10px;">Máx: ${cantidadPendiente.toFixed(2)}</small>
-                    </div>
+                <div class="col-md-1 text-right">
+                    <button type="button" class="btn btn-danger btn-sm btn-remover-item" data-id-detalle="${itemId}">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-2">
+                    <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Cantidad:</label>
+                    <input type="number" class="form-control form-control-sm cantidad-item" 
+                        name="items_orden[${itemId}][cantidad]" 
+                        data-id-detalle="${itemId}"
+                        data-id-producto="${item.idProducto}"
+                        data-cantidad-verificada="${cantidadVerificada}"
+                        data-cantidad-ordenada="${cantidadOrdenada}"
+                        data-es-base-arce="${esBaseArce ? '1' : '0'}"
+                        value="${cantidadPendiente.toFixed(2)}" 
+                        min="0.01" 
+                        max="${cantidadPendiente.toFixed(2)}" 
+                        step="0.01"
+                        style="font-size: 12px;" required>
+                    <small class="text-info" style="font-size: 10px;">Máx: ${cantidadPendiente.toFixed(2)}</small>
+                </div>
                     
                     <div class="col-md-2">
                         <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Precio Unit.:</label>

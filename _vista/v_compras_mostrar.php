@@ -1026,15 +1026,8 @@ function EliminarDocumento(id_doc) {
                                 <!-- SECCIÓN DE DETRACCIÓN, RETENCIÓN Y PERCEPCIÓN -->
                                 <div class="row mb-2">
                                     <div class="col-md-12">
-                                        <div class="card" style="border: 1px solid #dee2e6;">
-                                            <div class="card-header" style="background-color: #f8f9fa; padding: 8px 12px;">
-                                                <h6 class="mb-0" style="font-size: 13px;">
-                                                    <i class="fa fa-percent text-info"></i> Detracción, Retención y Percepción (Opcional)
-                                                </h6>
-                                            </div>
-                                            <div class="card-body" style="padding: 12px;" id="edit_contenedor_detracciones">
-                                                <!-- Se cargará dinámicamente -->
-                                            </div>
+                                        <div class="card" style="border: 1px solid #dee2e6;" id="edit_contenedor_detracciones">
+                                            <!-- Se cargará dinámicamente con header colapsable -->
                                         </div>
                                     </div>
                                 </div>
@@ -2183,7 +2176,7 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
     
     const contenedorDetracciones = document.getElementById('edit_contenedor_detracciones');
     contenedorDetracciones.innerHTML = '';
-    
+
     if (detracciones && detracciones.length > 0) {
         const detracciones_tipo = {};
         detracciones.forEach(det => {
@@ -2194,10 +2187,31 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
             detracciones_tipo[tipo].push(det);
         });
         
-        let html = '';
+        // ============================================
+        //  APLICAR COLLAPSE (ACORDEÓN)
+        // ============================================
+        let html = `
+            <div class="card-header" style="background-color: #f8f9fa; padding: 8px 12px; cursor: pointer;" 
+                data-toggle="collapse" 
+                data-target="#edit_afectacionesCollapse"
+                aria-expanded="false"
+                aria-controls="edit_afectacionesCollapse">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0" style="font-size: 13px;">
+                        <i class="fa fa-percent text-info"></i> 
+                        Detracción, Retención y Percepción
+                    </h6>
+                    <i class="fa fa-chevron-down" id="icon-toggle-afectaciones-edit"></i>
+                </div>
+            </div>
+            
+            <div class="collapse" id="edit_afectacionesCollapse">
+                <div class="card-body" style="padding: 12px;">
+        `;
         
+        // DETRACCIÓN
         if (detracciones_tipo['DETRACCION']) {
-            html += '<div class="mb-3"><label style="font-size: 12px; font-weight: bold;">Detracción:</label>';
+            html += '<div class="mb-3"><label style="font-size: 11px; font-weight: bold;">Detracción:</label>';
             html += '<div style="padding: 8px; background-color: #fff3cd; border-radius: 4px; border: 1px solid #ffc107;">';
             
             detracciones_tipo['DETRACCION'].forEach(det => {
@@ -2205,27 +2219,28 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
                 html += `
                     <div class="form-check" style="margin-bottom: 5px;">
                         <input class="form-check-input edit-detraccion-checkbox" 
-                               type="checkbox" 
-                               name="id_detraccion" 
-                               value="${det.id_detraccion}" 
-                               data-porcentaje="${det.porcentaje}" 
-                               data-nombre="${det.nombre_detraccion}"
-                               id="edit_detraccion_${det.id_detraccion}" 
-                               ${checked}>
+                            type="checkbox" 
+                            name="id_detraccion" 
+                            value="${det.id_detraccion}" 
+                            data-porcentaje="${det.porcentaje}" 
+                            data-nombre="${det.nombre_detraccion}"
+                            id="edit_detraccion_${det.id_detraccion}" 
+                            ${checked}>
                         <label class="form-check-label" 
-                               for="edit_detraccion_${det.id_detraccion}" 
-                               style="font-size: 12px; cursor: pointer;">
+                            for="edit_detraccion_${det.id_detraccion}" 
+                            style="font-size: 12px; cursor: pointer;">
                             ${det.nombre_detraccion} <strong>(${det.porcentaje}%)</strong>
                         </label>
                     </div>
                 `;
             });
             
-            html += '</div><small class="form-text text-muted">Se aplica sobre el subtotal antes de IGV</small></div>';
+            html += '</div><small class="form-text text-muted">Se aplica sobre el total después de IGV</small></div>';
         }
         
+        // RETENCIÓN
         if (detracciones_tipo['RETENCION']) {
-            html += '<div class="mb-3"><label style="font-size: 12px; font-weight: bold;">Retención:</label>';
+            html += '<div class="mb-3"><label style="font-size: 11px; font-weight: bold;">Retención:</label>';
             html += '<div style="padding: 8px; background-color: #e7f3ff; border-radius: 4px; border: 1px solid #2196f3;">';
             
             detracciones_tipo['RETENCION'].forEach(det => {
@@ -2233,16 +2248,16 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
                 html += `
                     <div class="form-check" style="margin-bottom: 5px;">
                         <input class="form-check-input edit-retencion-checkbox" 
-                               type="checkbox" 
-                               name="id_retencion" 
-                               value="${det.id_detraccion}" 
-                               data-porcentaje="${det.porcentaje}" 
-                               data-nombre="${det.nombre_detraccion}"
-                               id="edit_retencion_${det.id_detraccion}" 
-                               ${checked}>
+                            type="checkbox" 
+                            name="id_retencion" 
+                            value="${det.id_detraccion}" 
+                            data-porcentaje="${det.porcentaje}" 
+                            data-nombre="${det.nombre_detraccion}"
+                            id="edit_retencion_${det.id_detraccion}" 
+                            ${checked}>
                         <label class="form-check-label" 
-                               for="edit_retencion_${det.id_detraccion}" 
-                               style="font-size: 12px; cursor: pointer;">
+                            for="edit_retencion_${det.id_detraccion}" 
+                            style="font-size: 12px; cursor: pointer;">
                             ${det.nombre_detraccion} <strong>(${det.porcentaje}%)</strong>
                         </label>
                     </div>
@@ -2252,8 +2267,9 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
             html += '</div><small class="form-text text-muted">Se aplica sobre el total después de IGV</small></div>';
         }
         
+        // PERCEPCIÓN
         if (detracciones_tipo['PERCEPCION']) {
-            html += '<div class="mb-2"><label style="font-size: 12px; font-weight: bold;">Percepción:</label>';
+            html += '<div class="mb-2"><label style="font-size: 11px; font-weight: bold;">Percepción:</label>';
             html += '<div style="padding: 8px; background-color: #e8f5e9; border-radius: 4px; border: 1px solid #4caf50;">';
             
             detracciones_tipo['PERCEPCION'].forEach(det => {
@@ -2261,16 +2277,16 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
                 html += `
                     <div class="form-check" style="margin-bottom: 5px;">
                         <input class="form-check-input edit-percepcion-checkbox" 
-                               type="checkbox" 
-                               name="id_percepcion" 
-                               value="${det.id_detraccion}" 
-                               data-porcentaje="${det.porcentaje}" 
-                               data-nombre="${det.nombre_detraccion}"
-                               id="edit_percepcion_${det.id_detraccion}" 
-                               ${checked}>
+                            type="checkbox" 
+                            name="id_percepcion" 
+                            value="${det.id_detraccion}" 
+                            data-porcentaje="${det.porcentaje}" 
+                            data-nombre="${det.nombre_detraccion}"
+                            id="edit_percepcion_${det.id_detraccion}" 
+                            ${checked}>
                         <label class="form-check-label" 
-                               for="edit_percepcion_${det.id_detraccion}" 
-                               style="font-size: 12px; cursor: pointer;">
+                            for="edit_percepcion_${det.id_detraccion}" 
+                            style="font-size: 12px; cursor: pointer;">
                             ${det.nombre_detraccion} <strong>(${det.porcentaje}%)</strong>
                         </label>
                     </div>
@@ -2279,6 +2295,11 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
             
             html += '</div><small class="form-text text-muted">Se aplica sobre el total después de IGV</small></div>';
         }
+        
+        html += `
+                </div>
+            </div>
+        `;
         
         contenedorDetracciones.innerHTML = html;
         

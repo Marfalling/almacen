@@ -15,23 +15,6 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_salidas');
 function AprobarSalida(id_salida) {
     Swal.fire({
         title: '¿Qué deseas hacer con esta salida?',
-        html: `
-            <div class="text-left">
-                <p><strong>Opciones:</strong></p>
-                <ul style="text-align: left;">
-                    <li><strong>✅ APROBAR:</strong> Se validará el stock y se generarán los movimientos</li>
-                    <li><strong>🚫 DENEGAR:</strong> La salida será rechazada y se bloqueará esta ubicación</li>
-                </ul>
-                <div class="alert alert-info mt-3" style="text-align: left; font-size: 12px;">
-                    <i class="fa fa-info-circle"></i> <strong>Al denegar:</strong>
-                    <ul class="mb-0 mt-1">
-                        <li>Esta ubicación quedará bloqueada para este producto</li>
-                        <li>El sistema buscará automáticamente otras ubicaciones</li>
-                        <li>Si no hay más ubicaciones, convertirá OS a OC</li>
-                    </ul>
-                </div>
-            </div>
-        `,
         icon: 'question',
         showDenyButton: true,
         showCancelButton: true,
@@ -401,6 +384,7 @@ function AnularSalida(id_salida) {
                                                             <i class="fa fa-eye"></i>
                                                         </button>
 
+
                                                         <!-- ============================================ -->
                                                         <!-- BOTÓN APROBAR SALIDA -->
                                                         <!-- ============================================ -->
@@ -409,34 +393,34 @@ function AnularSalida(id_salida) {
                                                             // SIN PERMISO - Botón rojo outline danger
                                                             ?>
                                                             <a href="#"
-                                                               class="btn btn-outline-danger btn-sm disabled"
-                                                               title="No tienes permiso para aprobar salidas"
-                                                               tabindex="-1" aria-disabled="true">
+                                                            class="btn btn-outline-danger btn-sm disabled"
+                                                            title="No tienes permiso para aprobar salidas"
+                                                            tabindex="-1" aria-disabled="true">
                                                                 <i class="fa fa-check"></i>
                                                             </a>
                                                         <?php } elseif ($salida['est_salida'] == 3 || $salida['est_salida'] == 2) { ?>
-                                                            <!-- YA APROBADA - Gris por proceso -->
+                                                            <!-- YA APROBADA/RECEPCIONADA - Gris por proceso -->
                                                             <a href="#"
-                                                               class="btn btn-outline-secondary btn-sm disabled"
-                                                               title="Salida ya aprobada"
-                                                               tabindex="-1" aria-disabled="true">
+                                                            class="btn btn-outline-secondary btn-sm disabled"
+                                                            title="Salida ya aprobada"
+                                                            tabindex="-1" aria-disabled="true">
                                                                 <i class="fa fa-check"></i>
                                                             </a>
-                                                        <?php } elseif ($salida['est_salida'] == 0) { ?>
-                                                            <!-- ANULADA - Gris por proceso -->
+                                                        <?php } elseif ($salida['est_salida'] == 0 || $salida['est_salida'] == 4) { ?>
+                                                            <!-- ANULADA O DENEGADA - Gris por proceso -->
                                                             <a href="#"
-                                                               class="btn btn-outline-secondary btn-sm disabled"
-                                                               title="Salida anulada"
-                                                               tabindex="-1" aria-disabled="true">
+                                                            class="btn btn-outline-secondary btn-sm disabled"
+                                                            title="<?php echo $salida['est_salida'] == 0 ? 'Salida anulada' : 'Salida denegada'; ?>"
+                                                            tabindex="-1" aria-disabled="true">
                                                                 <i class="fa fa-check"></i>
                                                             </a>
                                                         <?php } else { ?>
                                                             <!-- PUEDE APROBAR - Verde activo -->
                                                             <a href="#"
-                                                               onclick="AprobarSalida(<?php echo $salida['id_salida']; ?>)"
-                                                               class="btn btn-success btn-sm"
-                                                               data-toggle="tooltip"
-                                                               title="Aprobar Salida (Genera Movimientos)">
+                                                            onclick="AprobarSalida(<?php echo $salida['id_salida']; ?>)"
+                                                            class="btn btn-success btn-sm"
+                                                            data-toggle="tooltip"
+                                                            title="Aprobar Salida (Genera Movimientos)">
                                                                 <i class="fa fa-check"></i>
                                                             </a>
                                                         <?php } ?>
@@ -494,20 +478,22 @@ function AnularSalida(id_salida) {
                                                             $titulo_editar = "No se puede editar - Salida recepcionada";
                                                         } elseif ($salida['est_salida'] == 3) {
                                                             $titulo_editar = "No se puede editar - Salida aprobada";
+                                                        } elseif ($salida['est_salida'] == 4) {
+                                                            $titulo_editar = "No se puede editar - Salida denegada";
                                                         } else {
                                                             $puede_editar = true;
                                                         }
 
                                                         if ($puede_editar) { ?>
                                                             <a href="salidas_editar.php?id=<?php echo $salida['id_salida']; ?>" 
-                                                               class="btn btn-warning btn-sm" 
-                                                               data-toggle="tooltip"
-                                                               title="Editar Salida">
+                                                            class="btn btn-warning btn-sm" 
+                                                            data-toggle="tooltip"
+                                                            title="Editar Salida">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
                                                         <?php } else { ?>
                                                             <a href="#" class="btn btn-outline-secondary btn-sm disabled" data-toggle="tooltip"
-                                                               title="<?php echo $titulo_editar; ?>" tabindex="-1" aria-disabled="true">
+                                                            title="<?php echo $titulo_editar; ?>" tabindex="-1" aria-disabled="true">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
                                                         <?php } ?>
@@ -651,10 +637,13 @@ foreach($salidas as $salida) {
                                 <td><strong>Recepcionado por:</strong></td>
                                 <td>
                                     <?php 
-                                    if (!empty($salida_info['id_personal_aprueba_salida'])) {
-                                        echo $salida_info['nom_aprueba'];
-                                        if (!empty($salida_info['fec_aprueba_salida'])) {
-                                            echo '<br><small class="text-muted">' . date('d/m/Y H:i', strtotime($salida_info['fec_aprueba_salida'])) . '</small>';
+                                    //  Si está DENEGADA (estado 4), mostrar guion
+                                    if ($salida_info['est_salida'] == 4) {
+                                        echo '-';
+                                    } elseif (!empty($salida_info['id_personal_recepciona_salida'])) {
+                                        echo $salida_info['nom_recepciona'];
+                                        if (!empty($salida_info['fec_recepciona_salida'])) {
+                                            echo '<br><small class="text-muted">' . date('d/m/Y H:i', strtotime($salida_info['fec_recepciona_salida'])) . '</small>';
                                         }
                                     } else {
                                         echo '<span class="badge badge-warning">Pendiente</span>';
@@ -665,7 +654,15 @@ foreach($salidas as $salida) {
                             <?php if (!empty($salida_info['obs_salida'])) { ?>
                             <tr>
                                 <td><strong>Observaciones:</strong></td>
-                                <td colspan="3"><?php echo $salida_info['obs_salida']; ?></td>
+                                <td colspan="3">
+                                    <?php 
+                                    if ($salida_info['est_salida'] == 4 && trim($salida_info['obs_salida']) == '-') {
+                                        echo '-';
+                                    } else {
+                                        echo $salida_info['obs_salida'];
+                                    }
+                                    ?>
+                                </td>
                             </tr>
                             <?php } ?>
                         </table>

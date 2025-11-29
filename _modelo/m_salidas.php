@@ -245,16 +245,26 @@ function AprobarSalidaConMovimientos($id_salida, $id_personal_aprueba)
             $nombre_producto = $detalle['nom_producto'];
             
             //  CALCULAR STOCK FÍSICO REAL
-            $sql_stock = "SELECT COALESCE(
+           $sql_stock = "SELECT COALESCE(
                             SUM(
                                 CASE
-                                    WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                    -- INGRESOS
+                                    WHEN mov.tipo_movimiento = 1 THEN
+                                        CASE
+                                            --  Devoluciones confirmadas SÍ cuentan
+                                            WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                                            --  Ingresos normales SÍ cuentan
+                                            WHEN mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                            --  Devoluciones pendientes NO cuentan
+                                            ELSE 0
+                                        END
+                                    -- SALIDAS: Siempre restan
                                     WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                                     ELSE 0
                                 END
                             ), 0) AS stock_fisico_real
-                          FROM movimiento mov
-                          WHERE mov.id_producto = $id_producto
+                        FROM movimiento mov
+                        WHERE mov.id_producto = $id_producto
                             AND mov.id_almacen = $id_almacen_origen
                             AND mov.id_ubicacion = $id_ubicacion_origen
                             AND mov.est_movimiento != 0";
@@ -391,11 +401,6 @@ function AprobarSalidaConMovimientos($id_salida, $id_personal_aprueba)
         ];
     }
 }
-/**
- * DENEGAR SALIDA
- * Marca la salida como denegada (estado 4) sin generar movimientos
- * Registra quién deniega y cuándo
- */
 function DenegarSalida($id_salida, $id_personal_deniega_salida)
 {
     include("../_conexion/conexion.php");
@@ -406,7 +411,7 @@ function DenegarSalida($id_salida, $id_personal_deniega_salida)
         $id_salida = intval($id_salida);
         $id_personal_deniega_salida = intval($id_personal_deniega_salida);
         
-        //  OBTENER DATOS DE LA SALIDA
+        // PASO 1: OBTENER DATOS DE LA SALIDA
         $sql_sel = "SELECT id_salida, id_pedido, est_salida 
                     FROM salida 
                     WHERE id_salida = $id_salida 
@@ -425,10 +430,13 @@ function DenegarSalida($id_salida, $id_personal_deniega_salida)
         }
         
         $estado_actual = intval($row['est_salida']);
+        $id_pedido = isset($row['id_pedido']) && $row['id_pedido'] > 0 
+                    ? intval($row['id_pedido']) 
+                    : null;
         
-        error_log(" Denegando salida ID: $id_salida | Estado: $estado_actual");
+        error_log("🚫 Denegando salida ID: $id_salida | Estado: $estado_actual | Pedido: " . ($id_pedido ?? 'SIN PEDIDO'));
 
-        //  VALIDAR QUE ESTÉ PENDIENTE
+        // VALIDAR QUE ESTÉ PENDIENTE
         if ($estado_actual != 1) {
             $estados = [
                 0 => 'ANULADA',
@@ -440,7 +448,30 @@ function DenegarSalida($id_salida, $id_personal_deniega_salida)
             throw new Exception("No se puede denegar. La salida está en estado $nombre_estado");
         }
 
-        //  DENEGAR LA SALIDA
+        // PASO 2: OBTENER ÍTEMS AFECTADOS (ANTES DE DENEGAR)
+        $items_afectados = [];
+        
+        if ($id_pedido !== null) {
+            $sql_detalles = "SELECT DISTINCT id_pedido_detalle 
+                            FROM salida_detalle 
+                            WHERE id_salida = $id_salida 
+                            AND id_pedido_detalle IS NOT NULL 
+                            AND id_pedido_detalle > 0";
+            
+            $res_detalles = mysqli_query($con, $sql_detalles);
+            
+            if (!$res_detalles) {
+                throw new Exception("Error al obtener detalles: " . mysqli_error($con));
+            }
+            
+            while ($row_det = mysqli_fetch_assoc($res_detalles)) {
+                $items_afectados[] = intval($row_det['id_pedido_detalle']);
+            }
+            
+            error_log("📋 Ítems afectados: " . count($items_afectados));
+        }
+
+        // PASO 3: DENEGAR LA SALIDA
         $sql_denegar = "UPDATE salida 
                        SET est_salida = 4,
                            id_personal_deniega_salida = $id_personal_deniega_salida,
@@ -451,23 +482,47 @@ function DenegarSalida($id_salida, $id_personal_deniega_salida)
             throw new Exception("Error al denegar: " . mysqli_error($con));
         }
         
-        error_log(" Salida denegada - Estado cambiado a 4 por personal ID: $id_personal_deniega_salida");
+        error_log("✅ Salida denegada - Estado cambiado a 4");
 
-        //  COMMIT
+        // PASO 4: COMMIT
         mysqli_commit($con);
         mysqli_close($con);
 
-        error_log(" Denegación completada exitosamente");
+        error_log("✅ Transacción completada");
+
+        // ═══════════════════════════════════════════════════════
+        // 🔥 CRÍTICO: ACTUALIZAR ESTADOS (FUERA DE TRANSACCIÓN)
+        // ═══════════════════════════════════════════════════════
+        if ($id_pedido > 0) {
+            require_once("../_modelo/m_pedidos.php");
+            
+            usleep(200000); // 200ms
+            
+            // Verificar estados de items
+            if (!empty($items_afectados)) {
+                error_log("🔄 Verificando estados de " . count($items_afectados) . " items");
+                foreach ($items_afectados as $id_detalle) {
+                    error_log("   🔍 Item: $id_detalle");
+                    VerificarEstadoItemPorDetalle($id_detalle);
+                }
+            }
+            
+            // 🔥 LLAMAR A LA FUNCIÓN UNIFICADA
+            error_log("📋 Llamando a ActualizarEstadoPedidoUnificado($id_pedido)");
+            ActualizarEstadoPedidoUnificado($id_pedido);
+            
+            error_log("✅ Estados actualizados");
+        }
         
         return [
             'success' => true,
-            'message' => ' Salida denegada correctamente.'
+            'message' => '✅ Salida denegada correctamente.'
         ];
         
     } catch (Exception $e) {
         mysqli_rollback($con);
         mysqli_close($con);
-        error_log(" Error al denegar salida: " . $e->getMessage());
+        error_log("❌ Error al denegar: " . $e->getMessage());
         
         return [
             'success' => false,
@@ -852,13 +907,23 @@ function ActualizarSalida($id_salida, $id_almacen_origen, $id_ubicacion_origen,
             $sql_stock = "SELECT COALESCE(
                             SUM(
                                 CASE
-                                    WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                    -- INGRESOS
+                                    WHEN mov.tipo_movimiento = 1 THEN
+                                        CASE
+                                            --  Devoluciones confirmadas SÍ cuentan
+                                            WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                                            --  Ingresos normales SÍ cuentan
+                                            WHEN mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                            -- Devoluciones pendientes NO cuentan
+                                            ELSE 0
+                                        END
+                                    -- SALIDAS: Siempre restan
                                     WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                                     ELSE 0
                                 END
                             ), 0) AS stock_fisico_real
-                          FROM movimiento mov
-                          WHERE mov.id_producto = $id_producto
+                        FROM movimiento mov
+                        WHERE mov.id_producto = $id_producto
                             AND mov.id_almacen = $id_almacen_origen
                             AND mov.id_ubicacion = $id_ubicacion_origen
                             AND mov.est_movimiento != 0";
@@ -1080,21 +1145,30 @@ function ObtenerStockDisponible($id_producto, $id_almacen, $id_ubicacion, $id_pe
 {
     include("../_conexion/conexion.php");
 
-    // Asegurarse de que $id_pedido sea un entero válido o NULL
     $id_pedido = $id_pedido !== null ? intval($id_pedido) : null;
 
     $sql = "SELECT COALESCE(
             SUM(CASE
-                WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                -- INGRESOS
+                WHEN mov.tipo_movimiento = 1 THEN
+                    CASE
+                        --  Devoluciones confirmadas (tipo_orden=3, est_movimiento=1) SÍ cuentan
+                        WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                        --  Ingresos normales (tipo_orden != 3) SÍ cuentan
+                        WHEN mov.tipo_orden != 3 THEN mov.cant_movimiento
+                        --  Devoluciones pendientes (tipo_orden=3, est_movimiento=2) NO cuentan
+                        ELSE 0
+                    END
+                -- SALIDAS: Siempre restan
                 WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                 ELSE 0
-                END), 0
-            ) AS stock_disponible  
-            FROM movimiento mov
-            WHERE mov.id_producto = $id_producto 
-            AND mov.id_almacen = $id_almacen 
-            AND mov.id_ubicacion = $id_ubicacion
-            AND mov.est_movimiento != 0";
+            END), 0
+        ) AS stock_disponible  
+        FROM movimiento mov
+        WHERE mov.id_producto = $id_producto 
+        AND mov.id_almacen = $id_almacen 
+        AND mov.id_ubicacion = $id_ubicacion
+        AND mov.est_movimiento != 0";
     
     $resultado = mysqli_query($con, $sql);
     $row = mysqli_fetch_assoc($resultado);
@@ -1254,7 +1328,17 @@ function MostrarProductosConStockParaSalida($limit, $offset, $searchValue, $orde
                 -- ==============================================
                 COALESCE(SUM(
                     CASE
-                        WHEN mov.tipo_movimiento = 1 AND mov.est_movimiento != 0 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                        -- INGRESOS
+                        WHEN mov.tipo_movimiento = 1 AND mov.est_movimiento != 0 THEN
+                            CASE
+                                --  Devoluciones confirmadas SÍ cuentan
+                                WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                                --  Ingresos normales SÍ cuentan
+                                WHEN mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                --  Devoluciones pendientes NO cuentan
+                                ELSE 0
+                            END
+                        -- SALIDAS: Siempre restan
                         WHEN mov.tipo_movimiento = 2 AND mov.est_movimiento != 0 THEN -mov.cant_movimiento
                         ELSE 0
                     END
@@ -1273,7 +1357,12 @@ function MostrarProductosConStockParaSalida($limit, $offset, $searchValue, $orde
                 -- ==============================================
                 COALESCE(SUM(
                     CASE
-                        WHEN mov.tipo_movimiento = 1 AND mov.est_movimiento != 0 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 1 AND mov.est_movimiento != 0 THEN
+                            CASE
+                                WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                                WHEN mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                ELSE 0
+                            END
                         WHEN mov.tipo_movimiento = 2 AND mov.est_movimiento != 0 THEN -mov.cant_movimiento
                         ELSE 0
                     END
@@ -1831,22 +1920,32 @@ function ValidarCantidadesSalida($id_pedido, $items_salida, $id_salida_actual = 
         
         error_log("    Producto ID: $id_producto | Cantidad pedida: $cantidad_pedida");
         
-        // 🔥 CORRECCIÓN CRÍTICA: CÁLCULO DE STOCK DISPONIBLE
+        //  CORRECCIÓN CRÍTICA: CÁLCULO DE STOCK DISPONIBLE
         
         // PASO 1: Obtener stock físico REAL (sin compromisos)
         $sql_stock_fisico = "SELECT COALESCE(
-                                SUM(
-                                    CASE
-                                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
-                                        WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
-                                        ELSE 0
-                                    END
-                                ), 0) AS stock_fisico
-                             FROM movimiento
-                             WHERE id_producto = $id_producto
-                               AND id_almacen = $id_almacen_origen
-                               AND id_ubicacion = $id_ubicacion_origen
-                               AND est_movimiento != 0";
+                                    SUM(
+                                        CASE
+                                            -- INGRESOS
+                                            WHEN mov.tipo_movimiento = 1 THEN
+                                                CASE
+                                                    --  Devoluciones confirmadas SÍ cuentan
+                                                    WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                                                    --  Ingresos normales SÍ cuentan
+                                                    WHEN mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                                    --  Devoluciones pendientes NO cuentan
+                                                    ELSE 0
+                                                END
+                                            -- SALIDAS: Siempre restan
+                                            WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+                                            ELSE 0
+                                        END
+                                    ), 0) AS stock_fisico
+                                FROM movimiento
+                                WHERE id_producto = $id_producto
+                                AND id_almacen = $id_almacen_origen
+                                AND id_ubicacion = $id_ubicacion_origen
+                                AND est_movimiento != 0";
         
         $res_fisico = mysqli_query($con, $sql_stock_fisico);
         $row_fisico = mysqli_fetch_assoc($res_fisico);
@@ -1967,17 +2066,27 @@ function verificarSiNecesitaReverificacion($materiales, $id_salida, $id_pedido) 
         
         error_log("   📊 Cantidad actual en esta salida: $cantidad_actual_en_salida");
         
-        // 🔹 PASO 2: Calcular stock físico REAL (SIN compromisos)
+        //  PASO 2: Calcular stock físico REAL (SIN compromisos)
         $sql_stock = "SELECT COALESCE(
                         SUM(
                             CASE
-                                WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                -- INGRESOS
+                                WHEN mov.tipo_movimiento = 1 THEN
+                                    CASE
+                                        --  Devoluciones confirmadas SÍ cuentan
+                                        WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                                        --  Ingresos normales SÍ cuentan
+                                        WHEN mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                        --  Devoluciones pendientes NO cuentan
+                                        ELSE 0
+                                    END
+                                -- SALIDAS: Siempre restan
                                 WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                                 ELSE 0
                             END
                         ), 0) AS stock_fisico_real
-                      FROM movimiento mov
-                      WHERE mov.id_producto = $id_producto
+                    FROM movimiento mov
+                    WHERE mov.id_producto = $id_producto
                         AND mov.id_almacen = $id_almacen
                         AND mov.id_ubicacion = $id_ubicacion
                         AND mov.est_movimiento != 0";

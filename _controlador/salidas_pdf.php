@@ -87,21 +87,44 @@ if (!empty($salida['nom_recibe'])) {
 
 // Estado de la salida
 $estado_texto = '';
+$estado_color = '';
+$estado_bg = '';
+
 switch($salida['est_salida']) {
     case 0:
         $estado_texto = 'ANULADA';
+        $estado_color = '#dc3545'; // Rojo
+        $estado_bg = '#f8d7da';
         break;
-
+    
     case 1:
         $estado_texto = 'PENDIENTE';
+        $estado_color = '#ffc107'; // Amarillo
+        $estado_bg = '#fff3cd';
         break;
-
+    
     case 2:
         $estado_texto = 'RECEPCIONADA';
+        $estado_color = '#17a2b8'; // Azul
+        $estado_bg = '#d1ecf1';
         break;
-
+    
+    case 3:
+        $estado_texto = 'APROBADA';
+        $estado_color = '#28a745'; // Verde
+        $estado_bg = '#d4edda';
+        break;
+    
+    case 4:
+        $estado_texto = 'DENEGADA';
+        $estado_color = '#6c757d'; // Gris oscuro
+        $estado_bg = '#d6d8db';
+        break;
+    
     default:
         $estado_texto = 'DESCONOCIDO';
+        $estado_color = '#6c757d';
+        $estado_bg = '#e2e3e5';
 }
 
 

@@ -233,42 +233,50 @@ function MostrarPedidosFecha($fecha_inicio = null, $fecha_fin = null, $id_person
 {
     include("../_conexion/conexion.php");
    
-        // ========================================
+    // ========================================
     //  ACTUALIZAR AUTOMÁTICAMENTE PEDIDOS CON STOCK
+    //  CORRECCIÓN: EXCLUIR BASE ARCE (id_almacen = 1)
     // ========================================
     $sql_actualizar = "
     UPDATE pedido p
+    INNER JOIN almacen a ON p.id_almacen = a.id_almacen
     SET p.est_pedido = 2
     WHERE p.est_pedido = 1
-      AND p.id_personal_aprueba_tecnica IS NOT NULL
-      AND p.id_producto_tipo != 2
-      AND NOT EXISTS (
-          SELECT 1 FROM pedido_detalle pd 
-          WHERE pd.id_pedido = p.id_pedido 
-          AND (pd.cant_oc_pedido_detalle IS NOT NULL OR pd.cant_os_pedido_detalle IS NOT NULL)
-          AND pd.est_pedido_detalle != 0
-      )
-      AND NOT EXISTS (
-          SELECT 1 FROM pedido_detalle pd2
-          WHERE pd2.id_pedido = p.id_pedido
+    AND p.id_personal_aprueba_tecnica IS NOT NULL
+    AND p.id_producto_tipo != 2
+    AND NOT (a.id_cliente = $id_cliente_arce AND a.id_obra IS NULL)  -- 🔹 EXCLUIR BASE ARCE
+    AND NOT EXISTS (
+        SELECT 1 FROM pedido_detalle pd 
+        WHERE pd.id_pedido = p.id_pedido 
+        AND (pd.cant_oc_pedido_detalle IS NOT NULL OR pd.cant_os_pedido_detalle IS NOT NULL)
+        AND pd.est_pedido_detalle != 0
+    )
+    AND NOT EXISTS (
+        SELECT 1 FROM pedido_detalle pd2
+        WHERE pd2.id_pedido = p.id_pedido
             AND pd2.est_pedido_detalle = 1
             AND pd2.cant_pedido_detalle > (
                 SELECT COALESCE(SUM(
                     CASE
-                        WHEN m.tipo_movimiento = 1 AND m.tipo_orden != 3 THEN m.cant_movimiento
+                        WHEN m.tipo_movimiento = 1 THEN
+                            CASE
+                                WHEN m.tipo_orden = 3 AND m.est_movimiento = 1 THEN m.cant_movimiento
+                                WHEN m.tipo_orden != 3 THEN m.cant_movimiento
+                                ELSE 0
+                            END
                         WHEN m.tipo_movimiento = 2 AND m.tipo_orden = 2 THEN -m.cant_movimiento
                         ELSE 0
                     END
                 ), 0)
                 FROM movimiento m
                 WHERE m.id_producto = pd2.id_producto
-                  AND m.id_almacen = p.id_almacen
-                  AND m.id_ubicacion = p.id_ubicacion
-                  AND m.est_movimiento = 1
+                AND m.id_almacen = p.id_almacen
+                AND m.id_ubicacion = p.id_ubicacion
+                AND m.est_movimiento = 1
             )
-      )
+    )
     ";
-    
+
     mysqli_query($con, $sql_actualizar);
     // ========================================
 
@@ -479,7 +487,14 @@ function ConsultarPedidoDetalle($id_pedido)
              --  STOCK EN UBICACIÓN DESTINO (usando movimientos)
              COALESCE(
                 (SELECT SUM(CASE
-                    WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                    -- INGRESOS: Incluye devoluciones SOLO si están CONFIRMADAS (est_movimiento = 1)
+                    WHEN mov.tipo_movimiento = 1 THEN
+                        CASE
+                            WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                            WHEN mov.tipo_orden != 3 THEN mov.cant_movimiento
+                            ELSE 0
+                        END
+                    -- SALIDAS: Siempre restan
                     WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                     ELSE 0
                 END)
@@ -536,10 +551,15 @@ function ConsultarPedidoDetalle($id_pedido)
                 )
              ) AS cantidad_pendiente_oc,
              
-             --  STOCK EN OTRAS UBICACIONES (usando movimientos)
-             (
+            --  STOCK EN OTRAS UBICACIONES (usando movimientos)
+            (
                 SELECT COALESCE(SUM(CASE
-                    WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                    WHEN mov.tipo_movimiento = 1 THEN
+                        CASE
+                            WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                            WHEN mov.tipo_orden != 3 THEN mov.cant_movimiento
+                            ELSE 0
+                        END
                     WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                     ELSE 0
                 END), 0)
@@ -1023,7 +1043,12 @@ function PedidoTieneTodoConStock($id_pedido)
                     pd.cant_pedido_detalle,
                     COALESCE(
                         (SELECT SUM(CASE
-                            WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                            WHEN mov.tipo_movimiento = 1 THEN
+                                CASE
+                                    WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                                    WHEN mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                    ELSE 0
+                                END
                             WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                             ELSE 0
                         END)
@@ -1070,9 +1095,16 @@ function ObtenerItemsParaSalida($id_pedido)
                 -- ==========================================
                 -- STOCK FÍSICO: entradas - salidas reales
                 -- ==========================================
-                COALESCE((
+                SELECT COALESCE((
                     SELECT SUM(CASE
-                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden = 1 AND mov.est_movimiento != 0 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 1 THEN
+                            CASE
+                                -- Devoluciones confirmadas
+                                WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                                -- Ingresos normales
+                                WHEN mov.tipo_orden = 1 AND mov.est_movimiento != 0 THEN mov.cant_movimiento
+                                ELSE 0
+                            END
                         WHEN mov.tipo_movimiento = 2 AND mov.tipo_orden = 2 AND mov.est_movimiento != 0 THEN -mov.cant_movimiento
                         ELSE 0
                     END)
@@ -1283,7 +1315,12 @@ function verificarPedidoListo($id_pedido, $con = null)
                     pd.est_pedido_detalle,
                     COALESCE(
                         (SELECT SUM(CASE
-                            WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                            WHEN mov.tipo_movimiento = 1 THEN
+                                CASE
+                                    WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                                    WHEN mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                    ELSE 0
+                                END
                             WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                             ELSE 0
                         END)
@@ -1696,30 +1733,31 @@ function VerificarEstadoItemPorDetalle($id_pedido_detalle) {
     
     error_log("🔍 VerificarEstadoItemPorDetalle - ID: $id_pedido_detalle");
     
-    //   SQL sin columnas inexistentes
+    // 🔹 OBTENER DATOS DEL DETALLE + INFO DEL ALMACÉN
     $sql_detalle = "SELECT 
                         pd.cant_pedido_detalle, 
                         pd.cant_os_pedido_detalle, 
                         pd.cant_oc_pedido_detalle,
                         pd.id_producto,
                         p.id_almacen, 
-                        p.id_ubicacion
+                        p.id_ubicacion,
+                        a.id_cliente,
+                        a.id_obra
                     FROM pedido_detalle pd
                     INNER JOIN pedido p ON pd.id_pedido = p.id_pedido
+                    INNER JOIN almacen a ON p.id_almacen = a.id_almacen
                     WHERE pd.id_pedido_detalle = $id_pedido_detalle";
     
     error_log("📝 SQL ejecutado: $sql_detalle");
     
     $res_detalle = mysqli_query($con, $sql_detalle);
     
-    // Verificar si la consulta fue exitosa
     if (!$res_detalle) {
         error_log("❌ ERROR en consulta SQL: " . mysqli_error($con));
         mysqli_close($con);
         return;
     }
     
-    // Verificar si hay resultados
     if (mysqli_num_rows($res_detalle) == 0) {
         error_log("❌ No se encontró el detalle con ID: $id_pedido_detalle");
         mysqli_close($con);
@@ -1738,10 +1776,21 @@ function VerificarEstadoItemPorDetalle($id_pedido_detalle) {
     $cant_os_verificada = floatval($detalle['cant_os_pedido_detalle']);
     $cant_oc_verificada = floatval($detalle['cant_oc_pedido_detalle']);
     $id_producto = intval($detalle['id_producto']);
+    $id_cliente = intval($detalle['id_cliente']);
+    $id_obra = $detalle['id_obra'];
     
-    error_log("✅ Datos obtenidos - Cantidad Pedida: $cantidad_pedida | OS: $cant_os_verificada | OC: $cant_oc_verificada | Producto: $id_producto");
+    // ============================================================
+    // 🔹 DETECTAR SI ES BASE ARCE
+    // ============================================================
+    $es_base_arce = ($id_cliente == $id_cliente_arce && $id_obra === NULL);
     
-    //  Usar cantidad RECEPCIONADA para cierre
+    if ($es_base_arce) {
+        error_log(" BASE ARCE detectado en VerificarEstadoItemPorDetalle");
+    }
+    
+    error_log(" Datos obtenidos - Cantidad Pedida: $cantidad_pedida | OS: $cant_os_verificada | OC: $cant_oc_verificada | Producto: $id_producto");
+    
+    // 🔹 Obtener cantidades ordenadas
     $total_ordenado_oc = ObtenerCantidadYaOrdenadaOCPorDetalle($id_pedido_detalle);
     $total_recepcionado_os = ObtenerCantidadRecepcionadaOSPorDetalle($id_pedido_detalle); 
     
@@ -1749,49 +1798,65 @@ function VerificarEstadoItemPorDetalle($id_pedido_detalle) {
     error_log("   OS Verificada: $cant_os_verificada | OS Recepcionada: $total_recepcionado_os | Pendiente: " . ($cant_os_verificada - $total_recepcionado_os));
     error_log("   OC Verificada: $cant_oc_verificada | OC Ordenada: $total_ordenado_oc | Pendiente: " . ($cant_oc_verificada - $total_ordenado_oc));    
     
-    // 🔹 CALCULAR PENDIENTES
-    $pendiente_os = max(0, $cant_os_verificada - $total_recepcionado_os); //  USA RECEPCIONADA
-    $pendiente_oc = max(0, $cant_oc_verificada - $total_ordenado_oc);
-    error_log("📊 Pendientes - OS: $pendiente_os | OC: $pendiente_oc");
-    
-    //  CORRECCIÓN CRÍTICA: SOLO CERRAR SI AMBOS ESTÁN COMPLETOS
-    // Un item solo debe cerrarse cuando:
-    // 1. NO hay OS verificada Y la OC está completa
-    // 2. NO hay OC verificada Y la OS está completa  
-    // 3. HAY AMBAS Y ambas están completas
-    
+    // ============================================================
+    // 🔹 LÓGICA DIFERENCIADA: BASE ARCE vs NORMAL
+    // ============================================================
     $estado = 1; // Por defecto: ABIERTO
     
-    // CASO 1: Solo se verificó OC (sin OS)
-    if ($cant_oc_verificada > 0 && $cant_os_verificada == 0) {
+    if ($es_base_arce) {
+        // ═══════════════════════════════════════════════════════
+        // PARA BASE ARCE: Validar contra cantidad PEDIDA
+        // ═══════════════════════════════════════════════════════
+        $pendiente_oc = max(0, $cantidad_pedida - $total_ordenado_oc);
+        
+        error_log(" BASE ARCE - Pendientes - OC: $pendiente_oc (Pedida: $cantidad_pedida | Ordenada: $total_ordenado_oc)");
+        
         if ($pendiente_oc <= 0) {
-            $estado = 1; // FINALIZADO (mantiene abierto para poder re-verificar)
-            error_log("✅ Item FINALIZADO (Solo OC verificada y completada - mantiene estado 1)");
+            $estado = 1; // FINALIZADO (mantiene abierto para re-verificar)
+            error_log(" BASE ARCE - Item FINALIZADO (OC completada - mantiene estado 1)");
         } else {
-            error_log("🔓 Item ABIERTO (OC pendiente: $pendiente_oc)");
+            error_log(" BASE ARCE - Item ABIERTO (OC pendiente: $pendiente_oc)");
         }
-    }
-    // CASO 2: Solo se verificó OS (sin OC)
-    elseif ($cant_os_verificada > 0 && $cant_oc_verificada == 0) {
-        if ($pendiente_os <= 0) {
+        
+    } else {
+        // ═══════════════════════════════════════════════════════
+        // PARA PEDIDOS NORMALES: Validar contra cantidades VERIFICADAS
+        // ═══════════════════════════════════════════════════════
+        $pendiente_os = max(0, $cant_os_verificada - $total_recepcionado_os);
+        $pendiente_oc = max(0, $cant_oc_verificada - $total_ordenado_oc);
+        error_log(" Pendientes - OS: $pendiente_os | OC: $pendiente_oc");
+        
+        // CASO 1: Solo se verificó OC (sin OS)
+        if ($cant_oc_verificada > 0 && $cant_os_verificada == 0) {
+            if ($pendiente_oc <= 0) {
+                $estado = 1;
+                error_log(" Item FINALIZADO (Solo OC verificada y completada - mantiene estado 1)");
+            } else {
+                error_log("🔓 Item ABIERTO (OC pendiente: $pendiente_oc)");
+            }
+        }
+        // CASO 2: Solo se verificó OS (sin OC)
+        elseif ($cant_os_verificada > 0 && $cant_oc_verificada == 0) {
+            if ($pendiente_os <= 0) {
             $estado = 1; // FINALIZADO (mantiene abierto para poder re-verificar)
-            error_log("✅ Item FINALIZADO (Solo OS verificada y completada - mantiene estado 1)");
-        } else {
-            error_log("🔓 Item ABIERTO (OS pendiente: $pendiente_os)");
+                error_log("✅ Item FINALIZADO (Solo OS verificada y completada - mantiene estado 1)");
+            } else {
+                error_log("🔓 Item ABIERTO (OS pendiente: $pendiente_os)");
+            }
         }
-    }
-    // CASO 3: Se verificaron AMBAS (OC + OS)
-    elseif ($cant_oc_verificada > 0 && $cant_os_verificada > 0) {
-        if ($pendiente_os <= 0 && $pendiente_oc <= 0) {
-            $estado = 1; // FINALIZADO (mantiene abierto para poder re-verificar)
-            error_log("✅ Item FINALIZADO (OC y OS completadas - mantiene estado 1)");
-        } else {
-            error_log("🔓 Item ABIERTO (Pendiente OC: $pendiente_oc | Pendiente OS: $pendiente_os)");
+        // CASO 3: Se verificaron AMBAS (OC + OS)
+        elseif ($cant_oc_verificada > 0 && $cant_os_verificada > 0) {
+            if ($pendiente_os <= 0 && $pendiente_oc <= 0) {
+                $estado = 1;
+                error_log("✅ Item FINALIZADO (OC y OS completadas - mantiene estado 1)");
+            } else {
+                error_log("🔓 Item ABIERTO (Pendiente OC: $pendiente_oc | Pendiente OS: $pendiente_os)");
+            }
         }
-    }
-    // CASO 4: No se verificó nada (raro pero posible)
-    else {
-        error_log("⚠️ Item sin verificación");
+        // CASO 4: No se verificó nada
+        else {
+            error_log("⚠️ Item sin verificación");
+        }
     }
     
     // Actualizar estado en la base de datos
@@ -2079,15 +2144,32 @@ function ValidarCantidadesOrden($id_pedido, $items_orden, $id_compra_actual = nu
     
     error_log("🔍 ValidarCantidadesOrden - Pedido: $id_pedido | Compra actual: " . ($id_compra_actual ?? 'NUEVA'));
     
+    //  DETECTAR SI ES PEDIDO BASE ARCE (las variables ya vienen del include)
+    $sql_pedido = "SELECT p.id_almacen, a.id_cliente, a.id_obra 
+                   FROM pedido p
+                   INNER JOIN almacen a ON p.id_almacen = a.id_almacen
+                   WHERE p.id_pedido = $id_pedido";
+    $res_pedido = mysqli_query($con, $sql_pedido);
+    $row_pedido = mysqli_fetch_assoc($res_pedido);
+    
+    $es_pedido_base_arce = false;
+    if ($row_pedido) {
+        $id_cliente_pedido = intval($row_pedido['id_cliente']);
+        $id_obra_pedido = $row_pedido['id_obra'];
+        $es_pedido_base_arce = ($id_cliente_pedido == $id_cliente_arce && $id_obra_pedido === NULL);
+    }
+    
+    if ($es_pedido_base_arce) {
+        error_log("🏢 ValidarCantidadesOrden - Pedido BASE ARCE detectado - Sin validación de verificación");
+    }
+    
     foreach ($items_orden as $key => $item) {
         // 🔹 OBTENER id_pedido_detalle (puede venir como 'id_detalle' o dentro de $key)
         $id_pedido_detalle = 0;
         
-        // Si es un array con índice numérico (modo edición)
         if (is_numeric($key)) {
             $id_pedido_detalle = isset($item['id_detalle']) ? intval($item['id_detalle']) : 0;
         } else {
-            // Si es modo nuevo con clave tipo 'nuevo-123456'
             $id_pedido_detalle = isset($item['id_detalle']) ? intval($item['id_detalle']) : 0;
         }
         
@@ -2100,24 +2182,54 @@ function ValidarCantidadesOrden($id_pedido, $items_orden, $id_compra_actual = nu
             continue;
         }
         
-        // Obtener cantidad verificada de ESTE detalle específico
-        $sql_verificada = "SELECT cant_oc_pedido_detalle, id_producto
-                           FROM pedido_detalle 
-                           WHERE id_pedido_detalle = $id_pedido_detalle
-                           LIMIT 1";
-        $res = mysqli_query($con, $sql_verificada);
+        // 🔹 OBTENER DATOS DEL DETALLE
+        $sql_detalle = "SELECT cant_pedido_detalle, cant_oc_pedido_detalle, id_producto 
+                        FROM pedido_detalle 
+                        WHERE id_pedido_detalle = $id_pedido_detalle
+                        LIMIT 1";
+        $res = mysqli_query($con, $sql_detalle);
         $row = mysqli_fetch_assoc($res);
         
-        if (!$row || $row['cant_oc_pedido_detalle'] === null) {
-            error_log("   ❌ Detalle ID $id_pedido_detalle no está verificado");
-            $errores[] = "El detalle ID $id_pedido_detalle no está verificado";
+        if (!$row) {
+            error_log("   ❌ Detalle ID $id_pedido_detalle no existe");
+            $errores[] = "El detalle ID $id_pedido_detalle no existe";
             continue;
         }
         
-        $cant_verificada = floatval($row['cant_oc_pedido_detalle']);
+        $cant_pedida = floatval($row['cant_pedido_detalle']);
+        $cant_oc_verificada = floatval($row['cant_oc_pedido_detalle']);
         $id_producto = intval($row['id_producto']);
         
-        error_log("   ✅ Cantidad verificada: $cant_verificada | Producto ID: $id_producto");
+        // ============================================================
+        // 🔹 VALIDACIÓN DIFERENCIADA: BASE ARCE vs NORMAL
+        // ============================================================
+        if ($es_pedido_base_arce) {
+            // ═══════════════════════════════════════════════════════
+            // PARA BASE ARCE: Validar contra cantidad VERIFICADA (OC)
+            // Si no tiene verificada (0), usar cantidad pedida
+            // ═══════════════════════════════════════════════════════
+            if ($cant_oc_verificada > 0) {
+                // Caso reverificado (con bloqueos)
+                $cant_verificada = $cant_oc_verificada;
+                error_log("   🏢 BASE ARCE (reverificado) - Usando cantidad OC verificada: $cant_verificada");
+            } else {
+                // Caso sin reverificar (sin bloqueos todavía)
+                $cant_verificada = $cant_pedida;
+                error_log("   🏢 BASE ARCE (sin reverificar) - Usando cantidad pedida: $cant_verificada");
+            }
+            
+        } else {
+            // ═══════════════════════════════════════════════════════
+            // PARA PEDIDOS NORMALES: Validar contra cantidad VERIFICADA
+            // ═══════════════════════════════════════════════════════
+            if ($cant_oc_verificada === null || $cant_oc_verificada <= 0) {
+                error_log("   ❌ Detalle ID $id_pedido_detalle no está verificado");
+                $errores[] = "El detalle ID $id_pedido_detalle no está verificado";
+                continue;
+            }
+            $cant_verificada = $cant_oc_verificada;
+            error_log("   ✅ Cantidad verificada: $cant_verificada | Producto ID: $id_producto");
+        }
         
         // 🔹 CALCULAR CANTIDAD YA ORDENADA PARA ESTE DETALLE ESPECÍFICO
         $where_compra = "";
@@ -2264,7 +2376,12 @@ function VerificarYActualizarEstadoPedido($id_pedido)
                     p.nom_producto,
                     COALESCE(
                         (SELECT SUM(CASE
-                            WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                            WHEN mov.tipo_movimiento = 1 THEN
+                                CASE
+                                    WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                                    WHEN mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                    ELSE 0
+                                END
                             WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                             ELSE 0
                         END)
@@ -2430,7 +2547,14 @@ function ObtenerStockProducto($id_producto, $id_almacen = null, $id_ubicacion = 
     // 1) Stock físico: consideramos movimientos que afectan realmente el stock (EXCLUIMOS tipo_orden = 5 que son reservas y tipo_orden = 3 en ingresos)
     $sql_fisico = "SELECT COALESCE(SUM(
                     CASE
-                        WHEN tipo_movimiento = 1 AND tipo_orden != 3 THEN cant_movimiento
+                        -- INGRESOS: Devoluciones solo si están confirmadas
+                        WHEN tipo_movimiento = 1 THEN
+                            CASE
+                                WHEN tipo_orden = 3 AND est_movimiento = 1 THEN cant_movimiento
+                                WHEN tipo_orden != 3 THEN cant_movimiento
+                                ELSE 0
+                            END
+                        -- SALIDAS: Siempre restan
                         WHEN tipo_movimiento = 2 THEN -cant_movimiento
                         ELSE 0
                     END), 0) AS stock_fisico
@@ -3037,7 +3161,12 @@ function ObtenerStockFisicoEnUbicacion($id_producto, $id_almacen, $id_ubicacion)
     $sql = "SELECT COALESCE(
                 SUM(
                     CASE
-                        WHEN tipo_movimiento = 1 AND tipo_orden != 3 THEN cant_movimiento
+                        WHEN tipo_movimiento = 1 THEN
+                            CASE
+                                WHEN tipo_orden = 3 AND est_movimiento = 1 THEN cant_movimiento
+                                WHEN tipo_orden != 3 THEN cant_movimiento
+                                ELSE 0
+                            END
                         WHEN tipo_movimiento = 2 THEN -cant_movimiento
                         ELSE 0
                     END
@@ -3131,7 +3260,12 @@ function ObtenerStockEnUbicacion($id_producto, $id_almacen, $id_ubicacion) {
     $sql = "SELECT COALESCE(
                 SUM(
                     CASE
-                        WHEN tipo_movimiento = 1 AND tipo_orden != 3 THEN cant_movimiento
+                        WHEN tipo_movimiento = 1 THEN
+                            CASE
+                                WHEN tipo_orden = 3 AND est_movimiento = 1 THEN cant_movimiento
+                                WHEN tipo_orden != 3 THEN cant_movimiento
+                                ELSE 0
+                            END
                         WHEN tipo_movimiento = 2 THEN -cant_movimiento
                         ELSE 0
                     END
@@ -3196,7 +3330,12 @@ function ObtenerOtrasUbicacionesConStock($id_producto, $id_almacen, $id_ubicacio
                 COALESCE(
                     SUM(
                         CASE
-                            WHEN m.tipo_movimiento = 1 AND m.tipo_orden != 3 THEN m.cant_movimiento
+                            WHEN m.tipo_movimiento = 1 THEN
+                                CASE
+                                    WHEN m.tipo_orden = 3 AND m.est_movimiento = 1 THEN m.cant_movimiento
+                                    WHEN m.tipo_orden != 3 THEN m.cant_movimiento
+                                    ELSE 0
+                                END
                             WHEN m.tipo_movimiento = 2 THEN -m.cant_movimiento
                             ELSE 0
                         END
@@ -3267,7 +3406,12 @@ function ObtenerStockTotalAlmacen($id_producto, $id_almacen) {
     $sql = "SELECT COALESCE(
                 SUM(
                     CASE
-                        WHEN tipo_movimiento = 1 AND tipo_orden != 3 THEN cant_movimiento
+                        WHEN tipo_movimiento = 1 THEN
+                            CASE
+                                WHEN tipo_orden = 3 AND est_movimiento = 1 THEN cant_movimiento
+                                WHEN tipo_orden != 3 THEN cant_movimiento
+                                ELSE 0
+                            END
                         WHEN tipo_movimiento = 2 THEN -cant_movimiento
                         ELSE 0
                     END
@@ -3890,12 +4034,12 @@ function ValidarInventarioDisponibleParaSalida($materiales, $id_almacen_origen, 
         $id_producto = intval($material['id_producto']);
         $cantidad_solicitada = floatval($material['cantidad']);
         
-        // ✅ OBTENER DESCRIPCIÓN CORRECTA
+        //  OBTENER DESCRIPCIÓN CORRECTA
         $descripcion = '';
         if (isset($material['descripcion']) && !empty(trim($material['descripcion']))) {
             $descripcion = trim($material['descripcion']);
         } else {
-            // 🔹 BUSCAR EN LA BD
+            //  BUSCAR EN LA BD
             $sql_desc = "SELECT nom_producto FROM producto WHERE id_producto = $id_producto";
             $res_desc = mysqli_query($con, $sql_desc);
             if ($res_desc && $row_desc = mysqli_fetch_assoc($res_desc)) {
@@ -3905,12 +4049,21 @@ function ValidarInventarioDisponibleParaSalida($materiales, $id_almacen_origen, 
             }
         }
         
-        
-        // 🔹 CALCULAR STOCK FÍSICO REAL
+        //  CALCULAR STOCK FÍSICO REAL (LÓGICA CORREGIDA)
         $sql_stock = "SELECT COALESCE(
                         SUM(
                             CASE
-                                WHEN mov.tipo_movimiento = 1 THEN mov.cant_movimiento
+                                -- INGRESOS
+                                WHEN mov.tipo_movimiento = 1 THEN
+                                    CASE
+                                        --  Devoluciones confirmadas (tipo_orden=3, est_movimiento=1) SÍ cuentan
+                                        WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                                        --  Ingresos normales (tipo_orden != 3) SÍ cuentan
+                                        WHEN mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                        --  Devoluciones pendientes (tipo_orden=3, est_movimiento=2) NO cuentan
+                                        ELSE 0
+                                    END
+                                -- SALIDAS: Siempre restan
                                 WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
                                 ELSE 0
                             END
@@ -3919,9 +4072,9 @@ function ValidarInventarioDisponibleParaSalida($materiales, $id_almacen_origen, 
                       WHERE mov.id_producto = $id_producto
                         AND mov.id_almacen = $id_almacen_origen
                         AND mov.id_ubicacion = $id_ubicacion_origen
-                        AND mov.est_movimiento = 1";
+                        AND mov.est_movimiento != 0"; // ⬅ Incluye activos (1) y pendientes (2)
         
-        // 🔹 CRÍTICO: Excluir movimientos de la salida actual si estamos editando
+        //  CRÍTICO: Excluir movimientos de la salida actual si estamos editando
         if ($id_salida_actual !== null && $id_salida_actual > 0) {
             $sql_stock .= " AND NOT (mov.tipo_orden = 2 AND mov.id_orden = " . intval($id_salida_actual) . ")";
         }
@@ -3929,7 +4082,7 @@ function ValidarInventarioDisponibleParaSalida($materiales, $id_almacen_origen, 
         $res = mysqli_query($con, $sql_stock);
         
         if (!$res) {
-            error_log("❌ ERROR SQL en ValidarInventarioDisponibleParaSalida: " . mysqli_error($con));
+            error_log(" ERROR SQL en ValidarInventarioDisponibleParaSalida: " . mysqli_error($con));
             $errores[] = "Error al consultar stock para {$descripcion}";
             continue;
         }
@@ -3937,9 +4090,11 @@ function ValidarInventarioDisponibleParaSalida($materiales, $id_almacen_origen, 
         $row = mysqli_fetch_assoc($res);
         $stock_real = floatval($row['stock_real']);
         
+        error_log("    Validación stock - Producto: {$descripcion} | Disponible: {$stock_real} | Solicitado: {$cantidad_solicitada}");
+        
         // 🔹 VALIDAR DISPONIBILIDAD
         if ($cantidad_solicitada > $stock_real) {
-            // ✅ NUEVO: Formato específico para detectar error de stock
+            //  Formato específico para detectar error de stock
             if ($stock_real <= 0) {
                 $errores[] = sprintf(
                     "El producto '%s' no tiene stock disponible en la ubicación origen seleccionada. Solicitado: %.2f unidades.",
@@ -3955,6 +4110,8 @@ function ValidarInventarioDisponibleParaSalida($materiales, $id_almacen_origen, 
                     $cantidad_solicitada - $stock_real
                 );
             }
+        } else {
+            error_log("    Stock suficiente");
         }
     }
     
@@ -3998,9 +4155,12 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
                         pd.est_pedido_detalle,
                         p.id_almacen,
                         p.id_ubicacion,
-                        p.est_pedido
+                        p.est_pedido,
+                        a.id_cliente,
+                        a.id_obra
                     FROM pedido_detalle pd
                     INNER JOIN pedido p ON pd.id_pedido = p.id_pedido
+                    INNER JOIN almacen a ON p.id_almacen = a.id_almacen
                     WHERE pd.id_pedido_detalle = $id_pedido_detalle";
 
     $res = mysqli_query($con, $sql_detalle);
@@ -4008,6 +4168,18 @@ function ReverificarItemAutomaticamente($id_pedido_detalle) {
 
     if (!$detalle) {
         error_log("❌ No se encontró el detalle $id_pedido_detalle");
+        mysqli_close($con);
+        return false;
+    }
+
+    // ============================================================
+    // 🔹 VALIDACIÓN NUEVA: NO reverificar pedidos BASE ARCE
+    // ============================================================
+    $id_cliente = intval($detalle['id_cliente']);
+    $id_obra = $detalle['id_obra']; // Puede ser NULL
+
+    if ($id_cliente == $id_cliente_arce && $id_obra === NULL) {
+        error_log(" Pedido BASE ARCE detectado - NO se reverifica (cliente: $id_cliente, obra: NULL)");
         mysqli_close($con);
         return false;
     }
@@ -4195,18 +4367,13 @@ function ObtenerCantidadEnSalidasActivasPorDetalle($id_pedido_detalle) {
 
 /**
  * ============================================
- * FUNCIÓN UNIFICADA DE ESTADO DEL PEDIDO (SIMPLIFICADA)
+ * FUNCIÓN UNIFICADA DE ESTADO DEL PEDIDO
  * ============================================
  * 
  * ESTADOS:
  * 0 = Anulado
- * 1 = Pendiente (incluye aprobados técnicamente con id_personal_aprueba_tecnica)
+ * 1 = Pendiente (incluye aprobados técnicamente)
  * 2 = Atendido (TODO completado: OC 100% ingresada + OS 100% recepcionadas)
- * 
- * CRITERIO PARA ATENDIDO:
- * - Si requiere OC → 100% ingresado
- * - Si requiere OS → 100% recepcionado (estado salida = 2)
- * - Si requiere ambos → ambos al 100%
  */
 function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
 {
@@ -4217,29 +4384,31 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
         $cerrar_conexion = true;
     }
     
-    // ============================================
+    error_log("🔄 ActualizarEstadoPedidoUnificado - Pedido: $id_pedido");
+    
     // PASO 1: Obtener estado actual
-    // ============================================
     $sql_estado = "SELECT est_pedido FROM pedido WHERE id_pedido = $id_pedido";
     $res_estado = mysqli_query($con, $sql_estado);
     $row_estado = mysqli_fetch_assoc($res_estado);
     
     if (!$row_estado) {
         if ($cerrar_conexion) mysqli_close($con);
+        error_log("❌ Pedido no encontrado");
         return;
     }
     
     $estado_actual = intval($row_estado['est_pedido']);
     
-    // 🔸 No tocar si está anulado o finalizado
+    error_log("   📊 Estado actual: $estado_actual");
+    
+    // No tocar si está anulado o finalizado
     if ($estado_actual == 0 || $estado_actual == 5) {
         if ($cerrar_conexion) mysqli_close($con);
+        error_log("   ⏭️ Pedido anulado/finalizado - no se actualiza");
         return;
     }
     
-    // ============================================
     // PASO 2: Verificar si requiere OC
-    // ============================================
     $sql_requiere_oc = "SELECT COUNT(*) as total 
                         FROM compra 
                         WHERE id_pedido = $id_pedido 
@@ -4248,9 +4417,9 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
     $row_oc = mysqli_fetch_assoc($res_oc);
     $requiere_oc = ($row_oc['total'] > 0);
     
-    // ============================================
+    error_log("   📦 Requiere OC: " . ($requiere_oc ? 'SÍ' : 'NO'));
+    
     // PASO 3: Verificar si OC está 100% ingresada
-    // ============================================
     $oc_completada = false;
     
     if ($requiere_oc) {
@@ -4279,17 +4448,15 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
         $row_total_ingresado = mysqli_fetch_assoc($res_total_ingresado);
         $total_ingresado = floatval($row_total_ingresado['total_ingresado']);
         
-        //  OC completada si se ingresó el 100%
         $oc_completada = ($total_ingresado >= $total_ordenado && $total_ordenado > 0);
         
+        error_log("   📊 OC - Ordenado: $total_ordenado | Ingresado: $total_ingresado | Completada: " . ($oc_completada ? 'SÍ' : 'NO'));
     } else {
-        // Si no requiere OC, se considera completado
         $oc_completada = true;
+        error_log("   ✅ No requiere OC - considerado completado");
     }
     
-    // ============================================
     // PASO 4: Verificar si requiere OS
-    // ============================================
     $sql_requiere_os = "SELECT COUNT(*) as total 
                         FROM salida 
                         WHERE id_pedido = $id_pedido 
@@ -4298,9 +4465,9 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
     $row_os = mysqli_fetch_assoc($res_os);
     $requiere_os = ($row_os['total'] > 0);
     
-    // ============================================
+    error_log("   📦 Requiere OS: " . ($requiere_os ? 'SÍ' : 'NO'));
+    
     // PASO 5: Verificar si OS está 100% recepcionada
-    // ============================================
     $os_completada = false;
     
     if ($requiere_os) {
@@ -4308,39 +4475,37 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
         $sql_os_pendientes = "SELECT COUNT(*) as total_pendientes
                               FROM salida 
                               WHERE id_pedido = $id_pedido 
-                              AND est_salida != 2  -- No recepcionadas
-                              AND est_salida != 0"; 
+                              AND est_salida NOT IN (0, 2, 4)";
         
         $res_os_pend = mysqli_query($con, $sql_os_pendientes);
         $row_os_pend = mysqli_fetch_assoc($res_os_pend);
         
-        //  OS completada si no hay pendientes
         $os_completada = ($row_os_pend['total_pendientes'] == 0);
         
+        error_log("   📊 OS - Pendientes: {$row_os_pend['total_pendientes']} | Completada: " . ($os_completada ? 'SÍ' : 'NO'));
     } else {
-        // Si no requiere OS, se considera completado
         $os_completada = true;
+        error_log("   ✅ No requiere OS - considerado completado");
     }
     
-    // ============================================
     // PASO 6: DETERMINAR ESTADO FINAL
-    // ============================================
     $nuevo_estado = 1; // Por defecto PENDIENTE
     
-    //  SOLO cambiar a ATENDIDO si AMBOS están completados al 100%
     if ($oc_completada && $os_completada) {
         $nuevo_estado = 2; // ATENDIDO
+        error_log("   🎯 Nuevo estado: 2 (ATENDIDO) - OC y OS completadas");
+    } else {
+        error_log("   ⏸️ Nuevo estado: 1 (PENDIENTE) - Faltan OC o OS");
     }
     
-    // ============================================
     // PASO 7: ACTUALIZAR SI CAMBIÓ
-    // ============================================
     if ($nuevo_estado != $estado_actual) {
         $sql_update = "UPDATE pedido SET est_pedido = $nuevo_estado WHERE id_pedido = $id_pedido";
         mysqli_query($con, $sql_update);
         
-        $estados_texto = [1 => 'PENDIENTE', 2 => 'ATENDIDO'];
-        error_log(" Estado del pedido $id_pedido actualizado: {$estados_texto[$estado_actual]} → {$estados_texto[$nuevo_estado]}");
+        error_log("   ✅ Pedido actualizado: $estado_actual → $nuevo_estado");
+    } else {
+        error_log("   ⏭️ Sin cambios (ya está en estado $estado_actual)");
     }
     
     if ($cerrar_conexion) {
