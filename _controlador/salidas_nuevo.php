@@ -195,6 +195,11 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                                     }
                                 }
                             }
+
+                            if ($id_salida > 0) {
+                                // Enviar correo al encargado
+                                EnviarCorreoSalidaCreada($id_salida);
+                            }
                             
                             // ======================================
 

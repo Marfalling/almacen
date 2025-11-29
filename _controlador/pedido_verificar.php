@@ -718,6 +718,15 @@ if (isset($_REQUEST['crear_salida'])) {
                     error_log("📁 Resultado subida: $archivos_subidos exitosos, $archivos_fallidos fallidos");
                 }
                 // ============================================================================
+                // FIN DE SUBIDA DE ARCHIVOS
+                // ============================================================================
+                
+                //  ENVÍO DE CORREO 
+                if ($id_salida > 0) {
+                    // Enviar correo al encargado
+                    EnviarCorreoSalidaCreada($id_salida);
+                    error_log(" Correo de salida creada enviado para salida ID: $id_salida");
+                }
                 
                 mysqli_close($con);
                 echo json_encode([
