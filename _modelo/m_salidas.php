@@ -2698,7 +2698,7 @@ function EnviarCorreoSalidaCreada($id_salida)
                                 </table>
                                 
                                 <div style='text-align: center; margin-top: 30px;'>
-                                    <a href='https://arceperusac.com/_controlador/salidas_detalle.php?id_salida={$salida['id_salida']}' style='display: inline-block; padding: 12px 30px; background-color: #667eea; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;'>Ver Detalle y Aprobar</a>
+                                    <a href='https://arceperusac.com/_controlador/salida_detalles.php?id_salida={$salida['id_salida']}' style='display: inline-block; padding: 12px 30px; background-color: #667eea; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;'>Ver Detalle y Aprobar</a>
                                 </div>
                             </td>
                         </tr>
@@ -2953,7 +2953,7 @@ function EnviarCorreoSalidaAprobada($id_salida)
                                 </table>
                                 
                                 <div style='text-align: center; margin: 30px 0;'>
-                                    <a href='https://arceperusac.com/_controlador/salidas_detalle.php?id_salida={$id_salida}' 
+                                    <a href='https://arceperusac.com/_controlador/salida_detalles.php?id_salida={$id_salida}' 
                                        style='background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); 
                                               color: #ffffff; 
                                               padding: 14px 30px; 
