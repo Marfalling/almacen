@@ -7,6 +7,9 @@ function GrabarArea($nom, $est)
 {
     include("../_conexion/conexion.php");
 
+    date_default_timezone_set("America/Lima");
+    $fecha_peru = date("Y-m-d H:i:s");
+
     // Verificar si ya existe un área con el mismo nombre
     $sql_verificar = "SELECT COUNT(*) AS total FROM {$bd_complemento}.area WHERE nom_area = '$nom'";
     $resultado_verificar = mysqli_query($con, $sql_verificar);
@@ -17,7 +20,7 @@ function GrabarArea($nom, $est)
     }
 
     // Insertar nueva área
-    $sql = "INSERT INTO {$bd_complemento}.area (nom_area, act_area) VALUES ('$nom', $est)";
+    $sql = "INSERT INTO {$bd_complemento}.area (nom_area, act_area, updated_at) VALUES ('$nom', $est, '$fecha_peru')";
 
     if (mysqli_query($con, $sql)) {
         return "SI";
@@ -73,6 +76,9 @@ function EditarArea($id, $nom, $est)
 {
     include("../_conexion/conexion.php");
 
+    date_default_timezone_set("America/Lima");
+    $fecha_peru = date("Y-m-d H:i:s");
+
     // Verificar si ya existe otra con el mismo nombre
     $sql_verificar = "SELECT COUNT(*) AS total FROM {$bd_complemento}.area WHERE nom_area = '$nom' AND id_area != $id";
     $resultado_verificar = mysqli_query($con, $sql_verificar);
@@ -84,7 +90,7 @@ function EditarArea($id, $nom, $est)
 
     // Actualizar
     $sql = "UPDATE {$bd_complemento}.area 
-            SET nom_area = '$nom', act_area = $est 
+            SET nom_area = '$nom', act_area = $est, updated_at = '$fecha_peru' 
             WHERE id_area = $id";
 
     if (mysqli_query($con, $sql)) {

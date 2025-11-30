@@ -8,6 +8,9 @@ function GrabarCargo($nom, $est)
 {
     include("../_conexion/conexion.php");
 
+    date_default_timezone_set("America/Lima");
+    $fecha_peru = date("Y-m-d H:i:s");
+
     // Verificar si ya existe un cargo con el mismo nombre
     $sql_verificar = "SELECT COUNT(*) as total FROM {$bd_complemento}.cargo WHERE nom_cargo = '$nom'";
     $resultado_verificar = mysqli_query($con, $sql_verificar);
@@ -18,7 +21,7 @@ function GrabarCargo($nom, $est)
     }
 
     // Insertar nuevo cargo
-    $sql = "INSERT INTO {$bd_complemento}.cargo (nom_cargo, act_cargo) VALUES ('$nom', $est)";
+    $sql = "INSERT INTO {$bd_complemento}.cargo (nom_cargo, act_cargo, updated_at) VALUES ('$nom', $est, '$fecha_peru')";
 
     if (mysqli_query($con, $sql)) {
         mysqli_close($con);
@@ -73,6 +76,9 @@ function EditarCargo($id, $nom, $est)
 {
     include("../_conexion/conexion.php");
 
+    date_default_timezone_set("America/Lima");
+    $fecha_peru = date("Y-m-d H:i:s");
+
     // Verificar si ya existe otro cargo con el mismo nombre
     $sql_verificar = "SELECT COUNT(*) as total FROM {$bd_complemento}.cargo 
                       WHERE nom_cargo = '$nom' AND id_cargo != $id";
@@ -86,7 +92,7 @@ function EditarCargo($id, $nom, $est)
 
     // Actualizar cargo
     $sql = "UPDATE {$bd_complemento}.cargo 
-            SET nom_cargo = '$nom', act_cargo = $est 
+            SET nom_cargo = '$nom', act_cargo = $est, updated_at = '$fecha_peru'
             WHERE id_cargo = $id";
 
     if (mysqli_query($con, $sql)) {

@@ -67,6 +67,9 @@ function GrabarPersonal($id_area, $id_cargo, $nom, $dni, $email, $cel, $est)
 {
     include("../_conexion/conexion.php");
 
+    date_default_timezone_set("America/Lima");
+    $fecha_peru = date("Y-m-d H:i:s");
+
     $id_area  = intval($id_area);
     $id_cargo = intval($id_cargo);
     $id_tipo  = 2; // por defecto según tu estructura
@@ -91,8 +94,8 @@ function GrabarPersonal($id_area, $id_cargo, $nom, $dni, $email, $cel, $est)
 
     // Insertar
     $sql = "INSERT INTO {$bd_complemento}.personal
-                (id_cargo, id_area, id_tipo, nom_personal, dni_personal, cel_personal, email_personal, pass_personal, act_personal)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                (id_cargo, id_area, id_tipo, nom_personal, dni_personal, cel_personal, email_personal, pass_personal, act_personal, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmt = mysqli_prepare($con, $sql);
     if (!$stmt) {
         mysqli_close($con);
@@ -101,9 +104,9 @@ function GrabarPersonal($id_area, $id_cargo, $nom, $dni, $email, $cel, $est)
 
     // por convención ponemos pass_personal = dni (como estaba en tus datos)
     $pass = $dni;
-    mysqli_stmt_bind_param($stmt, "iiisssssi",
+    mysqli_stmt_bind_param($stmt, "iiisssssiss",
         $id_cargo, $id_area, $id_tipo,
-        $nom_completo, $dni, $cel, $email, $pass, $est
+        $nom_completo, $dni, $cel, $email, $pass, $est, $fecha_peru
     );
 
     $ok = mysqli_stmt_execute($stmt);
@@ -123,6 +126,9 @@ function ActualizarPersonal($id_personal, $id_area, $id_cargo, $nom, $dni, $emai
     $dni = trim($dni);
     $cel = trim($cel);
 
+    date_default_timezone_set("America/Lima");
+    $fecha_peru = date("Y-m-d H:i:s");
+
     // Verificar duplicado (excepto el mismo registro)
     $sql_verif = "SELECT * FROM {$bd_complemento}.personal 
                   WHERE (dni_personal = '$dni' OR email_personal = '$email') 
@@ -140,7 +146,8 @@ function ActualizarPersonal($id_personal, $id_area, $id_cargo, $nom, $dni, $emai
                 dni_personal = '$dni',
                 email_personal = '$email',
                 cel_personal = '$cel',
-                act_personal = $est
+                act_personal = $est,
+                updated_at = '$fecha_peru'
             WHERE id_personal = $id_personal";
 
     $res = mysqli_query($con, $sql);
@@ -179,6 +186,9 @@ function EditarPersonal($id_personal, $id_area, $id_cargo, $nom, $dni, $email, $
     $cel   = trim($cel);
     $est   = intval($est);
 
+    date_default_timezone_set("America/Lima");
+    $fecha_peru = date("Y-m-d H:i:s");
+
     // Verificar duplicado de DNI en otro registro
     $sql_check = "SELECT id_personal FROM {$bd_complemento}.personal WHERE dni_personal = ? AND id_personal != ? LIMIT 1";
     $stmt_check = mysqli_prepare($con, $sql_check);
@@ -194,16 +204,16 @@ function EditarPersonal($id_personal, $id_area, $id_cargo, $nom, $dni, $email, $
 
     // Actualizar
     $sql = "UPDATE {$bd_complemento}.personal SET
-                id_area = ?, id_cargo = ?, nom_personal = ?, dni_personal = ?, cel_personal = ?, email_personal = ?, act_personal = ?
+                id_area = ?, id_cargo = ?, nom_personal = ?, dni_personal = ?, cel_personal = ?, email_personal = ?, act_personal = ?, updated_at = ?
             WHERE id_personal = ?";
     $stmt = mysqli_prepare($con, $sql);
     if (!$stmt) {
         mysqli_close($con);
         return "ERROR";
     }
-    mysqli_stmt_bind_param($stmt, "iissssii",
+    mysqli_stmt_bind_param($stmt, "iissssisi",
         $id_area, $id_cargo,
-        $nom_completo, $dni, $cel, $email, $est,
+        $nom_completo, $dni, $cel, $email, $est, $fecha_peru,
         $id_personal
     );
 

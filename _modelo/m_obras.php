@@ -64,6 +64,10 @@ function ConsultarObra($id_obra) {
 function RegistrarObra($nom, $est) {
     include("../_conexion/conexion.php");
     $nom = strtoupper(trim($nom));
+    
+    date_default_timezone_set("America/Lima");
+    $fecha_peru = date("Y-m-d H:i:s");
+
 
     // Verificar duplicados
     $sql_verif = "SELECT * FROM {$bd_complemento}.subestacion WHERE nom_subestacion = '$nom'";
@@ -73,7 +77,7 @@ function RegistrarObra($nom, $est) {
         return "NO";
     }
 
-    $sql = "INSERT INTO {$bd_complemento}.subestacion (nom_subestacion, act_subestacion) VALUES ('$nom', $est)";
+    $sql = "INSERT INTO {$bd_complemento}.subestacion (nom_subestacion, act_subestacion, updated_at) VALUES ('$nom', $est, '$fecha_peru')";
     $res = mysqli_query($con, $sql);
     mysqli_close($con);
 
@@ -86,6 +90,9 @@ function ActualizarObra($id_obra, $nom, $est) {
     $id_obra = intval($id_obra);
     $nom = strtoupper(trim($nom));
 
+    date_default_timezone_set("America/Lima");
+    $fecha_peru = date("Y-m-d H:i:s");
+
     // Verificar duplicados
     $sql_verif = "SELECT * FROM {$bd_complemento}.subestacion WHERE nom_subestacion = '$nom' AND id_subestacion != $id_obra";
     $res_verif = mysqli_query($con, $sql_verif);
@@ -95,7 +102,7 @@ function ActualizarObra($id_obra, $nom, $est) {
     }
 
     $sql = "UPDATE {$bd_complemento}.subestacion 
-            SET nom_subestacion = '$nom', act_subestacion = $est 
+            SET nom_subestacion = '$nom', act_subestacion = $est, updated_at = '$fecha_peru' 
             WHERE id_subestacion = $id_obra";
     $res = mysqli_query($con, $sql);
     mysqli_close($con);
