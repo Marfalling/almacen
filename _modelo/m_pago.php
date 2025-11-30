@@ -81,7 +81,7 @@ function GrabarPago($id_compra, $id_proveedor_cuenta, $monto, $comprobante, $id_
             // Unir todos los correos con coma
             $para = implode(", ", $destinatarios);
             $asunto = "Confirmación de Pago - Orden de Compra C00$id_compra";
-            $url_comprobante = "https://montajeseingenieriaarceperusac.pe/almacen/" . $comprobante;
+            $url_comprobante = "https://arceperusac.com/" . $comprobante;
 
              $mensaje = "
                     <html>
@@ -194,7 +194,7 @@ function GrabarPago($id_compra, $id_proveedor_cuenta, $monto, $comprobante, $id_
 
                                 <p>Atentamente,<br>
                                 <strong>Equipo de Compras ARCE PERÚ</strong><br>
-                                <small>notificaciones@montajeseingenieriaarceperusac.pe</small></p>
+                                <small>notificaciones@arceperusac.com</small></p>
                                 </div>
                                 <div class='footer'>
                                 © " . date('Y') . " ARCE PERÚ — Todos los derechos reservados
@@ -206,8 +206,8 @@ function GrabarPago($id_compra, $id_proveedor_cuenta, $monto, $comprobante, $id_
             // Cabeceras del correo
             $cabeceras  = "MIME-Version: 1.0\r\n";
             $cabeceras .= "Content-type: text/html; charset=UTF-8\r\n";
-            $cabeceras .= "From: ARCE PERÚ <notificaciones@montajeseingenieriaarceperusac.pe>\r\n";
-            $cabeceras .= "Bcc: notificaciones@montajeseingenieriaarceperusac.pe\r\n";
+            $cabeceras .= "From: ARCE PERÚ <notificaciones@arceperusac.com>\r\n";
+            $cabeceras .= "Bcc: notificaciones@arceperusac.com\r\n";
             $cabeceras .= "X-Mailer: PHP/" . phpversion() . "\r\n";
 
             // 🚀 Enviar correo

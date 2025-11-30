@@ -2698,7 +2698,7 @@ function EnviarCorreoSalidaCreada($id_salida)
                                 </table>
                                 
                                 <div style='text-align: center; margin-top: 30px;'>
-                                    <a href='http://localhost/almacen/_vista/salidas_detalle.php?id_salida={$salida['id_salida']}' style='display: inline-block; padding: 12px 30px; background-color: #667eea; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;'>Ver Detalle y Aprobar</a>
+                                    <a href='https://arceperusac.com/_controlador/salidas_detalle.php?id_salida={$salida['id_salida']}' style='display: inline-block; padding: 12px 30px; background-color: #667eea; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;'>Ver Detalle y Aprobar</a>
                                 </div>
                             </td>
                         </tr>
@@ -2719,8 +2719,8 @@ function EnviarCorreoSalidaCreada($id_salida)
     
     $headers = "MIME-Version: 1.0" . "\r\n";
     $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-    $headers .= "From: Sistema de Almacén <almacen@montajeseingenieriaarceperusac.pe>" . "\r\n";
-    $headers .= "Bcc: notificaciones@montajeseingenieriaarceperusac.pe" . "\r\n";
+    $headers .= "From: ARCE PERÚ <notificaciones@arceperusac.com>" . "\r\n";
+    $headers .= "Bcc: notificaciones@arceperusac.com" . "\r\n";
     
     $mail_sent = mail($to, $subject, $message, $headers);
     
@@ -2953,7 +2953,7 @@ function EnviarCorreoSalidaAprobada($id_salida)
                                 </table>
                                 
                                 <div style='text-align: center; margin: 30px 0;'>
-                                    <a href='https://montajeseingenieriaarceperusac.pe/almacen/_controlador/salidas_detalle.php?id_salida={$id_salida}' 
+                                    <a href='https://arceperusac.com/_controlador/salidas_detalle.php?id_salida={$id_salida}' 
                                        style='background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); 
                                               color: #ffffff; 
                                               padding: 14px 30px; 
@@ -2988,8 +2988,8 @@ function EnviarCorreoSalidaAprobada($id_salida)
     // ENVIAR CORREO
     $cabeceras = "MIME-Version: 1.0\r\n";
     $cabeceras .= "Content-type: text/html; charset=UTF-8\r\n";
-    $cabeceras .= "From: Notificaciones Almacén <notificaciones@montajeseingenieriaarceperusac.pe>\r\n";
-    $cabeceras .= "Bcc: notificaciones@montajeseingenieriaarceperusac.pe\r\n";
+    $cabeceras .= "From: ARCE PERÚ <notificaciones@arceperusac.com>\r\n";
+    $cabeceras .= "Bcc: notificaciones@arceperusac.com\r\n";
     $cabeceras .= "X-Mailer: PHP/" . phpversion();
     
     $enviado = @mail($destinatario, $asunto, $mensaje, $cabeceras);
