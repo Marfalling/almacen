@@ -110,6 +110,8 @@ function GrabarPersonal($id_area, $id_cargo, $nom, $dni, $email, $cel, $est)
     );
 
     $ok = mysqli_stmt_execute($stmt);
+    ejecutarSyncPersonal("https://montajeseingenieriaarceperusac.pe/almacen/api/sync_personal.php");
+    
     mysqli_stmt_close($stmt);
     mysqli_close($con);
 
@@ -151,6 +153,8 @@ function ActualizarPersonal($id_personal, $id_area, $id_cargo, $nom, $dni, $emai
             WHERE id_personal = $id_personal";
 
     $res = mysqli_query($con, $sql);
+    ejecutarSyncPersonal("https://montajeseingenieriaarceperusac.pe/almacen/api/sync_personal.php");
+
     mysqli_close($con);
 
     return $res ? "SI" : "ERROR";
@@ -218,6 +222,8 @@ function EditarPersonal($id_personal, $id_area, $id_cargo, $nom, $dni, $email, $
     );
 
     $ok = mysqli_stmt_execute($stmt);
+    ejecutarSyncPersonal("https://montajeseingenieriaarceperusac.pe/almacen/api/sync_personal.php");
+
     mysqli_stmt_close($stmt);
     mysqli_close($con);
 
@@ -298,3 +304,16 @@ function MostrarPersonalActivo() {
     mysqli_close($con);
     return $personal;
 }
+//-----------------------------------------------------------------------
+function ejecutarSyncPersonal($url)
+{
+    /*
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_exec($ch);
+    curl_close($ch);
+    */
+}
+//-----------------------------------------------------------------------

@@ -24,6 +24,9 @@ function GrabarCargo($nom, $est)
     $sql = "INSERT INTO {$bd_complemento}.cargo (nom_cargo, act_cargo, updated_at) VALUES ('$nom', $est, '$fecha_peru')";
 
     if (mysqli_query($con, $sql)) {
+
+        ejecutarSyncCargo("https://montajeseingenieriaarceperusac.pe/almacen/api/sync_cargo.php");
+
         mysqli_close($con);
         return "SI";
     } else {
@@ -96,6 +99,7 @@ function EditarCargo($id, $nom, $est)
             WHERE id_cargo = $id";
 
     if (mysqli_query($con, $sql)) {
+        ejecutarSyncCargo("https://montajeseingenieriaarceperusac.pe/almacen/api/sync_cargo.php");
         mysqli_close($con);
         return "SI";
     } else {
@@ -117,4 +121,16 @@ function ObtenerCargo($id)
 
     mysqli_close($con);
     return $cargo;
+}
+//-----------------------------------------------------------------------
+function ejecutarSyncCargo($url)
+{
+    /*
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_exec($ch);
+    curl_close($ch);
+    */
 }

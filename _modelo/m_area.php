@@ -23,6 +23,7 @@ function GrabarArea($nom, $est)
     $sql = "INSERT INTO {$bd_complemento}.area (nom_area, act_area, updated_at) VALUES ('$nom', $est, '$fecha_peru')";
 
     if (mysqli_query($con, $sql)) {
+        ejecutarSyncArea("https://montajeseingenieriaarceperusac.pe/almacen/api/sync_area.php");
         return "SI";
     } else {
         return "ERROR";
@@ -94,6 +95,7 @@ function EditarArea($id, $nom, $est)
             WHERE id_area = $id";
 
     if (mysqli_query($con, $sql)) {
+        ejecutarSyncArea("https://montajeseingenieriaarceperusac.pe/almacen/api/sync_area.php");
         mysqli_close($con);
         return "SI";
     } else {
@@ -119,4 +121,16 @@ function ObtenerArea($id)
     }
     mysqli_close($con);
     return $areas;
+}
+//-----------------------------------------------------------------------
+function ejecutarSyncArea($url)
+{
+    /*
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_exec($ch);
+    curl_close($ch);
+    */
 }

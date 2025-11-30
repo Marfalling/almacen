@@ -79,6 +79,9 @@ function RegistrarObra($nom, $est) {
 
     $sql = "INSERT INTO {$bd_complemento}.subestacion (nom_subestacion, act_subestacion, updated_at) VALUES ('$nom', $est, '$fecha_peru')";
     $res = mysqli_query($con, $sql);
+
+    ejecutarSyncObras("https://montajeseingenieriaarceperusac.pe/almacen/api/sync_subestacion.php");
+    
     mysqli_close($con);
 
     return $res ? "SI" : "ERROR";
@@ -105,7 +108,22 @@ function ActualizarObra($id_obra, $nom, $est) {
             SET nom_subestacion = '$nom', act_subestacion = $est, updated_at = '$fecha_peru' 
             WHERE id_subestacion = $id_obra";
     $res = mysqli_query($con, $sql);
+    ejecutarSyncObras("https://montajeseingenieriaarceperusac.pe/almacen/api/sync_subestacion.php");
+
     mysqli_close($con);
 
     return $res ? "SI" : "ERROR";
 }
+//-----------------------------------------------------------------------
+function ejecutarSyncObras($url)
+{
+    /*
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_exec($ch);
+    curl_close($ch);
+    */
+}
+//-----------------------------------------------------------------------
