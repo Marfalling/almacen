@@ -267,6 +267,7 @@
                                                                         ?>
                                                                         <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
                                                                            class="btn btn-success btn-sm"
+                                                                           data-toggle="tooltip"
                                                                            title="Verificar ingreso">
                                                                             <i class="fa fa-check"></i>
                                                                         </a>
@@ -293,7 +294,7 @@
                                                                                 <i class="fa fa-times"></i>
                                                                             </button>
                                                                         <?php } else { ?>
-                                                                            <span class="btn btn-outline-secondary btn-sm disabled" title="Ya anulado">
+                                                                            <span class="btn btn-outline-secondary btn-sm disabled" data-toggle="tooltip" title="Ya anulado">
                                                                                 <i class="fa fa-ban"></i>
                                                                             </span>
                                                                         <?php } ?>
@@ -518,7 +519,7 @@
                                                                             <i class="fa fa-times"></i>
                                                                         </button>
                                                                     <?php } else { ?>
-                                                                        <span class="btn btn-outline-secondary btn-sm disabled" title="Ya anulado">
+                                                                        <span class="btn btn-outline-secondary btn-sm disabled" data-toggle="tooltip" title="Ya anulado">
                                                                             <i class="fa fa-ban"></i> Anulado
                                                                         </span>
                                                                     <?php } ?>
@@ -647,6 +648,7 @@
                                                                         ?>
                                                                         <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
                                                                            class="btn btn-success btn-sm"
+                                                                           data-toggle="tooltip"
                                                                            title="Verificar ingreso">
                                                                             <i class="fa fa-check"></i>
                                                                         </a>

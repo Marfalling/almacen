@@ -1281,7 +1281,7 @@ function ConsultarCompraCom($id_compra)
     $compra['monto_pagado'] = round($total_pagado, 2);
     $compra['saldo']        = round($saldo, 2);
 
-    $compra['pagado'] = ($compra['monto_pagado'] >= $compra['monto_total']) ? 1 : 0;
+    $compra['pagado'] = ($compra['saldo'] == 0) ? 1 : 0;
 
     $compra['cuentas'] = ConsultarCuentasPorCompra($id_compra);
 

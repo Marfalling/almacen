@@ -645,7 +645,7 @@ require_once("../_modelo/m_detraccion.php");
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Archivo XML</label>
-                            <input type="file" name="archivo_xml" class="form-control" accept=".xml">
+                            <input type="file" name="archivo_xml" class="form-control" accept=".xml" required>
                             <small class="form-text text-muted">Máximo 5MB</small>
                         </div>
                     </div>
@@ -1706,7 +1706,14 @@ async function procesarArchivos() {
         title: 'Analizando archivos...',
         html: '',
         allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
+        didOpen: () => {
+            Swal.showLoading();
+
+            // Cerrar automáticamente después de 5 segundos
+            setTimeout(() => {
+                Swal.close();
+            }, 2000);
+        }
     });
 
     const formData = new FormData();
@@ -1924,7 +1931,14 @@ async function registrarArchivosMasivo() {
         title: 'Registrando archivos...',
         html: `Procesando ${correctos.length} archivo(s)`,
         allowOutsideClick: false,
-        didOpen: () => Swal.showLoading()
+        didOpen: () => {
+            Swal.showLoading();
+
+            // Cerrar automáticamente después de 5 segundos
+            setTimeout(() => {
+                Swal.close();
+            }, 2000);
+        }
     });
 
     // Preparar datos para envío

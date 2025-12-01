@@ -643,8 +643,8 @@ function EliminarDocumento(id_doc) {
                                                                 <a href="#"
                                                                 <?php if ($tiene_financiera) { ?>
                                                                     class="btn btn-outline-secondary btn-sm disabled"
-                                                                    title="Ya aprobado financiera"
                                                                     data-toggle="tooltip"
+                                                                    title="Ya aprobado financiera"
                                                                     tabindex="-1" aria-disabled="true"
                                                                 <?php } else { ?>
                                                                     onclick="AprobarCompraFinanciera(<?php echo $compra['id_compra']; ?>)"
@@ -659,6 +659,7 @@ function EliminarDocumento(id_doc) {
                                                                 <?php if ($tiene_aprobacion) { ?>
                                                                     <a href="#"
                                                                     class="btn btn-outline-secondary btn-sm disabled"
+                                                                    data-toggle="tooltip"
                                                                     title="No se puede anular: tiene aprobación iniciada"
                                                                     tabindex="-1" aria-disabled="true">
                                                                         <i class="fa fa-times"></i>
@@ -694,6 +695,7 @@ function EliminarDocumento(id_doc) {
                                                                 <?php } else { ?>
                                                                     <a href="#" 
                                                                     class="btn btn-outline-secondary btn-sm disabled"
+                                                                    data-toggle="tooltip"
                                                                     title="No se puede editar - Tiene aprobación iniciada"
                                                                     tabindex="-1" aria-disabled="true">
                                                                         <i class="fa fa-edit"></i>
@@ -711,6 +713,7 @@ function EliminarDocumento(id_doc) {
                                                                 <?php } else { ?>
                                                                     <a href="#"
                                                                     class="btn btn-outline-secondary btn-sm disabled"
+                                                                    data-toggle="tooltip"
                                                                     title="Requiere aprobación financiera"
                                                                     tabindex="-1" aria-disabled="true">
                                                                         <i class="fa fa-money"></i>
@@ -721,12 +724,13 @@ function EliminarDocumento(id_doc) {
                                                                 <!--<a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Aprobar Técnica" tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-check"></i>
                                                                 </a>-->
-                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Aprobar Financiera" tabindex="-1" aria-disabled="true">
+                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" data-toggle="tooltip" title="Aprobar Financiera" tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-check"></i>
                                                                 </a>
 
                                                                 <!-- Botón anular -->
                                                                 <a href="#" class="btn btn-outline-secondary btn-sm disabled"
+                                                                data-toggle="tooltip"
                                                                 title="<?php 
                                                                         if ($compra['est_compra'] == 0) echo 'Ya anulada'; 
                                                                         elseif ($compra['est_compra'] == 4) echo 'No se puede anular: compra pagada'; 
@@ -739,6 +743,7 @@ function EliminarDocumento(id_doc) {
                                                                 <!-- PDF -->
                                                                 <a href="compras_pdf.php?id=<?php echo $compra['id_compra']; ?>"
                                                                 class="btn btn-secondary btn-sm"
+                                                                data-toggle="tooltip"
                                                                 title="Generar PDF"
                                                                 target="_blank">
                                                                     <i class="fa fa-file-pdf-o"></i>
@@ -747,6 +752,7 @@ function EliminarDocumento(id_doc) {
                                                                 <!-- Botón Editar - DESHABILITADO -->
                                                                 <a href="#" 
                                                                 class="btn btn-outline-secondary btn-sm disabled"
+                                                                data-toggle="tooltip"
                                                                 title="<?php 
                                                                     if ($compra['est_compra'] == 0) echo 'No se puede editar - Orden anulada';
                                                                     elseif ($compra['est_compra'] == 4) echo 'No se puede editar - Orden pagada';
@@ -760,6 +766,7 @@ function EliminarDocumento(id_doc) {
                                                                 <?php if ($compra['est_compra'] == 2 || $compra['est_compra'] == 3) { ?>
                                                                     <a href="comprobante_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
                                                                     class="btn btn-warning btn-sm"
+                                                                    data-toggle="tooltip"
                                                                     title="Registrar/Ver Pagos">
                                                                         <i class="fa fa-money"></i>
                                                                     </a>
@@ -767,6 +774,7 @@ function EliminarDocumento(id_doc) {
                                                                     <!--debe poder verse la vista pero no registrar nuevos pagos-->
                                                                     <a href="comprobante_registrar.php?id_compra=<?php echo $compra['id_compra']; ?>"
                                                                     class="btn btn-warning btn-sm"
+                                                                    data-toggle="tooltip"
                                                                     title="Compra pagada"
                                                                     tabindex="-1" aria-disabled="true">
                                                                         <i class="fa fa-money"></i>
@@ -774,6 +782,7 @@ function EliminarDocumento(id_doc) {
                                                                 <?php } else { ?>
                                                                     <a href="#"
                                                                     class="btn btn-outline-secondary btn-sm disabled"
+                                                                    data-toggle="tooltip"
                                                                     title="No disponible"
                                                                     tabindex="-1" aria-disabled="true">
                                                                         <i class="fa fa-money"></i>
