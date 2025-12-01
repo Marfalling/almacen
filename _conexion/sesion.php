@@ -356,4 +356,22 @@ function esAdministrador($id_usuario) {
     mysqli_close($con);
     return $es_admin;
 }
+// Verificar si el usuario actual es SUPERADMIN
+function esSuperAdmin($id_usuario) {
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT COUNT(*) as total 
+            FROM usuario_rol ur
+            INNER JOIN rol r ON ur.id_rol = r.id_rol
+            WHERE ur.id_usuario = $id_usuario 
+            AND ur.est_usuario_rol = 1 
+            AND r.est_rol = 1
+            AND r.nom_rol = 'SUPER ADMINISTRADOR'";
+    
+    $result = mysqli_query($con, $sql);
+    $row = mysqli_fetch_assoc($result);
+    mysqli_close($con);
+    
+    return $row['total'] > 0;
+}
 ?>

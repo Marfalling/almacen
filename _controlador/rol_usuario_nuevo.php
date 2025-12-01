@@ -7,6 +7,8 @@ if (!verificarPermisoEspecifico('crear_rol de usuario')) {
     header("location: bienvenido.php?permisos=true");
     exit;
 }
+$es_superadmin = esSuperAdmin($id);
+
 //=======================================================================
 // CONTROLADOR: rol_usuario_nuevo.php
 //=======================================================================

@@ -11,6 +11,8 @@ if (!verificarPermisoEspecifico('ver_rol de usuario')) {
 require_once("../_modelo/m_rol.php");
 
 
+$es_superadmin = esSuperAdmin($id);
+
 ?>
 
 <!DOCTYPE html>
@@ -24,6 +26,7 @@ require_once("../_modelo/m_rol.php");
     <title>Roles Mostrar</title>
     
     <?php require_once("../_vista/v_estilo.php"); ?>
+    
 </head>
 <body class="nav-md">
     <div class="container body">
@@ -31,9 +34,10 @@ require_once("../_modelo/m_rol.php");
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
+            
+            // Obtener roles según el tipo de usuario
+            $roles = MostrarRoles($id);
 
-            require_once("../_modelo/m_rol.php");
-            $roles = MostrarRoles();
             require_once("../_vista/v_rol_usuario_mostrar.php");
 
             require_once("../_vista/v_footer.php");

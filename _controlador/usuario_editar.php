@@ -11,6 +11,9 @@ if (!verificarPermisoEspecifico('editar_usuarios')) {
 require_once("../_modelo/m_usuario.php");
 require_once("../_modelo/m_rol.php");
 
+// Verificar si el usuario actual es SUPERADMIN
+$es_superadmin = esSuperAdmin($id);
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -52,7 +55,7 @@ require_once("../_modelo/m_rol.php");
                     </script>
                 <?php
                     exit;
-                }
+                }               
 
                 // Validaciones adicionales del lado del servidor
                 if (empty($usu)) {
@@ -152,6 +155,16 @@ require_once("../_modelo/m_rol.php");
                 
                 // Obtener roles actuales del usuario
                 $roles_usuario = ObtenerRolesUsuario($id_usuario);
+                
+                // Verificar si el usuario a editar tiene rol SUPER ADMINISTRADOR
+                $usuario_tiene_superadmin = false;
+                foreach ($roles_usuario as $rol) {
+                    if ($rol['id_rol'] == 1) {
+                        $usuario_tiene_superadmin = true;
+                        break;
+                    }
+                }
+                
             } else {
             ?>
                 <script Language="JavaScript">
@@ -161,8 +174,12 @@ require_once("../_modelo/m_rol.php");
                 exit;
             }
 
-            // Obtener datos para los selectores
-            $roles_activos = MostrarRolesActivos();
+            // Obtener datos para los selectores - filtrar SUPER ADMINISTRADOR si no es superadmin
+            if ($es_superadmin) {
+                $roles_activos = MostrarRolesActivos();
+            } else {
+                $roles_activos = MostrarRolesActivosFiltrados();
+            }
 
             require_once("../_vista/v_usuario_editar.php");
             require_once("../_vista/v_footer.php");

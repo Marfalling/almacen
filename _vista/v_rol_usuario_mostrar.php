@@ -36,7 +36,7 @@
                                             <tr>
                                                 <th>#</th>
                                                 <th>Nombre del Rol</th>
-                                                <th>Total Permisos</th>
+                                                <!-- <th>Total Permisos</th> -->
                                                 <th>Estado</th>
                                                 <th>Editar</th>
                                             </tr>
@@ -46,20 +46,26 @@
                                             <?php
                                             $c = 0;
                                             foreach ($roles as $value) {
-                                                $c++;
                                                 $id_rol = $value['id_rol'];
                                                 $nom_rol = $value['nom_rol'];
                                                 $total_permisos = $value['total_permisos'];
                                                 $est_rol = $value['est_rol'];
                                                 $estado = ($est_rol == 1) ? "ACTIVO" : "INACTIVO";
                                                 
+                                                // Ocultar Super Administrador si el usuario NO es Super Administrador
+                                                if ($id_rol == 1 && !$es_superadmin) {
+                                                    continue; // Saltar esta iteración
+                                                }
+                                                
+                                                $c++;
                                             ?>
                                                 <tr>
                                                     <td><?php echo $c; ?></td>
                                                     <td><?php echo $nom_rol; ?></td>
-                                                    <td>
+                                                    <!--<td>
                                                         <center><?php echo $total_permisos; ?></center>
                                                     </td>
+                                                    -->
                                                     <td>
                                                         <center>
                                                             <?php if ($est_rol == 1) { ?>

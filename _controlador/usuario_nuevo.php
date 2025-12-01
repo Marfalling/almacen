@@ -12,6 +12,9 @@ if (!verificarPermisoEspecifico('crear_usuarios')) {
 require_once("../_modelo/m_usuario.php");
 require_once("../_modelo/m_rol.php");
 
+// Verificar si el usuario actual es SUPERADMIN
+$es_superadmin = esSuperAdmin($id);
+
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -155,7 +158,14 @@ require_once("../_modelo/m_rol.php");
 
             // Obtener datos para los selectores
             $personal_sin_usuario = ObtenerPersonalSinUsuario();
-            $roles_activos = MostrarRolesActivos();
+            
+            // Obtener roles activos, filtrando SUPER ADMINISTRADOR si no es superadmin
+            if ($es_superadmin) {
+                $roles_activos = MostrarRolesActivos();
+            } else {
+                
+                $roles_activos = MostrarRolesActivosFiltrados();
+            }
 
             require_once("../_vista/v_usuario_nuevo.php");
             require_once("../_vista/v_footer.php");

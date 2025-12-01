@@ -142,7 +142,8 @@ function EditarUsuario($id, $usu, $pass, $est, $roles = array())
     return "SI";
 }
 //-----------------------------------------------------------------------
-function MostrarUsuario()
+//-----------------------------------------------------------------------
+function MostrarUsuario($excluir_superadmin = false)
 {
     include("../_conexion/conexion.php");
 
@@ -151,15 +152,26 @@ function MostrarUsuario()
                    p.dni_personal,
                    a.nom_area,
                    c.nom_cargo,
-                   GROUP_CONCAT(r.nom_rol SEPARATOR ', ') as roles
+                   GROUP_CONCAT(DISTINCT r.nom_rol ORDER BY r.nom_rol SEPARATOR ', ') as roles
              FROM usuario u 
              INNER JOIN {$bd_complemento}.personal p ON u.id_personal = p.id_personal
              INNER JOIN {$bd_complemento}.area a ON p.id_area = a.id_area
              INNER JOIN {$bd_complemento}.cargo c ON p.id_cargo = c.id_cargo
              LEFT JOIN usuario_rol ur ON u.id_usuario = ur.id_usuario AND ur.est_usuario_rol = 1
-             LEFT JOIN rol r ON ur.id_rol = r.id_rol AND r.est_rol = 1
-             GROUP BY u.id_usuario
-             ORDER BY p.nom_personal ASC";
+             LEFT JOIN rol r ON ur.id_rol = r.id_rol AND r.est_rol = 1";
+    
+    // Si se debe excluir SUPER ADMINISTRADOR
+    if ($excluir_superadmin) {
+        $sqlc .= " WHERE u.id_usuario NOT IN (
+                    SELECT DISTINCT ur2.id_usuario 
+                    FROM usuario_rol ur2 
+                    WHERE ur2.id_rol = 1 AND ur2.est_usuario_rol = 1
+                  )";
+    }
+    
+    $sqlc .= " GROUP BY u.id_usuario
+               ORDER BY p.nom_personal ASC";
+    
     $resc = mysqli_query($con, $sqlc);
 
     $resultado = array();
@@ -667,5 +679,17 @@ function CambiarPassword($id_usuario, $password_actual, $password_nueva)
 
     mysqli_close($con);
     return $res;
+}
+// Función para filtrar rol SUPER ADMINISTRADOR
+function MostrarRolesActivosFiltrados() {
+    include("../_conexion/conexion.php");
+    $sqlc = "SELECT * FROM rol WHERE est_rol = 1 AND id_rol != 1 ORDER BY nom_rol ASC";
+    $resc = mysqli_query($con, $sqlc);
+    $resultado = array();
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $resultado[] = $rowc;
+    }
+    mysqli_close($con);
+    return $resultado;
 }
 ?>

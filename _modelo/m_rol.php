@@ -55,18 +55,40 @@ function GrabarRol($nom_rol, $permisos, $est)
 }
 
 //-----------------------------------------------------------------------
-function MostrarRoles()
+function MostrarRoles($id_usuario_actual = null)
 {
     include("../_conexion/conexion.php");
 
+    // Base de la consulta
     $sqlc = "SELECT r.*, 
                    COUNT(p.id_permiso) as total_permisos,
                    COUNT(ur.id_usuario_rol) as total_usuarios
              FROM rol r 
              LEFT JOIN permiso p ON r.id_rol = p.id_rol AND p.est_permiso = 1
-             LEFT JOIN usuario_rol ur ON r.id_rol = ur.id_rol AND ur.est_usuario_rol = 1
-             GROUP BY r.id_rol
-             ORDER BY r.nom_rol ASC";
+             LEFT JOIN usuario_rol ur ON r.id_rol = ur.id_rol AND ur.est_usuario_rol = 1";
+    
+    // Verificar si el usuario actual es SUPERADMIN
+    if ($id_usuario_actual) {
+        // Verificar si el usuario tiene rol SUPER ADMINISTRADOR
+        $sql_check = "SELECT r.id_rol 
+                      FROM usuario_rol ur
+                      INNER JOIN rol r ON ur.id_rol = r.id_rol
+                      WHERE ur.id_usuario = $id_usuario_actual 
+                      AND ur.est_usuario_rol = 1 
+                      AND r.est_rol = 1
+                      AND r.nom_rol = 'SUPER ADMINISTRADOR'";
+        
+        $result_check = mysqli_query($con, $sql_check);
+        $es_superadmin = (mysqli_num_rows($result_check) > 0);
+        
+        if (!$es_superadmin) {
+            // Si no es SUPERADMIN, excluir el rol SUPER ADMINISTRADOR (id_rol = 1)
+            $sqlc .= " WHERE r.id_rol != 1";
+        }
+    }
+    
+    $sqlc .= " GROUP BY r.id_rol ORDER BY r.nom_rol ASC";
+    
     $resc = mysqli_query($con, $sqlc);
 
     $resultado = array();

@@ -11,6 +11,8 @@ if (!verificarPermisoEspecifico('ver_usuarios')) {
 
 require_once("../_modelo/m_usuario.php");
 
+// Verificar si el usuario actual es SUPERADMIN
+$es_superadmin = esSuperAdmin($id);
 
 ?>
 
@@ -32,10 +34,14 @@ require_once("../_modelo/m_usuario.php");
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-
-            // Obtener la lista de usuarios
-            $usuarios = MostrarUsuario();
-            
+            // Obtener la lista de usuarios 
+            if ($es_superadmin) {
+                // Superadmin ve todos los usuarios
+                $usuarios = MostrarUsuario(false);
+            } else {
+                // Usuario normal NO ve usuarios con rol SUPER ADMINISTRADOR
+                $usuarios = MostrarUsuario(true); // true = excluir superadmin
+            }
             require_once("../_vista/v_usuario_mostrar.php");
             require_once("../_vista/v_footer.php");
             ?>

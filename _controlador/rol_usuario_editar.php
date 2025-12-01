@@ -8,6 +8,9 @@ if (!verificarPermisoEspecifico('editar_rol de usuario')) {
     exit;
 }
 
+$es_superadmin = esSuperAdmin($id);
+
+
 //=======================================================================
 // CONTROLADOR: rol_usuario_editar.php
 //=======================================================================
