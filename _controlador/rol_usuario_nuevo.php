@@ -80,8 +80,8 @@ $es_superadmin = esSuperAdmin($id);
             }
             //-------------------------------------------
             
-            // Obtener módulos y acciones para los permisos
-            $modulos_acciones = MostrarModulosAcciones();
+            // Obtener módulos y acciones para los permisos - pasar $es_superadmin
+            $modulos_acciones = MostrarModulosAcciones($es_superadmin);
             
             require_once("../_vista/v_rol_usuario_nuevo.php");
             require_once("../_vista/v_footer.php");

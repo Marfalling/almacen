@@ -8,8 +8,8 @@ if (!verificarPermisoEspecifico('editar_rol de usuario')) {
     exit;
 }
 
+// Verificar si el usuario actual es SUPERADMIN
 $es_superadmin = esSuperAdmin($id);
-
 
 //=======================================================================
 // CONTROLADOR: rol_usuario_editar.php
@@ -114,8 +114,8 @@ $es_superadmin = esSuperAdmin($id);
                 exit;
             }
             
-            // Obtener módulos y acciones para los permisos
-            $modulos_acciones = MostrarModulosAcciones();
+            // Obtener módulos y acciones para los permisos - pasar $es_superadmin
+            $modulos_acciones = MostrarModulosAcciones($es_superadmin);
 
             require_once("../_vista/v_rol_usuario_editar.php");
             require_once("../_vista/v_footer.php");

@@ -103,11 +103,19 @@ function MostrarRoles($id_usuario_actual = null)
 }
 
 //-----------------------------------------------------------------------
-function MostrarRolesActivos()
+function MostrarRolesActivos($es_superadmin = false)
 {
     include("../_conexion/conexion.php");
 
-    $sqlc = "SELECT * FROM rol WHERE est_rol = 1 ORDER BY nom_rol ASC";
+    $sqlc = "SELECT * FROM rol WHERE est_rol = 1";
+    
+    // Si no es superadmin, excluir el rol SUPER ADMINISTRADOR (id_rol = 1)
+    if (!$es_superadmin) {
+        $sqlc .= " AND id_rol != 1";
+    }
+    
+    $sqlc .= " ORDER BY nom_rol ASC";
+    
     $resc = mysqli_query($con, $sqlc);
 
     $resultado = array();
@@ -243,23 +251,29 @@ function ObtenerRolesUsuarioIDs($id_usuario)
 }
 
 //-----------------------------------------------------------------------
-function MostrarModulosAcciones()
+//-----------------------------------------------------------------------
+function MostrarModulosAcciones($es_superadmin = false)
 {
     include("../_conexion/conexion.php");
 
-    $sql = "SELECT ma.id_modulo_accion, m.nom_modulo, a.nom_accion, a.id_accion
+    $sql = "SELECT ma.id_modulo_accion, m.nom_modulo, a.nom_accion, a.id_accion, m.id_modulo
             FROM modulo_accion ma 
             INNER JOIN modulo m ON ma.id_modulo = m.id_modulo 
             INNER JOIN accion a ON ma.id_accion = a.id_accion 
             WHERE ma.est_modulo_accion = 1 
             AND m.est_modulo = 1 
-            AND a.est_accion = 1
-            ORDER BY m.nom_modulo ASC, a.nom_accion ASC";
+            AND a.est_accion = 1";
+    
+    // Si no es superadmin, excluir el módulo con id_modulo = 11
+    if (!$es_superadmin) {
+        $sql .= " AND m.id_modulo != 11";
+    }
+    
+    $sql .= " ORDER BY m.nom_modulo ASC, a.nom_accion ASC";
     
     $result = mysqli_query($con, $sql);
 
     if (!$result) {
-        // Log del error para debugging
         error_log("Error en MostrarModulosAcciones(): " . mysqli_error($con));
         mysqli_close($con);
         return array();
