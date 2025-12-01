@@ -15,46 +15,23 @@ foreach ($modulos_acciones as $ma) {
     }
 }
 
-// Si existe id_accion en los datos, usar orden basado en IDs
-if (isset($modulos_acciones[0]['id_accion'])) {
-    // Ordenar las acciones según el ID (Ver=1, Crear=2, Editar=3)
-    // Crear un array con el orden correcto basado en los IDs de la base de datos
-    $orden_acciones = array();
+// Ordenar las acciones según el ID
+$orden_acciones = array();
 
-    // Obtener las acciones con sus IDs para ordenarlas correctamente
-    foreach ($modulos_acciones as $ma) {
-        if (!isset($orden_acciones[$ma['nom_accion']])) {
-            $orden_acciones[$ma['nom_accion']] = $ma['id_accion'];
-        }
+// Obtener las acciones con sus IDs para ordenarlas correctamente
+foreach ($modulos_acciones as $ma) {
+    if (!isset($orden_acciones[$ma['nom_accion']])) {
+        $orden_acciones[$ma['nom_accion']] = $ma['id_accion'];
     }
-
-    // Ordenar por ID de acción
-    uasort($orden_acciones, function($a, $b) {
-        return $a - $b;
-    });
-
-    // Crear array ordenado de acciones
-    $acciones_disponibles = array_keys($orden_acciones);
-} else {
-    // Orden predeterminado si no hay id_accion disponible
-    $orden_predeterminado = array('Ver', 'Crear', 'Editar');
-    $acciones_ordenadas = array();
-    
-    foreach ($orden_predeterminado as $accion) {
-        if (in_array($accion, $acciones_disponibles)) {
-            $acciones_ordenadas[] = $accion;
-        }
-    }
-    
-    // Agregar cualquier acción que no esté en el orden predeterminado
-    foreach ($acciones_disponibles as $accion) {
-        if (!in_array($accion, $acciones_ordenadas)) {
-            $acciones_ordenadas[] = $accion;
-        }
-    }
-    
-    $acciones_disponibles = $acciones_ordenadas;
 }
+
+// Ordenar por ID de acción
+uasort($orden_acciones, function($a, $b) {
+    return $a - $b;
+});
+
+// Crear array ordenado de acciones
+$acciones_disponibles = array_keys($orden_acciones);
 
 // Mostrar mensaje de error si viene sin permisos
 if (isset($_GET['sin_permisos'])) {
@@ -152,8 +129,6 @@ if (isset($_GET['sin_permisos'])) {
                                                     <?php if (isset($acciones[$accion_std])) { 
                                                         $permiso = $acciones[$accion_std];
                                                         $checked = in_array($permiso['id_modulo_accion'], $permisos_asignados) ? 'checked' : '';
-                                                        // Obtener id_accion, usar mapeo si no está disponible
-                                                        $id_accion = isset($permiso['id_accion']) ? $permiso['id_accion'] : obtenerIdAccion($accion_std);
                                                     ?>
                                                         <div class="form-check">
                                                             <input type="checkbox" 
@@ -162,7 +137,7 @@ if (isset($_GET['sin_permisos'])) {
                                                                    value="<?php echo $permiso['id_modulo_accion']; ?>" 
                                                                    data-modulo="<?php echo $modulo; ?>" 
                                                                    data-accion="<?php echo $accion_std; ?>"
-                                                                   data-id-accion="<?php echo $id_accion; ?>"
+                                                                   data-id-accion="<?php echo $permiso['id_accion']; ?>"
                                                                    id="perm_<?php echo $permiso['id_modulo_accion']; ?>"
                                                                    onchange="manejarSeleccionPermisos(this)"
                                                                    <?php echo $checked; ?>>
@@ -286,25 +261,14 @@ document.addEventListener('DOMContentLoaded', function() {
 function manejarSeleccionPermisos(checkbox) {
     const modulo = checkbox.getAttribute('data-modulo');
     const accionId = parseInt(checkbox.getAttribute('data-id-accion'));
+    const checkboxVer = document.querySelector(`input[data-modulo="${modulo}"][data-id-accion="1"]`);
     
-    // Si se selecciona "Ver" (ID=1), automáticamente seleccionar "Crear" (ID=2)
-    if (accionId === 1 && checkbox.checked) {
-        const checkboxCrear = document.querySelector(`input[data-modulo="${modulo}"][data-id-accion="2"]`);
-        if (checkboxCrear && !checkboxCrear.checked) {
-            checkboxCrear.checked = true;
+    // Si se selecciona cualquier acción que NO sea VER (ID diferente de 1), automáticamente seleccionar VER
+    if (accionId !== 1 && checkbox.checked) {
+        if (checkboxVer && !checkboxVer.checked) {
+            checkboxVer.checked = true;
         }
     }
-    
-    // Si se deselecciona "Crear" (ID=2), automáticamente deseleccionar "Ver" (ID=1)
-    if (accionId === 2 && !checkbox.checked) {
-        const checkboxVer = document.querySelector(`input[data-modulo="${modulo}"][data-id-accion="1"]`);
-        if (checkboxVer && checkboxVer.checked) {
-            checkboxVer.checked = false;
-        }
-    }
-    
-    // Si se deselecciona "Editar" (ID=3), no hacer nada automáticamente
-    // Si se selecciona "Editar" (ID=3), no hacer nada automáticamente
     
     actualizarResumen();
 }

@@ -1,14 +1,4 @@
 <?php
-// Función auxiliar para obtener el ID de acción cuando no está disponible en los datos
-function obtenerIdAccion($nombre_accion) {
-    $mapeo_acciones = array(
-        'Ver' => 1,
-        'Crear' => 2,
-        'Editar' => 3
-    );
-    return isset($mapeo_acciones[$nombre_accion]) ? $mapeo_acciones[$nombre_accion] : 0;
-}
-
 // Preparar datos para la vista
 $matriz_permisos = array();
 $acciones_disponibles = array();
@@ -20,8 +10,7 @@ foreach ($modulos_acciones as $ma) {
     }
 }
 
-// Ordenar las acciones según el ID (Ver=1, Crear=2, Editar=3)
-// Crear un array con el orden correcto basado en los IDs de la base de datos
+// Ordenar las acciones según el ID
 $orden_acciones = array();
 
 // Obtener las acciones con sus IDs para ordenarlas correctamente
@@ -246,25 +235,14 @@ if (isset($_GET['sin_permisos'])) {
 function manejarSeleccionPermisos(checkbox) {
     const modulo = checkbox.getAttribute('data-modulo');
     const accionId = parseInt(checkbox.getAttribute('data-id-accion'));
+    const checkboxVer = document.querySelector(`input[data-modulo="${modulo}"][data-id-accion="1"]`);
     
-    // Si se selecciona "Ver" (ID=1), automáticamente seleccionar "Crear" (ID=2)
-    if (accionId === 1 && checkbox.checked) {
-        const checkboxCrear = document.querySelector(`input[data-modulo="${modulo}"][data-id-accion="2"]`);
-        if (checkboxCrear && !checkboxCrear.checked) {
-            checkboxCrear.checked = true;
+    // Si se selecciona cualquier acción que NO sea VER (ID diferente de 1), automáticamente seleccionar VER
+    if (accionId !== 1 && checkbox.checked) {
+        if (checkboxVer && !checkboxVer.checked) {
+            checkboxVer.checked = true;
         }
     }
-    
-    // Si se deselecciona "Crear" (ID=2), automáticamente deseleccionar "Ver" (ID=1)
-    if (accionId === 2 && !checkbox.checked) {
-        const checkboxVer = document.querySelector(`input[data-modulo="${modulo}"][data-id-accion="1"]`);
-        if (checkboxVer && checkboxVer.checked) {
-            checkboxVer.checked = false;
-        }
-    }
-    
-    // Si se deselecciona "Editar" (ID=3), no hacer nada automáticamente
-    // Si se selecciona "Editar" (ID=3), no hacer nada automáticamente
     
     actualizarResumen();
 }
