@@ -796,6 +796,7 @@ function ConsultarSalidaDetalle($id_salida)
 
     $sqlc = "SELECT sd.*, 
                 p.nom_producto,
+                p.cod_material,
                 um.nom_unidad_medida,
                 pd.id_pedido_detalle,
                 pd.cant_pedido_detalle,
@@ -1735,6 +1736,7 @@ function ObtenerDetalleSalida($id_salida) {
     
     $sql = "SELECT sd.*, 
                p.nom_producto,
+               p.cod_material,           
                um.nom_unidad_medida,
                pd.id_pedido_detalle,
                pd.cant_pedido_detalle
@@ -1760,7 +1762,6 @@ function ObtenerDetalleSalida($id_salida) {
     
     return $salida_detalle;
 }
-
 // ============================================================================
 // VALIDAR SI UNA SALIDA EXISTE Y ESTÁ ACTIVA
 // ============================================================================
