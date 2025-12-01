@@ -376,7 +376,7 @@ function EliminarDocumento(id_doc) {
                                     <i class="fa fa-file-excel-o"></i> Pendiente Dólares
                                 </a>
                                 <button type="button" class="btn btn-primary btn-sm" onclick="abrirModalMasivo()">
-                                    <i class="fa fa-cloud-upload"></i> Vouchers Masivo
+                                    <i class="fa fa-cloud-upload"></i> Constancia de Pago Masivo
                                 </button>
                             </div>
                         </div>
@@ -868,7 +868,7 @@ function EliminarDocumento(id_doc) {
         <!-- CABECERA -->
         <div style="background:#667eea; color:white; padding:10px 20px; 
                     display:flex; justify-content:space-between; align-items:center;">
-            <h5 style="margin:0;">Subida Masiva de Vouchers</h5>
+            <h5 style="margin:0;">Subida Masiva de Constancias de Pago</h5>
             <button onclick="cerrarModalMasivo()" 
                     style="background:none; border:none; color:white; font-size:20px;">&times;</button>
         </div>
@@ -913,7 +913,8 @@ function EliminarDocumento(id_doc) {
                 <h6><i class="fa fa-envelope"></i> Notificaciones:</h6>
                 <label><input type="checkbox" id="enviarProveedor" checked> Enviar al Proveedor</label><br>
                 <label><input type="checkbox" id="enviarContabilidad" checked> Enviar a Contabilidad</label><br>
-                <label><input type="checkbox" id="enviarTesoreria" checked> Enviar a Tesorería</label>
+                <label><input type="checkbox" id="enviarTesoreria" checked> Enviar a Tesorería</label><br>
+                <label><input type="checkbox" id="enviarCompras" checked> Enviar a Compras</label>
             </div>
         </div>
 
@@ -1633,7 +1634,8 @@ async function registrarArchivosMasivo() {
         archivos_a_registrar: archivos_a_registrar,
         enviar_proveedor: document.getElementById('enviarProveedor').checked ? 1 : 0,
         enviar_contabilidad: document.getElementById('enviarContabilidad').checked ? 1 : 0,
-        enviar_tesoreria: document.getElementById('enviarTesoreria').checked ? 1 : 0
+        enviar_tesoreria: document.getElementById('enviarTesoreria').checked ? 1 : 0,
+        enviar_compras: document.getElementById('enviarCompras').checked ? 1 : 0
     };
 
     try {

@@ -49,14 +49,24 @@ $sql = "SELECT
     pt.nom_producto_tipo,
     um.nom_unidad_medida,
     COALESCE(
-        (SELECT SUM(
-            CASE 
-                WHEN m.tipo_movimiento = 1 AND m.tipo_orden != 3 THEN m.cant_movimiento
-                WHEN m.tipo_movimiento = 2 THEN -m.cant_movimiento
-                ELSE 0 
-            END
+        (SELECT SUM(CASE
+            -- INGRESOS: Incluye devoluciones SOLO si es ARCE (id_cliente = 9) Y está CONFIRMADO (est_movimiento = 1)
+            WHEN m.tipo_movimiento = 1 THEN
+                CASE
+                    -- ARCE: Cuenta devoluciones SOLO si están confirmadas (est_movimiento = 1)
+                    WHEN m.tipo_orden = 3 AND alm.id_cliente = 9 AND m.est_movimiento = 1 THEN m.cant_movimiento
+                    -- Otros ingresos normales (NO devoluciones)
+                    WHEN m.tipo_orden != 3 THEN m.cant_movimiento
+                    -- Otros clientes con devoluciones: NO cuenta
+                    ELSE 0
+                END
+            -- SALIDAS: Siempre restan
+            WHEN m.tipo_movimiento = 2 THEN -m.cant_movimiento
+            ELSE 0
+        END
         )
         FROM movimiento m
+        INNER JOIN almacen alm ON m.id_almacen = alm.id_almacen
         WHERE m.id_producto = p.id_producto
         AND m.id_almacen = $id_almacen
         AND m.id_ubicacion = $id_ubicacion

@@ -143,7 +143,7 @@ require_once("../_modelo/m_detraccion.php");
                                 type="button" 
                                 class="btn <?php echo ($oc['pagado'] == 1) ? 'btn-secondary' : 'btn-primary'; ?>"
                                 <?php echo ($oc['pagado'] == 1) ? 'disabled title="Esta compra está pagada"' : 'onclick="abrirModalMasivo()"'; ?>>
-                                📤 Subir vouchers masivo
+                                📤 Subir constancia de pago masivo
                             </button>
                             <!--<button
                                 class="btn btn-sm <?php echo ($oc['pagado'] == 1 ) ? 'btn-outline-secondary disabled' : 'btn-outline-success'; ?>"
@@ -181,7 +181,7 @@ require_once("../_modelo/m_detraccion.php");
                                         <th>Afectación</th>
                                         <th>Total</th>
                                         <th>Fecha Pago</th>
-                                        <th>Voucher</th>
+                                        <th>Constancia de Pago</th>
                                         <th>Estado</th>
                                         <th>Acciones</th>
                                     </tr>
@@ -306,7 +306,7 @@ require_once("../_modelo/m_detraccion.php");
                                                     <i class="fa fa-edit"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-secondary btn-sm" title="Subir Voucher" data-toggle="tooltip" disabled>
+                                                <button class="btn btn-secondary btn-sm" title="Subir Constancia de Pago" data-toggle="tooltip" disabled>
                                                     <i class="fa fa-upload"></i>
                                                 </button>
                                                 
@@ -324,7 +324,7 @@ require_once("../_modelo/m_detraccion.php");
                                                     <i class="fa fa-edit"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-success btn-sm" title="Subir Voucher" data-toggle="tooltip" onclick="AbrirModalVoucher(<?php echo $comp['id_comprobante']; ?>, '<?php echo $comp['num_comprobante']; ?>')">
+                                                <button class="btn btn-success btn-sm" title="Subir Constancia de Pago" data-toggle="tooltip" onclick="AbrirModalVoucher(<?php echo $comp['id_comprobante']; ?>, '<?php echo $comp['num_comprobante']; ?>')">
                                                     <i class="fa fa-upload"></i>
                                                 </button>
                                                 
@@ -342,7 +342,7 @@ require_once("../_modelo/m_detraccion.php");
                                                     <i class="fa fa-edit"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-secondary btn-sm" title="Subir Voucher" data-toggle="tooltip" disabled>
+                                                <button class="btn btn-secondary btn-sm" title="Subir Constancia de Pago" data-toggle="tooltip" disabled>
                                                     <i class="fa fa-upload"></i>
                                                 </button>
                                                 
@@ -359,7 +359,7 @@ require_once("../_modelo/m_detraccion.php");
                                                     <i class="fa fa-edit"></i>
                                                 </button>
                                                 
-                                                <button class="btn btn-secondary btn-sm" title="Subir Voucher" data-toggle="tooltip" disabled>
+                                                <button class="btn btn-secondary btn-sm" title="Subir Constancia de Pago" data-toggle="tooltip" disabled>
                                                     <i class="fa fa-upload"></i>
                                                 </button>
                                                 
@@ -401,7 +401,7 @@ require_once("../_modelo/m_detraccion.php");
         <!-- CABECERA -->
         <div style="background:#667eea; color:white; padding:10px 20px; 
                     display:flex; justify-content:space-between; align-items:center;">
-            <h5 style="margin:0;">Subida Masiva de Vouchers</h5>
+            <h5 style="margin:0;">Subida Masiva de Constancias de Pago</h5>
             <button onclick="cerrarModalMasivo()" 
                     style="background:none; border:none; color:white; font-size:20px;">&times;</button>
         </div>
@@ -446,7 +446,8 @@ require_once("../_modelo/m_detraccion.php");
                 <h6><i class="fa fa-envelope"></i> Notificaciones:</h6>
                 <label><input type="checkbox" id="enviarProveedor" checked> Enviar al Proveedor</label><br>
                 <label><input type="checkbox" id="enviarContabilidad" checked> Enviar a Contabilidad</label><br>
-                <label><input type="checkbox" id="enviarTesoreria" checked> Enviar a Tesorería</label>
+                <label><input type="checkbox" id="enviarTesoreria" checked> Enviar a Tesorería</label><br>
+                <label><input type="checkbox" id="enviarCompras" checked> Enviar a Compras</label>
             </div>
         </div>
 
