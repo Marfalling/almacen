@@ -108,6 +108,9 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
                     foreach ($_REQUEST['id_producto'] as $index => $id_producto) {
                         if (!empty($id_producto) && !empty($_REQUEST['cantidad'][$index])) {
                             $materiales[] = array(
+                                'id_devolucion_detalle' => isset($_REQUEST['id_devolucion_detalle'][$index]) 
+                                ? intval($_REQUEST['id_devolucion_detalle'][$index]) 
+                                : 0, // ✅ Si es 0, indica que es un registro NUEVO
                                 'id_producto' => intval($id_producto),
                                 'descripcion' => mysqli_real_escape_string($con, $_REQUEST['descripcion'][$index]),
                                 'cantidad' => floatval($_REQUEST['cantidad'][$index])

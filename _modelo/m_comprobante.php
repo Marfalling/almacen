@@ -1345,6 +1345,31 @@ function ActualizarComprobantesEstado($id_moneda)
     return "SI|$filas_actualizadas";
 }
 
+function ActualizarComprobantesComEstado($id_moneda, $id_compra)
+{
+    include("../_conexion/conexion.php");
+
+    // Actualizar todos los comprobantes con est_comprobante = 1 a est_comprobante = 2
+    $sql = "UPDATE comprobante 
+            SET est_comprobante = 2 
+            WHERE est_comprobante = 1
+                AND id_moneda = $id_moneda
+                AND id_compra = $id_compra";
+
+    $res = mysqli_query($con, $sql);
+
+    if (!$res) {
+        $error = mysqli_error($con);
+        mysqli_close($con);
+        return "Error al actualizar comprobantes: $error";
+    }
+
+    $filas_actualizadas = mysqli_affected_rows($con);
+    mysqli_close($con);
+
+    return "SI|$filas_actualizadas";
+}
+
 function obtenerComprobantesEstado1($id_moneda)
 {
     include("../_conexion/conexion.php");
@@ -1443,6 +1468,121 @@ function obtenerComprobantesEstado1($id_moneda)
     INNER JOIN tipo_documento td
         ON td.id_tipo_documento = c.id_tipo_documento
     WHERE c.est_comprobante = 1
+        AND c.id_moneda = $id_moneda
+    ORDER BY c.id_comprobante ASC
+    ";
+
+    $res = mysqli_query($con, $sql);
+
+    $comprobantes = [];
+
+    if ($res && mysqli_num_rows($res) > 0) {
+        while ($row = mysqli_fetch_assoc($res)) {
+            $comprobantes[] = $row;
+        }
+    }
+    return $comprobantes;
+}
+
+function obtenerComprobantesComEstado1($id_moneda, $id_compra)
+{
+    include("../_conexion/conexion.php");
+
+    $sql = "
+    SELECT 
+        c.id_comprobante,
+        c.id_compra,
+        c.id_tipo_documento,
+        td.nom_tipo_documento,
+        c.serie,
+        c.numero,
+        c.total_pagar,
+        c.fec_registro,
+        c.est_comprobante,
+        c.id_moneda,
+
+        -- Datos del proveedor
+        p.id_proveedor,
+        p.nom_proveedor,
+        p.ruc_proveedor,
+        p.cont_proveedor,
+
+        -- Datos de cuenta
+        pc.banco_proveedor,
+        pc.nro_cuenta_corriente,
+
+        -- =====================
+        -- CAMPOS CALCULADOS
+        -- =====================
+
+        -- DOI TIPO (reglas según longitud y formato)
+        CASE 
+            WHEN LENGTH(p.ruc_proveedor) = 11 THEN 'R'
+            WHEN LENGTH(p.ruc_proveedor) = 8 AND p.ruc_proveedor REGEXP '^[0-9]+$' THEN 'L'
+            WHEN LENGTH(p.ruc_proveedor) = 9 THEN 'E'
+            WHEN p.ruc_proveedor REGEXP '^[A-Za-z][0-9A-Za-z]{7}$' THEN 'P'
+            ELSE 'M'
+        END AS doi_tipo,
+
+        p.ruc_proveedor AS doi_numero,
+
+        -- Tipo abono (BBVA = 'P', otros bancos = 'I')
+        CASE
+            WHEN pc.banco_proveedor LIKE '%BBVA%' THEN 'P'
+            ELSE 'I'
+        END AS tipo_abono,
+
+        CASE
+            WHEN pc.banco_proveedor LIKE '%BBVA%' 
+                THEN pc.nro_cuenta_corriente
+            ELSE pc.nro_cuenta_interbancaria
+        END AS nro_cuenta,
+
+        -- Beneficiario
+        p.nom_proveedor AS beneficiario,
+
+        -- Importe con 2 decimales
+        ROUND(COALESCE(c.total_pagar, 0), 2) AS importe_abonar,
+
+         -- Tipo recibo (F = factura, B = boleta, R = recibo/honorario, fallback = primera letra)
+        CASE
+            WHEN LOWER(td.nom_tipo_documento) LIKE '%factura%' THEN 'F'
+            WHEN LOWER(td.nom_tipo_documento) LIKE '%boleta%' THEN 'B'
+            WHEN LOWER(td.nom_tipo_documento) LIKE '%recibo%' THEN 'R'
+            WHEN LOWER(td.nom_tipo_documento) LIKE '%honorario%' THEN 'R'
+            ELSE UPPER(LEFT(td.nom_tipo_documento,1))
+        END AS tipo_recibo,
+
+        -- N° Documento (PENDIENTE)
+        '' AS numero_documento,
+
+        -- Abono agrupado
+        'N' AS abono_agrupado,
+
+        -- Referencia servicio/compra
+        CONCAT('C00', c.id_compra) AS ref_orden_compra,
+
+        -- Referencia comprobante
+        CONCAT(c.serie, '-', c.numero) AS ref_comprobante,
+
+        -- Indicador aviso
+        'E' AS indicador_aviso,
+
+        -- Medio aviso
+        'contabilidad@arceperu.pe' AS medio_aviso,
+
+        -- Persona contacto
+        p.cont_proveedor AS persona_contacto
+
+    FROM comprobante c
+    INNER JOIN proveedor_cuenta pc 
+        ON pc.id_proveedor_cuenta = c.id_cuenta_proveedor
+    INNER JOIN proveedor p 
+        ON p.id_proveedor = pc.id_proveedor
+    INNER JOIN tipo_documento td
+        ON td.id_tipo_documento = c.id_tipo_documento
+    WHERE c.est_comprobante = 1
+        AND c.id_compra = $id_compra
         AND c.id_moneda = $id_moneda
     ORDER BY c.id_comprobante ASC
     ";

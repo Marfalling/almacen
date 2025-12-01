@@ -121,41 +121,78 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devoluc
                             )";
             
             if (mysqli_query($con, $sql_detalle)) {
-                
-                // LÓGICA SIMPLIFICADA:
-                // Si la ubicación origen NO es BASE, genera traslado interno
-                if ($id_ubicacion != 1) {
-                    
-                    // Movimiento 1: RESTA de la ubicación origen
+
+                if ($id_cliente_destino == 9) {
+
+                    // Destino SIEMPRE es almacen 1, BASE
+                    $id_almacen_destino = 1;
+                    $id_ubicacion_destino = 1;
+
+                    // SIEMPRE MUEVE, incluso si la ubicación origen es BASE
+                    // ----------------------
+                    // Movimiento 1: RESTA
+                    // ----------------------
                     $sql_mov_resta = "INSERT INTO movimiento (
                                         id_personal, id_orden, id_producto, id_almacen, 
                                         id_ubicacion, tipo_orden, tipo_movimiento, 
                                         cant_movimiento, fec_movimiento, est_movimiento
                                     ) VALUES (
                                         $id_personal, $id_devolucion, $id_producto, $id_almacen, 
-                                        $id_ubicacion, 3, 2, 
+                                        $id_ubicacion, 3, 2,
                                         $cantidad, NOW(), 2
                                     )";
                     mysqli_query($con, $sql_mov_resta);
-                    
-                    // Determinar el almacén destino según el cliente
-                    $id_almacen_destino = ($id_cliente_destino == 9) ? 1 : $id_almacen;
-                    
-                    // Movimiento 2: SUMA a BASE del almacén correspondiente
+
+                    // ----------------------
+                    // Movimiento 2: SUMA
+                    // ----------------------
                     $sql_mov_suma = "INSERT INTO movimiento (
                                         id_personal, id_orden, id_producto, id_almacen, 
                                         id_ubicacion, tipo_orden, tipo_movimiento, 
                                         cant_movimiento, fec_movimiento, est_movimiento
                                     ) VALUES (
                                         $id_personal, $id_devolucion, $id_producto, $id_almacen_destino, 
-                                        1, 3, 1, 
+                                        $id_ubicacion_destino, 3, 1,
                                         $cantidad, NOW(), 2
                                     )";
                     mysqli_query($con, $sql_mov_suma);
-                    
-                } else {
-                    // Si ya está en BASE, no genera movimientos
+
+                    continue; // este caso ya está resuelto
                 }
+                
+                // LÓGICA SIMPLIFICADA:
+                // Si la ubicación origen NO es BASE, genera traslado interno
+                if ($id_ubicacion == 1) {
+                    continue;
+                }
+                    
+                // Movimiento 1: RESTA de la ubicación origen
+                $sql_mov_resta = "INSERT INTO movimiento (
+                                    id_personal, id_orden, id_producto, id_almacen, 
+                                    id_ubicacion, tipo_orden, tipo_movimiento, 
+                                    cant_movimiento, fec_movimiento, est_movimiento
+                                ) VALUES (
+                                    $id_personal, $id_devolucion, $id_producto, $id_almacen, 
+                                    $id_ubicacion, 3, 2, 
+                                    $cantidad, NOW(), 2
+                                )";
+                mysqli_query($con, $sql_mov_resta);
+                    
+                // Determinar el almacén destino según el cliente
+                $id_almacen_destino = $id_almacen;
+                    
+                // Movimiento 2: SUMA a BASE del almacén correspondiente
+                $sql_mov_suma = "INSERT INTO movimiento (
+                                    id_personal, id_orden, id_producto, id_almacen, 
+                                    id_ubicacion, tipo_orden, tipo_movimiento, 
+                                    cant_movimiento, fec_movimiento, est_movimiento
+                                ) VALUES (
+                                    $id_personal, $id_devolucion, $id_producto, $id_almacen_destino, 
+                                    1, 3, 1, 
+                                    $cantidad, NOW(), 2
+                                )";
+                mysqli_query($con, $sql_mov_suma);
+                
             }
         }
         
@@ -336,7 +373,7 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cl
             $id_devolucion_detalle = isset($material['id_devolucion_detalle']) ? intval($material['id_devolucion_detalle']) : 0;
             $id_producto = intval($material['id_producto']);
             $cantidad = floatval($material['cantidad']);
-            $detalle = mysqli_real_escape_string($con, $material['detalle']);
+            $detalle = mysqli_real_escape_string($con, $material['descripcion']);
             
             if ($id_devolucion_detalle > 0) {
                 // ✅ ACTUALIZAR detalle existente
@@ -358,37 +395,76 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cl
             
             if (mysqli_query($con, $sql_detalle)) {
                 
-                // ✅ LÓGICA IGUAL A GrabarDevolucion:
-                // Si la ubicación origen NO es BASE, genera traslado interno
-                if ($id_ubicacion != 1) {
-                    
-                    // Movimiento 1: RESTA de la ubicación origen
+                if ($id_cliente_destino == 9) {
+
+                    // Destino SIEMPRE es almacen 1, BASE
+                    $id_almacen_destino = 1;
+                    $id_ubicacion_destino = 1;
+
+                    // SIEMPRE MUEVE, incluso si la ubicación origen es BASE
+                    // ----------------------
+                    // Movimiento 1: RESTA
+                    // ----------------------
                     $sql_mov_resta = "INSERT INTO movimiento (
                                         id_personal, id_orden, id_producto, id_almacen, 
                                         id_ubicacion, tipo_orden, tipo_movimiento, 
                                         cant_movimiento, fec_movimiento, est_movimiento
                                     ) VALUES (
                                         $id_personal, $id_devolucion, $id_producto, $id_almacen, 
-                                        $id_ubicacion, 3, 2, 
+                                        $id_ubicacion, 3, 2,
                                         $cantidad, NOW(), 2
                                     )";
                     mysqli_query($con, $sql_mov_resta);
-                    
-                    // Movimiento 2: SUMA a BASE del mismo almacén
+
+                    // ----------------------
+                    // Movimiento 2: SUMA
+                    // ----------------------
                     $sql_mov_suma = "INSERT INTO movimiento (
                                         id_personal, id_orden, id_producto, id_almacen, 
                                         id_ubicacion, tipo_orden, tipo_movimiento, 
                                         cant_movimiento, fec_movimiento, est_movimiento
                                     ) VALUES (
-                                        $id_personal, $id_devolucion, $id_producto, $id_almacen, 
-                                        1, 3, 1, 
+                                        $id_personal, $id_devolucion, $id_producto, $id_almacen_destino, 
+                                        $id_ubicacion_destino, 3, 1,
                                         $cantidad, NOW(), 2
                                     )";
                     mysqli_query($con, $sql_mov_suma);
-                    
-                } else {
-                    // Si ya está en BASE, no genera movimientos
+
+                    continue; // este caso ya está resuelto
                 }
+                
+                // LÓGICA SIMPLIFICADA:
+                // Si la ubicación origen NO es BASE, genera traslado interno
+                if ($id_ubicacion == 1) {
+                    continue;
+                }
+                    
+                // Movimiento 1: RESTA de la ubicación origen
+                $sql_mov_resta = "INSERT INTO movimiento (
+                                    id_personal, id_orden, id_producto, id_almacen, 
+                                    id_ubicacion, tipo_orden, tipo_movimiento, 
+                                    cant_movimiento, fec_movimiento, est_movimiento
+                                ) VALUES (
+                                    $id_personal, $id_devolucion, $id_producto, $id_almacen, 
+                                    $id_ubicacion, 3, 2, 
+                                    $cantidad, NOW(), 2
+                                )";
+                mysqli_query($con, $sql_mov_resta);
+                    
+                // Determinar el almacén destino según el cliente
+                $id_almacen_destino = $id_almacen;
+                    
+                // Movimiento 2: SUMA a BASE del almacén correspondiente
+                $sql_mov_suma = "INSERT INTO movimiento (
+                                    id_personal, id_orden, id_producto, id_almacen, 
+                                    id_ubicacion, tipo_orden, tipo_movimiento, 
+                                    cant_movimiento, fec_movimiento, est_movimiento
+                                ) VALUES (
+                                    $id_personal, $id_devolucion, $id_producto, $id_almacen_destino, 
+                                    1, 3, 1, 
+                                    $cantidad, NOW(), 2
+                                )";
+                mysqli_query($con, $sql_mov_suma);
             }
         }
         

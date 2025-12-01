@@ -114,6 +114,7 @@
                                                        placeholder="Material" 
                                                        value="<?php echo htmlspecialchars($detalle['det_devolucion_detalle']); ?>" required>
                                                 <input type="hidden" name="id_producto[]" value="<?php echo $detalle['id_producto']; ?>">
+                                                <input type="hidden" name="id_devolucion_detalle[]" value="<?php echo $detalle['id_devolucion_detalle']; ?>">
                                                 <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
                                                     <i class="fa fa-search"></i>
                                                 </button>
@@ -394,6 +395,12 @@ document.addEventListener('DOMContentLoaded', function() {
             nuevoMaterial.querySelectorAll('input, textarea, select').forEach(input => {
                 if (input.type !== 'button') input.value = '';
             });
+
+            //Limpiar el id_devolucion_detalle para nuevos registros
+            const inputIdDetalle = nuevoMaterial.querySelector('input[name="id_devolucion_detalle[]"]');
+            if (inputIdDetalle) {
+                inputIdDetalle.value = ''; // Vacío indica que es un registro NUEVO
+            }
 
             // Actualizar ID del stock
             const stockElement = nuevoMaterial.querySelector('[id^="stock-disponible-"]');

@@ -139,6 +139,9 @@ require_once("../_modelo/m_detraccion.php");
                     <div class="x_title">
                         <h2><i class="fa fa-file-text"></i> Comprobantes Registrados</h2>
                         <div class="pull-right">
+                            <a href="generar_excel_individual.php?moneda=<?php echo $oc['id_moneda']; ?>&compra=<?php echo $oc['id_compra']; ?>" class="btn btn-success btn-sm">
+                                <i class="fa fa-file-excel-o"></i> Pendiente <?php echo $oc['simbolo_moneda']; ?>
+                            </a>
                             <button 
                                 type="button" 
                                 class="btn <?php echo ($oc['pagado'] == 1) ? 'btn-secondary' : 'btn-primary'; ?>"
