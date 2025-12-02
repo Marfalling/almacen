@@ -584,17 +584,37 @@ function MostrarProductosConStockPorTipo($limit, $offset, $search, $orderColumn,
 }
 
 // Función para mostrar productos en modal con filtro de tipo de producto
-function MostrarProductosModalFiltrado($limit, $offset, $searchValue, $orderColumn, $orderDirection, $tipoProducto = 0)
+function MostrarProductosModalFiltrado($limit, $offset, $searchValue, $orderColumn, $orderDirection, $tipoProducto = 0, $id_almacen, $id_ubicacion)
 {
     include("../_conexion/conexion.php");
 
     // Construir la consulta base
     $sql = "SELECT p.id_producto, p.cod_material, p.nom_producto, p.mar_producto, p.mod_producto,
-                   pt.nom_producto_tipo, um.nom_unidad_medida, p.id_unidad_medida
+                   pt.nom_producto_tipo, um.nom_unidad_medida, p.id_unidad_medida,
+                   COALESCE(SUM(
+                    CASE
+                        -- INGRESOS
+                        WHEN mov.tipo_movimiento = 1 AND mov.est_movimiento != 0 THEN
+                            CASE
+                                --  Devoluciones confirmadas SÍ cuentan
+                                WHEN mov.tipo_orden = 3 AND mov.est_movimiento = 1 THEN mov.cant_movimiento
+                                --  Ingresos normales SÍ cuentan
+                                WHEN mov.tipo_orden != 3 THEN mov.cant_movimiento
+                                --  Devoluciones pendientes NO cuentan
+                                ELSE 0
+                            END
+                        -- SALIDAS: Siempre restan
+                        WHEN mov.tipo_movimiento = 2 AND mov.est_movimiento != 0 THEN -mov.cant_movimiento
+                        ELSE 0
+                    END
+                ), 0) AS stock_disponible
             FROM producto p 
             INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
             INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo
             INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+            LEFT JOIN movimiento mov ON p.id_producto = mov.id_producto 
+                      AND mov.id_almacen = $id_almacen 
+                      AND mov.id_ubicacion = $id_ubicacion
             WHERE p.est_producto = 1 
             AND pt.est_producto_tipo = 1
             AND mt.est_material_tipo = 1
@@ -604,6 +624,9 @@ function MostrarProductosModalFiltrado($limit, $offset, $searchValue, $orderColu
     if ($tipoProducto > 0) {
         $sql .= " AND p.id_producto_tipo = $tipoProducto";
     }
+
+    $sql .= " GROUP BY p.id_producto, p.cod_material, p.nom_producto, p.mar_producto, p.mod_producto, 
+                       pt.nom_producto_tipo, um.nom_unidad_medida";
 
     // Aplicar filtro de búsqueda
     if (!empty($searchValue)) {
@@ -634,7 +657,7 @@ function MostrarProductosModalFiltrado($limit, $offset, $searchValue, $orderColu
 }
 
 // Función para contar total de productos en modal con filtro
-function NumeroRegistrosTotalProductosModal($tipoProducto = 0)
+function NumeroRegistrosTotalProductosModal($tipoProducto = 0, $id_almacen, $id_ubicacion)
 {
     include("../_conexion/conexion.php");
 
@@ -661,7 +684,7 @@ function NumeroRegistrosTotalProductosModal($tipoProducto = 0)
 }
 
 // Función para contar productos filtrados en modal
-function NumeroRegistrosFiltradosProductosModal($searchValue, $tipoProducto = 0)
+function NumeroRegistrosFiltradosProductosModal($searchValue, $tipoProducto = 0, $id_almacen, $id_ubicacion)
 {
     include("../_conexion/conexion.php");
 

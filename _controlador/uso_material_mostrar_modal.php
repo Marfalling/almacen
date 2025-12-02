@@ -43,12 +43,16 @@ $sql = "SELECT
     p.id_producto,
     p.cod_material,
     p.nom_producto,
+    p.mod_producto,
+    p.mar_producto,
+    pt.nom_producto_tipo,
     mt.nom_material_tipo,
     um.nom_unidad_medida,
     COALESCE(stock_físico, 0) as stock_físico,
     COALESCE(stock_comprometido, 0) as stock_comprometido,
     (COALESCE(stock_físico, 0) - COALESCE(stock_comprometido, 0)) as stock_disponible
 FROM producto p
+INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
 INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo
 INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
 LEFT JOIN (
@@ -76,6 +80,7 @@ WHERE " . implode(" AND ", $where_conditions) . $search_condition;
 // Contar registros totales sin filtro
 $total_records_sql = "SELECT COUNT(*) as total 
 FROM producto p
+INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
 INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo
 INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
 LEFT JOIN (
@@ -130,27 +135,32 @@ while ($row = mysqli_fetch_assoc($result)) {
     // ======= BOTÓN DE ACCIÓN =======
     if ($stock_disponible > 0) {
         $action_btn = '<button type="button" 
-                        class="btn btn-sm btn-success d-inline-flex align-items-center gap-1"
-                        onclick="seleccionarProducto(' . $row['id_producto'] . ', \'' . 
-                        htmlspecialchars(addslashes($row['nom_producto']), ENT_QUOTES, 'UTF-8'). '\', \'' . 
-                        htmlspecialchars(addslashes($row['nom_unidad_medida']), ENT_QUOTES, 'UTF-8') . '\', ' . 
-                        $stock_disponible . ')"
-                        title="Seleccionar producto">
-                        <i class="fa fa-check"></i><span>Seleccionar</span>
-                    </button>';
+                    class="btn btn-sm d-inline-flex align-items-center justify-content-center"
+                    style="background-color:#3b82f6; color:white; width:32px; height:32px; border-radius:6px;"
+                    onclick="seleccionarProducto(' . $row['id_producto'] . ', \'' . 
+                    htmlspecialchars(addslashes($row['nom_producto']), ENT_QUOTES, 'UTF-8') . '\', \'' . 
+                    htmlspecialchars(addslashes($row['nom_unidad_medida']), ENT_QUOTES, 'UTF-8') . '\', ' . 
+                    $stock_disponible . ')"
+                    title="Seleccionar producto">
+                    <i class="fa fa-check"></i>
+                </button>';
+                    
     } else {
-        $action_btn = '<button type="button" class="btn btn-sm btn-secondary" disabled>
-                        Sin Stock
-                      </button>';
+        $action_btn = '<button type="button" disabled
+                    class="btn btn-sm d-inline-flex align-items-center justify-content-center"
+                    style="background-color:#b0b0b0; color:white; width:32px; height:32px; border-radius:6px;">
+                    <i class="fa fa-check"></i>
+                </button>';
     }
 
     $data[] = array(
         htmlspecialchars($row['cod_material'], ENT_QUOTES, 'UTF-8'),
         htmlspecialchars($row['nom_producto'], ENT_QUOTES, 'UTF-8'),
-        htmlspecialchars($row['nom_material_tipo'], ENT_QUOTES, 'UTF-8'),
+        //htmlspecialchars($row['nom_material_tipo'], ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($row['nom_producto_tipo'], ENT_QUOTES, 'UTF-8'),
         htmlspecialchars($row['nom_unidad_medida'], ENT_QUOTES, 'UTF-8'),
-        number_format($stock_fisico, 2),          // Físico
-        number_format($stock_comprometido, 2),    // Comprometido
+        htmlspecialchars($row['mar_producto'], ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($row['mod_producto'], ENT_QUOTES, 'UTF-8'),
         $stock_disp_html,                         // Disponible con color
         $action_btn                               // Botón adaptativo
     );

@@ -192,11 +192,11 @@
                         <thead>
                             <tr>
                                 <th>Código</th>
-                                <th>Material</th>
+                                <th>Producto</th>
                                 <th>Tipo</th>
-                                <th>Unidad</th>
-                                <th>Stock Físico</th>
-                                <th>Stock Reservado</th>
+                                <th>Unidad de Medida</th>
+                                <th>Marca</th>
+                                <th>Modelo</th>
                                 <th>Stock Disponible</th>
                                 <th>Acción</th>
                             </tr>
@@ -318,11 +318,11 @@ function cargarProductos(idAlmacen, idUbicacion) {
         },
         "columns": [
             { "title": "Código" },
-            { "title": "Material" },
+            { "title": "Producto" },
             { "title": "Tipo" },
-            { "title": "Unidad" },
-            { "title": "Stock Físico" },       //  NUEVO
-            { "title": "Stock Reservado" },    //  NUEVO
+            { "title": "Unidad de Medida" },
+            { "title": "Marca" },       //  NUEVO
+            { "title": "Modelo" },    //  NUEVO
             { "title": "Stock Disponible" },   //  NUEVO
             { "title": "Acción" }
         ],

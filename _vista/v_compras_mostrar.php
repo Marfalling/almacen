@@ -14,39 +14,6 @@ $monedas = MostrarMoneda();
 ?>
 
 <script>
-// Aprobar por el área técnica
-/*function AprobarCompraTecnica(id_compra) {
-    Swal.fire({
-        title: '¿Deseas aprobar técnicamente esta compra?',
-        text: "Esta acción no se puede deshacer.",
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Sí, aprobar',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: 'compras_aprobar_tecnica.php',
-                type: 'POST',
-                data: { id_compra: id_compra },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.tipo_mensaje === 'success') {
-                        Swal.fire('¡Aprobado!', response.mensaje, 'success')
-                        .then(() => { location.reload(); });
-                    } else {
-                        Swal.fire('Error', response.mensaje, 'error');
-                    }
-                },
-                error: function() {
-                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
-                }
-            });
-        }
-    });
-}*/
 
 // Aprobar por el área financiera
 function AprobarCompraFinanciera(id_compra) {
@@ -81,66 +48,6 @@ function AprobarCompraFinanciera(id_compra) {
         }
     });
 }
-
-//==============================================
-//ANTIGUA FUNCION ANULACION OC Y PEDIDO
-//==============================================
-
-/*function AnularCompra(id_compra, id_pedido) {
-    Swal.fire({
-        title: '¿Qué deseas anular?',
-        text: "Selecciona una opción:",
-        icon: 'warning',
-        showCancelButton: true,
-        showDenyButton: true,
-        confirmButtonColor: '#d33',
-        denyButtonColor: '#3085d6',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Solo O/C',
-        denyButtonText: 'O/C y Pedido',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Anular solo la orden de compra
-            $.ajax({
-                url: 'compras_anular.php',
-                type: 'POST',
-                data: { id_compra: id_compra },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.tipo_mensaje === 'success') {
-                        Swal.fire('¡Anulado!', response.mensaje, 'success')
-                        .then(() => { location.reload(); });
-                    } else {
-                        Swal.fire('Error', response.mensaje, 'error');
-                    }
-                },
-                error: function() {
-                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
-                }
-            });
-        } else if (result.isDenied) {
-            // Anular la orden y también el pedido
-            $.ajax({
-                url: 'compras_pedido_anular.php',
-                type: 'POST',
-                data: { id_compra: id_compra, id_pedido: id_pedido },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.tipo_mensaje === 'success') {
-                        Swal.fire('¡Anulado!', response.mensaje, 'success')
-                        .then(() => { location.reload(); });
-                    } else {
-                        Swal.fire('Error', response.mensaje, 'error');
-                    }
-                },
-                error: function() {
-                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
-                }
-            });
-        }
-    });
-}*/
 
 //==============================================
 //NUEVA FUNCION ANULACION OC Y PEDIDO
@@ -449,7 +356,6 @@ function EliminarDocumento(id_doc) {
                                                 <th>Fecha Registro</th>
                                                 <th>Tipo Pago</th>
                                                 <th>Registrado Por</th>
-                                                <!--<th>Aprob. Técnica Por</th>-->
                                                 <th>Aprob. Financiera Por</th>
                                                 <th>Estado</th>
                                                 <th>Docs</th>
@@ -627,43 +533,34 @@ function EliminarDocumento(id_doc) {
                                                                 if ($compra['est_compra'] == 1) { 
                                                                 ?>
                                                                 <!-- Compra PENDIENTE: botones habilitados según aprobaciones -->
-                                                                <!--<a href="#"
-                                                                <?php if ($tiene_tecnica) { ?>
-                                                                    class="btn btn-outline-secondary btn-sm disabled"
-                                                                    title="Ya aprobado técnica"
-                                                                    tabindex="-1" aria-disabled="true"
-                                                                <?php } else { ?>
-                                                                    onclick="AprobarCompraTecnica(<?php echo $compra['id_compra']; ?>)"
-                                                                    class="btn btn-success btn-sm"
-                                                                    title="Aprobar Técnica"
-                                                                <?php } ?>>
-                                                                    <i class="fa fa-check"></i>
-                                                                </a>-->
-
-                                                                <a href="#"
+                                                                
                                                                 <?php if ($tiene_financiera) { ?>
-                                                                    class="btn btn-outline-secondary btn-sm disabled"
-                                                                    data-toggle="tooltip"
-                                                                    title="Ya aprobado financiera"
-                                                                    tabindex="-1" aria-disabled="true"
+                                                                    <span data-toggle="tooltip" title="Ya aprobado financiera" data-placement="top">
+                                                                        <a href="#"
+                                                                        class="btn btn-outline-secondary btn-sm disabled"
+                                                                        tabindex="-1" aria-disabled="true">
+                                                                            <i class="fa fa-check"></i>
+                                                                        </a>
+                                                                    </span>
                                                                 <?php } else { ?>
+                                                                    <a href="#"
                                                                     onclick="AprobarCompraFinanciera(<?php echo $compra['id_compra']; ?>)"
                                                                     class="btn btn-primary btn-sm"
                                                                     data-toggle="tooltip"
-                                                                    title="Aprobar Financiera"
-                                                                <?php } ?>>
-                                                                    <i class="fa fa-check"></i>
-                                                                </a>
+                                                                    title="Aprobar Financiera">
+                                                                        <i class="fa fa-check"></i>
+                                                                    </a>
+                                                                <?php } ?>
 
                                                                 <!-- Botón anular - DESHABILITAR SI TIENE APROBACIÓN -->
                                                                 <?php if ($tiene_aprobacion) { ?>
-                                                                    <a href="#"
-                                                                    class="btn btn-outline-secondary btn-sm disabled"
-                                                                    data-toggle="tooltip"
-                                                                    title="No se puede anular: tiene aprobación iniciada"
-                                                                    tabindex="-1" aria-disabled="true">
-                                                                        <i class="fa fa-times"></i>
-                                                                    </a>
+                                                                    <span data-toggle="tooltip" title="No se puede anular: tiene aprobación iniciada" data-placement="top">
+                                                                        <a href="#"
+                                                                        class="btn btn-outline-secondary btn-sm disabled"
+                                                                        tabindex="-1" aria-disabled="true">
+                                                                            <i class="fa fa-times"></i>
+                                                                        </a>
+                                                                    </span>
                                                                 <?php } else { ?>
                                                                     <a href="#"
                                                                     onclick="AnularCompra(<?php echo $compra['id_compra']; ?>, <?php echo $compra['id_pedido']; ?>)"
@@ -693,13 +590,13 @@ function EliminarDocumento(id_doc) {
                                                                         <i class="fa fa-edit"></i>
                                                                     </a>
                                                                 <?php } else { ?>
-                                                                    <a href="#" 
-                                                                    class="btn btn-outline-secondary btn-sm disabled"
-                                                                    data-toggle="tooltip"
-                                                                    title="No se puede editar - Tiene aprobación iniciada"
-                                                                    tabindex="-1" aria-disabled="true">
-                                                                        <i class="fa fa-edit"></i>
-                                                                    </a>
+                                                                    <span data-toggle="tooltip" title="No se puede editar - Tiene aprobación iniciada">
+                                                                        <a href="#"
+                                                                        class="btn btn-outline-secondary btn-sm disabled"
+                                                                        tabindex="-1" aria-disabled="true">
+                                                                            <i class="fa fa-edit"></i>
+                                                                        </a>
+                                                                    </span>
                                                                 <?php } ?>
 
                                                                 <!-- Botón Pagos -->
@@ -711,34 +608,34 @@ function EliminarDocumento(id_doc) {
                                                                         <i class="fa fa-money"></i>
                                                                     </a>
                                                                 <?php } else { ?>
-                                                                    <a href="#"
-                                                                    class="btn btn-outline-secondary btn-sm disabled"
-                                                                    data-toggle="tooltip"
-                                                                    title="Requiere aprobación financiera"
-                                                                    tabindex="-1" aria-disabled="true">
-                                                                        <i class="fa fa-money"></i>
-                                                                    </a>
+                                                                    <span data-toggle="tooltip" title="Requiere aprobación financiera">
+                                                                        <a href="#"
+                                                                        class="btn btn-outline-secondary btn-sm disabled"
+                                                                        tabindex="-1" aria-disabled="true">
+                                                                            <i class="fa fa-money"></i>
+                                                                        </a>
+                                                                    </span>
                                                                 <?php } ?>
                                                             <?php } else { ?>
                                                                 <!-- Compra NO pendiente (anulada, aprobada o pagada): todos deshabilitados -->
-                                                                <!--<a href="#" class="btn btn-outline-secondary btn-sm disabled" title="Aprobar Técnica" tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-check"></i>
-                                                                </a>-->
-                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled" data-toggle="tooltip" title="Aprobar Financiera" tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-check"></i>
-                                                                </a>
+                                                                <span data-toggle="tooltip" title="Aprobar Financiera">
+                                                                    <a href="#" class="btn btn-outline-secondary btn-sm disabled"
+                                                                    tabindex="-1" aria-disabled="true">
+                                                                        <i class="fa fa-check"></i>
+                                                                    </a>
+                                                                </span>
 
                                                                 <!-- Botón anular -->
-                                                                <a href="#" class="btn btn-outline-secondary btn-sm disabled"
-                                                                data-toggle="tooltip"
-                                                                title="<?php 
+                                                                <span data-toggle="tooltip" title="<?php 
                                                                         if ($compra['est_compra'] == 0) echo 'Ya anulada'; 
                                                                         elseif ($compra['est_compra'] == 4) echo 'No se puede anular: compra pagada'; 
                                                                         else echo 'No se puede anular: compra aprobada'; 
-                                                                ?>"
-                                                                tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-times"></i>
-                                                                </a>
+                                                                ?>">
+                                                                    <a href="#" class="btn btn-outline-secondary btn-sm disabled"
+                                                                    tabindex="-1" aria-disabled="true">
+                                                                        <i class="fa fa-times"></i>
+                                                                    </a>
+                                                                </span>
 
                                                                 <!-- PDF -->
                                                                 <a href="compras_pdf.php?id=<?php echo $compra['id_compra']; ?>"
@@ -750,17 +647,16 @@ function EliminarDocumento(id_doc) {
                                                                 </a>
 
                                                                 <!-- Botón Editar - DESHABILITADO -->
-                                                                <a href="#" 
-                                                                class="btn btn-outline-secondary btn-sm disabled"
-                                                                data-toggle="tooltip"
-                                                                title="<?php 
-                                                                    if ($compra['est_compra'] == 0) echo 'No se puede editar - Orden anulada';
-                                                                    elseif ($compra['est_compra'] == 4) echo 'No se puede editar - Orden pagada';
-                                                                    else echo 'No se puede editar - Orden aprobada';
-                                                                ?>"
-                                                                tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>
+                                                                <span data-toggle="tooltip" title="<?php 
+                                                                        if ($compra['est_compra'] == 0) echo 'No se puede editar - Orden anulada';
+                                                                        elseif ($compra['est_compra'] == 4) echo 'No se puede editar - Orden pagada';
+                                                                        else echo 'No se puede editar - Orden aprobada';
+                                                                ?>">
+                                                                    <a href="#" class="btn btn-outline-secondary btn-sm disabled"
+                                                                    tabindex="-1" aria-disabled="true">
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </a>
+                                                                </span>
 
                                                                 <!-- Botón Pagos -->
                                                                 <?php if ($compra['est_compra'] == 2 || $compra['est_compra'] == 3) { ?>
@@ -780,13 +676,12 @@ function EliminarDocumento(id_doc) {
                                                                         <i class="fa fa-money"></i>
                                                                     </a>
                                                                 <?php } else { ?>
-                                                                    <a href="#"
-                                                                    class="btn btn-outline-secondary btn-sm disabled"
-                                                                    data-toggle="tooltip"
-                                                                    title="No disponible"
-                                                                    tabindex="-1" aria-disabled="true">
-                                                                        <i class="fa fa-money"></i>
-                                                                    </a>
+                                                                    <span data-toggle="tooltip" title="No disponible">
+                                                                        <a href="#" class="btn btn-outline-secondary btn-sm disabled"
+                                                                        tabindex="-1" aria-disabled="true">
+                                                                            <i class="fa fa-money"></i>
+                                                                        </a>
+                                                                    </span>
                                                                 <?php } ?>
                                                             <?php } ?>
                                                         </div>

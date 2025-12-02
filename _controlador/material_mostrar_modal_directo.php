@@ -128,6 +128,16 @@ $result = mysqli_query($con, $sql);
 
 $data = array();
 while ($row = mysqli_fetch_assoc($result)) {
+
+    $stock_disponible = floatval($row['stock_actual']);
+
+    // ======= FORMATO DE STOCK CON COLOR =======
+    if ($stock_disponible > 0) {
+        $stock_disp_html = '<span class="text-success font-weight-bold">' . number_format($stock_disponible, 2) . '</span>';
+    } else {
+        $stock_disp_html = '<span class="text-danger">0.00</span>';
+    }
+
     // Construir descripción completa del producto
     $descripcion_completa = $row['nom_producto'];
     if (!empty($row['mar_producto'])) {
@@ -137,24 +147,29 @@ while ($row = mysqli_fetch_assoc($result)) {
         $descripcion_completa .= ' (' . $row['mod_producto'] . ')';
     }
     
-    // Stock actual (ya calculado en la consulta)
-    $stock_actual = floatval($row['stock_actual']);
-    
     // Botón de acción para seleccionar el producto
-    $action_btn = '<button type="button" class="btn btn-primary btn-sm" 
-                    onclick="seleccionarProducto(' . $row['id_producto'] . ', \'' . 
-                    htmlspecialchars(addslashes($descripcion_completa), ENT_QUOTES, 'UTF-8') . '\', \'' . 
-                    htmlspecialchars(addslashes($row['nom_unidad_medida']), ENT_QUOTES, 'UTF-8') . '\', ' . $stock_actual . ')">
-                    <i class="fa fa-check"></i> Seleccionar
-                </button>';
+    $action_btn = '<button type="button"
+                        class="btn btn-sm d-inline-flex align-items-center justify-content-center"
+                        style="background-color:#3b82f6; color:white; width:32px; height:32px; border-radius:6px;"
+                        onclick="seleccionarProducto(' . 
+                            $row['id_producto'] . ', \'' . 
+                            htmlspecialchars(addslashes($descripcion_completa), ENT_QUOTES, 'UTF-8') . '\', \'' . 
+                            htmlspecialchars(addslashes($row['nom_unidad_medida']), ENT_QUOTES, 'UTF-8') . '\', ' . 
+                            $stock_disponible . ')"
+                        title="Seleccionar producto">
+                        <i class="fa fa-check"></i>
+                    </button>';
     
     $data[] = array(
         htmlspecialchars($row['cod_material'], ENT_QUOTES, 'UTF-8'),
-        htmlspecialchars($descripcion_completa),
-        htmlspecialchars($row['nom_material_tipo'], ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($row['nom_producto'], ENT_QUOTES, 'UTF-8'),
+        //htmlspecialchars($row['nom_material_tipo'], ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($row['nom_producto_tipo'], ENT_QUOTES, 'UTF-8'),
         htmlspecialchars($row['nom_unidad_medida'], ENT_QUOTES, 'UTF-8'),
-        number_format($stock_actual, 2), 
-        $action_btn
+        htmlspecialchars($row['mar_producto'], ENT_QUOTES, 'UTF-8'),
+        htmlspecialchars($row['mod_producto'], ENT_QUOTES, 'UTF-8'),
+        $stock_disp_html,                         // Disponible con color
+        $action_btn      
     );
 }
 

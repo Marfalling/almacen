@@ -45,10 +45,27 @@
                                 <div class="col-md-9 col-sm-9">
                                     <select name="id_obra" class="form-control" required>
                                         <option value="">Seleccionar</option>
-                                        <?php foreach ($almacenes as $almacen) { ?>
+                                        <?php /*foreach ($almacenes as $almacen) { ?>
                                             <option value="<?php echo $almacen['id_almacen']; ?>">
                                                 <?php echo $almacen['nom_almacen']; ?>
                                             </option>
+                                        <?php } */?>
+                                        <?php
+                                        if (!is_array($almacenes)) { $almacenes = []; }
+                                        // 1. Ordenar: primero el id_almacen = 1
+                                        usort($almacenes, function($a, $b) {
+                                            if ($a['id_almacen'] == 1) return -1;
+                                            if ($b['id_almacen'] == 1) return 1;
+                                            return strcmp($a['nom_almacen'], $b['nom_almacen']); // resto se ordena alfabéticamente
+                                        });
+                                        ?>
+
+                                        <?php foreach ($almacenes as $almacen) { ?>
+
+                                            <option value="<?php echo $almacen['id_almacen']; ?>">
+                                                <?php echo $almacen['nom_almacen']; ?>
+                                            </option>
+
                                         <?php } ?>
                                     </select>
                                 </div>
@@ -294,9 +311,10 @@
                                 <th>Código</th>
                                 <th>Producto</th>
                                 <th>Tipo</th>
-                                <th>Unidad</th>
+                                <th>Unidad de Medida</th>
                                 <th>Marca</th>
                                 <th>Modelo</th>
+                                <th>Stock Disponible</th>
                                 <th>Acción</th>
                             </tr>
                         </thead>
@@ -528,6 +546,10 @@
     </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
 // ============================================
 // VARIABLES GLOBALES
@@ -543,6 +565,8 @@ let aplicarCentroCostoAutomaticamente = false;
 // ============================================
 function buscarMaterial(button) {
     // Obtener el valor del select tipo de pedido
+    const idAlmacen = document.querySelector('select[name="id_obra"]').value;
+    const idUbicacion = document.querySelector('select[name="id_ubicacion"]').value;
     const selectTipoPedido = document.querySelector('select[name="tipo_pedido"]');
     const tipoPedidoValue = selectTipoPedido ? selectTipoPedido.value : '';
 
@@ -568,10 +592,10 @@ function buscarMaterial(button) {
     $('#buscar_producto').modal('show');
 
     // Cargar los productos en la tabla con filtro de tipo
-    cargarProductos(tipoPedidoValue);
+    cargarProductos(idAlmacen,idUbicacion,tipoPedidoValue);
 }
 
-function cargarProductos(tipoPedido = '') {
+function cargarProductos(idAlmacen,idUbicacion,tipoPedido = '') {
      // Si la tabla ya está inicializada, destrúyela antes de crear una nueva instancia
     if ($.fn.dataTable.isDataTable('#datatable_producto')) {
         $('#datatable_producto').DataTable().destroy();
@@ -586,6 +610,8 @@ function cargarProductos(tipoPedido = '') {
             "type": "POST",
             "data": function(d) {
                 d.tipo_pedido = tipoPedido;
+                d.id_almacen = idAlmacen;
+                d.id_ubicacion = idUbicacion;
                 return d;
             }
         },
@@ -596,6 +622,7 @@ function cargarProductos(tipoPedido = '') {
             { "title": "Unidad de Medida" },
             { "title": "Marca" },
             { "title": "Modelo" },
+            { "title": "Stock Disponible" },
             { "title": "Acción" }
         ],
         "order": [[1, 'asc']],
@@ -1639,7 +1666,47 @@ document.addEventListener('DOMContentLoaded', function() {
 $('#buscar_producto').on('hidden.bs.modal', function () {
     currentSearchButton = null;
 });
+
+$(document).ready(function () {
+    console.log("INIT SELECT2");
+
+    /*$('select[name="id_almacen"]').select2({
+        placeholder: "Seleccionar Almacén",
+        allowClear: true,
+        width: "100%"
+    });*/
+
+    /*$('select[name="id_ubicacion"]').select2({
+        placeholder: "Seleccionar Ubicación",
+        allowClear: true,
+        width: "100%"
+    });*/
+
+    $('select[name="id_obra"]').select2({
+        width: "100%",
+        templateResult: formatAlmacen,
+        templateSelection: formatAlmacen,
+        placeholder: "Seleccionar almacén",
+        allowClear: true,
+    });
+    
+});
+
+function formatAlmacen(almacen) {
+    if (!almacen.id) {
+        return almacen.text;
+    }
+    
+    // Si es el almacén con id=1, aplicar estilos
+    if (almacen.element.value == '1') {
+        return $('<span class="special-option">' + almacen.text + '</span>');
+    }
+    
+    return almacen.text;
+}
 </script>
+
+
 
 <style>
 .duplicado-resaltado {
@@ -1648,4 +1715,19 @@ $('#buscar_producto').on('hidden.bs.modal', function () {
     box-shadow: 0 0 10px rgba(255, 77, 77, 0.6);
     transition: all 0.3s ease;
 }
+
+/* Normal (opción en reposo) */
+    .select2-results__option .special-option {
+        background-color: #d5f8d5;
+        display: block;
+        padding: 1px;
+        border-radius: 3px;
+    }
+
+    /* Hover – cuando Select2 resalta la opción */
+    .select2-results__option--highlighted .special-option {
+        background-color: #5897fb !important; /* hover azul estándar */
+        color: white !important;
+    }
+
 </style>

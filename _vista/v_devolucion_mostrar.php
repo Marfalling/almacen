@@ -113,13 +113,22 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_devoluciones');
                                                     <td>
                                                         <div class="d-flex flex-wrap gap-2">
                                                             <!-- Botón Ver Detalle -->
-                                                            <button type="button" 
+                                                            <!--<button type="button" 
                                                                     class="btn btn-info btn-sm" 
                                                                     data-toggle="modal" 
                                                                     data-target="#modalDetalleDevolucion<?php echo $devolucion['id_devolucion']; ?>" 
                                                                     title="Ver Detalle">
                                                                 <i class="fa fa-eye"></i>
-                                                            </button>
+                                                            </button>-->
+
+                                                            <span data-toggle="tooltip" title="Ver Detalle">
+                                                                <button type="button" 
+                                                                    class="btn btn-info btn-sm" 
+                                                                    data-toggle="modal" 
+                                                                    data-target="#modalDetalleDevolucion<?php echo $devolucion['id_devolucion']; ?>">
+                                                                    <i class="fa fa-eye"></i>
+                                                                </button>
+                                                            </span>
 
                                                             <!-- ============================================ -->
                                                             <!-- BOTÓN EDITAR DEVOLUCIÓN -->

@@ -39,18 +39,22 @@ foreach ($productos as $producto) {
 
     // Botón de selección
     if ($stock > 0) {
-        $btnSeleccionar = '<button class="btn btn-sm btn-success d-inline-flex align-items-center gap-1" 
-            onclick="seleccionarProducto(' . 
-            $producto['id_producto'] . ', \'' . 
-            addslashes($producto['nom_producto']) . '\', ' . 
-            $stock . ')" 
-            title="Seleccionar producto">
-            <i class="fa fa-check"></i> Seleccionar
-        </button>';
+        $btnSeleccionar = '<button type="button"
+                            class="btn btn-sm d-inline-flex align-items-center justify-content-center"
+                            style="background-color:#3b82f6; color:white; width:32px; height:32px; border-radius:6px;"
+                            onclick="seleccionarProducto(' . 
+                                $producto['id_producto'] . ', \'' . 
+                                addslashes($producto['nom_producto']) . '\', ' . 
+                                $stock . ')"
+                            title="Seleccionar producto">
+                            <i class="fa fa-check"></i>
+                        </button>';
     } else {
-        $btnSeleccionar = '<button class="btn btn-sm btn-secondary" disabled 
-            title="Este producto no tiene stock disponible en la ubicación seleccionada">
-            Sin Stock
+        $btnSeleccionar = '<button type="button" disabled
+            class="btn btn-sm d-inline-flex align-items-center justify-content-center"
+            style="background-color:#b0b0b0; color:white; width:32px; height:32px; border-radius:6px;"
+            title="Sin stock disponible">
+            <i class="fa fa-check"></i>
         </button>';
     }
 

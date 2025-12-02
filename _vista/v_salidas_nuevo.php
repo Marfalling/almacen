@@ -155,6 +155,15 @@
                                         <label class="control-label">Almacén Origen <span class="text-danger">*</span>:</label>
                                        <select name="id_almacen_origen" id="id_almacen_origen" class="form-control" required>
                                             <option value="">Seleccionar</option>
+                                            <?php
+                                            if (!is_array($almacenes)) { $almacenes = []; }
+                                            // 1. Ordenar: primero el id_almacen = 1
+                                            usort($almacenes, function($a, $b) {
+                                                if ($a['id_almacen'] == 1) return -1;
+                                                if ($b['id_almacen'] == 1) return 1;
+                                                return strcmp($a['nom_almacen'], $b['nom_almacen']); // resto se ordena alfabéticamente
+                                            });
+                                            ?>
                                             <?php 
                                             foreach ($almacenes as $almacen) { 
                                                 $selected = ($pedido_origen && $pedido_origen['id_almacen'] == $almacen['id_almacen']) ? 'selected' : '';
@@ -870,7 +879,28 @@ $(document).ready(function() {
     }, 500);
     
     console.log('✅ Control de salidas inicializado correctamente con Select2\n');
+
+    $('select[name="id_almacen_origen"]').select2({
+        width: "100%",
+        templateResult: formatAlmacen,
+        templateSelection: formatAlmacen,
+        placeholder: "Seleccionar almacén origen",
+        allowClear: true,
+    });
 });
+
+function formatAlmacen(almacen) {
+    if (!almacen.id) {
+        return almacen.text;
+    }
+    
+    // Si es el almacén con id=1, aplicar estilos
+    if (almacen.element.value == '1') {
+        return $('<span class="special-option">' + almacen.text + '</span>');
+    }
+    
+    return almacen.text;
+}
 </script>
 <script>
 // Variable global para rastrear qué botón de búsqueda se clickeó
@@ -1565,4 +1595,19 @@ $('#buscar_producto').on('hidden.bs.modal', function () {
     box-shadow: 0 0 10px rgba(255, 77, 77, 0.6);
     transition: all 0.3s ease;
 }
+
+/* Normal (opción en reposo) */
+    .select2-results__option .special-option {
+        background-color: #d5f8d5;
+        display: block;
+        padding: 1px;
+        border-radius: 3px;
+    }
+
+    /* Hover – cuando Select2 resalta la opción */
+    .select2-results__option--highlighted .special-option {
+        background-color: #5897fb !important; /* hover azul estándar */
+        color: white !important;
+    }
+
 </style>

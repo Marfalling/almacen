@@ -10,6 +10,10 @@ $start = isset($_POST['start']) ? intval($_POST['start']) : 0;
 $length = isset($_POST['length']) ? intval($_POST['length']) : 10;
 $searchValue = isset($_POST['search']['value']) ? $_POST['search']['value'] : '';
 
+// Recibir parámetros
+$id_almacen = isset($_POST['id_almacen']) ? intval($_POST['id_almacen']) : 0;
+$id_ubicacion = isset($_POST['id_ubicacion']) ? intval($_POST['id_ubicacion']) : 0;
+
 // CORRECCIÓN UNIFICADA: Manejar ambos parámetros (tipo_producto y tipo_pedido)
 $tipoProducto = 0;
 
@@ -23,7 +27,7 @@ elseif (isset($_POST['tipo_producto']) && !empty($_POST['tipo_producto'])) {
 }
 
 // Obtener columna y dirección de ordenamiento
-$columns = ['cod_material', 'nom_producto', 'nom_producto_tipo', 'nom_unidad_medida', 'mar_producto', 'mod_producto'];
+$columns = ['cod_material', 'nom_producto', 'nom_producto_tipo', 'nom_unidad_medida', 'mar_producto', 'mod_producto', 'stock_disponible'];
 $orderColumnIndex = isset($_POST['order'][0]['column']) ? intval($_POST['order'][0]['column']) : 1;
 $orderDirection = isset($_POST['order'][0]['dir']) ? $_POST['order'][0]['dir'] : 'asc';
 $orderColumn = isset($columns[$orderColumnIndex]) ? $columns[$orderColumnIndex] : 'nom_producto';
@@ -41,13 +45,22 @@ if ($tipoProducto <= 0) {
 }
 
 // CORRECCIÓN: Usar funciones específicas que filtren por tipo de producto
-$productos = MostrarProductosModalFiltrado($length, $start, $searchValue, $orderColumn, $orderDirection, $tipoProducto);
-$totalRecords = NumeroRegistrosTotalProductosModal($tipoProducto);
-$filteredRecords = NumeroRegistrosFiltradosProductosModal($searchValue, $tipoProducto);
+$productos = MostrarProductosModalFiltrado($length, $start, $searchValue, $orderColumn, $orderDirection, $tipoProducto, $id_almacen, $id_ubicacion);
+$totalRecords = NumeroRegistrosTotalProductosModal($tipoProducto, $id_almacen, $id_ubicacion);
+$filteredRecords = NumeroRegistrosFiltradosProductosModal($searchValue, $tipoProducto, $id_almacen, $id_ubicacion);
 
 // Formatear datos para DataTables
 $data = array();
 foreach ($productos as $producto) {
+    $stock = floatval($producto['stock_disponible']);
+    
+    // Formatear stock con color
+    if ($stock > 0) {
+        $stock_formatted = '<span class="text-success font-weight-bold">' . number_format($stock, 2) . '</span>';
+    } else {
+        $stock_formatted = '<span class="text-danger">0.00</span>';
+    }
+
     $data[] = array(
         $producto['cod_material'] ?: 'N/A',
         $producto['nom_producto'],
@@ -55,11 +68,18 @@ foreach ($productos as $producto) {
         $producto['nom_unidad_medida'],
         $producto['mar_producto'] ?: 'N/A',
         $producto['mod_producto'] ?: 'N/A',
-        '<button class="btn btn-sm btn-primary" onclick="seleccionarProducto(' . 
-        $producto['id_producto'] . ', \'' . 
-        addslashes($producto['nom_producto']) . '\', ' . 
-        $producto['id_unidad_medida'] . ', \'' . 
-        addslashes($producto['nom_unidad_medida']) . '\')">Seleccionar</button>'
+        $stock_formatted,
+        '<button type="button"
+            class="btn btn-sm d-inline-flex align-items-center justify-content-center"
+            style="background-color:#3b82f6; color:white; width:32px; height:32px; border-radius:6px;"
+            onclick="seleccionarProducto(' . 
+                $producto['id_producto'] . ', \'' . 
+                addslashes($producto['nom_producto']) . '\', ' . 
+                $producto['id_unidad_medida'] . ', \'' . 
+                addslashes($producto['nom_unidad_medida']) . '\')"
+            title="Seleccionar producto">
+            <i class="fa fa-check"></i>
+        </button>'
     );
 }
 

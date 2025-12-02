@@ -23,16 +23,29 @@
                         <br>
                         <form class="form-horizontal form-label-left" action="ingresos_directo_nuevo.php" method="post" id="form-ingreso-directo" enctype="multipart/form-data">
                             
+                            
                             <!-- Información básica del ingreso -->
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Almacén <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <select name="id_almacen" class="form-control" required>
                                         <option value="">Seleccionar Almacén</option>
+                                        <?php
+                                        if (!is_array($almacenes)) { $almacenes = []; }
+                                        // 1. Ordenar: primero el id_almacen = 1
+                                        usort($almacenes, function($a, $b) {
+                                            if ($a['id_almacen'] == 1) return -1;
+                                            if ($b['id_almacen'] == 1) return 1;
+                                            return strcmp($a['nom_almacen'], $b['nom_almacen']); // resto se ordena alfabéticamente
+                                        });
+                                        ?>
+
                                         <?php foreach ($almacenes as $almacen) { ?>
+
                                             <option value="<?php echo $almacen['id_almacen']; ?>">
                                                 <?php echo $almacen['nom_almacen']; ?>
                                             </option>
+
                                         <?php } ?>
                                     </select>
                                 </div>
@@ -185,10 +198,12 @@
                         <thead>
                             <tr>
                                 <th>Código</th>
-                                <th>Material</th>
+                                <th>Producto</th>
                                 <th>Tipo</th>
-                                <th>Unidad</th>
-                                <th>Stock</th>
+                                <th>Unidad de Medida</th>
+                                <th>Marca</th>
+                                <th>Modelo</th>
+                                <th>Stock Disponible</th>
                                 <th>Acción</th>
                             </tr>
                         </thead>
@@ -205,6 +220,9 @@
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
 <script>
 let currentSearchButton = null;
 let contadorProductos = 1;
@@ -489,10 +507,12 @@ function cargarMateriales() {
         },
         "columns": [
             { "title": "Código" },
-            { "title": "Material" },
+            { "title": "Producto" },
             { "title": "Tipo" },
-            { "title": "Unidad" },
-            { "title": "Stock" },
+            { "title": "Unidad de Medida" },
+            { "title": "Marca" },
+            { "title": "Modelo" },
+            { "title": "Stock Disponible" },
             { "title": "Acción" }
         ],
         "order": [[1, 'asc']],
@@ -595,4 +615,58 @@ document.addEventListener('DOMContentLoaded', function() {
 $('#buscar_material').on('hidden.bs.modal', function () {
     currentSearchButton = null;
 });
+
+$(document).ready(function () {
+    console.log("INIT SELECT2");
+
+    /*$('select[name="id_almacen"]').select2({
+        placeholder: "Seleccionar Almacén",
+        allowClear: true,
+        width: "100%"
+    });*/
+
+    $('select[name="id_ubicacion"]').select2({
+        placeholder: "Seleccionar Ubicación",
+        allowClear: true,
+        width: "100%"
+    });
+
+    $('select[name="id_almacen"]').select2({
+        width: "100%",
+        templateResult: formatAlmacen,
+        templateSelection: formatAlmacen,
+        placeholder: "Seleccionar Almacén",
+        allowClear: true,
+    });
+    
+});
+
+function formatAlmacen(almacen) {
+    if (!almacen.id) {
+        return almacen.text;
+    }
+    
+    // Si es el almacén con id=1, aplicar estilos
+    if (almacen.element.value == '1') {
+        return $('<span class="special-option">' + almacen.text + '</span>');
+    }
+    
+    return almacen.text;
+}
 </script>
+
+<style>
+    /* Normal (opción en reposo) */
+    .select2-results__option .special-option {
+        background-color: #d5f8d5;
+        display: block;
+        padding: 1px;
+        border-radius: 3px;
+    }
+
+    /* Hover – cuando Select2 resalta la opción */
+    .select2-results__option--highlighted .special-option {
+        background-color: #5897fb !important; /* hover azul estándar */
+        color: white !important;
+    }
+</style>
