@@ -1,3 +1,15 @@
+<?php
+//=======================================================================
+// VISTA: v_obras_mostrar.php
+//=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_obras');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_obras');
+?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -20,9 +32,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="obras_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nueva Obra
-                                </a>
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVA OBRA -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear obras"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nueva Obra
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="obras_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nueva obra">
+                                        <i class="fa fa-plus"></i> Nueva Obra
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -54,10 +81,24 @@
                                             </center>
                                         </td>
                                         <td class="text-center">
-                                            <a href="obras_editar.php?id_obra=<?php echo $obra['id_subestacion']; ?>" 
-                                            class="btn btn-warning btn-sm">
-                                            <i class="fa fa-edit"></i> 
-                                            </a>
+                                            <!-- ============================================ -->
+                                            <!-- BOTÓN EDITAR OBRA -->
+                                            <!-- ============================================ -->
+                                            <?php if (!$tiene_permiso_editar) { ?>
+                                                <a href="#" 
+                                                   class="btn btn-outline-danger btn-sm disabled"
+                                                   title="No tienes permiso para editar obras"
+                                                   tabindex="-1" 
+                                                   aria-disabled="true">
+                                                    <i class="fa fa-edit"></i>
+                                                </a>
+                                            <?php } else { ?>
+                                                <a href="obras_editar.php?id_obra=<?php echo $obra['id_subestacion']; ?>" 
+                                                   class="btn btn-warning btn-sm"
+                                                   title="Editar obra">
+                                                    <i class="fa fa-edit"></i> 
+                                                </a>
+                                            <?php } ?>
                                         </td>
                                     </tr>
                                     <?php } ?>

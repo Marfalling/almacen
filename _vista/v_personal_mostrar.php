@@ -4,6 +4,12 @@
 // Descripción: Muestra el listado del personal desde la BD arceperucomplemento
 //=======================================================================
 
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_personal');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_personal');
+
 require_once("../_conexion/conexion.php");
 require_once("../_modelo/m_personal.php");
 
@@ -33,9 +39,24 @@ $personal = MostrarPersonal();
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="personal_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo Personal
-                                </a>
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO PERSONAL -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear personal"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Personal
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="personal_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo personal">
+                                        <i class="fa fa-plus"></i> Nuevo Personal
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -95,9 +116,24 @@ $personal = MostrarPersonal();
                                                         </td>
 
                                                         <td class="text-center">
-                                                            <a class="btn btn-warning btn-xs" href="personal_editar.php?id_personal=<?php echo $id_personal; ?>">
-                                                                <i class="fa fa-edit"></i>
-                                                            </a>
+                                                            <!-- ============================================ -->
+                                                            <!-- BOTÓN EDITAR PERSONAL -->
+                                                            <!-- ============================================ -->
+                                                            <?php if (!$tiene_permiso_editar) { ?>
+                                                                <a href="#" 
+                                                                   class="btn btn-outline-danger btn-xs disabled"
+                                                                   title="No tienes permiso para editar personal"
+                                                                   tabindex="-1" 
+                                                                   aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a class="btn btn-warning btn-xs" 
+                                                                   href="personal_editar.php?id_personal=<?php echo $id_personal; ?>"
+                                                                   title="Editar personal">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } ?>
                                                         </td>
                                                     </tr>
                                             <?php

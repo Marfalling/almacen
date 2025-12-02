@@ -1,3 +1,15 @@
+<?php
+//=======================================================================
+// VISTA: v_cargo_mostrar.php
+//=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_cargo');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_cargo');
+?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -20,9 +32,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="cargo_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo Cargo
-                                </a>
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO CARGO -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear cargos"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Cargo
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="cargo_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo cargo">
+                                        <i class="fa fa-plus"></i> Nuevo Cargo
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -64,7 +91,26 @@
                                                         </center>
                                                     </td>
                                                     <td>
-                                                        <center><a class="btn btn-warning" href="cargo_editar.php?id_cargo=<?php echo $id_cargo; ?>"><i class="fa fa-edit"></i></a></center>
+                                                        <center>
+                                                            <!-- ============================================ -->
+                                                            <!-- BOTÓN EDITAR CARGO -->
+                                                            <!-- ============================================ -->
+                                                            <?php if (!$tiene_permiso_editar) { ?>
+                                                                <a href="#" 
+                                                                   class="btn btn-outline-danger btn-sm disabled"
+                                                                   title="No tienes permiso para editar cargos"
+                                                                   tabindex="-1" 
+                                                                   aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a class="btn btn-warning btn-sm" 
+                                                                   href="cargo_editar.php?id_cargo=<?php echo $id_cargo; ?>"
+                                                                   title="Editar cargo">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } ?>
+                                                        </center>
                                                     </td>
                                                 </tr>
                                             <?php

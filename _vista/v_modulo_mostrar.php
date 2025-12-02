@@ -1,3 +1,15 @@
+<?php
+//=======================================================================
+// VISTA: v_modulo_mostrar.php
+//=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_modulos');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_modulos');
+?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -20,9 +32,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="modulo_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo Módulo
-                                </a>
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO MÓDULO -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear módulos"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Módulo
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="modulo_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo módulo">
+                                        <i class="fa fa-plus"></i> Nuevo Módulo
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -60,7 +87,7 @@
                                                         <strong><?php echo $nom_modulo; ?></strong>
                                                     </td>
                                                     <td>
-                                                        <span ><?php echo $total_acciones; ?> acciones</span>
+                                                        <span><?php echo $total_acciones; ?> acciones</span>
                                                     </td>
                                                     <td>
                                                         <center>
@@ -73,9 +100,24 @@
                                                     </td>
                                                     <td>
                                                         <center>
-                                                            <a class="btn btn-warning btn-sm" href="modulo_editar.php?id_modulo=<?php echo $id_modulo; ?>" title="Editar">
-                                                                <i class="fa fa-edit"></i>
-                                                            </a>
+                                                            <!-- ============================================ -->
+                                                            <!-- BOTÓN EDITAR MÓDULO -->
+                                                            <!-- ============================================ -->
+                                                            <?php if (!$tiene_permiso_editar) { ?>
+                                                                <a href="#" 
+                                                                   class="btn btn-outline-danger btn-sm disabled"
+                                                                   title="No tienes permiso para editar módulos"
+                                                                   tabindex="-1" 
+                                                                   aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a class="btn btn-warning btn-sm" 
+                                                                   href="modulo_editar.php?id_modulo=<?php echo $id_modulo; ?>" 
+                                                                   title="Editar módulo">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } ?>
                                                         </center>
                                                     </td>
                                                 </tr>

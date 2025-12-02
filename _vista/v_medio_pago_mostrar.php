@@ -1,3 +1,15 @@
+<?php
+//=======================================================================
+// VISTA: v_medio_pago_mostrar.php
+//=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_medio de pago');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_medio de pago');
+?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -20,9 +32,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="medio_pago_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo Medio Pago
-                                </a>
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO MEDIO PAGO -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear medios de pago"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Medio Pago
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="medio_pago_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo medio de pago">
+                                        <i class="fa fa-plus"></i> Nuevo Medio Pago
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -64,9 +91,24 @@
                                                         </center>
                                                     </td>
                                                     <td class="text-center">
-                                                        <a class="btn btn-warning btn-sm" href="medio_pago_editar.php?id_medio_pago=<?php echo $id_medio_pago; ?>">
-                                                            <i class="fa fa-edit"></i>
-                                                        </a>
+                                                        <!-- ============================================ -->
+                                                        <!-- BOTÓN EDITAR MEDIO PAGO -->
+                                                        <!-- ============================================ -->
+                                                        <?php if (!$tiene_permiso_editar) { ?>
+                                                            <a href="#" 
+                                                               class="btn btn-outline-danger btn-sm disabled"
+                                                               title="No tienes permiso para editar medios de pago"
+                                                               tabindex="-1" 
+                                                               aria-disabled="true">
+                                                                <i class="fa fa-edit"></i>
+                                                            </a>
+                                                        <?php } else { ?>
+                                                            <a class="btn btn-warning btn-sm" 
+                                                               href="medio_pago_editar.php?id_medio_pago=<?php echo $id_medio_pago; ?>"
+                                                               title="Editar medio de pago">
+                                                                <i class="fa fa-edit"></i>
+                                                            </a>
+                                                        <?php } ?>
                                                     </td>
                                                 </tr>
                                             <?php
@@ -85,5 +127,3 @@
     </div>
 </div>
 <!-- /page content -->
-
-

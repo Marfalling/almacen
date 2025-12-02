@@ -2,7 +2,14 @@
 //=======================================================================
 // VISTA: v_producto_mostrar.php
 //=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_producto');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_producto');
 ?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -25,9 +32,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="producto_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo Producto
-                                </a> 
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO PRODUCTO -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear productos"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Producto
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="producto_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo producto">
+                                        <i class="fa fa-plus"></i> Nuevo Producto
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -145,12 +167,31 @@
                                                     </td>
                                                     <td>
                                                         <center>
-                                                            <a class="btn btn-info btn-xs" href="producto_detalle.php?id=<?php echo $id_producto; ?>" title="Ver Detalle">
+                                                            <!-- Botón Ver Detalle (siempre visible) -->
+                                                            <a class="btn btn-info btn-xs" 
+                                                               href="producto_detalle.php?id=<?php echo $id_producto; ?>" 
+                                                               title="Ver Detalle">
                                                                 <i class="fa fa-eye"></i>
                                                             </a>
-                                                            <a class="btn btn-warning btn-xs" href="producto_editar.php?id_producto=<?php echo $id_producto; ?>" title="Editar">
-                                                                <i class="fa fa-edit"></i>
-                                                            </a>
+
+                                                            <!-- ============================================ -->
+                                                            <!-- BOTÓN EDITAR PRODUCTO -->
+                                                            <!-- ============================================ -->
+                                                            <?php if (!$tiene_permiso_editar) { ?>
+                                                                <a href="#" 
+                                                                   class="btn btn-outline-danger btn-xs disabled"
+                                                                   title="No tienes permiso para editar productos"
+                                                                   tabindex="-1" 
+                                                                   aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a class="btn btn-warning btn-xs" 
+                                                                   href="producto_editar.php?id_producto=<?php echo $id_producto; ?>" 
+                                                                   title="Editar producto">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } ?>
                                                         </center>
                                                     </td>
                                                 </tr>

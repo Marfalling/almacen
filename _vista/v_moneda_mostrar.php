@@ -1,3 +1,15 @@
+<?php
+//=======================================================================
+// VISTA: v_moneda_mostrar.php
+//=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_moneda');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_moneda');
+?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -20,9 +32,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="moneda_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nueva Moneda
-                                </a>
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVA MONEDA -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear monedas"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nueva Moneda
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="moneda_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nueva moneda">
+                                        <i class="fa fa-plus"></i> Nueva Moneda
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -64,9 +91,24 @@
                                                         </center>
                                                     </td>
                                                     <td class="text-center">
-                                                        <a class="btn btn-warning btn-sm" href="moneda_editar.php?id_moneda=<?php echo $id_moneda; ?>">
-                                                            <i class="fa fa-edit"></i>
-                                                        </a>
+                                                        <!-- ============================================ -->
+                                                        <!-- BOTÓN EDITAR MONEDA -->
+                                                        <!-- ============================================ -->
+                                                        <?php if (!$tiene_permiso_editar) { ?>
+                                                            <a href="#" 
+                                                               class="btn btn-outline-danger btn-sm disabled"
+                                                               title="No tienes permiso para editar monedas"
+                                                               tabindex="-1" 
+                                                               aria-disabled="true">
+                                                                <i class="fa fa-edit"></i>
+                                                            </a>
+                                                        <?php } else { ?>
+                                                            <a class="btn btn-warning btn-sm" 
+                                                               href="moneda_editar.php?id_moneda=<?php echo $id_moneda; ?>"
+                                                               title="Editar moneda">
+                                                                <i class="fa fa-edit"></i>
+                                                            </a>
+                                                        <?php } ?>
                                                     </td>
                                                 </tr>
                                             <?php
@@ -85,5 +127,3 @@
     </div>
 </div>
 <!-- /page content -->
-
-

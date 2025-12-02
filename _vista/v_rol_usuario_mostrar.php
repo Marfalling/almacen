@@ -1,3 +1,15 @@
+<?php
+//=======================================================================
+// VISTA: v_rol_usuario_mostrar.php
+//=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_rol de usuario');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_rol de usuario');
+?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -20,9 +32,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="rol_usuario_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo Rol Usuario
-                                </a> 
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO ROL USUARIO -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear roles de usuario"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Rol Usuario
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="rol_usuario_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo rol de usuario">
+                                        <i class="fa fa-plus"></i> Nuevo Rol Usuario
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -77,9 +104,24 @@
                                                     </td>
                                                     <td>
                                                         <center>
-                                                            <a class="btn btn-warning btn-sm" href="rol_usuario_editar.php?id_rol=<?php echo $id_rol; ?>">
-                                                                <i class="fa fa-edit"></i>
-                                                            </a>
+                                                            <!-- ============================================ -->
+                                                            <!-- BOTÓN EDITAR ROL USUARIO -->
+                                                            <!-- ============================================ -->
+                                                            <?php if (!$tiene_permiso_editar) { ?>
+                                                                <a href="#" 
+                                                                   class="btn btn-outline-danger btn-sm disabled"
+                                                                   title="No tienes permiso para editar roles de usuario"
+                                                                   tabindex="-1" 
+                                                                   aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a class="btn btn-warning btn-sm" 
+                                                                   href="rol_usuario_editar.php?id_rol=<?php echo $id_rol; ?>"
+                                                                   title="Editar rol de usuario">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } ?>
                                                         </center>
                                                     </td>
                                                 </tr>

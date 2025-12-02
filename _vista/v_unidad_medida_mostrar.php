@@ -1,3 +1,15 @@
+<?php
+//=======================================================================
+// VISTA: v_unidad_medida_mostrar.php
+//=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_unidad de medida');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_unidad de medida');
+?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -20,9 +32,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="unidad_medida_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nueva Unidad Medida
-                                </a> 
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVA UNIDAD MEDIDA -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear unidades de medida"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nueva Unidad Medida
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="unidad_medida_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nueva unidad de medida">
+                                        <i class="fa fa-plus"></i> Nueva Unidad Medida
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -64,7 +91,26 @@
                                                         </center>
                                                     </td>
                                                     <td>
-                                                        <center><a class="btn btn-warning" href="unidad_medida_editar.php?id_unidad_medida=<?php echo $id_unidad_medida; ?>"><i class="fa fa-edit" ></i></a></center>
+                                                        <center>
+                                                            <!-- ============================================ -->
+                                                            <!-- BOTÓN EDITAR UNIDAD MEDIDA -->
+                                                            <!-- ============================================ -->
+                                                            <?php if (!$tiene_permiso_editar) { ?>
+                                                                <a href="#" 
+                                                                   class="btn btn-outline-danger btn-sm disabled"
+                                                                   title="No tienes permiso para editar unidades de medida"
+                                                                   tabindex="-1" 
+                                                                   aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a class="btn btn-warning btn-sm" 
+                                                                   href="unidad_medida_editar.php?id_unidad_medida=<?php echo $id_unidad_medida; ?>"
+                                                                   title="Editar unidad de medida">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } ?>
+                                                        </center>
                                                     </td>
                                                 </tr>
                                             <?php

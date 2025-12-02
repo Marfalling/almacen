@@ -1,3 +1,15 @@
+<?php
+//=======================================================================
+// VISTA: v_ubicacion_mostrar.php
+//=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_ubicacion');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_ubicacion');
+?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -20,9 +32,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="ubicacion_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nueva Ubicación
-                                </a> 
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVA UBICACIÓN -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear ubicaciones"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nueva Ubicación
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="ubicacion_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nueva ubicación">
+                                        <i class="fa fa-plus"></i> Nueva Ubicación
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -64,7 +91,26 @@
                                                         </center>
                                                     </td>
                                                     <td>
-                                                        <center><a class="btn btn-warning" href="ubicacion_editar.php?id_ubicacion=<?php echo $id_ubicacion; ?>"><i class="fa fa-edit"></i></a></center>
+                                                        <center>
+                                                            <!-- ============================================ -->
+                                                            <!-- BOTÓN EDITAR UBICACIÓN -->
+                                                            <!-- ============================================ -->
+                                                            <?php if (!$tiene_permiso_editar) { ?>
+                                                                <a href="#" 
+                                                                   class="btn btn-outline-danger btn-sm disabled"
+                                                                   title="No tienes permiso para editar ubicaciones"
+                                                                   tabindex="-1" 
+                                                                   aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a class="btn btn-warning btn-sm" 
+                                                                   href="ubicacion_editar.php?id_ubicacion=<?php echo $id_ubicacion; ?>"
+                                                                   title="Editar ubicación">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } ?>
+                                                        </center>
                                                     </td>
                                                 </tr>
                                             <?php

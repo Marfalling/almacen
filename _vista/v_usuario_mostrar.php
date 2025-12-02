@@ -1,3 +1,15 @@
+<?php
+//=======================================================================
+// VISTA: v_usuario_mostrar.php
+//=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_usuarios');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_usuarios');
+?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -20,10 +32,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="usuario_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo Usuario
-                                </a>
-                                
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO USUARIO -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear usuarios"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Usuario
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="usuario_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo usuario">
+                                        <i class="fa fa-plus"></i> Nuevo Usuario
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -85,9 +111,24 @@
                                                     </td>
                                                     <td>
                                                         <center>
-                                                            <a class="btn btn-warning btn-sm" href="usuario_editar.php?id_usuario=<?php echo $id_usuario; ?>"><i  title="Editar usuario">
-                                                                <i class="fa fa-edit"></i>
-                                                            </a>
+                                                            <!-- ============================================ -->
+                                                            <!-- BOTÓN EDITAR USUARIO -->
+                                                            <!-- ============================================ -->
+                                                            <?php if (!$tiene_permiso_editar) { ?>
+                                                                <a href="#" 
+                                                                   class="btn btn-outline-danger btn-sm disabled"
+                                                                   title="No tienes permiso para editar usuarios"
+                                                                   tabindex="-1" 
+                                                                   aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a class="btn btn-warning btn-sm" 
+                                                                   href="usuario_editar.php?id_usuario=<?php echo $id_usuario; ?>" 
+                                                                   title="Editar usuario">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } ?>
                                                         </center>
                                                     </td>
                                                 </tr>

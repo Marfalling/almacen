@@ -2,6 +2,12 @@
 //=======================================================================
 // VISTA: v_devoluciones_mostrar.php
 //=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_devoluciones');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_devoluciones');
 ?>
 <!-- page content -->
 <div class="right_col" role="main">
@@ -25,9 +31,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="devoluciones_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nueva Devolución
-                                </a>
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVA DEVOLUCIÓN -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear devoluciones"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nueva Devolución
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="devoluciones_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nueva devolución">
+                                        <i class="fa fa-plus"></i> Nueva Devolución
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -91,7 +112,7 @@
                                                     </td>
                                                     <td>
                                                         <div class="d-flex flex-wrap gap-2">
-
+                                                            <!-- Botón Ver Detalle -->
                                                             <button type="button" 
                                                                     class="btn btn-info btn-sm" 
                                                                     data-toggle="modal" 
@@ -100,29 +121,48 @@
                                                                 <i class="fa fa-eye"></i>
                                                             </button>
 
-                                                            <?php if ($devolucion['est_devolucion'] != 1) { ?>
-                                                                <!-- Envolver en un span para que el tooltip funcione -->
-                                                                <span data-toggle="tooltip" title="Editar" style="display: inline-block;">
-                                                                    <a href="#"
-                                                                    class="btn btn-outline-secondary btn-sm disabled"
-                                                                    tabindex="-1"
-                                                                    aria-disabled="true"
-                                                                    style="pointer-events: none;">
-                                                                        <i class="fa fa-edit"></i>
-                                                                    </a>
-                                                                </span>
+                                                            <!-- ============================================ -->
+                                                            <!-- BOTÓN EDITAR DEVOLUCIÓN -->
+                                                            <!-- ============================================ -->
+                                                            <?php
+                                                            $puede_editar = ($devolucion['est_devolucion'] == 1);
+                                                            $titulo_editar = '';
+                                                            
+                                                            if (!$tiene_permiso_editar) {
+                                                                $titulo_editar = "No tienes permiso para editar devoluciones";
+                                                            } elseif (!$puede_editar) {
+                                                                $titulo_editar = "No se puede editar - Devolución ya procesada";
+                                                            }
+                                                            
+                                                            if (!$tiene_permiso_editar) { ?>
+                                                                <a href="#"
+                                                                   data-toggle="tooltip"
+                                                                   class="btn btn-outline-danger btn-sm disabled"
+                                                                   title="<?php echo $titulo_editar; ?>"
+                                                                   tabindex="-1"
+                                                                   aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } elseif (!$puede_editar) { ?>
+                                                                <a href="#"
+                                                                   class="btn btn-outline-secondary btn-sm disabled"
+                                                                   title="<?php echo $titulo_editar; ?>"
+                                                                   tabindex="-1"
+                                                                   data-toggle="tooltip"
+                                                                   aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
                                                             <?php } else { ?>
-                                                                <a href="<?php echo ($devolucion['est_devolucion'] == 1) 
-                                                                            ? 'devoluciones_editar.php?id='.$devolucion['id_devolucion'] 
-                                                                            : '#'; ?>" 
-                                                                class="btn btn-warning btn-sm" 
-                                                                title="Editar"
-                                                                data-toggle="tooltip"
-                                                                <?php echo ($devolucion['est_devolucion'] != 1) ? 'onclick="return false;" style="pointer-events:none; opacity:0.65;"' : ''; ?>>
-                                                                <i class="fa fa-edit"></i>
+                                                                <a href="devoluciones_editar.php?id=<?php echo $devolucion['id_devolucion']; ?>" 
+                                                                   class="btn btn-warning btn-sm" 
+                                                                   title="Editar"
+                                                                   data-toggle="tooltip"
+                                                                   title="Editar devolución">
+                                                                    <i class="fa fa-edit"></i>
                                                                 </a>
                                                             <?php } ?>
 
+                                                            <!-- Botón PDF -->
                                                             <a href="devoluciones_pdf.php?id=<?php echo $devolucion['id_devolucion']; ?>" 
                                                                class="btn btn-secondary btn-sm" 
                                                                title="Generar PDF"
@@ -131,6 +171,7 @@
                                                                 <i class="fa fa-file-pdf-o"></i>
                                                             </a>
 
+                                                            <!-- Botón Confirmar -->
                                                             <form method="post" action="devoluciones_mostrar.php" style="display:inline;">
                                                                 <input type="hidden" name="id_devolucion" value="<?php echo $devolucion['id_devolucion']; ?>">
                                                                 <input type="hidden" name="confirmar" value="1">
@@ -139,7 +180,7 @@
                                                                     <button type="button" 
                                                                             class="btn btn-outline-secondary btn-sm disabled" 
                                                                             title="Confirmar Devolución"
-                                                                            data-toggle="tooltip" 
+                                                                            data-toggle="tooltip"
                                                                             disabled>
                                                                         <i class="fa fa-check"></i>
                                                                     </button>
@@ -153,7 +194,7 @@
                                                                 <?php } ?>
                                                             </form>
 
-
+                                                            <!-- Botón Anular -->
                                                             <form method="post" action="devoluciones_mostrar.php" style="display:inline;">
                                                                 <input type="hidden" name="id_devolucion" value="<?php echo $devolucion['id_devolucion']; ?>">
                                                                 <input type="hidden" name="anular" value="1">
@@ -196,7 +237,7 @@
     </div>
 </div>
 <!-- /page content -->
-
+ 
 <!-- Modales para ver detalle de cada devolución -->
 <?php 
 foreach($devoluciones as $devolucion) { 

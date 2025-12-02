@@ -2,7 +2,14 @@
 //=======================================================================
 // VISTA: v_centro_costo_mostrar.php 
 //=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_centro de costo');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_centro de costo');
 ?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -55,11 +62,24 @@
                                 <h2>Listado de Centro de Costo</h2>
                             </div>
                             <div class="col-sm-2">
-                                <?php if (verificarPermisoEspecifico('crear_centro de costo')): ?>
-                                    <a href="centro_costo_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO CENTRO COSTO -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear centros de costo"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Centro Costo
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="centro_costo_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo centro de costo">
                                        <i class="fa fa-plus"></i> Nuevo Centro Costo
                                     </a>
-                                <?php endif; ?>
+                                <?php } ?>
                             </div>
                         </div>
                         <div class="clearfix"></div>
@@ -101,11 +121,24 @@
                                                         </center>
                                                     </td>
                                                     <td class="text-center">
-                                                        <?php if (verificarPermisoEspecifico('editar_centro de costo')): ?>
-                                                            <a class="btn btn-warning btn-sm" href="centro_costo_editar.php?id_centro_costo=<?php echo $id; ?>">
+                                                        <!-- ============================================ -->
+                                                        <!-- BOTÓN EDITAR CENTRO COSTO -->
+                                                        <!-- ============================================ -->
+                                                        <?php if (!$tiene_permiso_editar) { ?>
+                                                            <a href="#" 
+                                                               class="btn btn-outline-danger btn-sm disabled"
+                                                               title="No tienes permiso para editar centros de costo"
+                                                               tabindex="-1" 
+                                                               aria-disabled="true">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
-                                                        <?php endif; ?>
+                                                        <?php } else { ?>
+                                                            <a class="btn btn-warning btn-sm" 
+                                                               href="centro_costo_editar.php?id_centro_costo=<?php echo $id; ?>"
+                                                               title="Editar centro de costo">
+                                                                <i class="fa fa-edit"></i>
+                                                            </a>
+                                                        <?php } ?>
                                                     </td>
                                                 </tr>
                                             <?php
@@ -128,5 +161,3 @@
     </div>
 </div>
 <!-- /page content -->
-
-

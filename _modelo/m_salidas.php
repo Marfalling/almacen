@@ -490,6 +490,10 @@ function DenegarSalida($id_salida, $id_personal_deniega_salida)
 
         // PASO 4: COMMIT
         mysqli_commit($con);
+
+        //  ENVIAR CORREO
+        EnviarCorreoSalidaDenegada($id_salida);
+
         mysqli_close($con);
 
         error_log("✅ Transacción completada");
@@ -622,6 +626,9 @@ function RecepcionarSalida($id_salida, $id_personal_recepciona)
 
     error_log(" Salida ID $id_salida recepcionada por personal ID $id_personal_recepciona");
     
+    //  ENVIAR CORREO
+    EnviarCorreoSalidaRecepcionada($id_salida);
+
     mysqli_close($con);
 
     //  ACTUALIZAR ESTADO DEL PEDIDO
@@ -2628,9 +2635,9 @@ function EnviarCorreoSalidaCreada($id_salida)
         $receptor_html = "<p style='margin: 5px 0;'><strong>Receptor:</strong> {$salida['receptor_nombre']}</p>";
     }
     
-    $creador_html = '';
-    if (!empty($salida['creador_nombre'])) {
-        $creador_html = "<p style='margin: 5px 0;'><strong>Creado por:</strong> {$salida['creador_nombre']}</p>";
+    $encargado_html = '';
+    if (!empty($salida['encargado_nombre'])) {
+        $encargado_html = "<p style='margin: 5px 0;'><strong>Encargado:</strong> {$salida['encargado_nombre']}</p>";
     }
     
     $message = "
@@ -2680,7 +2687,7 @@ function EnviarCorreoSalidaCreada($id_salida)
                                 <h3 style='color: #333333; margin-top: 25px;'>Personal</h3>
                                 <div style='background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin: 15px 0;'>
                                     {$receptor_html}
-                                    {$creador_html}
+                                    {$encargado_html}
                                 </div>
                                 
                                 {$obs_html}
@@ -2700,7 +2707,7 @@ function EnviarCorreoSalidaCreada($id_salida)
                                 </table>
                                 
                                 <div style='text-align: center; margin-top: 30px;'>
-                                    <a href='https://arceperusac.com/_controlador/salida_detalles.php?id_salida={$salida['id_salida']}' style='display: inline-block; padding: 12px 30px; background-color: #667eea; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;'>Ver Detalle y Aprobar</a>
+                                    <a href='https://arceperusac.com/_controlador/salidas_mostrar.php' style='display: inline-block; padding: 12px 30px; background-color: #667eea; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;'>Ver Listado de Salidas</a>
                                 </div>
                             </td>
                         </tr>
@@ -2777,6 +2784,7 @@ function EnviarCorreoSalidaAprobada($id_salida)
               ud.nom_ubicacion AS ubicacion_destino,
               mt.nom_material_tipo,
               pe.nom_personal AS encargado_nombre,
+              pe.email_personal AS encargado_email,  
               pr.nom_personal AS receptor_nombre,
               pr.email_personal AS receptor_email,
               pa.nom_personal AS aprobador_nombre
@@ -2795,13 +2803,7 @@ function EnviarCorreoSalidaAprobada($id_salida)
     
     $res = mysqli_query($con, $sql);
     
-    if (!$res) {
-        error_log("❌ Error en consulta SQL: " . mysqli_error($con));
-        mysqli_close($con);
-        return false;
-    }
-    
-    if (mysqli_num_rows($res) == 0) {
+    if (!$res || mysqli_num_rows($res) == 0) {
         error_log("❌ No se encontró la salida aprobada ID: $id_salida");
         mysqli_close($con);
         return false;
@@ -2809,9 +2811,9 @@ function EnviarCorreoSalidaAprobada($id_salida)
     
     $salida = mysqli_fetch_assoc($res);
     
-    // Validar que haya receptor y email
-    if (empty($salida['receptor_email'])) {
-        error_log("⚠️ No hay email para el receptor de la salida ID: $id_salida");
+    //  Validar que al menos UNO tenga email
+    if (empty($salida['encargado_email']) && empty($salida['receptor_email'])) {
+        error_log("⚠️ No hay emails para enviar - Salida ID: $id_salida");
         mysqli_close($con);
         return false;
     }
@@ -2820,10 +2822,10 @@ function EnviarCorreoSalidaAprobada($id_salida)
     $sql_detalle = "SELECT 
                       sd.cant_salida_detalle,
                       p.nom_producto,
-                      um.nom_unidad_medida  
+                      um.nom_unidad_medida
                     FROM salida_detalle sd
                     INNER JOIN producto p ON sd.id_producto = p.id_producto
-                    INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida  
+                    INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
                     WHERE sd.id_salida = $id_salida
                     AND sd.est_salida_detalle = 1
                     ORDER BY p.nom_producto";
@@ -2975,7 +2977,7 @@ function EnviarCorreoSalidaAprobada($id_salida)
                                 </table>
                                 
                                 <div style='text-align: center; margin: 30px 0;'>
-                                    <a href='https://arceperusac.com/_controlador/salida_detalles.php?id_salida={$id_salida}' 
+                                    <a href='https://arceperusac.com/_controlador/salidas_mostrar.php' 
                                        style='background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); 
                                               color: #ffffff; 
                                               padding: 14px 30px; 
@@ -3012,15 +3014,554 @@ function EnviarCorreoSalidaAprobada($id_salida)
     $cabeceras .= "Content-type: text/html; charset=UTF-8\r\n";
     $cabeceras .= "From: ARCE PERÚ <notificaciones@arceperusac.com>\r\n";
     $cabeceras .= "Bcc: notificaciones@arceperusac.com\r\n";
-    $cabeceras .= "X-Mailer: PHP/" . phpversion();
     
-    $enviado = @mail($destinatario, $asunto, $mensaje, $cabeceras);
-    
-    if ($enviado) {
-        error_log(" MAIL OK → Salida aprobada enviado a $destinatario (Salida #{$salida['ndoc_salida']})");
-    } else {
-        error_log(" MAIL FAIL → Error al enviar a $destinatario (Salida #{$salida['ndoc_salida']})");
+    //  ENVIAR AL ENCARGADO
+    $enviado_encargado = false;
+    if (!empty($salida['encargado_email'])) {
+        $mail_encargado = @mail($salida['encargado_email'], $asunto, $mensaje, $cabeceras);
+        
+        if ($mail_encargado) {
+            error_log("✅ MAIL OK → Salida aprobada enviado a ENCARGADO: {$salida['encargado_email']} (Salida #{$salida['ndoc_salida']})");
+            $enviado_encargado = true;
+        } else {
+            error_log("❌ MAIL FAIL → Error al enviar a ENCARGADO: {$salida['encargado_email']} (Salida #{$salida['ndoc_salida']})");
+        }
     }
     
-    return $enviado;
+    //  ENVIAR AL RECEPTOR
+    $enviado_receptor = false;
+    if (!empty($salida['receptor_email'])) {
+        $mail_receptor = @mail($salida['receptor_email'], $asunto, $mensaje, $cabeceras);
+        
+        if ($mail_receptor) {
+            error_log("✅ MAIL OK → Salida aprobada enviado a RECEPTOR: {$salida['receptor_email']} (Salida #{$salida['ndoc_salida']})");
+            $enviado_receptor = true;
+        } else {
+            error_log("❌ MAIL FAIL → Error al enviar a RECEPTOR: {$salida['receptor_email']} (Salida #{$salida['ndoc_salida']})");
+        }
+    }
+    
+    return ($enviado_encargado || $enviado_receptor);
+}
+
+/**
+ * Enviar correo cuando se deniega una salida (al encargado Y receptor)
+ */
+function EnviarCorreoSalidaDenegada($id_salida)
+{
+    include("../_conexion/conexion.php");
+    
+    $id_salida = intval($id_salida);
+
+    $sql = "SELECT 
+              s.id_salida,
+              s.ndoc_salida,
+              s.fec_req_salida,
+              s.fec_deniega_salida,
+              s.obs_salida,
+              ao.nom_almacen AS almacen_origen,
+              uo.nom_ubicacion AS ubicacion_origen,
+              ad.nom_almacen AS almacen_destino,
+              ud.nom_ubicacion AS ubicacion_destino,
+              mt.nom_material_tipo,
+              pe.nom_personal AS encargado_nombre,
+              pe.email_personal AS encargado_email,
+              pr.nom_personal AS receptor_nombre,
+              pr.email_personal AS receptor_email,
+              pd.nom_personal AS denegador_nombre
+            FROM salida s
+            LEFT JOIN almacen ao ON s.id_almacen_origen = ao.id_almacen
+            LEFT JOIN ubicacion uo ON s.id_ubicacion_origen = uo.id_ubicacion
+            LEFT JOIN almacen ad ON s.id_almacen_destino = ad.id_almacen
+            LEFT JOIN ubicacion ud ON s.id_ubicacion_destino = ud.id_ubicacion
+            LEFT JOIN material_tipo mt ON s.id_material_tipo = mt.id_material_tipo
+            LEFT JOIN $bd_complemento.personal pe ON s.id_personal_encargado = pe.id_personal
+            LEFT JOIN $bd_complemento.personal pr ON s.id_personal_recibe = pr.id_personal
+            LEFT JOIN $bd_complemento.personal pd ON s.id_personal_deniega_salida = pd.id_personal
+            WHERE s.id_salida = $id_salida
+            AND s.est_salida = 4
+            LIMIT 1";
+    
+    $res = mysqli_query($con, $sql);
+    
+    if (!$res || mysqli_num_rows($res) == 0) {
+        error_log("❌ No se encontró la salida denegada ID: $id_salida");
+        mysqli_close($con);
+        return false;
+    }
+    
+    $salida = mysqli_fetch_assoc($res);
+    
+    // Validar que al menos UNO tenga email
+    if (empty($salida['encargado_email']) && empty($salida['receptor_email'])) {
+        error_log("⚠️ No hay emails para enviar - Salida ID: $id_salida");
+        mysqli_close($con);
+        return false;
+    }
+
+    $sql_detalle = "SELECT 
+                      sd.cant_salida_detalle,
+                      p.nom_producto,
+                      um.nom_unidad_medida
+                    FROM salida_detalle sd
+                    INNER JOIN producto p ON sd.id_producto = p.id_producto
+                    INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+                    WHERE sd.id_salida = $id_salida
+                    AND sd.est_salida_detalle = 1
+                    ORDER BY p.nom_producto";
+    
+    $res_detalle = mysqli_query($con, $sql_detalle);
+    $items = [];
+    while ($row = mysqli_fetch_assoc($res_detalle)) {
+        $items[] = $row;
+    }
+    
+    mysqli_close($con);
+    
+    $asunto = "Salida DENEGADA #{$salida['ndoc_salida']}";
+    
+    // Construir tabla de materiales
+    $tabla_items = '';
+    foreach ($items as $item) {
+        $tabla_items .= "
+            <tr>
+                <td style='padding: 12px; border-bottom: 1px solid #e0e0e0;'>{$item['nom_producto']}</td>
+                <td style='padding: 12px; border-bottom: 1px solid #e0e0e0; text-align: center;'>" . 
+                    number_format($item['cant_salida_detalle'], 2) . "</td>
+                <td style='padding: 12px; border-bottom: 1px solid #e0e0e0; text-align: center;'>{$item['nom_unidad_medida']}</td>
+            </tr>";
+    }
+    
+    $fecha_denegacion = !empty($salida['fec_deniega_salida']) 
+        ? date('d/m/Y H:i', strtotime($salida['fec_deniega_salida'])) 
+        : 'No disponible';
+    
+    $denegador = !empty($salida['denegador_nombre']) ? $salida['denegador_nombre'] : 'No disponible';
+    
+    $observaciones_html = !empty($salida['obs_salida']) 
+        ? "<div style='background-color: #fff8e1; padding: 15px; border-left: 4px solid #ffc107; border-radius: 6px; margin: 20px 0;'>
+            <strong>📝 Observaciones:</strong>
+            <p style='margin: 5px 0 0 0;'>{$salida['obs_salida']}</p>
+          </div>"
+        : "";
+    
+    $mensaje = "
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset='UTF-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    </head>
+    <body style='margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;'>
+        <table width='100%' cellpadding='0' cellspacing='0' style='background-color: #f4f4f4; padding: 20px;'>
+            <tr>
+                <td align='center'>
+                    <table width='600' cellpadding='0' cellspacing='0' style='background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+                        <tr>
+                            <td style='background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); padding: 30px; text-align: center;'>
+                                <h1 style='color: #ffffff; margin: 0; font-size: 24px;'>❌ Salida Denegada</h1>
+                                <p style='color: #f0f0f0; margin: 10px 0 0 0; font-size: 14px;'>Documento #{$salida['ndoc_salida']}</p>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style='padding: 20px; background-color: #f8d7da; border-left: 4px solid #dc3545;'>
+                                <p style='margin: 0; color: #721c24; font-weight: bold;'>❌ SALIDA DENEGADA</p>
+                                <p style='margin: 5px 0 0 0; color: #721c24;'>Esta salida ha sido denegada y no procederá.</p>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style='padding: 30px;'>
+                                <h2 style='color: #333; margin-top: 0; font-size: 18px; border-bottom: 2px solid #dc3545; padding-bottom: 10px;'>Información de Denegación</h2>
+                                
+                                <table width='100%' cellpadding='8' cellspacing='0' style='margin: 20px 0; background-color: #f8f9fa; border-radius: 4px;'>
+                                    <tr>
+                                        <td style='color: #666; width: 40%; padding: 12px;'><strong>Fecha de Denegación:</strong></td>
+                                        <td style='color: #333; padding: 12px;'>{$fecha_denegacion}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style='color: #666; padding: 12px;'><strong>Denegado por:</strong></td>
+                                        <td style='color: #333; padding: 12px;'>{$denegador}</td>
+                                    </tr>
+                                </table>
+                                
+                                <h2 style='color: #333; margin-top: 25px; font-size: 18px; border-bottom: 2px solid #dc3545; padding-bottom: 10px;'>Detalles de la Salida</h2>
+                                
+                                <table width='100%' cellpadding='8' cellspacing='0' style='margin: 20px 0;'>
+                                    <tr>
+                                        <td style='color: #666; width: 40%;'><strong>Número de Documento:</strong></td>
+                                        <td style='color: #333;'>{$salida['ndoc_salida']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style='color: #666;'><strong>Fecha Requerida:</strong></td>
+                                        <td style='color: #333;'>" . date('d/m/Y', strtotime($salida['fec_req_salida'])) . "</td>
+                                    </tr>
+                                    <tr>
+                                        <td style='color: #666;'><strong>Tipo de Material:</strong></td>
+                                        <td style='color: #333;'>{$salida['nom_material_tipo']}</td>
+                                    </tr>
+                                </table>
+                                
+                                <h3 style='color: #333; font-size: 16px; margin-top: 25px;'>Origen y Destino</h3>
+                                <table width='100%' cellpadding='8' cellspacing='0' style='margin: 15px 0; background-color: #f8f9fa; border-radius: 4px;'>
+                                    <tr>
+                                        <td style='color: #666; width: 40%; padding: 12px;'><strong>Almacén Origen:</strong></td>
+                                        <td style='color: #333; padding: 12px;'>{$salida['almacen_origen']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style='color: #666; padding: 12px;'><strong>Ubicación Origen:</strong></td>
+                                        <td style='color: #333; padding: 12px;'>{$salida['ubicacion_origen']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style='color: #666; padding: 12px;'><strong>Almacén Destino:</strong></td>
+                                        <td style='color: #333; padding: 12px;'>{$salida['almacen_destino']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style='color: #666; padding: 12px;'><strong>Ubicación Destino:</strong></td>
+                                        <td style='color: #333; padding: 12px;'>{$salida['ubicacion_destino']}</td>
+                                    </tr>
+                                </table>
+                                
+                                {$observaciones_html}
+                                
+                                <h3 style='color: #333; font-size: 16px; margin-top: 25px;'>Materiales Solicitados</h3>
+                                <table width='100%' cellpadding='0' cellspacing='0' style='margin: 15px 0; border: 1px solid #e0e0e0; border-radius: 4px; overflow: hidden;'>
+                                    <thead>
+                                        <tr style='background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);'>
+                                            <th style='padding: 12px; text-align: left; color: #ffffff; font-weight: bold;'>Producto</th>
+                                            <th style='padding: 12px; text-align: center; color: #ffffff; font-weight: bold;'>Cantidad</th>
+                                            <th style='padding: 12px; text-align: center; color: #ffffff; font-weight: bold;'>Unidad</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {$tabla_items}
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style='background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;'>
+                                <p style='margin: 0; color: #666; font-size: 12px;'>
+                                    Este es un correo automático del Sistema de Gestión de Almacén
+                                </p>
+                                <p style='margin: 5px 0 0 0; color: #999; font-size: 11px;'>
+                                    Montajes e Ingeniería Arce Perú SAC © " . date('Y') . "
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>";
+    
+    $cabeceras = "MIME-Version: 1.0\r\n";
+    $cabeceras .= "Content-type: text/html; charset=UTF-8\r\n";
+    $cabeceras .= "From: ARCE PERÚ <notificaciones@arceperusac.com>\r\n";
+    $cabeceras .= "Bcc: notificaciones@arceperusac.com\r\n";
+
+    //  ENVIAR AL ENCARGADO
+    $enviado_encargado = false;
+    if (!empty($salida['encargado_email'])) {
+        $mail_encargado = @mail($salida['encargado_email'], $asunto, $mensaje, $cabeceras);
+        
+        if ($mail_encargado) {
+            error_log("✅ MAIL OK → Salida denegada enviado a ENCARGADO: {$salida['encargado_email']} (Salida #{$salida['ndoc_salida']})");
+            $enviado_encargado = true;
+        } else {
+            error_log("❌ MAIL FAIL → Error al enviar a ENCARGADO: {$salida['encargado_email']} (Salida #{$salida['ndoc_salida']})");
+        }
+    }
+    
+    //  ENVIAR AL RECEPTOR
+    $enviado_receptor = false;
+    if (!empty($salida['receptor_email'])) {
+        $mail_receptor = @mail($salida['receptor_email'], $asunto, $mensaje, $cabeceras);
+        
+        if ($mail_receptor) {
+            error_log("✅ MAIL OK → Salida denegada enviado a RECEPTOR: {$salida['receptor_email']} (Salida #{$salida['ndoc_salida']})");
+            $enviado_receptor = true;
+        } else {
+            error_log("❌ MAIL FAIL → Error al enviar a RECEPTOR: {$salida['receptor_email']} (Salida #{$salida['ndoc_salida']})");
+        }
+    }
+    
+    return ($enviado_encargado || $enviado_receptor);
+}
+
+/**
+ * Enviar correo cuando se recepciona una salida (al encargado Y receptor confirmando)
+ */
+function EnviarCorreoSalidaRecepcionada($id_salida)
+{
+    include("../_conexion/conexion.php");
+    
+    $id_salida = intval($id_salida);
+
+    $sql = "SELECT 
+              s.id_salida,
+              s.ndoc_salida,
+              s.fec_req_salida,
+              s.fec_recepciona_salida,
+              s.obs_salida,
+              ao.nom_almacen AS almacen_origen,
+              uo.nom_ubicacion AS ubicacion_origen,
+              ad.nom_almacen AS almacen_destino,
+              ud.nom_ubicacion AS ubicacion_destino,
+              mt.nom_material_tipo,
+              pe.nom_personal AS encargado_nombre,
+              pe.email_personal AS encargado_email,
+              pr.nom_personal AS receptor_nombre,
+              pr.email_personal AS receptor_email,
+              prec.nom_personal AS recepcionador_nombre
+            FROM salida s
+            LEFT JOIN almacen ao ON s.id_almacen_origen = ao.id_almacen
+            LEFT JOIN ubicacion uo ON s.id_ubicacion_origen = uo.id_ubicacion
+            LEFT JOIN almacen ad ON s.id_almacen_destino = ad.id_almacen
+            LEFT JOIN ubicacion ud ON s.id_ubicacion_destino = ud.id_ubicacion
+            LEFT JOIN material_tipo mt ON s.id_material_tipo = mt.id_material_tipo
+            LEFT JOIN $bd_complemento.personal pe ON s.id_personal_encargado = pe.id_personal
+            LEFT JOIN $bd_complemento.personal pr ON s.id_personal_recibe = pr.id_personal
+            LEFT JOIN $bd_complemento.personal prec ON s.id_personal_recepciona_salida = prec.id_personal
+            WHERE s.id_salida = $id_salida
+            AND s.est_salida = 2
+            LIMIT 1";
+    
+    $res = mysqli_query($con, $sql);
+    
+    if (!$res || mysqli_num_rows($res) == 0) {
+        error_log("❌ No se encontró la salida recepcionada ID: $id_salida");
+        mysqli_close($con);
+        return false;
+    }
+    
+    $salida = mysqli_fetch_assoc($res);
+    
+    // Validar que al menos UNO tenga email
+    if (empty($salida['encargado_email']) && empty($salida['receptor_email'])) {
+        error_log("⚠️ No hay emails para enviar - Salida ID: $id_salida");
+        mysqli_close($con);
+        return false;
+    }
+
+    $sql_detalle = "SELECT 
+                      sd.cant_salida_detalle,
+                      p.nom_producto,
+                      um.nom_unidad_medida
+                    FROM salida_detalle sd
+                    INNER JOIN producto p ON sd.id_producto = p.id_producto
+                    INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+                    WHERE sd.id_salida = $id_salida
+                    AND sd.est_salida_detalle = 1
+                    ORDER BY p.nom_producto";
+    
+    $res_detalle = mysqli_query($con, $sql_detalle);
+    $items = [];
+    while ($row = mysqli_fetch_assoc($res_detalle)) {
+        $items[] = $row;
+    }
+    
+    mysqli_close($con);
+    
+    $asunto = "Salida RECEPCIONADA #{$salida['ndoc_salida']} - Proceso Completado";
+    
+    // Construir tabla de materiales
+    $tabla_items = '';
+    foreach ($items as $item) {
+        $tabla_items .= "
+            <tr>
+                <td style='padding: 12px; border-bottom: 1px solid #e0e0e0;'>{$item['nom_producto']}</td>
+                <td style='padding: 12px; border-bottom: 1px solid #e0e0e0; text-align: center;'>" . 
+                    number_format($item['cant_salida_detalle'], 2) . "</td>
+                <td style='padding: 12px; border-bottom: 1px solid #e0e0e0; text-align: center;'>{$item['nom_unidad_medida']}</td>
+            </tr>";
+    }
+    
+    $fecha_recepcion = !empty($salida['fec_recepciona_salida']) 
+        ? date('d/m/Y H:i', strtotime($salida['fec_recepciona_salida'])) 
+        : 'No disponible';
+    
+    $recepcionador = !empty($salida['recepcionador_nombre']) ? $salida['recepcionador_nombre'] : 'No disponible';
+    
+    $observaciones_html = !empty($salida['obs_salida']) 
+        ? "<div style='background-color: #fff8e1; padding: 15px; border-left: 4px solid #ffc107; border-radius: 6px; margin: 20px 0;'>
+            <strong>📝 Observaciones:</strong>
+            <p style='margin: 5px 0 0 0;'>{$salida['obs_salida']}</p>
+          </div>"
+        : "";
+    
+    $mensaje = "
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset='UTF-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    </head>
+    <body style='margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;'>
+        <table width='100%' cellpadding='0' cellspacing='0' style='background-color: #f4f4f4; padding: 20px;'>
+            <tr>
+                <td align='center'>
+                    <table width='600' cellpadding='0' cellspacing='0' style='background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);'>
+                        <tr>
+                            <td style='background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); padding: 30px; text-align: center;'>
+                                <h1 style='color: #ffffff; margin: 0; font-size: 24px;'>✅ Salida Recepcionada</h1>
+                                <p style='color: #f0f0f0; margin: 10px 0 0 0; font-size: 14px;'>Documento #{$salida['ndoc_salida']}</p>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style='padding: 20px; background-color: #d1ecf1; border-left: 4px solid #17a2b8;'>
+                                <p style='margin: 0; color: #0c5460; font-weight: bold;'>✅ PROCESO COMPLETADO</p>
+                                <p style='margin: 5px 0 0 0; color: #0c5460;'>Esta salida ha sido recepcionada exitosamente. El proceso de traslado está completo.</p>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style='padding: 30px;'>
+                                <h2 style='color: #333; margin-top: 0; font-size: 18px; border-bottom: 2px solid #17a2b8; padding-bottom: 10px;'>Información de Recepción</h2>
+                                
+                                <table width='100%' cellpadding='8' cellspacing='0' style='margin: 20px 0; background-color: #f8f9fa; border-radius: 4px;'>
+                                    <tr>
+                                        <td style='color: #666; width: 40%; padding: 12px;'><strong>Fecha de Recepción:</strong></td>
+                                        <td style='color: #333; padding: 12px;'>{$fecha_recepcion}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style='color: #666; padding: 12px;'><strong>Recepcionado por:</strong></td>
+                                        <td style='color: #333; padding: 12px;'>{$recepcionador}</td>
+                                    </tr>
+                                </table>
+                                
+                                <h2 style='color: #333; margin-top: 25px; font-size: 18px; border-bottom: 2px solid #17a2b8; padding-bottom: 10px;'>Detalles de la Salida</h2>
+                                
+                                <table width='100%' cellpadding='8' cellspacing='0' style='margin: 20px 0;'>
+                                    <tr>
+                                        <td style='color: #666; width: 40%;'><strong>Número de Documento:</strong></td>
+                                        <td style='color: #333;'>{$salida['ndoc_salida']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style='color: #666;'><strong>Fecha Requerida:</strong></td>
+                                        <td style='color: #333;'>" . date('d/m/Y', strtotime($salida['fec_req_salida'])) . "</td>
+                                    </tr>
+                                    <tr>
+                                        <td style='color: #666;'><strong>Tipo de Material:</strong></td>
+                                        <td style='color: #333;'>{$salida['nom_material_tipo']}</td>
+                                    </tr>
+                                </table>
+                                
+                                <h3 style='color: #333; font-size: 16px; margin-top: 25px;'>Origen y Destino</h3>
+                                <table width='100%' cellpadding='8' cellspacing='0' style='margin: 15px 0; background-color: #f8f9fa; border-radius: 4px;'>
+                                    <tr>
+                                        <td style='color: #666; width: 40%; padding: 12px;'><strong>Almacén Origen:</strong></td>
+                                        <td style='color: #333; padding: 12px;'>{$salida['almacen_origen']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style='color: #666; padding: 12px;'><strong>Ubicación Origen:</strong></td>
+                                        <td style='color: #333; padding: 12px;'>{$salida['ubicacion_origen']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style='color: #666; padding: 12px;'><strong>Almacén Destino:</strong></td>
+                                        <td style='color: #333; padding: 12px;'>{$salida['almacen_destino']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style='color: #666; padding: 12px;'><strong>Ubicación Destino:</strong></td>
+                                        <td style='color: #333; padding: 12px;'>{$salida['ubicacion_destino']}</td>
+                                    </tr>
+                                </table>
+                                
+                                <h3 style='color: #333; font-size: 16px; margin-top: 25px;'>Personal</h3>
+                                <table width='100%' cellpadding='8' cellspacing='0' style='margin: 15px 0;'>
+                                    <tr>
+                                        <td style='color: #666; width: 40%;'><strong>Encargado:</strong></td>
+                                        <td style='color: #333;'>{$salida['encargado_nombre']}</td>
+                                    </tr>
+                                    <tr>
+                                        <td style='color: #666;'><strong>Receptor:</strong></td>
+                                        <td style='color: #333;'>{$salida['receptor_nombre']}</td>
+                                    </tr>
+                                </table>
+                                
+                                {$observaciones_html}
+                                
+                                <h3 style='color: #333; font-size: 16px; margin-top: 25px;'>Materiales Recepcionados</h3>
+                                <table width='100%' cellpadding='0' cellspacing='0' style='margin: 15px 0; border: 1px solid #e0e0e0; border-radius: 4px; overflow: hidden;'>
+                                    <thead>
+                                        <tr style='background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);'>
+                                            <th style='padding: 12px; text-align: left; color: #ffffff; font-weight: bold;'>Producto</th>
+                                            <th style='padding: 12px; text-align: center; color: #ffffff; font-weight: bold;'>Cantidad</th>
+                                            <th style='padding: 12px; text-align: center; color: #ffffff; font-weight: bold;'>Unidad</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {$tabla_items}
+                                    </tbody>
+                                </table>
+                                
+                                <div style='text-align: center; margin: 30px 0;'>
+                                    <a href='https://arceperusac.com/_controlador/salidas_mostrar.php' 
+                                       style='background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); 
+                                              color: #ffffff; 
+                                              padding: 14px 30px; 
+                                              text-decoration: none; 
+                                              border-radius: 25px; 
+                                              font-weight: bold; 
+                                              display: inline-block;
+                                              box-shadow: 0 4px 6px rgba(23, 162, 184, 0.3);'>
+                                        ✅ Ver Registro Completo
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        
+                        <tr>
+                            <td style='background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;'>
+                                <p style='margin: 0; color: #666; font-size: 12px;'>
+                                    Este es un correo automático del Sistema de Gestión de Almacén
+                                </p>
+                                <p style='margin: 5px 0 0 0; color: #999; font-size: 11px;'>
+                                    Montajes e Ingeniería Arce Perú SAC © " . date('Y') . "
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+    </html>";
+    
+    $cabeceras = "MIME-Version: 1.0\r\n";
+    $cabeceras .= "Content-type: text/html; charset=UTF-8\r\n";
+    $cabeceras .= "From: ARCE PERÚ <notificaciones@arceperusac.com>\r\n";
+    $cabeceras .= "Bcc: notificaciones@arceperusac.com\r\n";
+    
+    //  ENVIAR AL ENCARGADO
+    $enviado_encargado = false;
+    if (!empty($salida['encargado_email'])) {
+        $mail_encargado = @mail($salida['encargado_email'], $asunto, $mensaje, $cabeceras);
+        
+        if ($mail_encargado) {
+            error_log("✅ MAIL OK → Salida recepcionada enviado a ENCARGADO: {$salida['encargado_email']} (Salida #{$salida['ndoc_salida']})");
+            $enviado_encargado = true;
+        } else {
+            error_log("❌ MAIL FAIL → Error al enviar a ENCARGADO: {$salida['encargado_email']} (Salida #{$salida['ndoc_salida']})");
+        }
+    }
+    
+    //  ENVIAR AL RECEPTOR
+    $enviado_receptor = false;
+    if (!empty($salida['receptor_email'])) {
+        $mail_receptor = @mail($salida['receptor_email'], $asunto, $mensaje, $cabeceras);
+        
+        if ($mail_receptor) {
+            error_log("✅ MAIL OK → Salida recepcionada enviado a RECEPTOR: {$salida['receptor_email']} (Salida #{$salida['ndoc_salida']})");
+            $enviado_receptor = true;
+        } else {
+            error_log("❌ MAIL FAIL → Error al enviar a RECEPTOR: {$salida['receptor_email']} (Salida #{$salida['ndoc_salida']})");
+        }
+    }
+    
+    return ($enviado_encargado || $enviado_receptor);
 }

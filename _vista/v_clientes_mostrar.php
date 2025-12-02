@@ -1,3 +1,15 @@
+<?php
+//=======================================================================
+// VISTA: v_clientes_mostrar.php
+//=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_cliente');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_cliente');
+?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -20,9 +32,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="clientes_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo Cliente
-                                </a>
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO CLIENTE -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear clientes"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Cliente
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="clientes_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo cliente">
+                                        <i class="fa fa-plus"></i> Nuevo Cliente
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -66,7 +93,24 @@
                                                     </td>
                                                     <td>
                                                         <center>
-                                                           <a class="btn btn-warning" href="clientes_editar.php?id_cliente=<?php echo $id_cliente; ?>"><i class="fa fa-edit"></i></a>
+                                                            <!-- ============================================ -->
+                                                            <!-- BOTÓN EDITAR CLIENTE -->
+                                                            <!-- ============================================ -->
+                                                            <?php if (!$tiene_permiso_editar) { ?>
+                                                                <a href="#" 
+                                                                   class="btn btn-outline-danger btn-sm disabled"
+                                                                   title="No tienes permiso para editar clientes"
+                                                                   tabindex="-1" 
+                                                                   aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a class="btn btn-warning btn-sm" 
+                                                                   href="clientes_editar.php?id_cliente=<?php echo $id_cliente; ?>"
+                                                                   title="Editar cliente">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } ?>
                                                         </center>
                                                     </td>
                                                 </tr>

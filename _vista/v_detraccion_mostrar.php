@@ -2,7 +2,14 @@
 //=======================================================================
 // VISTA: v_detraccion_mostrar.php 
 //=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_detraccion');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_detraccion');
 ?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -66,11 +73,24 @@
                                 <h2>Listado de Detracciones / Retenciones / Percepciones</h2>
                             </div>
                             <div class="col-sm-2">
-                                <?php if (verificarPermisoEspecifico('crear_detraccion')): ?>
-                                    <a href="detraccion_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO REGISTRO -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear detracciones/retenciones/percepciones"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
                                         <i class="fa fa-plus"></i> Nuevo Registro
                                     </a>
-                                <?php endif; ?>
+                                <?php } else { ?>
+                                    <a href="detraccion_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo registro">
+                                        <i class="fa fa-plus"></i> Nuevo Registro
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                         <div class="clearfix"></div>
@@ -131,11 +151,24 @@
                                                         </center>
                                                     </td>
                                                     <td class="text-center">
-                                                        <?php if (verificarPermisoEspecifico('editar_detraccion')): ?>
-                                                            <a class="btn btn-warning btn-sm" href="detraccion_editar.php?id_detraccion=<?php echo $id; ?>" title="Editar">
+                                                        <!-- ============================================ -->
+                                                        <!-- BOTÓN EDITAR -->
+                                                        <!-- ============================================ -->
+                                                        <?php if (!$tiene_permiso_editar) { ?>
+                                                            <a href="#" 
+                                                               class="btn btn-outline-danger btn-sm disabled"
+                                                               title="No tienes permiso para editar detracciones/retenciones/percepciones"
+                                                               tabindex="-1" 
+                                                               aria-disabled="true">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
-                                                        <?php endif; ?>
+                                                        <?php } else { ?>
+                                                            <a class="btn btn-warning btn-sm" 
+                                                               href="detraccion_editar.php?id_detraccion=<?php echo $id; ?>" 
+                                                               title="Editar registro">
+                                                                <i class="fa fa-edit"></i>
+                                                            </a>
+                                                        <?php } ?>
                                                     </td>
                                                 </tr>
                                             <?php

@@ -1,3 +1,15 @@
+<?php
+//=======================================================================
+// VISTA: v_tipo_documento_mostrar.php
+//=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_tipo de documento');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_tipo de documento');
+?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -20,9 +32,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="tipo_documento_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo Tipo Documento
-                                </a>
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO TIPO DOCUMENTO -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear tipos de documento"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Tipo Documento
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="tipo_documento_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo tipo de documento">
+                                        <i class="fa fa-plus"></i> Nuevo Tipo Documento
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -64,9 +91,24 @@
                                                         </center>
                                                     </td>
                                                     <td class="text-center">
-                                                        <a class="btn btn-warning btn-sm" href="tipo_documento_editar.php?id_tipo_documento=<?php echo $id_tipo_documento; ?>">
-                                                            <i class="fa fa-edit"></i>
-                                                        </a>
+                                                        <!-- ============================================ -->
+                                                        <!-- BOTÓN EDITAR TIPO DOCUMENTO -->
+                                                        <!-- ============================================ -->
+                                                        <?php if (!$tiene_permiso_editar) { ?>
+                                                            <a href="#" 
+                                                               class="btn btn-outline-danger btn-sm disabled"
+                                                               title="No tienes permiso para editar tipos de documento"
+                                                               tabindex="-1" 
+                                                               aria-disabled="true">
+                                                                <i class="fa fa-edit"></i>
+                                                            </a>
+                                                        <?php } else { ?>
+                                                            <a class="btn btn-warning btn-sm" 
+                                                               href="tipo_documento_editar.php?id_tipo_documento=<?php echo $id_tipo_documento; ?>"
+                                                               title="Editar tipo de documento">
+                                                                <i class="fa fa-edit"></i>
+                                                            </a>
+                                                        <?php } ?>
                                                     </td>
                                                 </tr>
                                             <?php
@@ -85,5 +127,3 @@
     </div>
 </div>
 <!-- /page content -->
-
-

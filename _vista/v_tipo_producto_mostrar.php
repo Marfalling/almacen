@@ -1,3 +1,15 @@
+<?php
+//=======================================================================
+// VISTA: v_tipo_producto_mostrar.php
+//=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_tipo de producto');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_tipo de producto');
+?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -20,10 +32,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                
-                                <a href="tipo_producto_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo Tipo Producto
-                                </a> 
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO TIPO PRODUCTO -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear tipos de producto"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Tipo Producto
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="tipo_producto_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo tipo de producto">
+                                        <i class="fa fa-plus"></i> Nuevo Tipo Producto
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -65,7 +91,26 @@
                                                         </center>
                                                     </td>
                                                     <td>
-                                                        <center><a class="btn btn-warning" href="tipo_producto_editar.php?id_producto_tipo=<?php echo $id_producto_tipo; ?>"><i class="fa fa-edit"></i></a></center>
+                                                        <center>
+                                                            <!-- ============================================ -->
+                                                            <!-- BOTÓN EDITAR TIPO PRODUCTO -->
+                                                            <!-- ============================================ -->
+                                                            <?php if (!$tiene_permiso_editar) { ?>
+                                                                <a href="#" 
+                                                                   class="btn btn-outline-danger btn-sm disabled"
+                                                                   title="No tienes permiso para editar tipos de producto"
+                                                                   tabindex="-1" 
+                                                                   aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a class="btn btn-warning btn-sm" 
+                                                                   href="tipo_producto_editar.php?id_producto_tipo=<?php echo $id_producto_tipo; ?>"
+                                                                   title="Editar tipo de producto">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } ?>
+                                                        </center>
                                                     </td>
                                                 </tr>
                                             <?php

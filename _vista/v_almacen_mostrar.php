@@ -1,6 +1,15 @@
 <?php
-// Vista para mostrar almacenes - v_almacen_mostrar.php
+//=======================================================================
+// VISTA: v_almacen_mostrar.php
+//=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_almacen');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_almacen');
 ?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -23,9 +32,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="almacen_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo Almacén
-                                </a>
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO ALMACÉN -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear almacenes"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Almacén
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="almacen_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo almacén">
+                                        <i class="fa fa-plus"></i> Nuevo Almacén
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -75,9 +99,24 @@
                                                         </td>
                                                         <td>
                                                             <center>
-                                                                <a class="btn btn-warning btn-sm" href="almacen_editar.php?id_almacen=<?php echo $id_almacen; ?>" title="Editar almacén">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>
+                                                                <!-- ============================================ -->
+                                                                <!-- BOTÓN EDITAR ALMACÉN -->
+                                                                <!-- ============================================ -->
+                                                                <?php if (!$tiene_permiso_editar) { ?>
+                                                                    <a href="#" 
+                                                                       class="btn btn-outline-danger btn-sm disabled"
+                                                                       title="No tienes permiso para editar almacenes"
+                                                                       tabindex="-1" 
+                                                                       aria-disabled="true">
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </a>
+                                                                <?php } else { ?>
+                                                                    <a class="btn btn-warning btn-sm" 
+                                                                       href="almacen_editar.php?id_almacen=<?php echo $id_almacen; ?>" 
+                                                                       title="Editar almacén">
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </a>
+                                                                <?php } ?>
                                                             </center>
                                                         </td>
                                                     </tr>

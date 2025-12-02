@@ -1,3 +1,15 @@
+<?php
+//=======================================================================
+// VISTA: v_banco_mostrar.php
+//=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_banco');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_banco');
+?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="">
@@ -20,9 +32,24 @@
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="banco_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo Banco
-                                </a>
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO BANCO -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear bancos"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Banco
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="banco_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo banco">
+                                        <i class="fa fa-plus"></i> Nuevo Banco
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -67,9 +94,24 @@
                                                         </center>
                                                     </td>
                                                     <td class="text-center">
-                                                        <a class="btn btn-warning btn-sm" href="banco_editar.php?id_banco=<?php echo $id_banco; ?>">
-                                                            <i class="fa fa-edit"></i>
-                                                        </a>
+                                                        <!-- ============================================ -->
+                                                        <!-- BOTÓN EDITAR BANCO -->
+                                                        <!-- ============================================ -->
+                                                        <?php if (!$tiene_permiso_editar) { ?>
+                                                            <a href="#" 
+                                                               class="btn btn-outline-danger btn-sm disabled"
+                                                               title="No tienes permiso para editar bancos"
+                                                               tabindex="-1" 
+                                                               aria-disabled="true">
+                                                                <i class="fa fa-edit"></i>
+                                                            </a>
+                                                        <?php } else { ?>
+                                                            <a class="btn btn-warning btn-sm" 
+                                                               href="banco_editar.php?id_banco=<?php echo $id_banco; ?>"
+                                                               title="Editar banco">
+                                                                <i class="fa fa-edit"></i>
+                                                            </a>
+                                                        <?php } ?>
                                                     </td>
                                                 </tr>
                                             <?php
@@ -88,5 +130,3 @@
     </div>
 </div>
 <!-- /page content -->
-
-
