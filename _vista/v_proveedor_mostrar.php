@@ -2,7 +2,15 @@
 //=======================================================================
 // VISTA: v_proveedor_mostrar.php
 //=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_nuevo = verificarPermisoEspecifico('crear_proveedor');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_proveedor');
+$tiene_permiso_importar = verificarPermisoEspecifico('importar_proveedor');
 ?>
+
 <!-- page content -->
 <div class="right_col" role="main">
     <div class="page-title">
@@ -21,13 +29,43 @@
                             <h2>Listado de Proveedor</h2>
                         </div>
                         <div class="col-sm-4 text-right">
-                            <a href="proveedor_nuevo.php" class="btn btn-outline-info btn-sm">
-                                <i class="fa fa-plus"></i> Nuevo Proveedor
-                            </a>
-                            <!-- BOTÓN MODAL -->
-                            <button class="btn btn-outline-success btn-sm" data-toggle="modal" data-target="#modalImportar">
-                                <i class="fa fa-upload"></i> Importar CSV
-                            </button>
+                            <!-- ============================================ -->
+                            <!-- BOTÓN NUEVO PROVEEDOR -->
+                            <!-- ============================================ -->
+                            <?php if (!$tiene_permiso_nuevo) { ?>
+                                <a href="#" 
+                                   class="btn btn-outline-danger btn-sm disabled"
+                                   title="No tienes permiso para crear proveedores"
+                                   tabindex="-1" 
+                                   aria-disabled="true">
+                                    <i class="fa fa-plus"></i> Nuevo Proveedor
+                                </a>
+                            <?php } else { ?>
+                                <a href="proveedor_nuevo.php" 
+                                   class="btn btn-outline-info btn-sm"
+                                   title="Crear nuevo proveedor">
+                                    <i class="fa fa-plus"></i> Nuevo Proveedor
+                                </a>
+                            <?php } ?>
+
+                            <!-- ============================================ -->
+                            <!-- BOTÓN IMPORTAR CSV -->
+                            <!-- ============================================ -->
+                            <?php if (!$tiene_permiso_importar) { ?>
+                                <button class="btn btn-outline-danger btn-sm disabled"
+                                        title="No tienes permiso para importar proveedores"
+                                        tabindex="-1" 
+                                        aria-disabled="true">
+                                    <i class="fa fa-upload"></i> Importar CSV
+                                </button>
+                            <?php } else { ?>
+                                <button class="btn btn-outline-success btn-sm" 
+                                        data-toggle="modal" 
+                                        data-target="#modalImportar"
+                                        title="Importar proveedores desde CSV">
+                                    <i class="fa fa-upload"></i> Importar CSV
+                                </button>
+                            <?php } ?>
                         </div>
                     </div>
                 </div>
@@ -67,7 +105,8 @@
                                         <?php if (!empty($cuentas)) { ?>
                                             <button class="btn btn-info btn-sm" 
                                                     data-toggle="modal" 
-                                                    data-target="#modalCuentas<?= $id_proveedor; ?>">
+                                                    data-target="#modalCuentas<?= $id_proveedor; ?>"
+                                                    title="Ver cuentas bancarias">
                                                 Ver cuentas
                                             </button>
                                             <!-- Modal cuentas -->
@@ -126,9 +165,24 @@
                                         </center>
                                     </td>
                                     <td>
-                                        <a class="btn btn-warning btn-sm" href="proveedor_editar.php?id_proveedor=<?= $id_proveedor; ?>">
-                                            <i class="fa fa-edit"></i>
-                                        </a>
+                                        <!-- ============================================ -->
+                                        <!-- BOTÓN EDITAR PROVEEDOR -->
+                                        <!-- ============================================ -->
+                                        <?php if (!$tiene_permiso_editar) { ?>
+                                            <a href="#" 
+                                               class="btn btn-outline-danger btn-sm disabled"
+                                               title="No tienes permiso para editar proveedores"
+                                               tabindex="-1" 
+                                               aria-disabled="true">
+                                                <i class="fa fa-edit"></i>
+                                            </a>
+                                        <?php } else { ?>
+                                            <a class="btn btn-warning btn-sm" 
+                                               href="proveedor_editar.php?id_proveedor=<?= $id_proveedor; ?>"
+                                               title="Editar proveedor">
+                                                <i class="fa fa-edit"></i>
+                                            </a>
+                                        <?php } ?>
                                     </td>
                                 </tr>
                             <?php } ?>
@@ -166,4 +220,3 @@
     </div>
   </div>
 </div>
-

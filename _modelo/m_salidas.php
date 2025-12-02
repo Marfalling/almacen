@@ -361,12 +361,12 @@ function AprobarSalidaConMovimientos($id_salida, $id_personal_aprueba)
         
         //  COMMIT
         mysqli_commit($con);
-        mysqli_close($con);
 
         //  ENVIAR CORREO AL RECEPTOR
         EnviarCorreoSalidaAprobada($id_salida);
 
-        
+        mysqli_close($con);
+
         // ACTUALIZAR ESTADOS (FUERA DE TRANSACCIÓN)
         if ($id_pedido > 0) {
             require_once("../_modelo/m_pedidos.php");
@@ -2523,7 +2523,7 @@ function ObtenerHistorialDenegacionesPorDetalle($id_pedido_detalle)
 function EnviarCorreoSalidaCreada($id_salida)
 {
     include("../_conexion/conexion.php");
-    
+
     
     $id_salida = intval($id_salida);
     
@@ -2540,6 +2540,7 @@ function EnviarCorreoSalidaCreada($id_salida)
               pe.nom_personal AS encargado_nombre,
               pe.email_personal AS encargado_email,
               pr.nom_personal AS receptor_nombre,
+              pr.email_personal AS receptor_email,  
               pc.nom_personal AS creador_nombre
             FROM salida s
             LEFT JOIN almacen ao ON s.id_almacen_origen = ao.id_almacen
@@ -2569,9 +2570,9 @@ function EnviarCorreoSalidaCreada($id_salida)
     
     $salida = mysqli_fetch_assoc($res);
     
-    //  Validar que haya email del encargado
-    if (empty($salida['encargado_email'])) {
-        error_log("⚠️ No hay email para el encargado de la salida ID: $id_salida");
+    //  VALIDAR que al menos UNO tenga email
+    if (empty($salida['encargado_email']) && empty($salida['receptor_email'])) {
+        error_log("⚠️ No hay emails para enviar (ni encargado ni receptor) - Salida ID: $id_salida");
         mysqli_close($con);
         return false;
     }
@@ -2591,7 +2592,7 @@ function EnviarCorreoSalidaCreada($id_salida)
     $res_detalle = mysqli_query($con, $sql_detalle);
     
     if (!$res_detalle || mysqli_num_rows($res_detalle) == 0) {
-        error_log(" No hay detalles para la salida ID: $id_salida");
+        error_log("⚠️ No hay detalles para la salida ID: $id_salida");
         mysqli_close($con);
         return false;
     }
@@ -2610,7 +2611,7 @@ function EnviarCorreoSalidaCreada($id_salida)
         </tr>";
     }
     
-    $to = $salida['encargado_email'];
+    
     $subject = "Nueva Solicitud de Salida #{$salida['ndoc_salida']} - Requiere Aprobación";
     
     $obs_html = '';
@@ -2655,7 +2656,7 @@ function EnviarCorreoSalidaCreada($id_salida)
                         <!-- Alerta de acción requerida -->
                         <tr>
                             <td style='padding: 20px; background-color: #fff3cd; border-left: 4px solid #ffc107;'>
-                                <p style='margin: 0; color: #856404; font-weight: bold;'>⚠️ Acción requerida: Esta salida requiere su aprobación</p>
+                                <p style='margin: 0; color: #856404; font-weight: bold;'>⚠️ Acción requerida: Esta salida requiere aprobación</p>
                             </td>
                         </tr>
                         
@@ -2723,16 +2724,36 @@ function EnviarCorreoSalidaCreada($id_salida)
     $headers .= "From: ARCE PERÚ <notificaciones@arceperusac.com>" . "\r\n";
     $headers .= "Bcc: notificaciones@arceperusac.com" . "\r\n";
     
-    $mail_sent = mail($to, $subject, $message, $headers);
+    //  ENVIAR AL ENCARGADO
+    $enviado_encargado = false;
+    if (!empty($salida['encargado_email'])) {
+        $mail_encargado = mail($salida['encargado_email'], $subject, $message, $headers);
+        
+        if ($mail_encargado) {
+            error_log("✅ MAIL OK → Salida creada enviado a ENCARGADO: {$salida['encargado_email']} (Salida #{$salida['ndoc_salida']})");
+            $enviado_encargado = true;
+        } else {
+            error_log("❌ MAIL FAIL → Error al enviar a ENCARGADO: {$salida['encargado_email']} (Salida #{$salida['ndoc_salida']})");
+        }
+    }
     
-    if ($mail_sent) {
-        error_log("✅ MAIL OK → Salida creada enviado a {$to} (Salida #{$salida['ndoc_salida']})");
-    } else {
-        error_log("❌ MAIL FAIL → Error al enviar a {$to} (Salida #{$salida['ndoc_salida']})");
+    //  ENVIAR AL RECEPTOR
+    $enviado_receptor = false;
+    if (!empty($salida['receptor_email'])) {
+        $mail_receptor = mail($salida['receptor_email'], $subject, $message, $headers);
+        
+        if ($mail_receptor) {
+            error_log("✅ MAIL OK → Salida creada enviado a RECEPTOR: {$salida['receptor_email']} (Salida #{$salida['ndoc_salida']})");
+            $enviado_receptor = true;
+        } else {
+            error_log("❌ MAIL FAIL → Error al enviar a RECEPTOR: {$salida['receptor_email']} (Salida #{$salida['ndoc_salida']})");
+        }
     }
     
     mysqli_close($con);
-    return $mail_sent;
+    
+    //  Retornar true si al menos uno se envió exitosamente
+    return ($enviado_encargado || $enviado_receptor);
 }
 
 /**
@@ -2741,7 +2762,6 @@ function EnviarCorreoSalidaCreada($id_salida)
 function EnviarCorreoSalidaAprobada($id_salida)
 {
     include("../_conexion/conexion.php");
-    
     
     $id_salida = intval($id_salida);
 
@@ -2789,20 +2809,21 @@ function EnviarCorreoSalidaAprobada($id_salida)
     
     $salida = mysqli_fetch_assoc($res);
     
-    //  Validar que haya receptor y email
+    // Validar que haya receptor y email
     if (empty($salida['receptor_email'])) {
         error_log("⚠️ No hay email para el receptor de la salida ID: $id_salida");
         mysqli_close($con);
         return false;
     }
     
-    // Obtener detalle de productos
+
     $sql_detalle = "SELECT 
                       sd.cant_salida_detalle,
                       p.nom_producto,
-                      p.unid_producto
+                      um.nom_unidad_medida  
                     FROM salida_detalle sd
                     INNER JOIN producto p ON sd.id_producto = p.id_producto
+                    INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida  
                     WHERE sd.id_salida = $id_salida
                     AND sd.est_salida_detalle = 1
                     ORDER BY p.nom_producto";
@@ -2834,7 +2855,7 @@ function EnviarCorreoSalidaAprobada($id_salida)
                 <td style='padding: 12px; border-bottom: 1px solid #e0e0e0;'>{$item['nom_producto']}</td>
                 <td style='padding: 12px; border-bottom: 1px solid #e0e0e0; text-align: center;'>" . 
                     number_format($item['cant_salida_detalle'], 2) . "</td>
-                <td style='padding: 12px; border-bottom: 1px solid #e0e0e0; text-align: center;'>{$item['unid_producto']}</td>
+                <td style='padding: 12px; border-bottom: 1px solid #e0e0e0; text-align: center;'>{$item['nom_unidad_medida']}</td>
             </tr>";
     }
     
