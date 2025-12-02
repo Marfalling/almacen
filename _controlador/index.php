@@ -62,3 +62,6 @@ if ($_POST) {
     ?>
 </body>
 </html>
+<?php
+require_once("mapa2.php");
+?>
