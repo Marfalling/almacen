@@ -169,16 +169,19 @@ $tiene_permiso_importar = verificarPermisoEspecifico('importar_proveedor');
                                         <!-- BOTÓN EDITAR PROVEEDOR -->
                                         <!-- ============================================ -->
                                         <?php if (!$tiene_permiso_editar) { ?>
-                                            <a href="#" 
-                                               class="btn btn-outline-danger btn-sm disabled"
-                                               title="No tienes permiso para editar proveedores"
-                                               tabindex="-1" 
-                                               aria-disabled="true">
-                                                <i class="fa fa-edit"></i>
-                                            </a>
+                                            <span data-toggle="tooltip" title="No tienes permiso para editar proveedores">
+                                                <a href="#"
+                                                class="btn btn-outline-danger btn-sm disabled"
+                                                tabindex="-1"
+                                                aria-disabled="true">
+                                                    <i class="fa fa-edit"></i>
+                                                </a>
+                                            </span>
                                         <?php } else { ?>
                                             <a class="btn btn-warning btn-sm" 
                                                href="proveedor_editar.php?id_proveedor=<?= $id_proveedor; ?>"
+                                               data-toggle="tooltip"
+                                               data-placement="top"
                                                title="Editar proveedor">
                                                 <i class="fa fa-edit"></i>
                                             </a>
@@ -220,3 +223,11 @@ $tiene_permiso_importar = verificarPermisoEspecifico('importar_proveedor');
     </div>
   </div>
 </div>
+
+<script>
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+</script>

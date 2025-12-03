@@ -95,16 +95,19 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_tipo de documento');
                                                         <!-- BOTÓN EDITAR TIPO DOCUMENTO -->
                                                         <!-- ============================================ -->
                                                         <?php if (!$tiene_permiso_editar) { ?>
-                                                            <a href="#" 
-                                                               class="btn btn-outline-danger btn-sm disabled"
-                                                               title="No tienes permiso para editar tipos de documento"
-                                                               tabindex="-1" 
-                                                               aria-disabled="true">
-                                                                <i class="fa fa-edit"></i>
-                                                            </a>
+                                                            <span data-toggle="tooltip" data-placement="top" title="No tienes permiso para editar tipos de documento">
+                                                                <a href="#" 
+                                                                class="btn btn-outline-danger btn-sm disabled"
+                                                                tabindex="-1" 
+                                                                aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            </span>
                                                         <?php } else { ?>
                                                             <a class="btn btn-warning btn-sm" 
                                                                href="tipo_documento_editar.php?id_tipo_documento=<?php echo $id_tipo_documento; ?>"
+                                                               data-toggle="tooltip"
+                                                               data-placement="top"
                                                                title="Editar tipo de documento">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
@@ -127,3 +130,11 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_tipo de documento');
     </div>
 </div>
 <!-- /page content -->
+
+<script>
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+</script>

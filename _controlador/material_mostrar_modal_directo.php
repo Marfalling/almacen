@@ -156,6 +156,8 @@ while ($row = mysqli_fetch_assoc($result)) {
                             htmlspecialchars(addslashes($descripcion_completa), ENT_QUOTES, 'UTF-8') . '\', \'' . 
                             htmlspecialchars(addslashes($row['nom_unidad_medida']), ENT_QUOTES, 'UTF-8') . '\', ' . 
                             $stock_disponible . ')"
+                        data-toggle="tooltip"
+                        data-placement="top"
                         title="Seleccionar producto">
                         <i class="fa fa-check"></i>
                     </button>';

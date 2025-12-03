@@ -77,6 +77,8 @@ foreach ($productos as $producto) {
                 addslashes($producto['nom_producto']) . '\', ' . 
                 $producto['id_unidad_medida'] . ', \'' . 
                 addslashes($producto['nom_unidad_medida']) . '\')"
+            data-toggle="tooltip"
+            data-placement="top"
             title="Seleccionar producto">
             <i class="fa fa-check"></i>
         </button>'

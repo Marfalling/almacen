@@ -141,6 +141,8 @@ while ($row = mysqli_fetch_assoc($result)) {
                     htmlspecialchars(addslashes($row['nom_producto']), ENT_QUOTES, 'UTF-8') . '\', \'' . 
                     htmlspecialchars(addslashes($row['nom_unidad_medida']), ENT_QUOTES, 'UTF-8') . '\', ' . 
                     $stock_disponible . ')"
+                    data-toggle="tooltip"
+                    data-placement="top"
                     title="Seleccionar producto">
                     <i class="fa fa-check"></i>
                 </button>';
@@ -148,7 +150,10 @@ while ($row = mysqli_fetch_assoc($result)) {
     } else {
         $action_btn = '<button type="button" disabled
                     class="btn btn-sm d-inline-flex align-items-center justify-content-center"
-                    style="background-color:#b0b0b0; color:white; width:32px; height:32px; border-radius:6px;">
+                    style="background-color:#b0b0b0; color:white; width:32px; height:32px; border-radius:6px;"
+                    data-toggle="tooltip"
+                    data-placement="top"
+                    title="Sin stock disponible">
                     <i class="fa fa-check"></i>
                 </button>';
     }

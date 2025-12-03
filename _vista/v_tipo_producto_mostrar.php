@@ -96,16 +96,19 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_tipo de producto');
                                                             <!-- BOTÓN EDITAR TIPO PRODUCTO -->
                                                             <!-- ============================================ -->
                                                             <?php if (!$tiene_permiso_editar) { ?>
-                                                                <a href="#" 
-                                                                   class="btn btn-outline-danger btn-sm disabled"
-                                                                   title="No tienes permiso para editar tipos de producto"
-                                                                   tabindex="-1" 
-                                                                   aria-disabled="true">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>
+                                                                <span data-toggle="tooltip" title="No tienes permiso para editar tipos de producto">
+                                                                    <a href="#"
+                                                                    class="btn btn-outline-danger btn-sm disabled"
+                                                                    tabindex="-1"
+                                                                    aria-disabled="true">
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </a>
+                                                                </span>
                                                             <?php } else { ?>
                                                                 <a class="btn btn-warning btn-sm" 
                                                                    href="tipo_producto_editar.php?id_producto_tipo=<?php echo $id_producto_tipo; ?>"
+                                                                   data-toggle="tooltip"
+                                                                   data-placement="top"
                                                                    title="Editar tipo de producto">
                                                                     <i class="fa fa-edit"></i>
                                                                 </a>
@@ -129,3 +132,11 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_tipo de producto');
     </div>
 </div>
 <!-- /page content -->
+
+<script>
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+</script>

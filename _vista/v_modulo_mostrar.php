@@ -104,16 +104,19 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_modulos');
                                                             <!-- BOTÓN EDITAR MÓDULO -->
                                                             <!-- ============================================ -->
                                                             <?php if (!$tiene_permiso_editar) { ?>
-                                                                <a href="#" 
-                                                                   class="btn btn-outline-danger btn-sm disabled"
-                                                                   title="No tienes permiso para editar módulos"
-                                                                   tabindex="-1" 
-                                                                   aria-disabled="true">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>
+                                                                <span data-toggle="tooltip" title="No tienes permiso para editar módulos">
+                                                                    <a href="#" 
+                                                                    class="btn btn-outline-danger btn-sm disabled"
+                                                                    tabindex="-1" 
+                                                                    aria-disabled="true">
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </a>
+                                                                </span>
                                                             <?php } else { ?>
                                                                 <a class="btn btn-warning btn-sm" 
-                                                                   href="modulo_editar.php?id_modulo=<?php echo $id_modulo; ?>" 
+                                                                   href="modulo_editar.php?id_modulo=<?php echo $id_modulo; ?>"
+                                                                   data-toggle="tooltip"
+                                                                   data-placement="top" 
                                                                    title="Editar módulo">
                                                                     <i class="fa fa-edit"></i>
                                                                 </a>
@@ -137,3 +140,11 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_modulos');
     </div>
 </div>
 <!-- /page content -->
+
+<script>
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+</script>

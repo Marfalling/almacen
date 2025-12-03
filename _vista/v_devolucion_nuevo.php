@@ -263,6 +263,9 @@ function cargarProductos(idAlmacen, idUbicacion) {
             "processing": "Procesando..."
         }
     });
+    $('#datatable_producto').on('draw.dt', function () {
+        $('[data-toggle="tooltip"]').tooltip();
+    });
 }
 
 function seleccionarProducto(idProducto, nombreProducto, stockDisponible) {

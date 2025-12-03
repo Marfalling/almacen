@@ -155,16 +155,19 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_detraccion');
                                                         <!-- BOTÓN EDITAR -->
                                                         <!-- ============================================ -->
                                                         <?php if (!$tiene_permiso_editar) { ?>
-                                                            <a href="#" 
-                                                               class="btn btn-outline-danger btn-sm disabled"
-                                                               title="No tienes permiso para editar detracciones/retenciones/percepciones"
-                                                               tabindex="-1" 
-                                                               aria-disabled="true">
-                                                                <i class="fa fa-edit"></i>
-                                                            </a>
+                                                            <span data-toggle="tooltip" data-placement="top" title="No tienes permiso para editar detracciones/retenciones/percepciones">
+                                                                <a href="#" 
+                                                                class="btn btn-outline-danger btn-sm disabled"
+                                                                tabindex="-1" 
+                                                                aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            </span>
                                                         <?php } else { ?>
                                                             <a class="btn btn-warning btn-sm" 
-                                                               href="detraccion_editar.php?id_detraccion=<?php echo $id; ?>" 
+                                                               href="detraccion_editar.php?id_detraccion=<?php echo $id; ?>"
+                                                               data-toggle="tooltip"
+                                                               data-placement="top" 
                                                                title="Editar registro">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
@@ -191,3 +194,11 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_detraccion');
     </div>
 </div>
 <!-- /page content -->
+
+<script>
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+</script>

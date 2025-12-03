@@ -534,6 +534,10 @@ function cargarMateriales() {
             "processing": "Procesando..."
         }
     });
+
+    $('#datatable_material').on('draw.dt', function () {
+        $('[data-toggle="tooltip"]').tooltip();
+    });
 }
 
 

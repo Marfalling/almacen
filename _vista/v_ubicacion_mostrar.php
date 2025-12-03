@@ -96,16 +96,19 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_ubicacion');
                                                             <!-- BOTÓN EDITAR UBICACIÓN -->
                                                             <!-- ============================================ -->
                                                             <?php if (!$tiene_permiso_editar) { ?>
-                                                                <a href="#" 
-                                                                   class="btn btn-outline-danger btn-sm disabled"
-                                                                   title="No tienes permiso para editar ubicaciones"
-                                                                   tabindex="-1" 
-                                                                   aria-disabled="true">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>
+                                                                <span data-toggle="tooltip" title="No tienes permiso para editar ubicaciones">
+                                                                    <a href="#"
+                                                                    class="btn btn-outline-danger btn-sm disabled"
+                                                                    tabindex="-1"
+                                                                    aria-disabled="true">
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </a>
+                                                                </span>
                                                             <?php } else { ?>
                                                                 <a class="btn btn-warning btn-sm" 
                                                                    href="ubicacion_editar.php?id_ubicacion=<?php echo $id_ubicacion; ?>"
+                                                                   data-toggle="tooltip"
+                                                                   data-placement="top"
                                                                    title="Editar ubicación">
                                                                     <i class="fa fa-edit"></i>
                                                                 </a>
@@ -129,3 +132,11 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_ubicacion');
     </div>
 </div>
 <!-- /page content -->
+
+<script>
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+</script>

@@ -85,16 +85,19 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_obras');
                                             <!-- BOTÓN EDITAR OBRA -->
                                             <!-- ============================================ -->
                                             <?php if (!$tiene_permiso_editar) { ?>
-                                                <a href="#" 
-                                                   class="btn btn-outline-danger btn-sm disabled"
-                                                   title="No tienes permiso para editar obras"
-                                                   tabindex="-1" 
-                                                   aria-disabled="true">
-                                                    <i class="fa fa-edit"></i>
-                                                </a>
+                                                <span data-toggle="tooltip" title="No tienes permiso para editar obras">
+                                                    <a href="#"
+                                                    class="btn btn-outline-danger btn-sm disabled"
+                                                    tabindex="-1"
+                                                    aria-disabled="true">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+                                                </span>
                                             <?php } else { ?>
                                                 <a href="obras_editar.php?id_obra=<?php echo $obra['id_subestacion']; ?>" 
                                                    class="btn btn-warning btn-sm"
+                                                   data-toggle="tooltip"
+                                                   data-placement="top"
                                                    title="Editar obra">
                                                     <i class="fa fa-edit"></i> 
                                                 </a>
@@ -130,4 +133,9 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_obras');
             responsive: true
         });
     });
+
+    $(function () {
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+
 </script>

@@ -115,16 +115,19 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_usuarios');
                                                             <!-- BOTÓN EDITAR USUARIO -->
                                                             <!-- ============================================ -->
                                                             <?php if (!$tiene_permiso_editar) { ?>
-                                                                <a href="#" 
-                                                                   class="btn btn-outline-danger btn-sm disabled"
-                                                                   title="No tienes permiso para editar usuarios"
-                                                                   tabindex="-1" 
-                                                                   aria-disabled="true">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>
+                                                                <span data-bs-toggle="tooltip" title="No tienes permiso para editar usuarios">
+                                                                    <a href="#" 
+                                                                    class="btn btn-outline-danger btn-sm disabled"
+                                                                    tabindex="-1" 
+                                                                    aria-disabled="true">
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </a>
+                                                                </span>
                                                             <?php } else { ?>
                                                                 <a class="btn btn-warning btn-sm" 
                                                                    href="usuario_editar.php?id_usuario=<?php echo $id_usuario; ?>" 
+                                                                   data-toggle="tooltip"
+                                                                   data-placement="top"
                                                                    title="Editar usuario">
                                                                     <i class="fa fa-edit"></i>
                                                                 </a>
@@ -148,3 +151,11 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_usuarios');
     </div>
 </div>
 <!-- /page content -->
+
+<script>
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+</script>

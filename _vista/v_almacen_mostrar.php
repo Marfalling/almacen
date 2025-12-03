@@ -103,16 +103,19 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_almacen');
                                                                 <!-- BOTÓN EDITAR ALMACÉN -->
                                                                 <!-- ============================================ -->
                                                                 <?php if (!$tiene_permiso_editar) { ?>
-                                                                    <a href="#" 
-                                                                       class="btn btn-outline-danger btn-sm disabled"
-                                                                       title="No tienes permiso para editar almacenes"
-                                                                       tabindex="-1" 
-                                                                       aria-disabled="true">
-                                                                        <i class="fa fa-edit"></i>
-                                                                    </a>
+                                                                    <span data-toggle="tooltip" title="No tienes permiso para editar almacenes">
+                                                                        <a href="#"
+                                                                        class="btn btn-outline-danger btn-sm disabled"
+                                                                        tabindex="-1"
+                                                                        aria-disabled="true">
+                                                                            <i class="fa fa-edit"></i>
+                                                                        </a>
+                                                                    </span>
                                                                 <?php } else { ?>
                                                                     <a class="btn btn-warning btn-sm" 
                                                                        href="almacen_editar.php?id_almacen=<?php echo $id_almacen; ?>" 
+                                                                       data-toggle="tooltip"
+                                                                       data-placement="top"
                                                                        title="Editar almacén">
                                                                         <i class="fa fa-edit"></i>
                                                                     </a>
@@ -143,3 +146,11 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_almacen');
     </div>
 </div>
 <!-- /page content -->
+
+<script>
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+</script>

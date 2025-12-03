@@ -1017,6 +1017,9 @@ function cargarProductos(idAlmacen, idUbicacion, tipoMaterial = '') {
             "emptyTable": "No hay productos disponibles con stock"
         }
     });
+    $('#datatable_producto').on('draw.dt', function () {
+        $('[data-toggle="tooltip"]').tooltip();
+    });
 }
 
 function seleccionarProducto(idProducto, nombreProducto, stockDisponible) {

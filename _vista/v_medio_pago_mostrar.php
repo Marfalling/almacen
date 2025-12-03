@@ -95,16 +95,19 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_medio de pago');
                                                         <!-- BOTÓN EDITAR MEDIO PAGO -->
                                                         <!-- ============================================ -->
                                                         <?php if (!$tiene_permiso_editar) { ?>
-                                                            <a href="#" 
-                                                               class="btn btn-outline-danger btn-sm disabled"
-                                                               title="No tienes permiso para editar medios de pago"
-                                                               tabindex="-1" 
-                                                               aria-disabled="true">
-                                                                <i class="fa fa-edit"></i>
-                                                            </a>
+                                                            <span data-toggle="tooltip" data-placement="top" title="No tienes permiso para editar medios de pago">
+                                                                <a href="#" 
+                                                                class="btn btn-outline-danger btn-sm disabled"
+                                                                tabindex="-1" 
+                                                                aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            </span>
                                                         <?php } else { ?>
                                                             <a class="btn btn-warning btn-sm" 
                                                                href="medio_pago_editar.php?id_medio_pago=<?php echo $id_medio_pago; ?>"
+                                                               data-toggle="tooltip"
+                                                               data-placement="top"
                                                                title="Editar medio de pago">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
@@ -127,3 +130,11 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_medio de pago');
     </div>
 </div>
 <!-- /page content -->
+
+<script>
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+</script>

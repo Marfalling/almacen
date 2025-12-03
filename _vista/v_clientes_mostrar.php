@@ -97,16 +97,19 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_cliente');
                                                             <!-- BOTÓN EDITAR CLIENTE -->
                                                             <!-- ============================================ -->
                                                             <?php if (!$tiene_permiso_editar) { ?>
-                                                                <a href="#" 
-                                                                   class="btn btn-outline-danger btn-sm disabled"
-                                                                   title="No tienes permiso para editar clientes"
-                                                                   tabindex="-1" 
-                                                                   aria-disabled="true">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>
+                                                                <span data-toggle="tooltip" title="No tienes permiso para editar clientes">
+                                                                    <a href="#" 
+                                                                    class="btn btn-outline-danger btn-sm disabled"
+                                                                    tabindex="-1" 
+                                                                    aria-disabled="true">
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </a>
+                                                                </span>
                                                             <?php } else { ?>
                                                                 <a class="btn btn-warning btn-sm" 
                                                                    href="clientes_editar.php?id_cliente=<?php echo $id_cliente; ?>"
+                                                                   data-toggle="tooltip"
+                                                                   data-placement="top"
                                                                    title="Editar cliente">
                                                                     <i class="fa fa-edit"></i>
                                                                 </a>
@@ -130,3 +133,11 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_cliente');
     </div>
 </div>
 <!-- /page content -->
+
+<script>
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+</script>

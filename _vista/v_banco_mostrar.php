@@ -98,16 +98,19 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_banco');
                                                         <!-- BOTÓN EDITAR BANCO -->
                                                         <!-- ============================================ -->
                                                         <?php if (!$tiene_permiso_editar) { ?>
-                                                            <a href="#" 
-                                                               class="btn btn-outline-danger btn-sm disabled"
-                                                               title="No tienes permiso para editar bancos"
-                                                               tabindex="-1" 
-                                                               aria-disabled="true">
-                                                                <i class="fa fa-edit"></i>
-                                                            </a>
+                                                            <span data-toggle="tooltip" title="No tienes permiso para editar bancos">
+                                                                <a href="#" 
+                                                                class="btn btn-outline-danger btn-sm disabled"
+                                                                tabindex="-1" 
+                                                                aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            </span>
                                                         <?php } else { ?>
                                                             <a class="btn btn-warning btn-sm" 
                                                                href="banco_editar.php?id_banco=<?php echo $id_banco; ?>"
+                                                               data-toggle="tooltip"
+                                                               data-placement="top"
                                                                title="Editar banco">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
@@ -130,3 +133,11 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_banco');
     </div>
 </div>
 <!-- /page content -->
+
+<script>
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+</script>

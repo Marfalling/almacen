@@ -96,16 +96,19 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_tipo de material');
                                                             <!-- BOTÓN EDITAR TIPO MATERIAL -->
                                                             <!-- ============================================ -->
                                                             <?php if (!$tiene_permiso_editar) { ?>
-                                                                <a href="#" 
-                                                                   class="btn btn-outline-danger btn-sm disabled"
-                                                                   title="No tienes permiso para editar tipos de material"
-                                                                   tabindex="-1" 
-                                                                   aria-disabled="true">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>
+                                                                <span data-toggle="tooltip" title="No tienes permiso para editar tipos de material">
+                                                                    <a href="#"
+                                                                    class="btn btn-outline-danger btn-sm disabled"
+                                                                    tabindex="-1"
+                                                                    aria-disabled="true">
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </a>
+                                                                </span>
                                                             <?php } else { ?>
                                                                 <a class="btn btn-warning btn-sm" 
                                                                    href="tipo_material_editar.php?id_material_tipo=<?php echo $id_material_tipo; ?>"
+                                                                   data-toggle="tooltip"
+                                                                   data-placement="top"
                                                                    title="Editar tipo de material">
                                                                     <i class="fa fa-edit"></i>
                                                                 </a>
@@ -129,3 +132,11 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_tipo de material');
     </div>
 </div>
 <!-- /page content -->
+
+<script>
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+</script>

@@ -46,6 +46,8 @@ foreach ($productos as $producto) {
                                 $producto['id_producto'] . ', \'' . 
                                 addslashes($producto['nom_producto']) . '\', ' . 
                                 $stock . ')"
+                                data-toggle="tooltip"
+                                data-placement="top"
                             title="Seleccionar producto">
                             <i class="fa fa-check"></i>
                         </button>';
@@ -53,6 +55,8 @@ foreach ($productos as $producto) {
         $btnSeleccionar = '<button type="button" disabled
             class="btn btn-sm d-inline-flex align-items-center justify-content-center"
             style="background-color:#b0b0b0; color:white; width:32px; height:32px; border-radius:6px;"
+            data-toggle="tooltip"
+            data-placement="top"
             title="Sin stock disponible">
             <i class="fa fa-check"></i>
         </button>';

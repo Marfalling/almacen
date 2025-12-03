@@ -170,6 +170,8 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_producto');
                                                             <!-- Botón Ver Detalle (siempre visible) -->
                                                             <a class="btn btn-info btn-xs" 
                                                                href="producto_detalle.php?id=<?php echo $id_producto; ?>" 
+                                                               data-toggle="tooltip"
+                                                               data-placement="top"
                                                                title="Ver Detalle">
                                                                 <i class="fa fa-eye"></i>
                                                             </a>
@@ -178,16 +180,19 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_producto');
                                                             <!-- BOTÓN EDITAR PRODUCTO -->
                                                             <!-- ============================================ -->
                                                             <?php if (!$tiene_permiso_editar) { ?>
-                                                                <a href="#" 
-                                                                   class="btn btn-outline-danger btn-xs disabled"
-                                                                   title="No tienes permiso para editar productos"
-                                                                   tabindex="-1" 
-                                                                   aria-disabled="true">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>
+                                                                <span data-toggle="tooltip" title="No tienes permiso para editar productos">
+                                                                    <a href="#"
+                                                                    class="btn btn-outline-danger btn-xs disabled"
+                                                                    tabindex="-1"
+                                                                    aria-disabled="true">
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </a>
+                                                                </span>
                                                             <?php } else { ?>
                                                                 <a class="btn btn-warning btn-xs" 
                                                                    href="producto_editar.php?id_producto=<?php echo $id_producto; ?>" 
+                                                                   data-toggle="tooltip"
+                                                                   data-placement="top"
                                                                    title="Editar producto">
                                                                     <i class="fa fa-edit"></i>
                                                                 </a>
@@ -211,3 +216,11 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_producto');
     </div>
 </div>
 <!-- /page content -->
+
+<script>
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+</script>

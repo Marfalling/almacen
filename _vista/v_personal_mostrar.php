@@ -120,16 +120,19 @@ $personal = MostrarPersonal();
                                                             <!-- BOTÓN EDITAR PERSONAL -->
                                                             <!-- ============================================ -->
                                                             <?php if (!$tiene_permiso_editar) { ?>
-                                                                <a href="#" 
-                                                                   class="btn btn-outline-danger btn-xs disabled"
-                                                                   title="No tienes permiso para editar personal"
-                                                                   tabindex="-1" 
-                                                                   aria-disabled="true">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>
+                                                                <span data-toggle="tooltip" data-placement="top" title="No tienes permiso para editar personal">
+                                                                    <a href="#" 
+                                                                    class="btn btn-outline-danger btn-xs disabled"
+                                                                    tabindex="-1" 
+                                                                    aria-disabled="true">
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </a>
+                                                                </span>
                                                             <?php } else { ?>
                                                                 <a class="btn btn-warning btn-xs" 
                                                                    href="personal_editar.php?id_personal=<?php echo $id_personal; ?>"
+                                                                   data-toggle="tooltip"
+                                                                   data-placement="top"
                                                                    title="Editar personal">
                                                                     <i class="fa fa-edit"></i>
                                                                 </a>
@@ -155,3 +158,11 @@ $personal = MostrarPersonal();
     </div>
 </div>
 <!-- /page content -->
+
+<script>
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip();
+});
+
+</script>
