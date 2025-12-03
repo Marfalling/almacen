@@ -44,7 +44,7 @@ if ($row != null) {
     $_SESSION['area_sesion'] = $nom_area;
     $_SESSION['autentificado'] = TRUE;
     $_SESSION['tiempo_login'] = time();
-
+    
     // Actualizar último acceso
     date_default_timezone_set('America/Lima');
     $fecha_actual = date('Y-m-d H:i:s');
@@ -132,6 +132,9 @@ function obtenerPermisosUsuario($id_usuario) {
                 if($accion == 'ver') {
                     $permisos_formateados[0]['ver_uso de material'] = 1;
                 }
+                if($accion == 'anular') {  
+                    $permisos_formateados[0]['anular_uso de material'] = 1;
+                }
                 break;
 
             case 'pedidos':
@@ -189,6 +192,9 @@ function obtenerPermisosUsuario($id_usuario) {
                 if($accion == 'ver') {
                     $permisos_formateados[0]['ver_ingresos'] = 1;
                 }
+                if($accion == 'anular') {  
+                    $permisos_formateados[0]['anular_ingresos'] = 1;
+                }
                 break;
 
             case 'salidas':
@@ -226,13 +232,22 @@ function obtenerPermisosUsuario($id_usuario) {
                 if($accion == 'ver') {
                     $permisos_formateados[0]['ver_devoluciones'] = 1;
                 }
+                if($accion == 'anular') { 
+                    $permisos_formateados[0]['anular_devoluciones'] = 1;
+                }
                 break;
 
-            case 'movimientos': // NUEVO MÓDULO
+            case 'movimientos':
                 if($accion == 'ver') {
                     $permisos_formateados[0]['ver_movimientos'] = 1;
                 }
-                // Solo lectura, no se permite crear o editar movimientos directamente
+                if ($accion == 'crear') {
+                    $permisos_formateados[0]['crear_movimientos'] = 1;
+                }
+                if ($accion == 'editar') {
+                    $permisos_formateados[0]['editar_movimientos'] = 1;
+                    $permisos_formateados[0]['edi_movimientos'] = 1;
+                }
                 break;
 
             case 'almacen arce':
@@ -517,8 +532,6 @@ function obtenerPermisosUsuario($id_usuario) {
                     $permisos_formateados[0]['ver_centro de costo'] = 1;
                 }
                 break;
-            
-            // ==================== NUEVOS MÓDULOS ====================
             
             case 'banco':
                 if($accion == 'crear') {

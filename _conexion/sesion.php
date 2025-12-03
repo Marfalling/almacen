@@ -89,6 +89,7 @@ function verificarAccesoControlador($nombre_controlador) {
         'uso_material_mostrar' => 'ver_uso de material',
         'uso_material_nuevo' => 'crear_uso de material',
         'uso_material_editar' => 'editar_uso de material',
+        'uso_material_anular' => 'anular_uso de material', 
         
         // ==================== PEDIDOS ====================
         'pedidos_mostrar' => 'ver_pedidos',
@@ -109,6 +110,7 @@ function verificarAccesoControlador($nombre_controlador) {
         'ingresos_mostrar' => 'ver_ingresos',
         'ingresos_nuevo' => 'crear_ingresos',
         'ingresos_editar' => 'editar_ingresos',
+        'ingresos_anular' => 'anular_ingresos',  
         
         // ==================== SALIDAS ====================
         'salidas_mostrar' => 'ver_salidas',
@@ -122,6 +124,7 @@ function verificarAccesoControlador($nombre_controlador) {
         'devoluciones_mostrar' => 'ver_devoluciones',
         'devoluciones_nuevo' => 'crear_devoluciones',
         'devoluciones_editar' => 'editar_devoluciones',
+        'devoluciones_anular' => 'anular_devoluciones',  
         
         // ==================== MOVIMIENTOS ====================
         'movimientos_mostrar' => 'ver_movimientos',
@@ -197,17 +200,17 @@ function verificarAccesoControlador($nombre_controlador) {
         'centro_costo_nuevo' => 'crear_centro de costo',
         'centro_costo_editar' => 'editar_centro de costo',
         
-        // ==================== BANCO (NUEVO) ====================
+        // ==================== BANCO ====================
         'banco_mostrar' => 'ver_banco',
         'banco_nuevo' => 'crear_banco',
         'banco_editar' => 'editar_banco',
         
-        // ==================== TIPO DE DOCUMENTO (NUEVO) ====================
+        // ==================== TIPO DE DOCUMENTO ====================
         'tipo_documento_mostrar' => 'ver_tipo de documento',
         'tipo_documento_nuevo' => 'crear_tipo de documento',
         'tipo_documento_editar' => 'editar_tipo de documento',
         
-        // ==================== MEDIO DE PAGO (NUEVO) ====================
+        // ==================== MEDIO DE PAGO ====================
         'medio_pago_mostrar' => 'ver_medio de pago',
         'medio_pago_nuevo' => 'crear_medio de pago',
         'medio_pago_editar' => 'editar_medio de pago'
@@ -282,7 +285,8 @@ function verificarPermiso($modulo, $accion) {
         'importar_' . $modulo,
         'anular_' . $modulo,
         'aprobar_' . $modulo,
-        'verificar_' . $modulo
+        'verificar_' . $modulo,
+        'recepcionar_' . $modulo
     ];
     
     foreach ($formatos as $formato) {
@@ -356,6 +360,7 @@ function esAdministrador($id_usuario) {
     mysqli_close($con);
     return $es_admin;
 }
+
 // Verificar si el usuario actual es SUPERADMIN
 function esSuperAdmin($id_usuario) {
     include("../_conexion/conexion.php");

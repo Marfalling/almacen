@@ -2,11 +2,12 @@
 //=======================================================================
 // VISTA: v_pedidos_mostrar.php
 //=======================================================================
-// Estados correctos: 0=Anulado, 1=Pendiente, 2=Completado, 3=Aprobado, 4=Ingresado, 5=Finalizado
 
 // ========================================================================
 // VERIFICAR PERMISOS AL INICIO
 // ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_pedidos');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_pedidos');
 $tiene_permiso_aprobar_tecnica = verificarPermisoEspecifico('aprobar_pedidos');
 $tiene_permiso_verificar = verificarPermisoEspecifico('verificar_pedidos');
 $tiene_permiso_anular = verificarPermisoEspecifico('anular_pedidos');
@@ -67,9 +68,24 @@ function AprobarPedidoTecnica(id_pedido) {
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="pedidos_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo Pedido
-                                </a>
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO PEDIDO -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-success btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear pedidos"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Pedido
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="pedidos_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo pedido">
+                                        <i class="fa fa-plus"></i> Nuevo Pedido
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -200,36 +216,20 @@ function AprobarPedidoTecnica(id_pedido) {
                                                             if (!$tiene_permiso_aprobar_tecnica) {
                                                                 // SIN PERMISO - Botón rojo outline danger
                                                                 ?>
-                                                                <!--<a href="#"
-                                                                class="btn btn-outline-danger btn-sm disabled"
-                                                                data-toggle="tooltip"
-                                                                data-placement="top"
-                                                                title="No tienes permiso para aprobar técnicamente pedidos"
-                                                                tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-check"></i>
-                                                                </a>-->
                                                                 <span data-toggle="tooltip" data-placement="top"
                                                                     title="No tienes permiso para aprobar técnicamente pedidos">
                                                                     <a href="#"
-                                                                    class="btn btn-outline-danger btn-sm disabled"
+                                                                    class="btn btn-outline-success btn-sm disabled"
                                                                     tabindex="-1" aria-disabled="true">
                                                                         <i class="fa fa-check"></i>
                                                                     </a>
                                                                 </span>
                                                             <?php } elseif ($tiene_tecnica) { ?>
                                                                 <!-- YA APROBADO - Gris por proceso -->
-                                                                <!--<a href="#"
-                                                                class="btn btn-outline-secondary btn-sm disabled"
-                                                                data-toggle="tooltip"
-                                                                data-placement="top" 
-                                                                title="Ya aprobado técnicamente"
-                                                                tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-check"></i>
-                                                                </a>-->
                                                                 <span data-toggle="tooltip" data-placement="top"
                                                                     title="Ya aprobado técnicamente">
                                                                     <a href="#"
-                                                                    class="btn btn-outline-secondary btn-sm disabled"
+                                                                    class="btn btn-outline-success btn-sm disabled"
                                                                     tabindex="-1" aria-disabled="true">
                                                                         <i class="fa fa-check"></i>
                                                                     </a>
@@ -251,7 +251,7 @@ function AprobarPedidoTecnica(id_pedido) {
                                                             // BOTÓN EDITAR PEDIDO
                                                             // ============================================
                                                             $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
-                                                            $puede_editar = false;
+                                                            $puede_editar_proceso = false;
                                                             $titulo_editar = '';
 
                                                             if ($pedido['est_pedido'] == 0) {
@@ -271,10 +271,29 @@ function AprobarPedidoTecnica(id_pedido) {
                                                             } elseif ($pedido['est_pedido'] == 2) {
                                                                 $titulo_editar = "No se puede editar - Pedido completado (órdenes en proceso)";
                                                             } else {
-                                                                $puede_editar = true;
+                                                                $puede_editar_proceso = true;
                                                             }
 
-                                                            if ($puede_editar) { ?>
+                                                            if (!$tiene_permiso_editar) { ?>
+                                                                <span data-toggle="tooltip" data-placement="top"
+                                                                    title="No tienes permiso para editar pedidos">
+                                                                    <a href="#"
+                                                                    class="btn btn-outline-success btn-sm disabled"
+                                                                    tabindex="-1" aria-disabled="true">
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </a>
+                                                                </span>
+                                                            <?php } elseif (!$puede_editar_proceso) { ?>
+                                                                <span data-toggle="tooltip"
+                                                                    data-placement="top"
+                                                                    title="<?php echo $titulo_editar; ?>">
+                                                                    <a href="#"
+                                                                    class="btn btn-outline-success btn-sm disabled"
+                                                                    tabindex="-1" aria-disabled="true">
+                                                                        <i class="fa fa-edit"></i>
+                                                                    </a>
+                                                                </span>
+                                                            <?php } else { ?>
                                                                 <a href="pedidos_editar.php?id=<?php echo $pedido['id_pedido']; ?>" 
                                                                 class="btn btn-warning btn-sm"
                                                                 data-toggle="tooltip"
@@ -282,25 +301,6 @@ function AprobarPedidoTecnica(id_pedido) {
                                                                 title="Editar Pedido">
                                                                     <i class="fa fa-edit"></i>
                                                                 </a>
-                                                            <?php } else { ?>
-                                                                <!--<a href="#" class="btn btn-outline-secondary btn-sm disabled"
-                                                                data-toggle="tooltip"
-                                                                data-toggle="tooltip"
-                                                                data-placement="top"
-                                                                title="<?php echo $titulo_editar; ?>" 
-                                                                tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>-->
-
-                                                                <span data-toggle="tooltip"
-                                                                    data-placement="top"
-                                                                    title="<?php echo $titulo_editar; ?>">
-                                                                    <a href="#"
-                                                                    class="btn btn-outline-secondary btn-sm disabled"
-                                                                    tabindex="-1" aria-disabled="true">
-                                                                        <i class="fa fa-edit"></i>
-                                                                    </a>
-                                                                </span>
                                                             <?php } ?>
 
                                                             <!-- ============================================ -->
@@ -317,18 +317,9 @@ function AprobarPedidoTecnica(id_pedido) {
                                                             if (!$tiene_permiso_verificar) {
                                                                 // SIN PERMISO - Botón rojo outline danger
                                                                 ?>
-                                                                <!--<a href="#"
-                                                                class="btn btn-outline-danger btn-sm disabled"
-                                                                data-toggle="tooltip"
-                                                                data-placement="top"
-                                                                title="No tienes permiso para verificar pedidos"
-                                                                tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-check"></i>
-                                                                </a>-->
-
                                                                 <span data-toggle="tooltip" title="No tienes permiso para verificar pedidos">
                                                                     <a href="#"
-                                                                    class="btn btn-outline-danger btn-sm disabled"
+                                                                    class="btn btn-outline-success btn-sm disabled"
                                                                     tabindex="-1" aria-disabled="true">
                                                                         <i class="fa fa-check"></i>
                                                                     </a>
@@ -344,19 +335,9 @@ function AprobarPedidoTecnica(id_pedido) {
                                                                         <i class="fa fa-check"></i>
                                                                     </a>
                                                                 <?php } else { ?>
-                                                                    <!--<span title="Requiere aprobación técnica">
-                                                                        <a href="#"
-                                                                        class="btn btn-outline-secondary btn-sm disabled"
-                                                                        data-toggle="tooltip"
-                                                                        data-placement="top"
-                                                                        title="Requiere aprobación técnica"
-                                                                        tabindex="-1" aria-disabled="true">
-                                                                            <i class="fa fa-check"></i>
-                                                                        </a>
-                                                                    </span>-->
                                                                     <span data-toggle="tooltip" title="Requiere aprobación técnica">
                                                                         <a href="#" 
-                                                                        class="btn btn-outline-secondary btn-sm disabled"
+                                                                        class="btn btn-outline-success btn-sm disabled"
                                                                         tabindex="-1" aria-disabled="true">
                                                                             <i class="fa fa-check"></i>
                                                                         </a>
@@ -383,13 +364,9 @@ function AprobarPedidoTecnica(id_pedido) {
                                                                         $titulo_verificar = "No disponible";
                                                                 }
                                                                 ?>
-                                                                <!--<a href="#" class="btn btn-outline-secondary btn-sm disabled" data-toggle="tooltip"
-                                                                data-placement="top" title="<?php echo $titulo_verificar; ?>" tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-check"></i>
-                                                                </a>-->
                                                                 <span data-toggle="tooltip" title="<?php echo $titulo_verificar; ?>">
                                                                     <a href="#" 
-                                                                    class="btn btn-outline-secondary btn-sm disabled"
+                                                                    class="btn btn-outline-success btn-sm disabled"
                                                                     tabindex="-1" aria-disabled="true">
                                                                         <i class="fa fa-check"></i>
                                                                     </a>
@@ -416,14 +393,13 @@ function AprobarPedidoTecnica(id_pedido) {
                                                                 // SIN PERMISO - Botón rojo outline danger
                                                                 $titulo_anular = "No tienes permiso para anular pedidos";
                                                                 ?>
-                                                                <<button class="btn btn-outline-danger btn-sm disabled"
-                                                                        data-toggle="tooltip"
-                                                                        data-placement="top"
-                                                                        title="<?php echo $titulo_anular; ?>"
-                                                                        tabindex="-1" 
-                                                                        aria-disabled="true">
-                                                                    <i class="fa fa-times"></i>
-                                                                </button>
+                                                                <span data-toggle="tooltip" title="<?php echo $titulo_anular; ?>">
+                                                                    <button class="btn btn-outline-success btn-sm disabled"
+                                                                            tabindex="-1" 
+                                                                            aria-disabled="true">
+                                                                        <i class="fa fa-times"></i>
+                                                                    </button>
+                                                                </span>
                                                             <?php } else {
                                                                 // CON PERMISO - Validar estado
                                                                 if ($pedido['est_pedido'] == 0) {
@@ -484,13 +460,13 @@ function AprobarPedidoTecnica(id_pedido) {
                                                                         <i class="fa fa-times"></i>
                                                                     </button>
                                                                 <?php } else { ?>
-                                                                    <button class="btn btn-outline-secondary btn-sm disabled"
-                                                                            title="<?php echo $titulo_anular; ?>"
-                                                                            data-toggle="tooltip" 
-                                                                            tabindex="-1" 
-                                                                            aria-disabled="true">
-                                                                        <i class="fa fa-times"></i>
-                                                                    </button>
+                                                                    <span data-toggle="tooltip" title="<?php echo $titulo_anular; ?>">
+                                                                        <button class="btn btn-outline-success btn-sm disabled"
+                                                                                tabindex="-1" 
+                                                                                aria-disabled="true">
+                                                                            <i class="fa fa-times"></i>
+                                                                        </button>
+                                                                    </span>
                                                                 <?php } ?>
                                                             <?php } ?>
 
@@ -711,14 +687,26 @@ foreach($pedidos as $pedido) {
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
                 <?php
                 $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
-                // Si tiene detalles verificados o está rechazado, no se puede editar
-                if ($pedido['tiene_verificados'] == 1 || $es_rechazado) { 
+                $puede_editar_modal = true;
+                
+                if ($pedido['tiene_verificados'] == 1 || $es_rechazado) {
+                    $puede_editar_modal = false;
+                }
+                
+                if (!$tiene_permiso_editar) { ?>
+                    <button type="button" 
+                            class="btn btn-outline-success disabled"
+                            title="No tienes permiso para editar pedidos"
+                            disabled>
+                        <i class="fa fa-edit"></i> Editar Pedido
+                    </button>
+                <?php } elseif (!$puede_editar_modal) { 
                     if ($es_rechazado) { ?>
-                        <a href="#" class="btn btn-outline-secondary disabled" title="No se puede editar - Pedido rechazado" tabindex="-1" aria-disabled="true">
+                        <a href="#" class="btn btn-outline-success disabled" title="No se puede editar - Pedido rechazado" tabindex="-1" aria-disabled="true">
                             <i class="fa fa-edit"></i> Pedido rechazado
                         </a>
                     <?php } else { ?>
-                        <a href="#" class="btn btn-outline-secondary disabled" title="No se puede editar - Pedido verificado" tabindex="-1" aria-disabled="true">
+                        <a href="#" class="btn btn-outline-success disabled" title="No se puede editar - Pedido verificado" tabindex="-1" aria-disabled="true">
                             <i class="fa fa-edit"></i> No se puede editar
                         </a>
                     <?php } ?>

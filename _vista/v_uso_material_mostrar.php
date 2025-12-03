@@ -2,6 +2,13 @@
 //=======================================================================
 // VISTA: v_uso_material_mostrar.php
 //=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_uso de material');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_uso de material');
+$tiene_permiso_anular = verificarPermisoEspecifico('anular_uso de material');
 ?>
 <script>
 function AnularUso(id_uso_material) {
@@ -73,9 +80,24 @@ function AnularUso(id_uso_material) {
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="uso_material_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nuevo Uso
-                                </a>
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVO USO -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-success btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear uso de material"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Uso
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="uso_material_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nuevo uso de material">
+                                        <i class="fa fa-plus"></i> Nuevo Uso
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -141,60 +163,70 @@ function AnularUso(id_uso_material) {
                                                     </td>
                                                     <td>
                                                         <div class="d-flex flex-wrap gap-2">
-
-                                                        <?php
-                                                        // Si está anulado, mostrar botones deshabilitados
-                                                        if ($uso['est_uso_material'] == 0) { ?>
-                                                            <!-- Botón ANULAR (deshabilitado con tooltip) -->
-                                                            <span data-toggle="tooltip" title="Anular" data-placement="top" style="display: inline-block;">
+                                                            <?php
+                                                            // ============================================
+                                                            // BOTÓN ANULAR USO DE MATERIAL
+                                                            // ============================================
+                                                            if (!$tiene_permiso_anular) { ?>
                                                                 <a href="#" 
-                                                                class="btn btn-outline-secondary btn-sm" 
-                                                                style="pointer-events: none; opacity: 0.65;" 
-                                                                tabindex="-1" 
-                                                                aria-disabled="true">
+                                                                   class="btn btn-outline-success btn-sm disabled"
+                                                                   title="No tienes permiso para anular uso de material"
+                                                                   tabindex="-1" 
+                                                                   aria-disabled="true">
                                                                     <i class="fa fa-times"></i>
                                                                 </a>
-                                                            </span>
-                                                            
-                                                            <!-- Botón EDITAR (deshabilitado con tooltip) -->
-                                                            <span data-toggle="tooltip" title="Editar" data-placement="top" style="display: inline-block;">
+                                                            <?php } elseif ($uso['est_uso_material'] == 0) { ?>
                                                                 <a href="#" 
-                                                                class="btn btn-outline-secondary btn-sm" 
-                                                                style="pointer-events: none; opacity: 0.65;" 
-                                                                tabindex="-1" 
-                                                                aria-disabled="true">
+                                                                   class="btn btn-outline-success btn-sm disabled"
+                                                                   title="Uso de material ya anulado"
+                                                                   tabindex="-1" 
+                                                                   aria-disabled="true">
+                                                                    <i class="fa fa-times"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a href="#" 
+                                                                   onclick="AnularUso(<?php echo $uso['id_uso_material']; ?>)"
+                                                                   class="btn btn-danger btn-sm"
+                                                                   title="Anular uso de material">
+                                                                    <i class="fa fa-times"></i>
+                                                                </a>
+                                                            <?php } ?>
+
+                                                            <?php
+                                                            // ============================================
+                                                            // BOTÓN EDITAR USO DE MATERIAL
+                                                            // ============================================
+                                                            if (!$tiene_permiso_editar) { ?>
+                                                                <a href="#" 
+                                                                   class="btn btn-outline-success btn-sm disabled"
+                                                                   title="No tienes permiso para editar uso de material"
+                                                                   tabindex="-1" 
+                                                                   aria-disabled="true">
                                                                     <i class="fa fa-edit"></i>
                                                                 </a>
-                                                            </span>
+                                                            <?php } elseif ($uso['est_uso_material'] == 0) { ?>
+                                                                <a href="#" 
+                                                                   class="btn btn-outline-success btn-sm disabled"
+                                                                   title="No se puede editar - Uso de material anulado"
+                                                                   tabindex="-1" 
+                                                                   aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } else { ?>
+                                                                <a href="uso_material_editar.php?id=<?php echo $uso['id_uso_material']; ?>"
+                                                                   class="btn btn-warning btn-sm"
+                                                                   title="Editar uso de material">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            <?php } ?>
+
+                                                            <!-- Botón PDF - siempre visible -->
                                                             <a href="uso_material_pdf.php?id=<?php echo $uso['id_uso_material']; ?>"
                                                                class="btn btn-secondary btn-sm"
                                                                title="Generar PDF"
-                                                               data-toggle="tooltip"
                                                                target="_blank">
                                                                 <i class="fa fa-file-pdf-o"></i>
                                                             </a>
-                                                        <?php
-                                                        } else { 
-                                                            // Si está registrado (estado 2), mostrar botones activos
-                                                        ?>
-                                                            <a href="#" onclick="AnularUso(<?php echo $uso['id_uso_material']; ?>)"
-                                                               class="btn btn-danger btn-sm"
-                                                               title="Anular" data-toggle="tooltip">
-                                                                <i class="fa fa-times"></i>
-                                                            </a>
-                                                            <a href="uso_material_editar.php?id=<?php echo $uso['id_uso_material']; ?>"
-                                                               class="btn btn-info btn-sm"
-                                                               title="Editar" data-toggle="tooltip">
-                                                                <i class="fa fa-edit"></i>
-                                                            </a>
-                                                            <a href="uso_material_pdf.php?id=<?php echo $uso['id_uso_material']; ?>"
-                                                               class="btn btn-secondary btn-sm"
-                                                               title="Generar PDF"
-                                                               data-toggle="tooltip"
-                                                               target="_blank">
-                                                                <i class="fa fa-file-pdf-o"></i>
-                                                            </a>
-                                                        <?php } ?>
                                                         </div>
                                                     </td>
                                                 </tr>

@@ -5,12 +5,12 @@
 
 require_once("../_conexion/sesion.php");
 
-/*if (!verificarPermisoEspecifico('anular_devoluciones')) {
+if (!verificarPermisoEspecifico('anular_devoluciones')) {
     require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'DEVOLUCIONES', 'ANULAR');
     header("location: bienvenido.php?permisos=true");
     exit;
-}*/
+}
 
 require_once("../_modelo/m_devolucion.php");
 

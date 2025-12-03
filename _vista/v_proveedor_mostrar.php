@@ -33,16 +33,18 @@ $tiene_permiso_importar = verificarPermisoEspecifico('importar_proveedor');
                             <!-- BOTÓN NUEVO PROVEEDOR -->
                             <!-- ============================================ -->
                             <?php if (!$tiene_permiso_nuevo) { ?>
-                                <a href="#" 
-                                   class="btn btn-outline-danger btn-sm disabled"
-                                   title="No tienes permiso para crear proveedores"
-                                   tabindex="-1" 
-                                   aria-disabled="true">
-                                    <i class="fa fa-plus"></i> Nuevo Proveedor
-                                </a>
+                                <span data-toggle="tooltip" title="No tienes permiso para crear proveedores">
+                                    <a href="#" 
+                                       class="btn btn-outline-success btn-sm disabled"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nuevo Proveedor
+                                    </a>
+                                </span>
                             <?php } else { ?>
                                 <a href="proveedor_nuevo.php" 
                                    class="btn btn-outline-info btn-sm"
+                                   data-toggle="tooltip"
                                    title="Crear nuevo proveedor">
                                     <i class="fa fa-plus"></i> Nuevo Proveedor
                                 </a>
@@ -52,12 +54,13 @@ $tiene_permiso_importar = verificarPermisoEspecifico('importar_proveedor');
                             <!-- BOTÓN IMPORTAR CSV -->
                             <!-- ============================================ -->
                             <?php if (!$tiene_permiso_importar) { ?>
-                                <button class="btn btn-outline-danger btn-sm disabled"
-                                        title="No tienes permiso para importar proveedores"
-                                        tabindex="-1" 
-                                        aria-disabled="true">
-                                    <i class="fa fa-upload"></i> Importar CSV
-                                </button>
+                                <span data-toggle="tooltip" title="No tienes permiso para importar proveedores">
+                                    <button class="btn btn-outline-success btn-sm disabled"
+                                            tabindex="-1" 
+                                            aria-disabled="true">
+                                        <i class="fa fa-upload"></i> Importar CSV
+                                    </button>
+                                </span>
                             <?php } else { ?>
                                 <button class="btn btn-outline-success btn-sm" 
                                         data-toggle="modal" 
@@ -102,58 +105,63 @@ $tiene_permiso_importar = verificarPermisoEspecifico('importar_proveedor');
                                     <td><?= $value['cont_proveedor']; ?></td>
                                     <td><?= $value['mail_proveedor']; ?></td>
                                     <td>
-                                        <?php if (!empty($cuentas)) { ?>
-                                            <button class="btn btn-info btn-sm" 
-                                                    data-toggle="modal" 
-                                                    data-target="#modalCuentas<?= $id_proveedor; ?>"
-                                                    title="Ver cuentas bancarias">
-                                                Ver cuentas
-                                            </button>
-                                            <!-- Modal cuentas -->
-                                            <div class="modal fade" id="modalCuentas<?= $id_proveedor; ?>" tabindex="-1" role="dialog" aria-hidden="true">
-                                                <div class="modal-dialog modal-lg" role="document">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title">Cuentas bancarias - <?= $value['nom_proveedor']; ?></h5>
-                                                            <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
-                                                                <span aria-hidden="true">&times;</span>
-                                                            </button>
-                                                        </div>
-                                                        <div class="modal-body">
-                                                            <table class="table table-sm table-bordered">
-                                                                <thead>
-                                                                    <tr>
-                                                                        <th>Banco</th>
-                                                                        <th>Moneda</th>
-                                                                        <th>Nro. Cuenta</th>
-                                                                        <th>CCI</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                    <?php foreach ($cuentas as $cta) { ?>
+                                        <center>
+                                            <?php if (!empty($cuentas)) { ?>
+                                                <span data-toggle="tooltip" title="Ver cuentas bancarias">
+                                                    <button class="btn btn-info btn-sm" 
+                                                            data-toggle="modal" 
+                                                            data-target="#modalCuentas<?= $id_proveedor; ?>">
+                                                        <i class="fa fa-eye"></i>
+                                                    </button>
+                                                </span>
+                                                <!-- Modal cuentas -->
+                                                <div class="modal fade" id="modalCuentas<?= $id_proveedor; ?>" tabindex="-1" role="dialog" aria-hidden="true">
+                                                    <div class="modal-dialog modal-lg" role="document">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title">Cuentas bancarias - <?= $value['nom_proveedor']; ?></h5>
+                                                                <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                                                                    <span aria-hidden="true">&times;</span>
+                                                                </button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <table class="table table-sm table-bordered">
+                                                                    <thead>
                                                                         <tr>
-                                                                            <td>
-                                                                                <?= !empty($cta['nom_banco']) 
-                                                                                    ? htmlspecialchars($cta['nom_banco'], ENT_QUOTES, 'UTF-8') 
-                                                                                    : '<span class="text-muted">—</span>'; ?>
-                                                                            </td>
-                                                                            <td><?= $cta['nom_moneda']; ?></td>
-                                                                            <td><?= $cta['nro_cuenta_corriente']; ?></td>
-                                                                            <td><?= $cta['nro_cuenta_interbancaria']; ?></td>
+                                                                            <th>Banco</th>
+                                                                            <th>Moneda</th>
+                                                                            <th>Nro. Cuenta</th>
+                                                                            <th>CCI</th>
                                                                         </tr>
-                                                                    <?php } ?>
-                                                                </tbody>
-                                                            </table>
-                                                        </div>
-                                                        <div class="modal-footer">
-                                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        <?php foreach ($cuentas as $cta) { ?>
+                                                                            <tr>
+                                                                                <td>
+                                                                                    <?= !empty($cta['nom_banco']) 
+                                                                                        ? htmlspecialchars($cta['nom_banco'], ENT_QUOTES, 'UTF-8') 
+                                                                                        : '<span class="text-muted">—</span>'; ?>
+                                                                                </td>
+                                                                                <td><?= $cta['nom_moneda']; ?></td>
+                                                                                <td><?= $cta['nro_cuenta_corriente']; ?></td>
+                                                                                <td><?= $cta['nro_cuenta_interbancaria']; ?></td>
+                                                                            </tr>
+                                                                        <?php } ?>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        <?php } else { ?>
-                                            <span class="text-muted">Sin cuentas</span>
-                                        <?php } ?>
+                                            <?php } else { ?>
+                                                <span class="text-muted" data-toggle="tooltip" title="Sin cuentas">
+                                                    <i class="fa fa-ban"></i>
+                                                </span>
+                                            <?php } ?>
+                                        </center>
                                     </td>
                                     <td>
                                         <center>
@@ -165,27 +173,29 @@ $tiene_permiso_importar = verificarPermisoEspecifico('importar_proveedor');
                                         </center>
                                     </td>
                                     <td>
-                                        <!-- ============================================ -->
-                                        <!-- BOTÓN EDITAR PROVEEDOR -->
-                                        <!-- ============================================ -->
-                                        <?php if (!$tiene_permiso_editar) { ?>
-                                            <span data-toggle="tooltip" title="No tienes permiso para editar proveedores">
-                                                <a href="#"
-                                                class="btn btn-outline-danger btn-sm disabled"
-                                                tabindex="-1"
-                                                aria-disabled="true">
+                                        <center>
+                                            <!-- ============================================ -->
+                                            <!-- BOTÓN EDITAR PROVEEDOR -->
+                                            <!-- ============================================ -->
+                                            <?php if (!$tiene_permiso_editar) { ?>
+                                                <span data-toggle="tooltip" title="No tienes permiso para editar proveedores">
+                                                    <a href="#"
+                                                    class="btn btn-outline-success btn-sm disabled"
+                                                    tabindex="-1"
+                                                    aria-disabled="true">
+                                                        <i class="fa fa-edit"></i>
+                                                    </a>
+                                                </span>
+                                            <?php } else { ?>
+                                                <a class="btn btn-warning btn-sm" 
+                                                   href="proveedor_editar.php?id_proveedor=<?= $id_proveedor; ?>"
+                                                   data-toggle="tooltip"
+                                                   data-placement="top"
+                                                   title="Editar proveedor">
                                                     <i class="fa fa-edit"></i>
                                                 </a>
-                                            </span>
-                                        <?php } else { ?>
-                                            <a class="btn btn-warning btn-sm" 
-                                               href="proveedor_editar.php?id_proveedor=<?= $id_proveedor; ?>"
-                                               data-toggle="tooltip"
-                                               data-placement="top"
-                                               title="Editar proveedor">
-                                                <i class="fa fa-edit"></i>
-                                            </a>
-                                        <?php } ?>
+                                            <?php } ?>
+                                        </center>
                                     </td>
                                 </tr>
                             <?php } ?>
@@ -216,7 +226,7 @@ $tiene_permiso_importar = verificarPermisoEspecifico('importar_proveedor');
           <p class="text-muted">Formato esperado: Nombre, RUC, Dirección, Teléfono, Contacto, Estado, Email, Banco, Moneda, Cuenta, CCI, EstadoCuenta</p>
         </div>
         <div class="modal-footer">
-            <button type="button" class="btn btn-outline-danger" data-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-outline-success" data-dismiss="modal">Cancelar</button>
             <button type="submit" class="btn btn-success">Subir e Importar</button>
         </div>
       </form>
@@ -225,9 +235,11 @@ $tiene_permiso_importar = verificarPermisoEspecifico('importar_proveedor');
 </div>
 
 <script>
-
-$(function () {
-    $('[data-toggle="tooltip"]').tooltip();
+$(document).ready(function() {
+    // Inicializar todos los tooltips
+    $('[data-toggle="tooltip"]').tooltip({
+        placement: 'top',
+        trigger: 'hover'
+    });
 });
-
 </script>

@@ -5,12 +5,11 @@
 require_once("../_conexion/sesion.php");
 require_once("../_conexion/conexion.php");
 
-// VERIFICACIÓN DE PERMISOS - Usar permiso de editar para anular
-if (!verificarPermisoEspecifico('editar_uso de material')) {
-    echo json_encode([
-        'tipo_mensaje' => 'error',
-        'mensaje' => 'No tiene permisos para anular uso de material'
-    ]);
+// VERIFICACIÓN DE PERMISOS
+if (!verificarPermisoEspecifico('anular_uso de material')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'USO DE MATERIAL', 'ANULAR');
+    header("location: bienvenido.php?permisos=true");
     exit;
 }
 

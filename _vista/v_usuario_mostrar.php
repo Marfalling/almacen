@@ -37,7 +37,7 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_usuarios');
                                 <!-- ============================================ -->
                                 <?php if (!$tiene_permiso_crear) { ?>
                                     <a href="#" 
-                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       class="btn btn-outline-success btn-sm btn-block disabled"
                                        title="No tienes permiso para crear usuarios"
                                        tabindex="-1" 
                                        aria-disabled="true">
@@ -117,7 +117,7 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_usuarios');
                                                             <?php if (!$tiene_permiso_editar) { ?>
                                                                 <span data-bs-toggle="tooltip" title="No tienes permiso para editar usuarios">
                                                                     <a href="#" 
-                                                                    class="btn btn-outline-danger btn-sm disabled"
+                                                                    class="btn btn-outline-success btn-sm disabled"
                                                                     tabindex="-1" 
                                                                     aria-disabled="true">
                                                                         <i class="fa fa-edit"></i>

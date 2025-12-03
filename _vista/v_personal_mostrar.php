@@ -44,7 +44,7 @@ $personal = MostrarPersonal();
                                 <!-- ============================================ -->
                                 <?php if (!$tiene_permiso_crear) { ?>
                                     <a href="#" 
-                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       class="btn btn-outline-success btn-sm btn-block disabled"
                                        title="No tienes permiso para crear personal"
                                        tabindex="-1" 
                                        aria-disabled="true">
@@ -122,7 +122,7 @@ $personal = MostrarPersonal();
                                                             <?php if (!$tiene_permiso_editar) { ?>
                                                                 <span data-toggle="tooltip" data-placement="top" title="No tienes permiso para editar personal">
                                                                     <a href="#" 
-                                                                    class="btn btn-outline-danger btn-xs disabled"
+                                                                    class="btn btn-outline-success btn-xs disabled"
                                                                     tabindex="-1" 
                                                                     aria-disabled="true">
                                                                         <i class="fa fa-edit"></i>

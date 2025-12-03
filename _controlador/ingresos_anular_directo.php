@@ -2,6 +2,12 @@
 //=======================================================================
 // CONTROLADOR PARA ANULAR INGRESOS DIRECTOS
 //=======================================================================
+if (!verificarPermisoEspecifico('anular_ingresos')) {
+    require_once("../_modelo/m_auditoria.php");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'INGRESOS', 'ANULAR');
+    header("location: bienvenido.php?permisos=true");
+    exit;
+}
 
 $_REQUEST['id_ingreso'] = isset($_REQUEST['id_ingreso']) ? $_REQUEST['id_ingreso'] : null;
 

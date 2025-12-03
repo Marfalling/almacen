@@ -2,6 +2,13 @@
 //=======================================================================
 // VISTA: v_ingresos_mostrar.php 
 //=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_ingresos');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_ingresos');
+$tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
 ?>
 <!-- page content -->
 <div class="right_col" role="main">
@@ -12,9 +19,24 @@
             </div>
             <div class="title_right">
                 <div class="pull-right">
-                    <a href="ingresos_directo_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                        <i class="fa fa-plus"></i> Nuevo Ingreso Directo
-                    </a>
+                    <!-- ============================================ -->
+                    <!-- BOTÓN NUEVO INGRESO DIRECTO -->
+                    <!-- ============================================ -->
+                    <?php if (!$tiene_permiso_crear) { ?>
+                        <a href="#" 
+                           class="btn btn-outline-success btn-sm btn-block disabled"
+                           title="No tienes permiso para crear ingresos"
+                           tabindex="-1" 
+                           aria-disabled="true">
+                            <i class="fa fa-plus"></i> Nuevo Ingreso Directo
+                        </a>
+                    <?php } else { ?>
+                        <a href="ingresos_directo_nuevo.php" 
+                           class="btn btn-outline-info btn-sm btn-block"
+                           title="Crear nuevo ingreso directo">
+                            <i class="fa fa-plus"></i> Nuevo Ingreso Directo
+                        </a>
+                    <?php } ?>
                 </div>
             </div>
         </div>
@@ -262,15 +284,40 @@
                                                                         $est_compra = intval($est_compra);
                                                                     ?>
                                                                         <?php
-                                                                        // MOSTRAR BOTÓN SOLO SI NO está anulada Y hay pendientes
-                                                                        if ($est_compra != 0 && $hay_pendientes) { 
-                                                                        ?>
-                                                                        <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
-                                                                           class="btn btn-success btn-sm"
-                                                                           data-toggle="tooltip"
-                                                                           title="Verificar ingreso">
-                                                                            <i class="fa fa-check"></i>
-                                                                        </a>
+                                                                        // ============================================
+                                                                        // BOTÓN VERIFICAR INGRESO
+                                                                        // ============================================
+                                                                        if (!$tiene_permiso_editar) { ?>
+                                                                            <a href="#" 
+                                                                               class="btn btn-outline-success btn-sm disabled"
+                                                                               title="No tienes permiso para editar ingresos"
+                                                                               tabindex="-1" 
+                                                                               aria-disabled="true">
+                                                                                <i class="fa fa-check"></i>
+                                                                            </a>
+                                                                        <?php } elseif ($est_compra == 0) { ?>
+                                                                            <a href="#" 
+                                                                               class="btn btn-outline-success btn-sm disabled"
+                                                                               title="No se puede editar - Ingreso anulado"
+                                                                               tabindex="-1" 
+                                                                               aria-disabled="true">
+                                                                                <i class="fa fa-check"></i>
+                                                                            </a>
+                                                                        <?php } elseif (!$hay_pendientes) { ?>
+                                                                            <a href="#" 
+                                                                               class="btn btn-outline-success btn-sm disabled"
+                                                                               title="Sin productos pendientes por ingresar"
+                                                                               tabindex="-1" 
+                                                                               aria-disabled="true">
+                                                                                <i class="fa fa-check"></i>
+                                                                            </a>
+                                                                        <?php } else { ?>
+                                                                            <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
+                                                                               class="btn btn-success btn-sm"
+                                                                               data-toggle="tooltip"
+                                                                               title="Verificar ingreso">
+                                                                                <i class="fa fa-check"></i>
+                                                                            </a>
                                                                         <?php } ?>
                                                                         
                                                                         <a href="ingresos_detalle.php?id_compra=<?php echo $id_compra; ?>" 
@@ -286,17 +333,30 @@
                                                                             title="Ver detalles">
                                                                             <i class="fa fa-eye"></i>
                                                                         </a>
-                                                                        <?php if ($ingreso['estado'] == 1) { ?>
+                                                                        <?php 
+                                                                        // ============================================
+                                                                        // BOTÓN ANULAR INGRESO DIRECTO
+                                                                        // ============================================
+                                                                        if (!$tiene_permiso_anular) { ?>
+                                                                            <button class="btn btn-outline-success btn-sm disabled"
+                                                                                    title="No tienes permiso para anular ingresos"
+                                                                                    tabindex="-1" 
+                                                                                    aria-disabled="true">
+                                                                                <i class="fa fa-times"></i>
+                                                                            </button>
+                                                                        <?php } elseif ($ingreso['estado'] == 0) { ?>
+                                                                            <span class="btn btn-outline-success btn-sm disabled" 
+                                                                                  data-toggle="tooltip" 
+                                                                                  title="Ya anulado">
+                                                                                <i class="fa fa-ban"></i>
+                                                                            </span>
+                                                                        <?php } else { ?>
                                                                             <button onclick="anularIngresoDirecto(<?php echo $ingreso['id_ingreso']; ?>)" 
                                                                                 class="btn btn-danger btn-sm" 
                                                                                 data-toggle="tooltip"
                                                                                 title="Anular ingreso">
                                                                                 <i class="fa fa-times"></i>
                                                                             </button>
-                                                                        <?php } else { ?>
-                                                                            <span class="btn btn-outline-secondary btn-sm disabled" data-toggle="tooltip" title="Ya anulado">
-                                                                                <i class="fa fa-ban"></i>
-                                                                            </span>
                                                                         <?php } ?>
                                                                     <?php } ?>
                                                                 </div>
@@ -419,15 +479,40 @@
                                                             <td>
                                                                 <div class="d-flex flex-wrap gap-2"> 
                                                                     <?php
-                                                                    // MOSTRAR BOTÓN SOLO SI NO está anulada Y hay pendientes
-                                                                    if ($est_compra != 0 && $hay_pendientes) { 
-                                                                    ?>
-                                                                    <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
-                                                                        class="btn btn-success btn-sm"
-                                                                        data-toggle="tooltip"
-                                                                        title="Verificar ingreso">
-                                                                        <i class="fa fa-check"></i>
-                                                                    </a>
+                                                                    // ============================================
+                                                                    // BOTÓN VERIFICAR INGRESO
+                                                                    // ============================================
+                                                                    if (!$tiene_permiso_editar) { ?>
+                                                                        <a href="#" 
+                                                                           class="btn btn-outline-success btn-sm disabled"
+                                                                           title="No tienes permiso para editar ingresos"
+                                                                           tabindex="-1" 
+                                                                           aria-disabled="true">
+                                                                            <i class="fa fa-check"></i>
+                                                                        </a>
+                                                                    <?php } elseif ($est_compra == 0) { ?>
+                                                                        <a href="#" 
+                                                                           class="btn btn-outline-success btn-sm disabled"
+                                                                           title="No se puede editar - Ingreso anulado"
+                                                                           tabindex="-1" 
+                                                                           aria-disabled="true">
+                                                                            <i class="fa fa-check"></i>
+                                                                        </a>
+                                                                    <?php } elseif (!$hay_pendientes) { ?>
+                                                                        <a href="#" 
+                                                                           class="btn btn-outline-success btn-sm disabled"
+                                                                           title="Sin productos pendientes por ingresar"
+                                                                           tabindex="-1" 
+                                                                           aria-disabled="true">
+                                                                            <i class="fa fa-check"></i>
+                                                                        </a>
+                                                                    <?php } else { ?>
+                                                                        <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
+                                                                           class="btn btn-success btn-sm"
+                                                                           data-toggle="tooltip"
+                                                                           title="Verificar ingreso">
+                                                                            <i class="fa fa-check"></i>
+                                                                        </a>
                                                                     <?php } ?>
 
                                                                     <?php if ($est_compra != 0) { ?>
@@ -511,17 +596,30 @@
                                                                         title="Ver detalles">
                                                                         <i class="fa fa-eye"></i>
                                                                     </a>
-                                                                    <?php if ($ingreso['estado'] == 1) { ?>
+                                                                    <?php 
+                                                                    // ============================================
+                                                                    // BOTÓN ANULAR INGRESO DIRECTO
+                                                                    // ============================================
+                                                                    if (!$tiene_permiso_anular) { ?>
+                                                                        <button class="btn btn-outline-success btn-sm disabled"
+                                                                                title="No tienes permiso para anular ingresos"
+                                                                                tabindex="-1" 
+                                                                                aria-disabled="true">
+                                                                            <i class="fa fa-times"></i>
+                                                                        </button>
+                                                                    <?php } elseif ($ingreso['estado'] == 0) { ?>
+                                                                        <span class="btn btn-outline-success btn-sm disabled" 
+                                                                              data-toggle="tooltip" 
+                                                                              title="Ya anulado">
+                                                                            <i class="fa fa-ban"></i> Anulado
+                                                                        </span>
+                                                                    <?php } else { ?>
                                                                         <button onclick="anularIngresoDirecto(<?php echo $ingreso['id_ingreso']; ?>)" 
                                                                             class="btn btn-danger btn-sm"
                                                                             data-toggle="tooltip"
                                                                             title="Anular ingreso">
                                                                             <i class="fa fa-times"></i>
                                                                         </button>
-                                                                    <?php } else { ?>
-                                                                        <span class="btn btn-outline-secondary btn-sm disabled" data-toggle="tooltip" title="Ya anulado">
-                                                                            <i class="fa fa-ban"></i> Anulado
-                                                                        </span>
                                                                     <?php } ?>
                                                                 </div>
                                                             </td>
@@ -643,15 +741,40 @@
                                                                         $est_compra = intval($est_compra);
                                                                     ?>
                                                                         <?php
-                                                                        // MOSTRAR BOTÓN SOLO SI NO está anulada Y hay pendientes
-                                                                        if ($est_compra != 0 && $hay_pendientes) { 
-                                                                        ?>
-                                                                        <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
-                                                                           class="btn btn-success btn-sm"
-                                                                           data-toggle="tooltip"
-                                                                           title="Verificar ingreso">
-                                                                            <i class="fa fa-check"></i>
-                                                                        </a>
+                                                                        // ============================================
+                                                                        // BOTÓN VERIFICAR INGRESO
+                                                                        // ============================================
+                                                                        if (!$tiene_permiso_editar) { ?>
+                                                                            <a href="#" 
+                                                                               class="btn btn-outline-success btn-sm disabled"
+                                                                               title="No tienes permiso para editar ingresos"
+                                                                               tabindex="-1" 
+                                                                               aria-disabled="true">
+                                                                                <i class="fa fa-check"></i>
+                                                                            </a>
+                                                                        <?php } elseif ($est_compra == 0) { ?>
+                                                                            <a href="#" 
+                                                                               class="btn btn-outline-success btn-sm disabled"
+                                                                               title="No se puede editar - Ingreso anulado"
+                                                                               tabindex="-1" 
+                                                                               aria-disabled="true">
+                                                                                <i class="fa fa-check"></i>
+                                                                            </a>
+                                                                        <?php } elseif (!$hay_pendientes) { ?>
+                                                                            <a href="#" 
+                                                                               class="btn btn-outline-success btn-sm disabled"
+                                                                               title="Sin productos pendientes por ingresar"
+                                                                               tabindex="-1" 
+                                                                               aria-disabled="true">
+                                                                                <i class="fa fa-check"></i>
+                                                                            </a>
+                                                                        <?php } else { ?>
+                                                                            <a href="ingresos_verificar.php?id_compra=<?php echo $id_compra; ?>" 
+                                                                               class="btn btn-success btn-sm"
+                                                                               data-toggle="tooltip"
+                                                                               title="Verificar ingreso">
+                                                                                <i class="fa fa-check"></i>
+                                                                            </a>
                                                                         <?php } ?>
                                                                         
                                                                         <a href="ingresos_detalle.php?id_compra=<?php echo $id_compra; ?>" 

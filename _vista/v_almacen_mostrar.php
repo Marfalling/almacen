@@ -37,7 +37,7 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_almacen');
                                 <!-- ============================================ -->
                                 <?php if (!$tiene_permiso_crear) { ?>
                                     <a href="#" 
-                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       class="btn btn-outline-success btn-sm btn-block disabled"
                                        title="No tienes permiso para crear almacenes"
                                        tabindex="-1" 
                                        aria-disabled="true">
@@ -105,7 +105,7 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_almacen');
                                                                 <?php if (!$tiene_permiso_editar) { ?>
                                                                     <span data-toggle="tooltip" title="No tienes permiso para editar almacenes">
                                                                         <a href="#"
-                                                                        class="btn btn-outline-danger btn-sm disabled"
+                                                                        class="btn btn-outline-success btn-sm disabled"
                                                                         tabindex="-1"
                                                                         aria-disabled="true">
                                                                             <i class="fa fa-edit"></i>

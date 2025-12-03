@@ -37,7 +37,7 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_tipo de material');
                                 <!-- ============================================ -->
                                 <?php if (!$tiene_permiso_crear) { ?>
                                     <a href="#" 
-                                       class="btn btn-outline-danger btn-sm btn-block disabled"
+                                       class="btn btn-outline-success btn-sm btn-block disabled"
                                        title="No tienes permiso para crear tipos de material"
                                        tabindex="-1" 
                                        aria-disabled="true">
@@ -98,7 +98,7 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_tipo de material');
                                                             <?php if (!$tiene_permiso_editar) { ?>
                                                                 <span data-toggle="tooltip" title="No tienes permiso para editar tipos de material">
                                                                     <a href="#"
-                                                                    class="btn btn-outline-danger btn-sm disabled"
+                                                                    class="btn btn-outline-success btn-sm disabled"
                                                                     tabindex="-1"
                                                                     aria-disabled="true">
                                                                         <i class="fa fa-edit"></i>

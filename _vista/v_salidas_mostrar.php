@@ -3,6 +3,11 @@
 // VISTA ACTUALIZADA: v_salidas_mostrar.php
 //=======================================================================
 
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_salidas');
+$tiene_permiso_editar = verificarPermisoEspecifico('editar_salidas');
 $tiene_permiso_aprobar = verificarPermisoEspecifico('aprobar_salidas');
 $tiene_permiso_recepcionar = verificarPermisoEspecifico('recepcionar_salidas');
 $tiene_permiso_anular = verificarPermisoEspecifico('anular_salidas');
@@ -260,9 +265,24 @@ function AnularSalida(id_salida) {
                                 <div class="clearfix"></div>
                             </div>
                             <div class="col-sm-2">
-                                <a href="salidas_nuevo.php" class="btn btn-outline-info btn-sm btn-block">
-                                    <i class="fa fa-plus"></i> Nueva Salida
-                                </a>
+                                <!-- ============================================ -->
+                                <!-- BOTÓN NUEVA SALIDA -->
+                                <!-- ============================================ -->
+                                <?php if (!$tiene_permiso_crear) { ?>
+                                    <a href="#" 
+                                       class="btn btn-outline-success btn-sm btn-block disabled"
+                                       title="No tienes permiso para crear salidas"
+                                       tabindex="-1" 
+                                       aria-disabled="true">
+                                        <i class="fa fa-plus"></i> Nueva Salida
+                                    </a>
+                                <?php } else { ?>
+                                    <a href="salidas_nuevo.php" 
+                                       class="btn btn-outline-info btn-sm btn-block"
+                                       title="Crear nueva salida">
+                                        <i class="fa fa-plus"></i> Nueva Salida
+                                    </a>
+                                <?php } ?>
                             </div>
                         </div>
                     </div>
@@ -376,14 +396,6 @@ function AnularSalida(id_salida) {
                                                     <div class="d-flex flex-wrap gap-2">
 
                                                         <!-- Botón Ver Detalle -->
-                                                        <!--<button type="button" 
-                                                                class="btn btn-info btn-sm"
-                                                                data-toggle="modal"
-                                                                data-target="#modalDetalleSalida<?php echo $salida['id_salida']; ?>"
-                                                                title="Ver Detalle">
-                                                            <i class="fa fa-eye"></i>
-                                                        </button>-->
-
                                                         <span data-toggle="tooltip" title="Ver Detalle">
                                                             <button type="button" 
                                                                 class="btn btn-info btn-sm"
@@ -403,7 +415,7 @@ function AnularSalida(id_salida) {
                                                             ?>
                                                             <span data-toggle="tooltip" title="No tienes permiso para aprobar salidas" data-placement="top">
                                                                 <a href="#"
-                                                                class="btn btn-outline-danger btn-sm disabled"
+                                                                class="btn btn-outline-success btn-sm disabled"
                                                                 tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-check"></i>
                                                                 </a>
@@ -412,7 +424,7 @@ function AnularSalida(id_salida) {
                                                             <!-- YA APROBADA/RECEPCIONADA - Gris por proceso -->
                                                             <span data-toggle="tooltip" title="Salida ya aprobada" data-placement="top">
                                                                 <a href="#"
-                                                                class="btn btn-outline-secondary btn-sm disabled"
+                                                                class="btn btn-outline-success btn-sm disabled"
                                                                 tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-check"></i>
                                                                 </a>
@@ -423,7 +435,7 @@ function AnularSalida(id_salida) {
                                                                 title="<?php echo ($salida['est_salida'] == 0 ? 'Salida anulada' : 'Salida denegada'); ?>" 
                                                                 data-placement="top">
                                                                 <a href="#"
-                                                                class="btn btn-outline-secondary btn-sm disabled"
+                                                                class="btn btn-outline-success btn-sm disabled"
                                                                 tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-check"></i>
                                                                 </a>
@@ -448,7 +460,7 @@ function AnularSalida(id_salida) {
                                                             ?>
                                                             <span data-toggle="tooltip" title="No tienes permiso para recepcionar salidas" data-placement="top">
                                                                 <a href="#"
-                                                                class="btn btn-outline-danger btn-sm disabled"
+                                                                class="btn btn-outline-success btn-sm disabled"
                                                                 tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-check"></i>
                                                                 </a>
@@ -457,7 +469,7 @@ function AnularSalida(id_salida) {
                                                             <!-- YA RECEPCIONADA - Gris por proceso -->
                                                             <span data-toggle="tooltip" title="Salida ya recepcionada" data-placement="top">
                                                                 <a href="#"
-                                                                class="btn btn-outline-secondary btn-sm disabled"
+                                                                class="btn btn-outline-success btn-sm disabled"
                                                                 tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-check"></i>
                                                                 </a>
@@ -475,7 +487,7 @@ function AnularSalida(id_salida) {
                                                             <!-- OTROS ESTADOS - Gris por proceso -->
                                                             <span data-toggle="tooltip" title="Requiere aprobación previa" data-placement="top">
                                                                 <a href="#"
-                                                                class="btn btn-outline-secondary btn-sm disabled"
+                                                                class="btn btn-outline-success btn-sm disabled"
                                                                 tabindex="-1" aria-disabled="true">
                                                                     <i class="fa fa-check"></i>
                                                                 </a>
@@ -486,7 +498,7 @@ function AnularSalida(id_salida) {
                                                         <!-- BOTÓN EDITAR SALIDA -->
                                                         <!-- ============================================ -->
                                                         <?php
-                                                        $puede_editar = false;
+                                                        $puede_editar_proceso = false;
                                                         $titulo_editar = '';
 
                                                         if ($salida['est_salida'] == 0) {
@@ -498,24 +510,32 @@ function AnularSalida(id_salida) {
                                                         } elseif ($salida['est_salida'] == 4) {
                                                             $titulo_editar = "No se puede editar - Salida denegada";
                                                         } else {
-                                                            $puede_editar = true;
+                                                            $puede_editar_proceso = true;
                                                         }
 
-                                                        if ($puede_editar) { ?>
+                                                        if (!$tiene_permiso_editar) { ?>
+                                                            <span data-toggle="tooltip" title="No tienes permiso para editar salidas" data-placement="top">
+                                                                <a href="#"
+                                                                class="btn btn-outline-success btn-sm disabled"
+                                                                tabindex="-1" aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            </span>
+                                                        <?php } elseif (!$puede_editar_proceso) { ?>
+                                                            <span data-toggle="tooltip" title="<?php echo $titulo_editar; ?>" data-placement="top">
+                                                                <a href="#"
+                                                                class="btn btn-outline-success btn-sm disabled"
+                                                                tabindex="-1" aria-disabled="true">
+                                                                    <i class="fa fa-edit"></i>
+                                                                </a>
+                                                            </span>
+                                                        <?php } else { ?>
                                                             <a href="salidas_editar.php?id=<?php echo $salida['id_salida']; ?>" 
                                                             class="btn btn-warning btn-sm" 
                                                             data-toggle="tooltip"
                                                             title="Editar Salida">
                                                                 <i class="fa fa-edit"></i>
                                                             </a>
-                                                        <?php } else { ?>
-                                                            <span data-toggle="tooltip" title="<?php echo $titulo_editar; ?>" data-placement="top">
-                                                                <a href="#"
-                                                                class="btn btn-outline-secondary btn-sm disabled"
-                                                                tabindex="-1" aria-disabled="true">
-                                                                    <i class="fa fa-edit"></i>
-                                                                </a>
-                                                            </span>
                                                         <?php } ?>
 
                                                         <!-- Botón PDF -->
@@ -538,13 +558,13 @@ function AnularSalida(id_salida) {
                                                             // SIN PERMISO - Botón rojo outline danger
                                                             $titulo_anular = "No tienes permiso para anular salidas";
                                                             ?>
-                                                            <button class="btn btn-outline-danger btn-sm disabled"
-                                                                    data-toggle="tooltip"
-                                                                    title="<?php echo $titulo_anular; ?>"
-                                                                    tabindex="-1" 
-                                                                    aria-disabled="true">
-                                                                <i class="fa fa-times"></i>
-                                                            </button>
+                                                            <span data-toggle="tooltip" title="<?php echo $titulo_anular; ?>">
+                                                                <button class="btn btn-outline-success btn-sm disabled"
+                                                                        tabindex="-1" 
+                                                                        aria-disabled="true">
+                                                                    <i class="fa fa-times"></i>
+                                                                </button>
+                                                            </span>
                                                         <?php } else {
                                                             // CON PERMISO - Validar estado
                                                             if ($salida['est_salida'] == 0) {
@@ -569,13 +589,13 @@ function AnularSalida(id_salida) {
                                                                     <i class="fa fa-times"></i>
                                                                 </button>
                                                             <?php } else { ?>
-                                                                <button class="btn btn-outline-secondary btn-sm disabled"
-                                                                        title="<?php echo $titulo_anular; ?>"
-                                                                        tabindex="-1" 
-                                                                        data-toggle="tooltip"
-                                                                        aria-disabled="true">
-                                                                    <i class="fa fa-times"></i>
-                                                                </button>
+                                                                <span data-toggle="tooltip" title="<?php echo $titulo_anular; ?>">
+                                                                    <button class="btn btn-outline-success btn-sm disabled"
+                                                                            tabindex="-1" 
+                                                                            aria-disabled="true">
+                                                                        <i class="fa fa-times"></i>
+                                                                    </button>
+                                                                </span>
                                                             <?php } ?>
                                                         <?php } ?>
 
@@ -768,7 +788,17 @@ foreach($salidas as $salida) {
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
-                <?php if ($salida['est_salida'] == 1 && empty($salida_info['id_personal_aprueba_salida'])) { ?>
+                <?php 
+                $puede_editar_modal = ($salida['est_salida'] == 1 && empty($salida_info['id_personal_aprueba_salida']));
+                
+                if (!$tiene_permiso_editar) { ?>
+                    <button type="button" 
+                            class="btn btn-outline-success disabled"
+                            title="No tienes permiso para editar salidas"
+                            disabled>
+                        <i class="fa fa-edit"></i> Editar Salida
+                    </button>
+                <?php } elseif ($puede_editar_modal) { ?>
                     <a href="salidas_editar.php?id=<?php echo $salida['id_salida']; ?>" class="btn btn-warning">
                         <i class="fa fa-edit"></i> Editar Salida
                     </a>
