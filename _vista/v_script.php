@@ -401,18 +401,20 @@ document.addEventListener("DOMContentLoaded", function() {
             <td>
                 <select name="id_banco[]" class="form-control select2_banco" required>
                     <option value="">Seleccione un banco</option>
-                    <?php foreach ($bancos as $b) { 
+                    <?php if (isset($bancos) && is_array($bancos)) {
+                      foreach ($bancos as $b) {
                         if ($b['est_banco'] == 1) { ?>
-                            <option value="<?php echo $b['id_banco']; ?>"><?php echo $b['cod_banco']; ?></option>
-                    <?php } } ?>
+                        <option value="<?php echo $b['id_banco']; ?>"><?php echo $b['cod_banco']; ?></option>
+                    <?php }}} ?>
                 </select>
             </td>
             <td>
                 <select name="id_moneda[]" class="form-control select2_moneda" required>
                     <option value="">Seleccione una moneda</option>
-                    <?php foreach ($monedas as $m) { ?>
+                    <?php if (isset($monedas) && is_array($monedas)) {
+                    foreach ($monedas as $m) { ?>
                         <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
-                    <?php } ?>
+                    <?php }} ?>
                 </select>
             </td>
             <td><input type="text" name="cta_corriente[]" class="form-control" required></td>
@@ -468,19 +470,21 @@ document.addEventListener("DOMContentLoaded", function() {
             <td>
                 <select name="id_banco[]" class="form-control select2_banco" required>
                     <option value="">Seleccione un banco</option>
-                    <?php foreach ($bancos as $b) { if ($b['est_banco'] == 1) { ?>
+                    <?php if (isset($bancos) && is_array($bancos)) {
+                    foreach ($bancos as $b) { if ($b['est_banco'] == 1) { ?>
                         <option value="<?php echo $b['id_banco']; ?>">
                             <?php echo $b['cod_banco']; ?>
                         </option>
-                    <?php } } ?>
+                    <?php }} } ?>
                 </select>
             </td>
             <td>
                 <select name="id_moneda[]" class="form-control select2_moneda" required>
                     <option value="">Seleccione una moneda</option>
-                    <?php foreach ($monedas as $m) { ?>
+                    <?php if (isset($monedas) && is_array($monedas)) {
+                    foreach ($monedas as $m) { ?>
                         <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
-                    <?php } ?>
+                    <?php }} ?>
                 </select>
             </td>
             <td><input type="text" name="cta_corriente[]" class="form-control" required></td>
@@ -544,19 +548,21 @@ document.addEventListener("DOMContentLoaded", function () {
                 <td>
                     <select name="id_banco[]" class="form-control select2_banco" required>
                         <option value="">Seleccione un banco</option>
-                        <?php foreach ($bancos as $b) { if ($b['est_banco'] == 1) { ?>
+                        <?php if (isset($bancos) && is_array($bancos)) {
+                        foreach ($bancos as $b) { if ($b['est_banco'] == 1) { ?>
                             <option value="<?php echo $b['id_banco']; ?>">
                                 <?php echo $b['cod_banco']; ?>
                             </option>
-                        <?php } } ?>
+                        <?php }} } ?>
                     </select>
                 </td>
                 <td>
                     <select name="id_moneda[]" class="form-control select2_moneda" required>
                         <option value="">Seleccione una moneda</option>
-                        <?php foreach ($monedas as $m) { ?>
+                        <?php if (isset($monedas) && is_array($monedas)) {
+                          foreach ($monedas as $m) { ?>
                             <option value="<?php echo $m['id_moneda']; ?>"><?php echo $m['nom_moneda']; ?></option>
-                        <?php } ?>
+                        <?php }} ?>
                     </select>
                 </td>
                 <td><input type="text" name="cta_corriente[]" class="form-control" required></td>
