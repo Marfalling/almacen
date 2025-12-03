@@ -35,7 +35,7 @@ $tiene_permiso_importar = verificarPermisoEspecifico('importar_proveedor');
                             <?php if (!$tiene_permiso_nuevo) { ?>
                                 <span data-toggle="tooltip" title="No tienes permiso para crear proveedores">
                                     <a href="#" 
-                                       class="btn btn-outline-success btn-sm disabled"
+                                       class="btn btn-outline-secondary btn-sm disabled"
                                        tabindex="-1" 
                                        aria-disabled="true">
                                         <i class="fa fa-plus"></i> Nuevo Proveedor
@@ -55,14 +55,14 @@ $tiene_permiso_importar = verificarPermisoEspecifico('importar_proveedor');
                             <!-- ============================================ -->
                             <?php if (!$tiene_permiso_importar) { ?>
                                 <span data-toggle="tooltip" title="No tienes permiso para importar proveedores">
-                                    <button class="btn btn-outline-success btn-sm disabled"
+                                    <button class="btn btn-outline-secondary btn-sm disabled"
                                             tabindex="-1" 
                                             aria-disabled="true">
                                         <i class="fa fa-upload"></i> Importar CSV
                                     </button>
                                 </span>
                             <?php } else { ?>
-                                <button class="btn btn-outline-success btn-sm" 
+                                <button class="btn btn-outline-secondary btn-sm" 
                                         data-toggle="modal" 
                                         data-target="#modalImportar"
                                         title="Importar proveedores desde CSV">
@@ -180,7 +180,7 @@ $tiene_permiso_importar = verificarPermisoEspecifico('importar_proveedor');
                                             <?php if (!$tiene_permiso_editar) { ?>
                                                 <span data-toggle="tooltip" title="No tienes permiso para editar proveedores">
                                                     <a href="#"
-                                                    class="btn btn-outline-success btn-sm disabled"
+                                                    class="btn btn-outline-secondary btn-sm disabled"
                                                     tabindex="-1"
                                                     aria-disabled="true">
                                                         <i class="fa fa-edit"></i>
@@ -226,7 +226,7 @@ $tiene_permiso_importar = verificarPermisoEspecifico('importar_proveedor');
           <p class="text-muted">Formato esperado: Nombre, RUC, Dirección, Teléfono, Contacto, Estado, Email, Banco, Moneda, Cuenta, CCI, EstadoCuenta</p>
         </div>
         <div class="modal-footer">
-            <button type="button" class="btn btn-outline-success" data-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Cancelar</button>
             <button type="submit" class="btn btn-success">Subir e Importar</button>
         </div>
       </form>

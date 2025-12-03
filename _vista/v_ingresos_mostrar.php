@@ -24,7 +24,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                     <!-- ============================================ -->
                     <?php if (!$tiene_permiso_crear) { ?>
                         <a href="#" 
-                           class="btn btn-outline-success btn-sm btn-block disabled"
+                           class="btn btn-outline-secondary btn-sm btn-block disabled"
                            title="No tienes permiso para crear ingresos"
                            tabindex="-1" 
                            aria-disabled="true">
@@ -289,7 +289,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                         // ============================================
                                                                         if (!$tiene_permiso_editar) { ?>
                                                                             <a href="#" 
-                                                                               class="btn btn-outline-success btn-sm disabled"
+                                                                               class="btn btn-outline-secondary btn-sm disabled"
                                                                                title="No tienes permiso para editar ingresos"
                                                                                tabindex="-1" 
                                                                                aria-disabled="true">
@@ -297,7 +297,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                             </a>
                                                                         <?php } elseif ($est_compra == 0) { ?>
                                                                             <a href="#" 
-                                                                               class="btn btn-outline-success btn-sm disabled"
+                                                                               class="btn btn-outline-secondary btn-sm disabled"
                                                                                title="No se puede editar - Ingreso anulado"
                                                                                tabindex="-1" 
                                                                                aria-disabled="true">
@@ -305,7 +305,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                             </a>
                                                                         <?php } elseif (!$hay_pendientes) { ?>
                                                                             <a href="#" 
-                                                                               class="btn btn-outline-success btn-sm disabled"
+                                                                               class="btn btn-outline-secondary btn-sm disabled"
                                                                                title="Sin productos pendientes por ingresar"
                                                                                tabindex="-1" 
                                                                                aria-disabled="true">
@@ -338,14 +338,14 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                         // BOTÓN ANULAR INGRESO DIRECTO
                                                                         // ============================================
                                                                         if (!$tiene_permiso_anular) { ?>
-                                                                            <button class="btn btn-outline-success btn-sm disabled"
+                                                                            <button class="btn btn-outline-secondary btn-sm disabled"
                                                                                     title="No tienes permiso para anular ingresos"
                                                                                     tabindex="-1" 
                                                                                     aria-disabled="true">
                                                                                 <i class="fa fa-times"></i>
                                                                             </button>
                                                                         <?php } elseif ($ingreso['estado'] == 0) { ?>
-                                                                            <span class="btn btn-outline-success btn-sm disabled" 
+                                                                            <span class="btn btn-outline-secondary btn-sm disabled" 
                                                                                   data-toggle="tooltip" 
                                                                                   title="Ya anulado">
                                                                                 <i class="fa fa-ban"></i>
@@ -484,7 +484,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                     // ============================================
                                                                     if (!$tiene_permiso_editar) { ?>
                                                                         <a href="#" 
-                                                                           class="btn btn-outline-success btn-sm disabled"
+                                                                           class="btn btn-outline-secondary btn-sm disabled"
                                                                            title="No tienes permiso para editar ingresos"
                                                                            tabindex="-1" 
                                                                            aria-disabled="true">
@@ -492,7 +492,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                         </a>
                                                                     <?php } elseif ($est_compra == 0) { ?>
                                                                         <a href="#" 
-                                                                           class="btn btn-outline-success btn-sm disabled"
+                                                                           class="btn btn-outline-secondary btn-sm disabled"
                                                                            title="No se puede editar - Ingreso anulado"
                                                                            tabindex="-1" 
                                                                            aria-disabled="true">
@@ -500,7 +500,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                         </a>
                                                                     <?php } elseif (!$hay_pendientes) { ?>
                                                                         <a href="#" 
-                                                                           class="btn btn-outline-success btn-sm disabled"
+                                                                           class="btn btn-outline-secondary btn-sm disabled"
                                                                            title="Sin productos pendientes por ingresar"
                                                                            tabindex="-1" 
                                                                            aria-disabled="true">
@@ -601,14 +601,14 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                     // BOTÓN ANULAR INGRESO DIRECTO
                                                                     // ============================================
                                                                     if (!$tiene_permiso_anular) { ?>
-                                                                        <button class="btn btn-outline-success btn-sm disabled"
+                                                                        <button class="btn btn-outline-secondary btn-sm disabled"
                                                                                 title="No tienes permiso para anular ingresos"
                                                                                 tabindex="-1" 
                                                                                 aria-disabled="true">
                                                                             <i class="fa fa-times"></i>
                                                                         </button>
                                                                     <?php } elseif ($ingreso['estado'] == 0) { ?>
-                                                                        <span class="btn btn-outline-success btn-sm disabled" 
+                                                                        <span class="btn btn-outline-secondary btn-sm disabled" 
                                                                               data-toggle="tooltip" 
                                                                               title="Ya anulado">
                                                                             <i class="fa fa-ban"></i> Anulado
@@ -746,7 +746,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                         // ============================================
                                                                         if (!$tiene_permiso_editar) { ?>
                                                                             <a href="#" 
-                                                                               class="btn btn-outline-success btn-sm disabled"
+                                                                               class="btn btn-outline-secondary btn-sm disabled"
                                                                                title="No tienes permiso para editar ingresos"
                                                                                tabindex="-1" 
                                                                                aria-disabled="true">
@@ -754,7 +754,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                             </a>
                                                                         <?php } elseif ($est_compra == 0) { ?>
                                                                             <a href="#" 
-                                                                               class="btn btn-outline-success btn-sm disabled"
+                                                                               class="btn btn-outline-secondary btn-sm disabled"
                                                                                title="No se puede editar - Ingreso anulado"
                                                                                tabindex="-1" 
                                                                                aria-disabled="true">
@@ -762,7 +762,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                             </a>
                                                                         <?php } elseif (!$hay_pendientes) { ?>
                                                                             <a href="#" 
-                                                                               class="btn btn-outline-success btn-sm disabled"
+                                                                               class="btn btn-outline-secondary btn-sm disabled"
                                                                                title="Sin productos pendientes por ingresar"
                                                                                tabindex="-1" 
                                                                                aria-disabled="true">

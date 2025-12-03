@@ -1357,7 +1357,7 @@ $monedas = MostrarMoneda();
                                                                         }
                                                                     ?>
                                                                         <!-- Botón Editar DESHABILITADO -->
-                                                                        <button class="btn btn-outline-success btn-xs ml-1"
+                                                                        <button class="btn btn-outline-secondary btn-xs ml-1"
                                                                                 title="<?php echo $mensaje; ?>"
                                                                                 disabled>
                                                                             <i class="fa fa-edit"></i>
@@ -1391,7 +1391,7 @@ $monedas = MostrarMoneda();
                                                                             $mensaje_anular = "No se puede anular";
                                                                         }
                                                                     ?>
-                                                                        <button class="btn btn-outline-success btn-xs ml-1"
+                                                                        <button class="btn btn-outline-secondary btn-xs ml-1"
                                                                                 title="<?php echo $mensaje_anular; ?>"
                                                                                 disabled>
                                                                             <i class="fa fa-times"></i>
@@ -1511,10 +1511,10 @@ $monedas = MostrarMoneda();
                                                                 
                                                                 <?php if ($salida['est_salida'] == 0 || $salida['est_salida'] == 4) { ?>
                                                                     <!-- Estados ANULADA (0) o DENEGADA (4): botones deshabilitados -->
-                                                                    <button class="btn btn-outline-success btn-xs ml-1 disabled" disabled>
+                                                                    <button class="btn btn-outline-secondary btn-xs ml-1 disabled" disabled>
                                                                         <i class="fa fa-edit"></i>
                                                                     </button>
-                                                                    <button class="btn btn-outline-success btn-xs ml-1 disabled" disabled>
+                                                                    <button class="btn btn-outline-secondary btn-xs ml-1 disabled" disabled>
                                                                         <i class="fa fa-times"></i>
                                                                     </button>
                                                                 <?php } ?>
@@ -2407,7 +2407,7 @@ $monedas = MostrarMoneda();
                     <div class="x_content text-center" style="padding: 15px;">
                         <div class="row">
                             <div class="col-md-6 offset-md-3">
-                                <a href="pedidos_mostrar.php" class="btn btn-outline-success btn-sm btn-block">
+                                <a href="pedidos_mostrar.php" class="btn btn-outline-secondary btn-sm btn-block">
                                     <i class="fa fa-arrow-left"></i> Volver
                                 </a>
                             </div>
@@ -2711,7 +2711,7 @@ $monedas = MostrarMoneda();
                 </form>
             </div>
             <div class="modal-footer" style="padding: 15px; background-color: #f8f9fa;">
-                <button type="button" class="btn btn-outline-success" data-dismiss="modal">
+                <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">
                     <i></i> Cancelar
                 </button>
                 <button type="button" class="btn btn-success" id="btn-guardar-proveedor-modal">

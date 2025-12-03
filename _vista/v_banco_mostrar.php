@@ -37,7 +37,7 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_banco');
                                 <!-- ============================================ -->
                                 <?php if (!$tiene_permiso_crear) { ?>
                                     <a href="#" 
-                                       class="btn btn-outline-success btn-sm btn-block disabled"
+                                       class="btn btn-outline-secondary btn-sm btn-block disabled"
                                        title="No tienes permiso para crear bancos"
                                        tabindex="-1" 
                                        aria-disabled="true">
@@ -100,7 +100,7 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_banco');
                                                         <?php if (!$tiene_permiso_editar) { ?>
                                                             <span data-toggle="tooltip" title="No tienes permiso para editar bancos">
                                                                 <a href="#" 
-                                                                class="btn btn-outline-success btn-sm disabled"
+                                                                class="btn btn-outline-secondary btn-sm disabled"
                                                                 tabindex="-1" 
                                                                 aria-disabled="true">
                                                                     <i class="fa fa-edit"></i>

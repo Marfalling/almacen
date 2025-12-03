@@ -85,7 +85,7 @@ function AnularUso(id_uso_material) {
                                 <!-- ============================================ -->
                                 <?php if (!$tiene_permiso_crear) { ?>
                                     <a href="#" 
-                                       class="btn btn-outline-success btn-sm btn-block disabled"
+                                       class="btn btn-outline-secondary btn-sm btn-block disabled"
                                        title="No tienes permiso para crear uso de material"
                                        tabindex="-1" 
                                        aria-disabled="true">
@@ -169,7 +169,7 @@ function AnularUso(id_uso_material) {
                                                             // ============================================
                                                             if (!$tiene_permiso_anular) { ?>
                                                                 <a href="#" 
-                                                                   class="btn btn-outline-success btn-sm disabled"
+                                                                   class="btn btn-outline-secondary btn-sm disabled"
                                                                    title="No tienes permiso para anular uso de material"
                                                                    tabindex="-1" 
                                                                    aria-disabled="true">
@@ -177,7 +177,7 @@ function AnularUso(id_uso_material) {
                                                                 </a>
                                                             <?php } elseif ($uso['est_uso_material'] == 0) { ?>
                                                                 <a href="#" 
-                                                                   class="btn btn-outline-success btn-sm disabled"
+                                                                   class="btn btn-outline-secondary btn-sm disabled"
                                                                    title="Uso de material ya anulado"
                                                                    tabindex="-1" 
                                                                    aria-disabled="true">
@@ -198,7 +198,7 @@ function AnularUso(id_uso_material) {
                                                             // ============================================
                                                             if (!$tiene_permiso_editar) { ?>
                                                                 <a href="#" 
-                                                                   class="btn btn-outline-success btn-sm disabled"
+                                                                   class="btn btn-outline-secondary btn-sm disabled"
                                                                    title="No tienes permiso para editar uso de material"
                                                                    tabindex="-1" 
                                                                    aria-disabled="true">
@@ -206,7 +206,7 @@ function AnularUso(id_uso_material) {
                                                                 </a>
                                                             <?php } elseif ($uso['est_uso_material'] == 0) { ?>
                                                                 <a href="#" 
-                                                                   class="btn btn-outline-success btn-sm disabled"
+                                                                   class="btn btn-outline-secondary btn-sm disabled"
                                                                    title="No se puede editar - Uso de material anulado"
                                                                    tabindex="-1" 
                                                                    aria-disabled="true">

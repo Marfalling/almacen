@@ -67,7 +67,7 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_centro de costo');
                                 <!-- ============================================ -->
                                 <?php if (!$tiene_permiso_crear) { ?>
                                     <a href="#" 
-                                       class="btn btn-outline-success btn-sm btn-block disabled"
+                                       class="btn btn-outline-secondary btn-sm btn-block disabled"
                                        title="No tienes permiso para crear centros de costo"
                                        tabindex="-1" 
                                        aria-disabled="true">
@@ -127,7 +127,7 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_centro de costo');
                                                         <?php if (!$tiene_permiso_editar) { ?>
                                                             <span data-toggle="tooltip" data-placement="top" title="No tienes permiso para editar centros de costo">
                                                                 <a href="#" 
-                                                                class="btn btn-outline-success btn-sm disabled"
+                                                                class="btn btn-outline-secondary btn-sm disabled"
                                                                 tabindex="-1" 
                                                                 aria-disabled="true">
                                                                     <i class="fa fa-edit"></i>

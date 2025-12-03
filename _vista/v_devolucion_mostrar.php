@@ -37,7 +37,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_devoluciones');
                                 <!-- ============================================ -->
                                 <?php if (!$tiene_permiso_crear) { ?>
                                     <a href="#" 
-                                       class="btn btn-outline-success btn-sm btn-block disabled"
+                                       class="btn btn-outline-secondary btn-sm btn-block disabled"
                                        title="No tienes permiso para crear devoluciones"
                                        tabindex="-1" 
                                        aria-disabled="true">
@@ -147,7 +147,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_devoluciones');
                                                             if (!$tiene_permiso_editar) { ?>
                                                                     <a href="#"
                                                                    data-toggle="tooltip"
-                                                                       class="btn btn-outline-success btn-sm disabled"
+                                                                       class="btn btn-outline-secondary btn-sm disabled"
                                                                    title="<?php echo $titulo_editar; ?>"
                                                                        tabindex="-1"
                                                                        aria-disabled="true">
@@ -155,7 +155,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_devoluciones');
                                                                     </a>
                                                                 <?php } elseif (!$puede_editar) { ?>
                                                                     <a href="#"
-                                                                       class="btn btn-outline-success btn-sm disabled"
+                                                                       class="btn btn-outline-secondary btn-sm disabled"
                                                                    title="<?php echo $titulo_editar; ?>"
                                                                        tabindex="-1"
                                                                    data-toggle="tooltip"
@@ -188,7 +188,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_devoluciones');
                                                                 
                                                                 <?php if ($devolucion['est_devolucion'] != 1) { ?>
                                                                         <button type="button" 
-                                                                                class="btn btn-outline-success btn-sm disabled"
+                                                                                class="btn btn-outline-secondary btn-sm disabled"
                                                                             title="Confirmar Devolución"
                                                                             data-toggle="tooltip"
                                                                             disabled>
@@ -227,14 +227,14 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_devoluciones');
                                                                 <span data-toggle="tooltip" title="<?php echo $titulo_anular; ?>">
                                                                     <?php if (!$tiene_permiso_anular) { ?>
                                                                         <button type="button" 
-                                                                                class="btn btn-outline-success btn-sm disabled"
+                                                                                class="btn btn-outline-secondary btn-sm disabled"
                                                                                 tabindex="-1"
                                                                                 aria-disabled="true">
                                                                             <i class="fa fa-times"></i>
                                                                         </button>
                                                                     <?php } elseif (!$puede_anular) { ?>
                                                                         <button type="button" 
-                                                                                class="btn btn-outline-success btn-sm disabled"
+                                                                                class="btn btn-outline-secondary btn-sm disabled"
                                                                                 tabindex="-1"
                                                                                 aria-disabled="true">
                                                                             <i class="fa fa-times"></i>
