@@ -42,20 +42,18 @@ if (isset($_REQUEST['confirmar'])) {
     }
 }
 
-if (isset($_REQUEST['anular'])) {
-    $id = intval($_REQUEST['id_devolucion']);
-    $resultado = AnularDevolucion($id);
-
-    if ($resultado === "SI") {
+// Verificar si viene de anular
+if (isset($_GET['anulado'])) {
+    if ($_GET['anulado'] === 'success') {
         $mostrar_alerta = true;
         $tipo_alerta = 'success';
         $titulo_alerta = 'Anulada';
         $mensaje_alerta = 'La devolución fue anulada correctamente.';
-    } else {
+    } elseif ($_GET['anulado'] === 'error') {
         $mostrar_alerta = true;
         $tipo_alerta = 'error';
         $titulo_alerta = 'Error';
-        $mensaje_alerta = 'No se pudo anular la devolución.<br>' . $resultado;
+        $mensaje_alerta = 'No se pudo anular la devolución.<br>' . (isset($_GET['msg']) ? urldecode($_GET['msg']) : '');
     }
 }
 

@@ -204,7 +204,7 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_devoluciones');
                                                             </form>
 
                                                             <!-- Botón Anular -->
-                                                            <form method="post" action="devoluciones_mostrar.php" style="display:inline;">
+                                                            <form method="post" action="devoluciones_anular.php" style="display:inline;">
                                                                 <input type="hidden" name="id_devolucion" value="<?php echo $devolucion['id_devolucion']; ?>">
                                                                 <input type="hidden" name="anular" value="1">
 
