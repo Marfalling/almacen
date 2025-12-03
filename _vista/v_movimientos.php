@@ -34,7 +34,8 @@
                                 <input type="date" id="fecha_fin" name="fecha_fin" class="form-control"
                                     value="<?= htmlspecialchars($fecha_fin) ?>">
                             </div>
-                            <button type="submit" class="btn btn-primary mb-2">Filtrar</button>
+                            <button type="submit" class="btn btn-primary mb-2"><i class="fa fa-search"></i> Consultar</button>
+                            <button type="button" class="btn btn-secondary mb-2" onclick="window.location.href='movimientos_mostrar.php'"><i class="bi bi-eraser"></i> Limpiar</button>
                         </form>
                         <!-- ======================================================= -->
 

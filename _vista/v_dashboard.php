@@ -26,14 +26,14 @@
                 <div class="col-md-4">
                   <div class="form-group">
                     <label>Fecha Inicio:</label>
-                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" 
+                    <input type="date" class="form-control input-fecha" id="fecha_inicio" name="fecha_inicio" 
                            value="<?php echo $fecha_inicio; ?>">
                   </div>
                 </div>
                 <div class="col-md-4">
                   <div class="form-group">
                     <label>Fecha Fin:</label>
-                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin"
+                    <input type="date" class="form-control input-fecha" id="fecha_fin" name="fecha_fin"
                            value="<?php echo $fecha_fin; ?>">
                   </div>
                 </div>
@@ -105,8 +105,8 @@
                   <button type="submit" class="btn btn-primary">
                     <i class="fa fa-search"></i> Aplicar Filtros
                   </button>
-                  <button type="button" class="btn btn-default" onclick="limpiarFiltros()">
-                    <i class="fa fa-eraser"></i> Limpiar
+                  <button type="button" class="btn btn-secondary" onclick="limpiarFiltros()">
+                    <i class="bi bi-eraser"></i> Limpiar
                   </button>
                 </div>
               </div>
@@ -124,27 +124,42 @@
           <div class="x_content">
             <div class="row">
               <div class="tile_count col-12">
-                <div class="col-md-2 col-sm-6 tile_stats_count">
+                <div class="col-md-2 col-sm-6 tile_stats_count" style="max-width: 12.5%;">
                   <span class="count_top"><i class="fa fa-cube"></i> Total Productos</span>
                   <div class="count"><?php echo $cantidad_productos; ?></div>
                   <span class="count_bottom">En el sistema</span>
                 </div>
-                <div class="col-md-3 col-sm-6 tile_stats_count">
+                <div class="col-md-2 col-sm-6 tile_stats_count" style="max-width: 12.5%;">
                   <span class="count_top"><i class="fa fa-clipboard-list"></i> Pedidos</span>
                   <div class="count green"><?php echo $cantidad_pedidos; ?></div>
                   <span class="count_bottom"><i class="green">En el período</i></span>
                 </div>
-                <div class="col-md-2 col-sm-6 tile_stats_count">
+                <div class="col-md-2 col-sm-6 tile_stats_count" style="max-width: 12.5%;">
                   <span class="count_top"><i class="fa fa-shopping-cart"></i> Compras</span>
                   <div class="count green"><?php echo $cantidad_compras; ?></div>
                   <span class="count_bottom"><i class="green">En el período</i></span>
                 </div>
-                <div class="col-md-3 col-sm-6 tile_stats_count">
+                <div class="col-md-2 col-sm-6 tile_stats_count" style="max-width: 12.5%;">
+                  <span class="count_top"><i class="fa fa-shopping-cart"></i> Ingresos</span>
+                  <div class="count green"><?php echo $cantidad_ingresos; ?></div>
+                  <span class="count_bottom"><i class="green">En el período</i></span>
+                </div>
+                <div class="col-md-2 col-sm-6 tile_stats_count" style="max-width: 12.5%;">
+                  <span class="count_top"><i class="fa fa-shopping-cart"></i> Salidas</span>
+                  <div class="count green"><?php echo $cantidad_salidas; ?></div>
+                  <span class="count_bottom"><i class="green">En el período</i></span>
+                </div>
+                <div class="col-md-2 col-sm-6 tile_stats_count" style="max-width: 12.5%;">
+                  <span class="count_top"><i class="fa fa-shopping-cart"></i> Devoluciones</span>
+                  <div class="count green"><?php echo $cantidad_devoluciones; ?></div>
+                  <span class="count_bottom"><i class="green">En el período</i></span>
+                </div>
+                <div class="col-md-2 col-sm-6 tile_stats_count" style="max-width: 12.5%;">
                   <span class="count_top"><i class="fa fa-warehouse"></i> Total Almacenes</span>
                   <div class="count"><?php echo $cantidad_almacenes; ?></div>
                   <span class="count_bottom">En el sistema</span>
                 </div>
-                <div class="col-md-2 col-sm-6 tile_stats_count">
+                <div class="col-md-2 col-sm-6 tile_stats_count" style="max-width: 12.5%;">
                   <span class="count_top"><i class="fa fa-truck"></i> Total Proveedores</span>
                   <div class="count"><?php echo $cantidad_proveedores; ?></div>
                   <span class="count_bottom">Activos</span>
@@ -162,6 +177,11 @@
         <div class="x_panel">
           <div class="x_title">
             <h2>Estado General de Órdenes de Compra <small>Resumen del Período</small></h2>
+            <ul class="nav navbar-right panel_toolbox">
+              <li>
+                <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+              </li>
+            </ul>
             <div class="clearfix"></div>
           </div>
           <div class="x_content">
@@ -290,6 +310,11 @@
         <div class="x_panel">
           <div class="x_title">
             <h2>Órdenes de Compra Por Centro de Costo <small>Distribución</small></h2>
+            <ul class="nav navbar-right panel_toolbox">
+              <li>
+                <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+              </li>
+            </ul>
             <div class="clearfix"></div>
           </div>
           <div class="x_content">
@@ -387,6 +412,11 @@
         <div class="x_panel">
           <div class="x_title">
             <h2>Estado de Pagos por Centro de Costo <small>Análisis Financiero</small></h2>
+            <ul class="nav navbar-right panel_toolbox">
+              <li>
+                <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+              </li>
+            </ul>
             <div class="clearfix"></div>
           </div>
           <div class="x_content">
@@ -432,6 +462,11 @@
         <div class="x_panel">
           <div class="x_title">
             <h2>Estado de Pagos por Proveedor <small>Análisis de Proveedores</small></h2>
+            <ul class="nav navbar-right panel_toolbox">
+              <li>
+                <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+              </li>
+            </ul>
             <div class="clearfix"></div>
           </div>
           <div class="x_content">
@@ -477,6 +512,11 @@
         <div class="x_panel">
           <div class="x_title">
             <h2>Órdenes Vencidas por Proveedor <small>Análisis Mensual <?php echo date('Y'); ?></small></h2>
+            <ul class="nav navbar-right panel_toolbox">
+              <li>
+                <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+              </li>
+            </ul>
             <div class="clearfix"></div>
           </div>
           <div class="x_content">
@@ -779,4 +819,16 @@ function drawVencidasMesChart() {
 window.addEventListener('resize', function() {
   drawAllCharts();
 });
+
 </script>
+
+<style>
+  .input-fecha {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    height: 33px !important;   /* Altura igual al Select2 */
+    border-radius: 4px;        /* Borde similar */
+    border: 1px solid #a8a8a8ff;    /* Mismo tono del Select2 */
+    padding: 6px 12px;
+}
+
+</style>

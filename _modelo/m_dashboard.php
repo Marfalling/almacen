@@ -755,6 +755,39 @@ function obtenerTotalCompras($con, $fecha_inicio = null, $fecha_fin = null) {
     return $result ? intval($result->fetch_assoc()['total']) : 0;
 }
 
+function obtenerTotalIngresos($con, $fecha_inicio = null, $fecha_fin = null) {
+    $where = ["est_ingreso != 0"];
+    if ($fecha_inicio && $fecha_fin) {
+        $where[] = "DATE(fec_ingreso) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
+    }
+    $where_sql = "WHERE " . implode(" AND ", $where);
+    $sql = "SELECT COUNT(*) as total FROM ingreso $where_sql";
+    $result = $con->query($sql);
+    return $result ? intval($result->fetch_assoc()['total']) : 0;
+}
+
+function obtenerTotalSalidas($con, $fecha_inicio = null, $fecha_fin = null) {
+    $where = ["est_salida != 0"];
+    if ($fecha_inicio && $fecha_fin) {
+        $where[] = "DATE(fec_salida) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
+    }
+    $where_sql = "WHERE " . implode(" AND ", $where);
+    $sql = "SELECT COUNT(*) as total FROM salida $where_sql";
+    $result = $con->query($sql);
+    return $result ? intval($result->fetch_assoc()['total']) : 0;
+}
+
+function obtenerTotalDevoluciones($con, $fecha_inicio = null, $fecha_fin = null) {
+    $where = ["est_devolucion != 0"];
+    if ($fecha_inicio && $fecha_fin) {
+        $where[] = "DATE(fec_devolucion) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
+    }
+    $where_sql = "WHERE " . implode(" AND ", $where);
+    $sql = "SELECT COUNT(*) as total FROM devolucion $where_sql";
+    $result = $con->query($sql);
+    return $result ? intval($result->fetch_assoc()['total']) : 0;
+}
+
 function obtenerListaCentros($con) {
     global $bd_complemento;
 

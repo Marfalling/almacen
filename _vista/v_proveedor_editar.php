@@ -109,7 +109,7 @@
                                                     </td>
                                                     <td><input type="text" name="cta_corriente[]" value="<?php echo $c['nro_cuenta_corriente']; ?>" class="form-control" required></td>
                                                     <td><input type="text" name="cta_interbancaria[]" value="<?php echo $c['nro_cuenta_interbancaria']; ?>" class="form-control" required></td>
-                                                    <td><button type="button" class="btn btn-danger btn-sm eliminar-fila">X</button></td>
+                                                    <td><button type="button" class="btn btn-danger btn-sm eliminar-fila" data-toggle="tooltip" title="Eliminar cuenta">X</button></td>
                                                 </tr>
                                             <?php } ?>
                                         </tbody>
@@ -134,11 +134,11 @@
                             <div class="form-group">
                                 <div class="col-md-2 col-sm-2 offset-md-8">
                                     <a href="proveedor_mostrar.php" class="btn btn-outline-danger btn-block">
-                                        Cancelar
+                                        <i class="bi bi-x-square"></i> Cancelar
                                     </a>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
-                                    <button type="submit" name="registrar" class="btn btn-success btn-block">Actualizar</button>
+                                    <button type="submit" name="registrar" class="btn btn-success btn-block"><i class="bi bi-arrow-clockwise"></i> Actualizar</button>
                                 </div>
                             </div>
                             

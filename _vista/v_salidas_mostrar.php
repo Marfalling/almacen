@@ -290,15 +290,18 @@ function AnularSalida(id_salida) {
                     <div class="x_content">
                         <!-- Filtro de Fechas -->
                         <form method="get" action="salidas_mostrar.php" class="form-inline mb-3">
-                            <label for="fecha_inicio" class="mr-2">Desde:</label>
-                            <input type="date" id="fecha_inicio" name="fecha_inicio" class="form-control mr-2"
-                                value="<?php echo htmlspecialchars($fecha_inicio ?? date('Y-m-01')); ?>">
-
-                            <label for="fecha_fin" class="mr-2">Hasta:</label>
-                            <input type="date" id="fecha_fin" name="fecha_fin" class="form-control mr-2"
-                                value="<?php echo htmlspecialchars($fecha_fin ?? date('Y-m-d')); ?>">
-
-                            <button type="submit" class="btn btn-primary">Consultar</button>
+                            <div class="form-group mx-sm-2 mb-2">
+                                <label for="fecha_inicio" class="mr-2">Desde:</label>
+                                <input type="date" id="fecha_inicio" name="fecha_inicio" class="form-control"
+                                    value="<?php echo htmlspecialchars($fecha_inicio ?? date('Y-m-01')); ?>">
+                            </div>
+                            <div class="form-group mx-sm-2 mb-2">
+                                <label for="fecha_fin" class="mr-2">Hasta:</label>
+                                <input type="date" id="fecha_fin" name="fecha_fin" class="form-control"
+                                    value="<?php echo htmlspecialchars($fecha_fin ?? date('Y-m-d')); ?>">
+                            </div>
+                            <button type="submit" class="btn btn-primary mb-2"><i class="fa fa-search"></i> Consultar</button>
+                            <button type="button" class="btn btn-secondary mb-2" onclick="window.location.href='salidas_mostrar.php'"><i class="bi bi-eraser"></i> Limpiar</button>
                         </form>
                         <div class="row">
                             <div class="col-sm-12">

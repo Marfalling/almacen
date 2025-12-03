@@ -89,12 +89,12 @@
                             <div class="form-group">
                                 <div class="col-md-2 col-sm-2 offset-md-8">
                                     <a href="detraccion_mostrar.php" class="btn btn-outline-danger btn-block">
-                                        Cancelar
+                                        <i class="bi bi-x-square"></i> Cancelar
                                     </a>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
                                     <button type="submit" name="registrar" class="btn btn-success btn-block">
-                                        Actualizar
+                                        <i class="bi bi-arrow-clockwise"></i> Actualizar
                                     </button>
                                 </div>
                             </div>

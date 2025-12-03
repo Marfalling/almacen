@@ -32,7 +32,7 @@
                                     <div class="form-group row" style="display: flex; justify-content: flex-end; padding-left: 15px;">
                                         <form method="post" action="almacen_clientes_mostrar.php" class="form-inline">
 
-                                            <div class="form-group mr-3">
+                                            <div class="form-group mr-3 mb-2">
                                                 <label for="id_cliente" class="control-label mr-2">Cliente:</label>
                                                 <select id="id_cliente" name="id_cliente" class="form-control" required>
                                                     <option value="" disabled selected>Seleccione Cliente</option>
@@ -46,7 +46,8 @@
                                             </div>
 
                                             <!-- Botón de submit -->
-                                            <button type="submit" name="consultar" class="btn btn-primary">Consultar</button>
+                                            <button type="submit" name="consultar" class="btn btn-primary mb-2"><i class="fa fa-search"></i> Consultar</button>
+                                            <button type="button" class="btn btn-secondary mb-2" onclick="window.location.href='almacen_clientes_mostrar.php'"><i class="bi bi-eraser"></i> Limpiar</button>
                                         </form>
 
                                     </div>

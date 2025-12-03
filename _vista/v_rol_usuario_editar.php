@@ -174,7 +174,7 @@ if (isset($_GET['sin_permisos'])) {
                                 <div class="row">
                                     <div class="col-md-8">
                                         <button type="button" class="btn btn-info" onclick="seleccionarTodo()">
-                                            <i class="fa fa-check-double"></i> Seleccionar Todo
+                                            <i class="bi bi-check2-all"></i> Seleccionar Todo
                                         </button>
                                         <button type="button" class="btn btn-warning" onclick="limpiarSeleccion()">
                                             <i class="fa fa-times"></i> Limpiar Selección

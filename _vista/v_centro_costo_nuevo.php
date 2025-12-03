@@ -42,11 +42,11 @@
                             <div class="form-group">
                                 <div class="col-md-2 col-sm-2 offset-md-8">
                                     <a href="centro_costo_mostrar.php" class="btn btn-outline-danger btn-block">
-                                        Cancelar
+                                        <i class="bi bi-x-square"></i> Cancelar
                                     </a>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
-                                    <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">Registrar</button>
+                                    <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block"><i class="bi bi-pencil-square"></i> Registrar</button>
                                 </div>
                             </div>
 

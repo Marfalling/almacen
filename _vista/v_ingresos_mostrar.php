@@ -54,23 +54,24 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                     <div class="x_content">
                         <!-- Filtro de fechas -->
                         <form method="get" action="ingresos_mostrar.php" class="form-inline mb-3">
-                            <div class="form-group mr-3">
-                                <label for="fecha_inicio" class="mr-2 font-weight-bold">Desde:</label>
+                            <div class="form-group mx-sm-2 mb-2">
+                                <label for="fecha_inicio" class="mr-2">Desde:</label>
                                 <input type="date" id="fecha_inicio" name="fecha_inicio"
                                     class="form-control"
                                     value="<?php echo htmlspecialchars($fecha_inicio); ?>">
                             </div>
 
-                            <div class="form-group mr-3">
-                                <label for="fecha_fin" class="mr-2 font-weight-bold">Hasta:</label>
+                            <div class="form-group mx-sm-2 mb-2">
+                                <label for="fecha_fin" class="mr-2">Hasta:</label>
                                 <input type="date" id="fecha_fin" name="fecha_fin"
                                     class="form-control"
                                     value="<?php echo htmlspecialchars($fecha_fin); ?>">
                             </div>
 
-                            <button type="submit" class="btn btn-primary">
+                            <button type="submit" class="btn btn-primary mb-2">
                                 <i class="fa fa-search"></i> Consultar
                             </button>
+                            <button type="button" class="btn btn-secondary mb-2" onclick="window.location.href='ingresos_mostrar.php'"><i class="bi bi-eraser"></i> Limpiar</button>
                         </form>
 
                         <!-- Nav tabs -->   

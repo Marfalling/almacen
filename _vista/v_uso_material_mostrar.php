@@ -10,6 +10,7 @@ $tiene_permiso_crear = verificarPermisoEspecifico('crear_uso de material');
 $tiene_permiso_editar = verificarPermisoEspecifico('editar_uso de material');
 $tiene_permiso_anular = verificarPermisoEspecifico('anular_uso de material');
 ?>
+
 <script>
 function AnularUso(id_uso_material) {
     Swal.fire({
@@ -105,16 +106,18 @@ function AnularUso(id_uso_material) {
                     <div class="x_content">
                         <!-- ========== FILTRO DE FECHAS ========== -->
                         <form method="get" action="uso_material_mostrar.php" class="form-inline mb-3 filtro-fechas">
-                            <label for="fecha_inicio" class="mr-2">Desde:</label>
-                            <input type="date" id="fecha_inicio" name="fecha_inicio" class="form-control mr-2"
-                                value="<?php echo htmlspecialchars($fecha_inicio); ?>">
-
-                            <label for="fecha_fin" class="mr-2">Hasta:</label>
-                            <input type="date" id="fecha_fin" name="fecha_fin" class="form-control mr-2"
-                                value="<?php echo htmlspecialchars($fecha_fin); ?>">
-
-                            <button type="submit" class="btn btn-primary">Consultar</button>
-                            <button type="button" class="btn btn-secondary ml-2" onclick="window.location.href='uso_material_mostrar.php'">Limpiar</button>
+                            <div class="form-group mx-sm-2 mb-2">
+                                <label for="fecha_inicio" class="mr-2">Desde:</label>
+                                <input type="date" id="fecha_inicio" name="fecha_inicio" class="form-control"
+                                    value="<?php echo htmlspecialchars($fecha_inicio); ?>">
+                            </div>
+                            <div class="form-group mx-sm-2 mb-2">
+                                <label for="fecha_fin" class="mr-2">Hasta:</label>
+                                <input type="date" id="fecha_fin" name="fecha_fin" class="form-control"
+                                    value="<?php echo htmlspecialchars($fecha_fin); ?>">
+                            </div>
+                            <button type="submit" class="btn btn-primary mb-2"><i class="fa fa-search"></i> Consultar</button>
+                            <button type="button" class="btn btn-secondary mb-2" onclick="window.location.href='uso_material_mostrar.php'"><i class="bi bi-eraser"></i> Limpiar</button>
                         </form>
                         <!-- ======================================= -->
                         <div class="row">
