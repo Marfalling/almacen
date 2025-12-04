@@ -175,282 +175,209 @@
     <div class="row">
       <div class="col-md-12 col-sm-12">
         <div class="x_panel">
-          <div class="x_title">
+
+          <div class="x_title" style="cursor: pointer;" 
+              data-toggle="collapse" 
+              data-target="#ordenesGeneralesCollapse"
+              aria-expanded="true"
+              aria-controls="ordenesGeneralesCollapse">
             <h2>Estado General de Órdenes de Compra <small>Resumen del Período</small></h2>
             <ul class="nav navbar-right panel_toolbox">
               <li>
-                <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                <i class="fa fa-chevron-down" id="icon-toggle-ordenes"></i>
               </li>
             </ul>
             <div class="clearfix"></div>
           </div>
-          <div class="x_content">
-            <?php 
-            $porcentaje_atendidas = $resumen_ordenes['total_ordenes'] > 0 ? 
-                round(($resumen_ordenes['ordenes_atendidas'] / $resumen_ordenes['total_ordenes']) * 100, 2) : 0;
-            $porcentaje_pendientes = $resumen_ordenes['total_ordenes'] > 0 ?
-                round(($resumen_ordenes['ordenes_pendientes'] / $resumen_ordenes['total_ordenes']) * 100, 2) : 0;
-            ?>
-            <div class="row">
-              <div class="col-md-4">
-                <div class="widget_summary">
-                  <div class="w_left w_25">
-                    <span><i class="fa fa-list"></i></span>
-                  </div>
-                  <div class="w_center w_55">
-                    <div class="progress">
-                      <div class="progress-bar bg-blue" role="progressbar" style="width: 100%;"></div>
+
+          <div class="collapse" id="ordenesGeneralesCollapse">                      
+            <div class="x_content">
+              <?php 
+              $porcentaje_atendidas = $resumen_ordenes['total_ordenes'] > 0 ? 
+                  round(($resumen_ordenes['ordenes_atendidas'] / $resumen_ordenes['total_ordenes']) * 100, 2) : 0;
+              $porcentaje_pendientes = $resumen_ordenes['total_ordenes'] > 0 ?
+                  round(($resumen_ordenes['ordenes_pendientes'] / $resumen_ordenes['total_ordenes']) * 100, 2) : 0;
+              ?>
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="widget_summary">
+                    <div class="w_left w_25">
+                      <span><i class="fa fa-list"></i></span>
                     </div>
+                    <div class="w_center w_55">
+                      <div class="progress">
+                        <div class="progress-bar bg-blue" role="progressbar" style="width: 100%;"></div>
+                      </div>
+                    </div>
+                    <div class="w_right w_20">
+                      <span><?php echo $resumen_ordenes['total_ordenes']; ?></span>
+                    </div>
+                    <div class="clearfix"></div>
+                    <p class="text-center">Total de Órdenes</p>
                   </div>
-                  <div class="w_right w_20">
-                    <span><?php echo $resumen_ordenes['total_ordenes']; ?></span>
+                </div>
+                <div class="col-md-4">
+                  <div class="widget_summary">
+                    <div class="w_left w_25">
+                      <span><i class="fa fa-check"></i></span>
+                    </div>
+                    <div class="w_center w_55">
+                      <div class="progress">
+                        <div class="progress-bar bg-green" role="progressbar" 
+                            style="width: <?php echo $porcentaje_atendidas; ?>%;"></div>
+                      </div>
+                    </div>
+                    <div class="w_right w_20">
+                      <span><?php echo $resumen_ordenes['ordenes_atendidas']; ?></span>
+                    </div>
+                    <div class="clearfix"></div>
+                    <p class="text-center">Atendidas (<?php echo $porcentaje_atendidas; ?>%)</p>
                   </div>
-                  <div class="clearfix"></div>
-                  <p class="text-center">Total de Órdenes</p>
+                </div>
+                <div class="col-md-4">
+                  <div class="widget_summary">
+                    <div class="w_left w_25">
+                      <span><i class="fa fa-clock"></i></span>
+                    </div>
+                    <div class="w_center w_55">
+                      <div class="progress">
+                        <div class="progress-bar bg-orange" role="progressbar" 
+                            style="width: <?php echo $porcentaje_pendientes; ?>%;"></div>
+                      </div>
+                    </div>
+                    <div class="w_right w_20">
+                      <span><?php echo $resumen_ordenes['ordenes_pendientes']; ?></span>
+                    </div>
+                    <div class="clearfix"></div>
+                    <p class="text-center">Pendientes (<?php echo $porcentaje_pendientes; ?>%)</p>
+                  </div>
                 </div>
               </div>
-              <div class="col-md-4">
-                <div class="widget_summary">
-                  <div class="w_left w_25">
-                    <span><i class="fa fa-check"></i></span>
-                  </div>
-                  <div class="w_center w_55">
-                    <div class="progress">
-                      <div class="progress-bar bg-green" role="progressbar" 
-                           style="width: <?php echo $porcentaje_atendidas; ?>%;"></div>
-                    </div>
-                  </div>
-                  <div class="w_right w_20">
-                    <span><?php echo $resumen_ordenes['ordenes_atendidas']; ?></span>
-                  </div>
-                  <div class="clearfix"></div>
-                  <p class="text-center">Atendidas (<?php echo $porcentaje_atendidas; ?>%)</p>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="widget_summary">
-                  <div class="w_left w_25">
-                    <span><i class="fa fa-clock"></i></span>
-                  </div>
-                  <div class="w_center w_55">
-                    <div class="progress">
-                      <div class="progress-bar bg-orange" role="progressbar" 
-                           style="width: <?php echo $porcentaje_pendientes; ?>%;"></div>
-                    </div>
-                  </div>
-                  <div class="w_right w_20">
-                    <span><?php echo $resumen_ordenes['ordenes_pendientes']; ?></span>
-                  </div>
-                  <div class="clearfix"></div>
-                  <p class="text-center">Pendientes (<?php echo $porcentaje_pendientes; ?>%)</p>
-                </div>
-              </div>
+              <div id="chart_ordenes_generales" style="width:100%; height:300px;"></div>
             </div>
-            <div id="chart_ordenes_generales" style="width:100%; height:300px;"></div>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- Dashboard 3.b: Ordenes de Compra por Almacén -->
-    <!--<div class="row">
-      <div class="col-md-12 col-sm-12">
-        <div class="x_panel">
-          <div class="x_title">
-            <h2>Órdenes de Compra por Almacén <small>Distribución</small></h2>
-            <div class="clearfix"></div>
-          </div>
-          <div class="x_content">
-            <div class="table-responsive">
-              <table class="table table-striped jambo_table">
-                <thead>
-                  <tr>
-                    <th>Almacén</th>
-                    <th>Total Órdenes</th>
-                    <th>Atendidas</th>
-                    <th>Pendientes</th>
-                    <th>% Cumplimiento</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php if (!empty($ordenes_por_almacen)): ?>
-                    <?php foreach($ordenes_por_almacen as $almacen): 
-                      $porcentaje = $almacen['total_ordenes'] > 0 ? 
-                        round(($almacen['ordenes_atendidas'] / $almacen['total_ordenes']) * 100, 2) : 0;
-                    ?>
-                    <tr>
-                      <td><?php echo $almacen['almacen']; ?></td>
-                      <td><?php echo $almacen['total_ordenes']; ?></td>
-                      <td><span class="badge badge-success"><?php echo $almacen['ordenes_atendidas']; ?></span></td>
-                      <td><span class="badge badge-warning"><?php echo $almacen['ordenes_pendientes']; ?></span></td>
-                      <td>
-                        <div class="progress" style="margin:0">
-                          <div class="progress-bar bg-green" style="width:<?php echo $porcentaje; ?>%">
-                            <?php echo $porcentaje; ?>%
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                    <?php endforeach; ?>
-                  <?php else: ?>
-                    <tr><td colspan="5" class="text-center">No hay datos para el período seleccionado</td></tr>
-                  <?php endif; ?>
-                </tbody>
-              </table>
-            </div>
-            <div id="chart_almacen" style="width:100%; height:400px;"></div>
-          </div>
-        </div>
-      </div>
-    </div>-->
 
     <!-- Dashboard 3.b: Órdenes de Compra por Centro de Costo -->
     <div class="row">
       <div class="col-md-12 col-sm-12">
         <div class="x_panel">
-          <div class="x_title">
+
+          <div class="x_title" style="cursor: pointer;" 
+              data-toggle="collapse" 
+              data-target="#ordenesCompraCentroCostoCollapse"
+              aria-expanded="true"
+              aria-controls="ordenesCompraCentroCostoCollapse">
             <h2>Órdenes de Compra Por Centro de Costo <small>Distribución</small></h2>
             <ul class="nav navbar-right panel_toolbox">
               <li>
-                <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                <i class="fa fa-chevron-down" id="icon-toggle-compracc"></i>
               </li>
             </ul>
             <div class="clearfix"></div>
           </div>
-          <div class="x_content">
-            <div class="table-responsive">
-              <table class="table table-striped jambo_table">
-                <thead>
-                  <tr>
-                    <th>Centro de Costo</th>
-                    <th>Total Órdenes</th>
-                    <th>Atendidas</th>
-                    <th>Pendientes</th>
-                    <th>% Cumplimiento</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php if (!empty($ordenes_por_cc)): ?>
-                    <?php foreach($ordenes_por_cc as $cc): 
-                      $porcentaje = $cc['total_ordenes'] > 0 ?
-                        round(($cc['atendidas'] / $cc['total_ordenes']) * 100, 2) : 0;
-                    ?>
+
+          <div class="collapse" id="ordenesCompraCentroCostoCollapse">
+            <div class="x_content">
+              <div class="table-responsive">
+                <table class="table table-striped jambo_table">
+                  <thead>
                     <tr>
-                      <td><?php echo $cc['centro_costo']; ?></td>
-                      <td><?php echo $cc['total_ordenes']; ?></td>
-                      <td><span class="badge badge-success" style="font-size: 14px; padding: 6px 12px;"><?php echo $cc['atendidas']; ?></span></td>
-                      <td><span class="badge badge-warning" style="font-size: 14px; padding: 6px 12px;"><?php echo $cc['pendientes']; ?></span></td>
-                      <td>
-                        <div class="progress" style="margin:0">
-                          <div class="progress-bar bg-green" style="width:<?php echo $porcentaje; ?>%">
-                            <?php echo $porcentaje; ?>%
-                          </div>
-                        </div>
-                      </td>
+                      <th>Centro de Costo</th>
+                      <th>Total Órdenes</th>
+                      <th>Atendidas</th>
+                      <th>Pendientes</th>
+                      <th>% Cumplimiento</th>
                     </tr>
-                    <?php endforeach; ?>
-                  <?php else: ?>
-                    <tr><td colspan="5" class="text-center">No hay datos para el período seleccionado</td></tr>
-                  <?php endif; ?>
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    <?php if (!empty($ordenes_por_cc)): ?>
+                      <?php foreach($ordenes_por_cc as $cc): 
+                        $porcentaje = $cc['total_ordenes'] > 0 ?
+                          round(($cc['atendidas'] / $cc['total_ordenes']) * 100, 2) : 0;
+                      ?>
+                      <tr>
+                        <td><?php echo $cc['centro_costo']; ?></td>
+                        <td><?php echo $cc['total_ordenes']; ?></td>
+                        <td><span class="badge badge-success" style="font-size: 14px; padding: 6px 12px;"><?php echo $cc['atendidas']; ?></span></td>
+                        <td><span class="badge badge-warning" style="font-size: 14px; padding: 6px 12px;"><?php echo $cc['pendientes']; ?></span></td>
+                        <td>
+                          <div class="progress" style="margin:0">
+                            <div class="progress-bar bg-green" style="width:<?php echo $porcentaje; ?>%">
+                              <?php echo $porcentaje; ?>%
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                      <?php endforeach; ?>
+                    <?php else: ?>
+                      <tr><td colspan="5" class="text-center">No hay datos para el período seleccionado</td></tr>
+                    <?php endif; ?>
+                  </tbody>
+                </table>
+              </div>
+              <div id="chart_almacen" style="width:100%; height:400px;"></div>
             </div>
-            <div id="chart_almacen" style="width:100%; height:400px;"></div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Dashboard 3.c: Pagos por Almacén -->
-    <!--<div class="row">
-      <div class="col-md-12 col-sm-12">
-        <div class="x_panel">
-          <div class="x_title">
-            <h2>Estado de Comprobantes por Almacén <small>Análisis Financiero</small></h2>
-            <div class="clearfix"></div>
-          </div>
-          <div class="x_content">
-            <div class="table-responsive">
-              <table class="table table-striped jambo_table">
-                <thead>
-                  <tr>
-                    <th>Almacén</th>
-                    <th>Total Comprobantes</th>
-                    <th>Pagadas</th>
-                    <th>Pendientes</th>
-                    <th>Monto Soles (S/)</th>
-                    <th>Monto Dólares ($)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php if (!empty($pagos_almacen)): ?>
-                    <?php foreach($pagos_almacen as $pago): ?>
-                    <tr>
-                      <td><?php echo $pago['almacen']; ?></td>
-                      <td><?php echo $pago['total_ordenes']; ?></td>
-                      <td><span class="badge badge-success"><?php echo $pago['ordenes_pagadas']; ?></span></td>
-                      <td><span class="badge badge-danger"><?php echo $pago['pendientes_pago']; ?></span></td>
-                      <td><strong>S/ <?php echo number_format($pago['monto_total_soles'], 2); ?></strong></td>
-                      <td><strong>$ <?php echo number_format($pago['monto_total_dolares'], 2); ?></strong></td>
-                    </tr>
-                    <?php endforeach; ?>
-                  <?php else: ?>
-                    <tr><td colspan="6" class="text-center">No hay datos para el período seleccionado</td></tr>
-                  <?php endif; ?>
-                </tbody>
-              </table>
-            </div>
-            <div id="chart_pagos_almacen" style="width:100%; height:400px;"></div>
-          </div>
-        </div>
-      </div>
-    </div>-->
-
     <!-- Dashboard 3.c: Pagos por Centro de Costo -->
     <div class="row">
       <div class="col-md-12 col-sm-12">
         <div class="x_panel">
-          <div class="x_title">
+
+          <div class="x_title" style="cursor: pointer;" 
+              data-toggle="collapse" 
+              data-target="#ordenesPagosCentroCostoCollapse"
+              aria-expanded="true"
+              aria-controls="ordenesPagosCentroCostoCollapse">
             <h2>Estado de Pagos por Centro de Costo <small>Análisis Financiero</small></h2>
             <ul class="nav navbar-right panel_toolbox">
               <li>
-                <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                <i class="fa fa-chevron-down" id="icon-toggle-pagoscc"></i>
               </li>
             </ul>
             <div class="clearfix"></div>
           </div>
-          <div class="x_content">
-            <div class="table-responsive">
-              <table class="table table-striped jambo_table">
-                <thead>
-                  <tr>
-                    <th>Centro de Costo</th>
-                    <th>Total Órdenes</th>
-                    <th>Pagadas</th>
-                    <th>Pendientes</th>
-                    <th>Monto Pagado</th>
-                    <th>Monto Pendiente</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php if (!empty($pagos_por_cc)): ?>
-                    <?php foreach($pagos_por_cc as $pago): ?>
+          
+          <div class="collapse" id="ordenesPagosCentroCostoCollapse">
+            <div class="x_content">
+              <div class="table-responsive">
+                <table class="table table-striped jambo_table">
+                  <thead>
                     <tr>
-                      <td><?php echo $pago['centro_costo']; ?></td>
-                      <td><?php echo $pago['total_ordenes']; ?></td>
-                      <td><span class="badge badge-success" style="font-size: 14px; padding: 6px 12px;"><?php echo $pago['pagadas']; ?></span></td>
-                      <td><span class="badge badge-danger" style="font-size: 14px; padding: 6px 12px;"><?php echo $pago['pendientes_pago']; ?></span></td>
-                      <td><strong>S/ <?php echo number_format($pago['monto_pagado'], 2); ?></strong></td>
-                      <td><strong>S/ <?php echo number_format($pago['monto_pendiente'], 2); ?></strong></td>
+                      <th>Centro de Costo</th>
+                      <th>Total Órdenes</th>
+                      <th>Pagadas</th>
+                      <th>Pendientes</th>
+                      <th>Monto Pagado</th>
+                      <th>Monto Pendiente</th>
                     </tr>
-                    <?php endforeach; ?>
-                  <?php else: ?>
-                    <tr><td colspan="6" class="text-center">No hay datos para el período seleccionado</td></tr>
-                  <?php endif; ?>
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    <?php if (!empty($pagos_por_cc)): ?>
+                      <?php foreach($pagos_por_cc as $pago): ?>
+                      <tr>
+                        <td><?php echo $pago['centro_costo']; ?></td>
+                        <td><?php echo $pago['total_ordenes']; ?></td>
+                        <td><span class="badge badge-success" style="font-size: 14px; padding: 6px 12px;"><?php echo $pago['pagadas']; ?></span></td>
+                        <td><span class="badge badge-danger" style="font-size: 14px; padding: 6px 12px;"><?php echo $pago['pendientes_pago']; ?></span></td>
+                        <td><strong>S/ <?php echo number_format($pago['monto_pagado'], 2); ?></strong></td>
+                        <td><strong>S/ <?php echo number_format($pago['monto_pendiente'], 2); ?></strong></td>
+                      </tr>
+                      <?php endforeach; ?>
+                    <?php else: ?>
+                      <tr><td colspan="6" class="text-center">No hay datos para el período seleccionado</td></tr>
+                    <?php endif; ?>
+                  </tbody>
+                </table>
+              </div>
+              <div id="chart_pagos_almacen" style="width:100%; height:400px;"></div>
             </div>
-            <div id="chart_pagos_almacen" style="width:100%; height:400px;"></div>
           </div>
         </div>
       </div>
@@ -460,47 +387,55 @@
     <div class="row">
       <div class="col-md-12 col-sm-12">
         <div class="x_panel">
-          <div class="x_title">
+
+          <div class="x_title" style="cursor: pointer;" 
+              data-toggle="collapse" 
+              data-target="#ordenesPagosProveedorCollapse"
+              aria-expanded="true"
+              aria-controls="ordenesPagosProveedorCollapse">
             <h2>Estado de Pagos por Proveedor <small>Análisis de Proveedores</small></h2>
             <ul class="nav navbar-right panel_toolbox">
               <li>
-                <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                <i class="fa fa-chevron-down" id="icon-toggle-pagosp"></i>
               </li>
             </ul>
             <div class="clearfix"></div>
           </div>
-          <div class="x_content">
-            <div class="table-responsive">
-              <table class="table table-striped jambo_table">
-                <thead>
-                  <tr>
-                    <th>Proveedor</th>
-                    <th>Total órdenes</th>
-                    <th>Pagadas</th>
-                    <th>Pendientes</th>
-                    <th>Monto Pagado</th>
-                    <th>Monto Pendiente</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php if (!empty($pagos_por_proveedor)): ?>
-                    <?php foreach($pagos_por_proveedor as $pago): ?>
+
+          <div class="collapse" id="ordenesPagosProveedorCollapse">            
+            <div class="x_content">
+              <div class="table-responsive">
+                <table class="table table-striped jambo_table">
+                  <thead>
                     <tr>
-                      <td><?php echo $pago['proveedor']; ?></td>
-                      <td><?php echo $pago['total_ordenes']; ?></td>
-                      <td><span class="badge badge-success" style="font-size: 14px; padding: 6px 12px;"><?php echo $pago['pagadas']; ?></span></td>
-                      <td><span class="badge badge-danger" style="font-size: 14px; padding: 6px 12px;"><?php echo $pago['pendientes_pago']; ?></span></td>
-                      <td><strong>S/ <?php echo number_format($pago['monto_pagado'], 2); ?></strong></td>
-                      <td><strong>S/ <?php echo number_format($pago['monto_pendiente'], 2); ?></strong></td>
+                      <th>Proveedor</th>
+                      <th>Total órdenes</th>
+                      <th>Pagadas</th>
+                      <th>Pendientes</th>
+                      <th>Monto Pagado</th>
+                      <th>Monto Pendiente</th>
                     </tr>
-                    <?php endforeach; ?>
-                  <?php else: ?>
-                    <tr><td colspan="6" class="text-center">No hay datos para el período seleccionado</td></tr>
-                  <?php endif; ?>
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    <?php if (!empty($pagos_por_proveedor)): ?>
+                      <?php foreach($pagos_por_proveedor as $pago): ?>
+                      <tr>
+                        <td><?php echo $pago['proveedor']; ?></td>
+                        <td><?php echo $pago['total_ordenes']; ?></td>
+                        <td><span class="badge badge-success" style="font-size: 14px; padding: 6px 12px;"><?php echo $pago['pagadas']; ?></span></td>
+                        <td><span class="badge badge-danger" style="font-size: 14px; padding: 6px 12px;"><?php echo $pago['pendientes_pago']; ?></span></td>
+                        <td><strong>S/ <?php echo number_format($pago['monto_pagado'], 2); ?></strong></td>
+                        <td><strong>S/ <?php echo number_format($pago['monto_pendiente'], 2); ?></strong></td>
+                      </tr>
+                      <?php endforeach; ?>
+                    <?php else: ?>
+                      <tr><td colspan="6" class="text-center">No hay datos para el período seleccionado</td></tr>
+                    <?php endif; ?>
+                  </tbody>
+                </table>
+              </div>
+              <div id="chart_pagos_proveedor" style="width:100%; height:400px;"></div>
             </div>
-            <div id="chart_pagos_proveedor" style="width:100%; height:400px;"></div>
           </div>
         </div>
       </div>
@@ -510,60 +445,68 @@
     <div class="row">
       <div class="col-md-12 col-sm-12">
         <div class="x_panel">
-          <div class="x_title">
+          
+          <div class="x_title" style="cursor: pointer;" 
+              data-toggle="collapse" 
+              data-target="#ordenesVencidasProveedorCollapse"
+              aria-expanded="true"
+              aria-controls="ordenesVencidasProveedorCollapse">
             <h2>Órdenes Vencidas por Proveedor <small>Análisis Mensual <?php echo date('Y'); ?></small></h2>
             <ul class="nav navbar-right panel_toolbox">
               <li>
-                <a class="collapse-link"><i class="fa fa-chevron-up"></i></a>
+                <i class="fa fa-chevron-down" id="icon-toggle-ordenesv"></i>
               </li>
             </ul>
             <div class="clearfix"></div>
           </div>
-          <div class="x_content">
-            <div class="table-responsive">
-              <table class="table table-striped jambo_table">
-                <thead>
-                  <tr>
-                    <th>Proveedor</th>
-                    <th>Ene</th>
-                    <th>Feb</th>
-                    <th>Mar</th>
-                    <th>Abr</th>
-                    <th>May</th>
-                    <th>Jun</th>
-                    <th>Jul</th>
-                    <th>Ago</th>
-                    <th>Sep</th>
-                    <th>Oct</th>
-                    <th>Nov</th>
-                    <th>Dic</th>
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <?php if (!empty($proveedores_mes)): ?>
-                    <?php foreach($proveedores_mes as $proveedor => $meses): ?>
+
+          <div class="collapse" id="ordenesVencidasProveedorCollapse">
+            <div class="x_content">
+              <div class="table-responsive">
+                <table class="table table-striped jambo_table">
+                  <thead>
                     <tr>
-                      <td><strong><?php echo $proveedor; ?></strong></td>
-                      <?php 
-                      $total = 0;
-                      for($m = 1; $m <= 12; $m++): 
-                        $valor = $meses[$m];
-                        $total += $valor;
-                        $clase = $valor > 0 ? 'text-danger' : '';
-                      ?>
-                        <td class="<?php echo $clase; ?>"><?php echo $valor; ?></td>
-                      <?php endfor; ?>
-                      <td><strong class="text-danger"><?php echo $total; ?></strong></td>
+                      <th>Proveedor</th>
+                      <th>Ene</th>
+                      <th>Feb</th>
+                      <th>Mar</th>
+                      <th>Abr</th>
+                      <th>May</th>
+                      <th>Jun</th>
+                      <th>Jul</th>
+                      <th>Ago</th>
+                      <th>Sep</th>
+                      <th>Oct</th>
+                      <th>Nov</th>
+                      <th>Dic</th>
+                      <th>Total</th>
                     </tr>
-                    <?php endforeach; ?>
-                  <?php else: ?>
-                    <tr><td colspan="14" class="text-center">No hay órdenes vencidas en <?php echo date('Y'); ?></td></tr>
-                  <?php endif; ?>
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    <?php if (!empty($proveedores_mes)): ?>
+                      <?php foreach($proveedores_mes as $proveedor => $meses): ?>
+                      <tr>
+                        <td><strong><?php echo $proveedor; ?></strong></td>
+                        <?php 
+                        $total = 0;
+                        for($m = 1; $m <= 12; $m++): 
+                          $valor = $meses[$m];
+                          $total += $valor;
+                          $clase = $valor > 0 ? 'text-danger' : '';
+                        ?>
+                          <td class="<?php echo $clase; ?>"><?php echo $valor; ?></td>
+                        <?php endfor; ?>
+                        <td><strong class="text-danger"><?php echo $total; ?></strong></td>
+                      </tr>
+                      <?php endforeach; ?>
+                    <?php else: ?>
+                      <tr><td colspan="14" class="text-center">No hay órdenes vencidas en <?php echo date('Y'); ?></td></tr>
+                    <?php endif; ?>
+                  </tbody>
+                </table>
+              </div>
+              <div id="chart_vencidas_mes" style="width:100%; height:400px;"></div>
             </div>
-            <div id="chart_vencidas_mes" style="width:100%; height:400px;"></div>
           </div>
         </div>
       </div>
@@ -572,9 +515,12 @@
   </div>
 </div>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 <!-- Scripts para gráficos -->
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script type="text/javascript">
+
 google.charts.load('current', {'packages':['corechart', 'bar']});
 google.charts.setOnLoadCallback(drawAllCharts);
 
@@ -582,15 +528,91 @@ function limpiarFiltros() {
   window.location.href = 'dashboard.php';
 }
 
+// ⭐ VARIABLE DE CONTROL
+var ordenesGeneralesChartDrawn = false;
+var ordenesCompraCentroCostoChartDrawn = false;
+var ordenesPagosCentroCostoChartDrawn = false;
+var ordenesPagosProveedorChartDrawn = false;
+var ordenesVencidasProveedorChartDrawn = false;
+
 function drawAllCharts() {
-  drawOrdenesGeneralesChart();
-  //drawAlmacenChart();
-  drawCentroCostoChart();
-  //drawPagosAlmacenChart();
-  drawPagosCentroCostoChart();
-  drawPagosProveedorChart();
-  drawVencidasMesChart();
+  //drawOrdenesGeneralesChart();
+  //drawCentroCostoChart();
+  //drawPagosCentroCostoChart();
+  //drawPagosProveedorChart();
+  //drawVencidasMesChart();
 }
+
+$(document).ready(function() {
+  
+  // ⭐ Dibujar SOLO cuando se abre el collapse
+  $('#ordenesGeneralesCollapse').on('shown.bs.collapse', function () {
+    if (!ordenesGeneralesChartDrawn) {
+      setTimeout(function() {
+        drawOrdenesGeneralesChart();
+        ordenesGeneralesChartDrawn = true;
+      }, 100);
+    }
+  });
+
+  $('#ordenesCompraCentroCostoCollapse').on('shown.bs.collapse', function () {
+    if (!ordenesCompraCentroCostoChartDrawn) {
+      setTimeout(function() {
+        drawCentroCostoChart();
+        ordenesCompraCentroCostoChartDrawn = true;
+      }, 100);
+    }
+  });
+
+  $('#ordenesPagosCentroCostoCollapse').on('shown.bs.collapse', function () {
+    if (!ordenesPagosCentroCostoChartDrawn) {
+      setTimeout(function() {
+        drawPagosCentroCostoChart();
+        ordenesPagosCentroCostoChartDrawn = true;
+      }, 100);
+    }
+  });
+
+  $('#ordenesPagosProveedorCollapse').on('shown.bs.collapse', function () {
+    if (!ordenesPagosProveedorChartDrawn) {
+      setTimeout(function() {
+        drawPagosProveedorChart();
+        ordenesPagosProveedorChartDrawn = true;
+      }, 100);
+    }
+  });
+
+  $('#ordenesVencidasProveedorCollapse').on('shown.bs.collapse', function () {
+    if (!ordenesVencidasProveedorChartDrawn) {
+      setTimeout(function() {
+        drawVencidasMesChart();
+        ordenesVencidasProveedorChartDrawn = true;
+      }, 100);
+    }
+  });
+  
+  // Cambiar ícono del chevron
+  $('[data-target="#ordenesGeneralesCollapse"]').on('click', function() {
+    $('#icon-toggle-ordenes').toggleClass('fa-chevron-down fa-chevron-up');
+  });
+
+  $('[data-target="#ordenesCompraCentroCostoCollapse"]').on('click', function() {
+    $('#icon-toggle-compracc').toggleClass('fa-chevron-down fa-chevron-up');
+  });
+
+  $('[data-target="#ordenesPagosCentroCostoCollapse"]').on('click', function() {
+    $('#icon-toggle-pagoscc').toggleClass('fa-chevron-down fa-chevron-up');
+  });
+
+  $('[data-target="#ordenesPagosProveedorCollapse"]').on('click', function() {
+    $('#icon-toggle-pagosp').toggleClass('fa-chevron-down fa-chevron-up');
+  });
+
+  $('[data-target="#ordenesVencidasProveedorCollapse"]').on('click', function() {
+    $('#icon-toggle-ordenesv').toggleClass('fa-chevron-down fa-chevron-up');
+  });
+  
+});
 
 //NUEVO GRÁFICO Órdenes por Centro de Costo
 
