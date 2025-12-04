@@ -163,12 +163,19 @@ function obtenerOrdenesPorCentroCosto($con, $proveedor = null, $centro_costo = n
                 
                 -- Total de la compra
                 COALESCE(
-                    SUM(
+                    (SELECT SUM(
                         cd.cant_compra_detalle 
                         * cd.prec_compra_detalle 
                         * (1 + (cd.igv_compra_detalle / 100))
-                    ), 
-                0) AS total_compra,
+                    )
+                    FROM compra_detalle cd
+                    INNER JOIN pedido_detalle pd2 ON cd.id_pedido_detalle = pd2.id_pedido_detalle
+                    INNER JOIN pedido_detalle_centro_costo pdcc2 ON pd2.id_pedido_detalle = pdcc2.id_pedido_detalle
+                    WHERE cd.id_compra = c.id_compra
+                    AND cd.est_compra_detalle = 1
+                    AND pdcc2.id_centro_costo = pdcc.id_centro_costo
+                    ), 0
+                ) AS total_compra,
                 
                 -- Total pagado
                 COALESCE(
@@ -180,11 +187,13 @@ function obtenerOrdenesPorCentroCosto($con, $proveedor = null, $centro_costo = n
                 
             FROM compra c
             INNER JOIN pedido p ON c.id_pedido = p.id_pedido
-            LEFT JOIN {$bd_complemento}.area cc ON p.id_centro_costo = cc.id_area
+            INNER JOIN pedido_detalle pd ON p.id_pedido = pd.id_pedido
+            INNER JOIN pedido_detalle_centro_costo pdcc ON pd.id_pedido_detalle = pdcc.id_pedido_detalle
+            LEFT JOIN {$bd_complemento}.area cc ON pdcc.id_centro_costo = cc.id_area
             LEFT JOIN compra_detalle cd ON c.id_compra = cd.id_compra 
                 AND cd.est_compra_detalle = 1
             $where_sql
-            GROUP BY c.id_compra, c.est_compra, cc.id_area, cc.nom_area";
+            GROUP BY c.id_compra, c.est_compra, cc.id_area, cc.nom_area, pdcc.id_centro_costo";
     
     $result = $con->query($sql);
     
@@ -272,11 +281,14 @@ function obtenerPagosPorCentroCosto($con, $proveedor = null, $centro_costo = nul
 
     FROM compra c
     INNER JOIN pedido p ON c.id_pedido = p.id_pedido
-    LEFT JOIN {$bd_complemento}.area cc ON cc.id_area = p.id_centro_costo
+    INNER JOIN pedido_detalle pd ON p.id_pedido = pd.id_pedido
+    INNER JOIN pedido_detalle_centro_costo pdcc ON pd.id_pedido_detalle = pdcc.id_pedido_detalle
+    LEFT JOIN {$bd_complemento}.area cc ON cc.id_area = pdcc.id_centro_costo
 
     INNER JOIN (
         SELECT
             c2.id_compra,
+            pdcc2.id_centro_costo,
 
             -- ========================================
             -- 1. SUBTOTAL E IGV
@@ -334,6 +346,9 @@ function obtenerPagosPorCentroCosto($con, $proveedor = null, $centro_costo = nul
             COALESCE(pagos.total_pagado, 0) AS total_pagado
 
         FROM compra c2
+        INNER JOIN pedido p2 ON c2.id_pedido = p2.id_pedido
+        INNER JOIN pedido_detalle pd2 ON p2.id_pedido = pd2.id_pedido
+        INNER JOIN pedido_detalle_centro_costo pdcc2 ON pd2.id_pedido_detalle = pdcc2.id_pedido_detalle
         
         -- Joins para afectaciones
         LEFT JOIN detraccion d_det ON d_det.id_detraccion = c2.id_detraccion
@@ -344,12 +359,15 @@ function obtenerPagosPorCentroCosto($con, $proveedor = null, $centro_costo = nul
         LEFT JOIN (
             SELECT 
                 cd.id_compra,
+                pdcc_inner.id_centro_costo,
                 SUM(cd.cant_compra_detalle * cd.prec_compra_detalle) AS subtotal,
                 SUM((cd.cant_compra_detalle * cd.prec_compra_detalle) * (cd.igv_compra_detalle / 100)) AS total_igv
             FROM compra_detalle cd
+            INNER JOIN pedido_detalle pd_inner ON cd.id_pedido_detalle = pd_inner.id_pedido_detalle
+            INNER JOIN pedido_detalle_centro_costo pdcc_inner ON pd_inner.id_pedido_detalle = pdcc_inner.id_pedido_detalle
             WHERE cd.est_compra_detalle = 1
-            GROUP BY cd.id_compra
-        ) cd_sum ON cd_sum.id_compra = c2.id_compra
+            GROUP BY cd.id_compra, pdcc_inner.id_centro_costo
+        ) cd_sum ON cd_sum.id_compra = c2.id_compra AND cd_sum.id_centro_costo = pdcc2.id_centro_costo
 
         -- ========================================
         -- CÁLCULO DE PAGOS POR COMPROBANTE
@@ -402,7 +420,7 @@ function obtenerPagosPorCentroCosto($con, $proveedor = null, $centro_costo = nul
             GROUP BY comp.id_compra
         ) pagos ON pagos.id_compra = c2.id_compra
 
-    ) AS t ON t.id_compra = c.id_compra
+    ) AS t ON t.id_compra = c.id_compra AND t.id_centro_costo = pdcc.id_centro_costo
 
     $where_sql
     GROUP BY cc.id_area, cc.nom_area

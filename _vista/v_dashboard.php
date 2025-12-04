@@ -44,7 +44,7 @@
                       <option value="">Todos</option>
                       <?php foreach($lista_proveedores as $prov): ?>
                         <option value="<?php echo $prov['id_proveedor']; ?>"
-                                <?php echo ($proveedor == $prov['id_proveedor']) ? 'selected' : ''; ?>>
+                                <?php echo ($proveedores_seleccionados == $prov['id_proveedor']) ? 'selected' : ''; ?>>
                           <?php echo $prov['nom_proveedor']; ?>
                         </option>
                       <?php endforeach; ?>
@@ -75,7 +75,7 @@
                       <option value="">Todos</option>
                       <?php foreach($lista_centros_costo as $cc): ?>
                         <option value="<?php echo $cc['id_area']; ?>"
-                          <?php echo ($centro_costo == $cc['id_area']) ? 'selected' : ''; ?>>
+                          <?php echo ($centros_seleccionados == $cc['id_area']) ? 'selected' : ''; ?>>
                           <?php echo $cc['nom_area']; ?>
                         </option>
                       <?php endforeach; ?>
