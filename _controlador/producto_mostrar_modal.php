@@ -45,10 +45,9 @@ if ($tipoProducto <= 0) {
 }
 
 // CORRECCIÓN: Usar funciones específicas que filtren por tipo de producto
-$productos = MostrarProductosModalFiltrado($length, $start, $searchValue, $orderColumn, $orderDirection, $tipoProducto, $id_almacen, $id_ubicacion);
-$totalRecords = NumeroRegistrosTotalProductosModal($tipoProducto, $id_almacen, $id_ubicacion);
-$filteredRecords = NumeroRegistrosFiltradosProductosModal($searchValue, $tipoProducto, $id_almacen, $id_ubicacion);
-
+$productos = MostrarProductosModalFiltrado($length, $start, $searchValue, $orderColumn, $orderDirection, $id_almacen, $id_ubicacion, $tipoProducto);
+$totalRecords = NumeroRegistrosTotalProductosModal($id_almacen, $id_ubicacion, $tipoProducto);
+$filteredRecords = NumeroRegistrosFiltradosProductosModal($searchValue, $id_almacen, $id_ubicacion, $tipoProducto);
 // Formatear datos para DataTables
 $data = array();
 foreach ($productos as $producto) {

@@ -34,8 +34,6 @@ $detraccion = ObtenerDetracciones();
 
 // Registrar auditoría de ingreso
 require_once("../_modelo/m_auditoria.php");
-GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'DETRACCION', 'MOSTRAR');
-
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -62,13 +60,3 @@ GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'DETRACCION', 'MOSTRAR');
 <?php require_once("../_vista/v_script.php"); ?>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-

@@ -1,8 +1,8 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('crear_modulos')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'MODULOS', 'CREAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -39,6 +39,8 @@ if (!verificarPermisoEspecifico('crear_modulos')) {
             $acciones_disponibles = MostrarAcciones();
 
             //-------------------------------------------
+            // OPERACIÓN DE REGISTRO
+            //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
                 $nom_modulo = strtoupper(trim($_REQUEST['nom_modulo']));
                 $est = isset($_REQUEST['est']) ? 1 : 0;
@@ -51,33 +53,48 @@ if (!verificarPermisoEspecifico('crear_modulos')) {
                         location.href = 'modulo_nuevo.php?sin_acciones=true';
                     </script>
                 <?php
+                    exit;
                 } else {
                     $rpta = GrabarModulo($nom_modulo, $acciones, $est);
 
                     if ($rpta == "SI") {
+                        //  AUDITORÍA: REGISTRO EXITOSO
+                        $estado_texto = ($est == 1) ? 'Activo' : 'Inactivo';
+                        $descripcion = "Nombre: '$nom_modulo' | Estado: $estado_texto | " . count($acciones) . " permisos asignados";
+                        GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'MODULO', $descripcion);
                 ?>
                         <script Language="JavaScript">
                             location.href = 'modulo_mostrar.php?registrado=true';
                         </script>
                     <?php
+                        exit;
                     } else if ($rpta == "NO") {
+                        //  AUDITORÍA: ERROR - YA EXISTE
+                        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'MODULO', "Nombre: '$nom_modulo' - Ya existe");
                     ?>
                         <script Language="JavaScript">
                             location.href = 'modulo_mostrar.php?existe=true';
                         </script>
                     <?php
+                        exit;
                     } else if ($rpta == "SIN_ACCIONES") {
+                        //  AUDITORÍA: ERROR - SIN ACCIONES
+                        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'MODULO', "Nombre: '$nom_modulo' - Sin acciones seleccionadas");
                     ?>
                         <script Language="JavaScript">
                             location.href = 'modulo_nuevo.php?sin_acciones=true';
                         </script>
                     <?php
+                        exit;
                     } else {
+                        //  AUDITORÍA: ERROR GENERAL
+                        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'MODULO', "Nombre: '$nom_modulo'");
                     ?>
                         <script Language="JavaScript">
                             location.href = 'modulo_mostrar.php?error=true';
                         </script>
                 <?php
+                        exit;
                     }
                 }
             }

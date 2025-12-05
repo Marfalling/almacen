@@ -1,8 +1,8 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php"); 
 
 if (!verificarPermisoEspecifico('crear_cliente')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'CLIENTE', 'CREAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -31,19 +31,26 @@ if (!verificarPermisoEspecifico('crear_cliente')) {
 
             require_once("../_modelo/m_clientes.php");
 
+            //-------------------------------------------
+            // OPERACIÓN DE REGISTRO
+            //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
-                $nom = $_REQUEST['nom'];
+                $nom = strtoupper(trim($_REQUEST['nom'])); 
                 $est = isset($_REQUEST['est']) ? 1 : 0;
 
                 $rpta = GrabarClientes($nom, $est);
 
                 if ($rpta == "SI") {
+                    //  AUDITORÍA: REGISTRO EXITOSO
+                    GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'CLIENTE', $nom);
             ?>
                     <script Language="JavaScript">
                         location.href = 'clientes_mostrar.php?registrado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    //  AUDITORÍA: ERROR AL REGISTRAR
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'CLIENTE', "$nom YA EXISTE");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'clientes_mostrar.php?existe=true';
@@ -51,6 +58,7 @@ if (!verificarPermisoEspecifico('crear_cliente')) {
             <?php
                 }
             }
+            //-------------------------------------------
 
             require_once("../_vista/v_clientes_nuevo.php");
             require_once("../_vista/v_footer.php");

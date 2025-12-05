@@ -4,9 +4,9 @@
 // ====================================================================
 
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('crear_ingresos')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'INGRESOS', 'CREAR DIRECTO');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -31,7 +31,7 @@ if (!verificarPermisoEspecifico('crear_ingresos')) {
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-
+            require_once("../_modelo/m_producto.php"); 
             require_once("../_modelo/m_ingreso.php");
             require_once("../_modelo/m_almacen.php");
             require_once("../_modelo/m_ubicacion.php");
@@ -141,6 +141,40 @@ if (!verificarPermisoEspecifico('crear_ingresos')) {
                                 }
                             }
                             
+                            $nom_almacen = '';
+                            foreach ($almacenes as $alm) {
+                                if ($alm['id_almacen'] == $id_almacen) {
+                                    $nom_almacen = $alm['nom_almacen'];
+                                    break;
+                                }
+                            }
+
+                            $nom_ubicacion = '';
+                            foreach ($ubicaciones as $ubi) {
+                                if ($ubi['id_ubicacion'] == $id_ubicacion) {
+                                    $nom_ubicacion = $ubi['nom_ubicacion'];
+                                    break;
+                                }
+                            }
+
+                            //  CONSTRUIR DETALLE DE PRODUCTOS CON CANTIDADES
+                            $productos_detalle = [];
+                            foreach ($productos as $prod) {
+                                //  USAR FUNCIÓN DEL MODELO
+                                $producto_data = ObtenerProductoPorId($prod['id_producto']);
+                                $nom_producto = $producto_data ? $producto_data['nom_producto'] : "ID:" . $prod['id_producto'];
+                                
+                                $desc_corta = (strlen($nom_producto) > 30) 
+                                    ? substr($nom_producto, 0, 30) . '...' 
+                                    : $nom_producto;
+                                
+                                $productos_detalle[] = "$desc_corta (Cant: {$prod['cantidad']})";
+                            }
+                            $desc_productos = implode(' | ', $productos_detalle);
+
+                            $descripcion = "ID: $id_ingreso | Almacén: '$nom_almacen' | Ubicación: '$nom_ubicacion' | Productos: $desc_productos";
+                            GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'INGRESO DIRECTO', $descripcion);
+                            
                             ?>
                             <script Language="JavaScript">
                                 location.href = 'ingresos_mostrar.php?tab=todos-ingresos&registrado=true';
@@ -148,6 +182,9 @@ if (!verificarPermisoEspecifico('crear_ingresos')) {
                             <?php
                             exit();
                         } else {
+                            //  AUDITORÍA: ERROR AL REGISTRAR
+                            GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'INGRESO DIRECTO', "Almacén: $id_almacen - " . substr($resultado['message'], 0, 100));
+                            
                             $mostrar_alerta = true;
                             $tipo_alerta = 'error';
                             $titulo_alerta = 'Error al Registrar Ingreso';

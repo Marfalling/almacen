@@ -1,12 +1,12 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 // ============================================
 // CONFIGURAR ZONA HORARIA 
 // ============================================
 date_default_timezone_set('America/Lima');
 // ============================================
 if (!verificarPermisoEspecifico('verificar_pedidos')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'VERIFICAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -46,7 +46,6 @@ if (isset($_REQUEST['verificar_item'])) {
     $cant_oc = floatval($_REQUEST['fin_cant_pedido_detalle']);
     $id_personal = $_SESSION['id_personal'] ?? 0;
 
-    //  VALIDACIÓN: La cantidad debe ser mayor a 0
     if ($cant_os <= 0 && $cant_oc <= 0) {
         $alerta = [
             "icon" => "error",
@@ -54,7 +53,6 @@ if (isset($_REQUEST['verificar_item'])) {
             "text" => "La cantidad verificada debe ser mayor a 0"
         ];
     } else {
-        // 1) Obtener detalle para saber a qué pedido pertenece
         $detalle = ConsultarDetallePorId($id_pedido_detalle);
         
         if (!$detalle) {
@@ -65,8 +63,6 @@ if (isset($_REQUEST['verificar_item'])) {
             ];
         } else {
             $id_pedido_real = intval($detalle['id_pedido']);
-
-            // 2) Obtener estado actual del pedido
             $pedido_check = ConsultarPedido($id_pedido_real);
             
             if (empty($pedido_check)) {
@@ -79,8 +75,6 @@ if (isset($_REQUEST['verificar_item'])) {
                 $pedido_row = $pedido_check[0];
                 $estado_pedido = intval($pedido_row['est_pedido']);
                 
-                //  CORRECCIÓN: Permitir verificación en estados 1 (Pendiente) y 2 (Completado)
-                // NO permitir en: 0 (Anulado), 3 (Aprobado), 4 (Ingresado), 5 (Finalizado)
                 if ($estado_pedido == 0) {
                     $alerta = [
                         "icon" => "error",
@@ -94,26 +88,26 @@ if (isset($_REQUEST['verificar_item'])) {
                         "text" => "No se puede verificar este item. El pedido ya fue aprobado o finalizado."
                     ];
                 } else {
-                    // 3) Proceder con la verificación (estados 1 o 2)
                     $rpta = verificarItem($id_pedido_detalle, $cant_oc, $cant_os);
 
                     if ($rpta == "SI") {
-                        // ===============================================================
-                        //  REGISTRO DE MOVIMIENTO tipo_orden = 5 (pedido / stock comprometido)
-                        // ===============================================================
+                        //  AUDITORÍA: VERIFICACIÓN EXITOSA
+                        $nom_producto = $detalle['nom_producto'] ?? 'Producto';
+                        $descripcion = "Pedido ID: $id_pedido_real | Detalle ID: $id_pedido_detalle | Producto: '$nom_producto' | OC: $cant_oc | OS: $cant_os";
+                        GrabarAuditoria($id, $usuario_sesion, 'VERIFICAR ITEM', 'PEDIDOS', $descripcion);
+                        
                         $id_producto   = intval($detalle['id_producto']);
                         $id_almacen    = intval($pedido_row['id_almacen']);
                         $id_ubicacion  = intval($pedido_row['id_ubicacion']);
-
-                        //  Obtener stock actual (físico y disponible)
                         $stock = ObtenerStockProducto($id_producto, $id_almacen, $id_ubicacion);
                         $stock_disponible = floatval($stock['stock_disponible']);
-
-                        // ===============================================================
-                        //  Verificación exitosa
+                        
                         header("Location: pedido_verificar.php?id=$id_pedido_real&success=verificado");
                         exit;
                     } else {
+                        //  AUDITORÍA: ERROR AL VERIFICAR
+                        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL VERIFICAR', 'PEDIDOS', "Pedido ID: $id_pedido_real | Error: $rpta");
+                        
                         $alerta = [
                             "icon" => "error",
                             "title" => "Error al verificar",
@@ -132,7 +126,6 @@ if (isset($_REQUEST['verificar_item'])) {
 if (isset($_REQUEST['crear_orden'])) {
     $id_pedido = $_REQUEST['id'];
     
-    //  DETECTAR TIPO DE PEDIDO
     $pedido_info = ConsultarPedido($id_pedido);
     $es_orden_servicio = ($pedido_info[0]['id_producto_tipo'] == 2);
     
@@ -166,7 +159,6 @@ if (isset($_REQUEST['crear_orden'])) {
         }
     }
     
-    //  VALIDACIONES BÁSICAS
     if (empty($proveedor) || empty($moneda) || empty($fecha_orden)) {
         echo "ERROR: Complete todos los campos obligatorios (Proveedor, Moneda y Fecha)";
         exit;
@@ -175,7 +167,6 @@ if (isset($_REQUEST['crear_orden'])) {
         exit;
     }
     
-    //  LLAMAR FUNCIÓN SEGÚN TIPO
     if ($es_orden_servicio) {
         $rpta = CrearOrdenServicio(
             $id_pedido, $proveedor, $moneda, $id_personal, 
@@ -192,13 +183,19 @@ if (isset($_REQUEST['crear_orden'])) {
         );
     }
     
-    //  CORRECCIÓN: SI HAY ERROR, DEVOLVERLO Y NO REDIRIGIR
     if ($rpta != "SI") {
+        //  AUDITORÍA: ERROR AL CREAR ORDEN
+        $tipo_orden = $es_orden_servicio ? 'Orden Servicio' : 'Orden Compra';
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL CREAR ORDEN', 'PEDIDOS', "Pedido ID: $id_pedido | Tipo: $tipo_orden | Error: $rpta");
         echo $rpta;
         exit;
     }
     
-    //  SOLO DEVOLVER ÉXITO - EL FRONTEND REDIRIGIRÁ
+    //  AUDITORÍA: ORDEN CREADA EXITOSAMENTE
+    $tipo_orden = $es_orden_servicio ? 'Orden Servicio' : 'Orden Compra';
+    $descripcion = "Pedido ID: $id_pedido | Tipo: $tipo_orden | Proveedor ID: $proveedor | Fecha: $fecha_orden | " . count($items) . " items";
+    GrabarAuditoria($id, $usuario_sesion, 'CREAR ORDEN', 'PEDIDOS', $descripcion);
+    
     echo "SI";
     exit;
 }
@@ -384,6 +381,10 @@ if (isset($_REQUEST['actualizar_orden'])) {
     }
     
     if ($rpta != "SI") {
+        //  AUDITORÍA: ERROR AL ACTUALIZAR
+        $tipo_orden = $es_orden_servicio ? 'Orden Servicio' : 'Orden Compra';
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL ACTUALIZAR ORDEN', 'PEDIDOS', "Orden ID: $id_compra | Pedido ID: $id_pedido | Error: $rpta");
+        
         echo $rpta;
         mysqli_close($con);
         exit;
@@ -488,8 +489,12 @@ if (isset($_REQUEST['actualizar_orden'])) {
         }
     }
     
+    //  AUDITORÍA: ORDEN ACTUALIZADA EXITOSAMENTE
+    $tipo_orden = $es_orden_servicio ? 'Orden Servicio' : 'Orden Compra';
+    $descripcion = "Orden ID: $id_compra | Pedido ID: $id_pedido | Tipo: $tipo_orden | " . count($items_existentes) . " items existentes | " . count($items_nuevos) . " items nuevos";
+    GrabarAuditoria($id, $usuario_sesion, 'ACTUALIZAR ORDEN', 'PEDIDOS', $descripcion);
+
     mysqli_close($con);
-    
     echo "SI";
     exit;
 }
@@ -501,9 +506,15 @@ if (isset($_REQUEST['finalizar_verificacion'])) {
     $resultado = FinalizarPedido($id_pedido);
     
     if ($resultado['success']) {
+        //  AUDITORÍA: PEDIDO FINALIZADO
+        GrabarAuditoria($id, $usuario_sesion, 'FINALIZAR PEDIDO', 'PEDIDOS', "Pedido ID: $id_pedido - Finalizado exitosamente");
+        
         header("Location: pedidos_mostrar.php?success=finalizado");
         exit;
     } else {
+        //  AUDITORÍA: ERROR AL FINALIZAR
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL FINALIZAR', 'PEDIDOS', "Pedido ID: $id_pedido | Error: " . $resultado['mensaje']);
+        
         $alerta = [
             "icon" => $resultado['tipo'],
             "title" => "Error",
@@ -686,6 +697,10 @@ if (isset($_REQUEST['crear_salida'])) {
                 $id_salida = isset($resultado['id_salida']) ? intval($resultado['id_salida']) : 0;
                 
                 error_log("✅ Salida creada correctamente - ID: $id_salida");
+                //  AUDITORÍA: SALIDA CREADA EXITOSAMENTE
+                $descripcion = "Salida ID: $id_salida | Pedido ID: $id_pedido | Doc: '$ndoc_salida' | Fecha: '$fec_salida' | " . count($materiales) . " materiales | Encargado ID: $id_personal_encargado";
+                
+                GrabarAuditoria($id, $usuario_sesion, 'CREAR SALIDA', 'PEDIDOS', $descripcion);
                 
                 // ============================================================================
                 // 🔹 SUBIDA DE ARCHIVOS
@@ -1006,11 +1021,17 @@ if (isset($_REQUEST['actualizar_salida'])) {
     
     // PROCESAR RESULTADO
     mysqli_close($con);
-    
+
     if (strpos($resultado, 'OK') === 0 || strpos($resultado, 'SI') === 0) {
+        //  AUDITORÍA: SALIDA ACTUALIZADA
+        $descripcion = "Salida ID: $id_salida | Pedido ID: $id_pedido | " . count($materiales) . " materiales";
+        GrabarAuditoria($id, $usuario_sesion, 'ACTUALIZAR SALIDA', 'PEDIDOS', $descripcion);
+        
         echo json_encode(['success' => true]);
     } else {
-        //  VERIFICAR SI ES ERROR DE STOCK
+        //  AUDITORÍA: ERROR AL ACTUALIZAR SALIDA
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL ACTUALIZAR SALIDA', 'PEDIDOS', "Salida ID: $id_salida | Error: $resultado");
+        
         if (strpos($resultado, 'ERROR DE STOCK') !== false || 
             strpos($resultado, 'Stock insuficiente') !== false) {
             
@@ -1027,7 +1048,7 @@ if (isset($_REQUEST['actualizar_salida'])) {
             ]);
         }
     }
-    
+
     exit;
 }
 // ============================================================================

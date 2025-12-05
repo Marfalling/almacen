@@ -1,9 +1,10 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 // VERIFICAR PERMISOS
 if (!verificarPermisoEspecifico('anular_pedidos')) {
-    require_once("../_modelo/m_auditoria.php");
+    //  AUDITORÍA: ACCESO DENEGADO
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'COMPRAS', 'VALIDAR ANULACIÓN');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -168,6 +169,14 @@ try {
         $mensaje_restriccion[] = "$total_salidas orden(es) de salida activa(s)";
     }
 
+    //  AUDITORÍA: VALIDACIÓN REALIZADA (IGUAL QUE PEDIDO_VALIDAR_ANULACION)
+    $resultado_validacion = $puede_anular_pedido 
+        ? "Puede anular completo" 
+        : "Solo OC (Restricciones: " . implode(', ', $mensaje_restriccion) . ")";
+    
+    GrabarAuditoria($id, $usuario_sesion, 'VALIDAR ANULACIÓN', 'COMPRAS', 
+        "OC: $id_compra | Pedido: $id_pedido | $resultado_validacion");
+
     // ============================================
     // 📤 RESPUESTA
     // ============================================
@@ -189,6 +198,13 @@ try {
 
 } catch (Exception $e) {
     error_log("❌ ERROR en compras_validar_anulacion.php: " . $e->getMessage());
+    
+    //  AUDITORÍA: ERROR EN VALIDACIÓN (IGUAL QUE PEDIDO_VALIDAR_ANULACION)
+    $id_compra_log = isset($id_compra) ? $id_compra : 0;
+    $id_pedido_log = isset($id_pedido) ? $id_pedido : 0;
+    
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL VALIDAR ANULACIÓN', 'COMPRAS', 
+        "OC: $id_compra_log | Pedido: $id_pedido_log | Error: " . $e->getMessage());
     
     echo json_encode([
         'error' => true,

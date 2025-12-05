@@ -1,9 +1,9 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('editar_unidad de medida')) {
-    require_once("../_modelo/m_auditoria.php");
-    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'UNIDAD DE MEDIDA', 'EDITAR');
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'UNIDAD_MEDIDA', 'EDITAR');
     header("location: bienvenido.php?permisos=true");
     exit;
 }
@@ -38,21 +38,52 @@ if (!verificarPermisoEspecifico('editar_unidad de medida')) {
                 $nom = strtoupper($_REQUEST['nom']);
                 $est = isset($_REQUEST['est']) ? 1 : 0;
 
+                //  OBTENER DATOS ANTES DE EDITAR
+                $unidad_medida_actual = ObtenerUnidadMedida($id_unidad_medida);
+                $nom_anterior = $unidad_medida_actual['nom_unidad_medida'] ?? '';
+                $est_anterior = $unidad_medida_actual['est_unidad_medida'] ?? 0;
+
+                //  EJECUTAR ACTUALIZACIÓN
                 $rpta = ActualizarUnidadMedida($id_unidad_medida, $nom, $est);
 
                 if ($rpta == "SI") {
+                    //  COMPARAR Y CONSTRUIR DESCRIPCIÓN
+                    $cambios = [];
+                    
+                    if ($nom_anterior != $nom) {
+                        $cambios[] = "Nombre: '$nom_anterior' → '$nom'";
+                    }
+                    
+                    if ($est_anterior != $est) {
+                        $estado_ant = ($est_anterior == 1) ? 'Activo' : 'Inactivo';
+                        $estado_nvo = ($est == 1) ? 'Activo' : 'Inactivo';
+                        $cambios[] = "Estado: $estado_ant → $estado_nvo";
+                    }
+                    
+                    if (empty($cambios)) {
+                        $descripcion = "ID: $id_unidad_medida | Sin cambios";
+                    } else {
+                        $descripcion = "ID: $id_unidad_medida | " . implode(' | ', $cambios);
+                    }
+                    
+                    // AUDITORÍA: EDICIÓN EXITOSA
+                    GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'UNIDAD_MEDIDA', $descripcion);
                 ?>
                     <script Language="JavaScript">
                         location.href = 'unidad_medida_mostrar.php?actualizado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    // AUDITORÍA: ERROR - YA EXISTE
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'UNIDAD_MEDIDA', "ID: $id_unidad_medida | Nombre '$nom' ya existe");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'unidad_medida_mostrar.php?existe=true';
                     </script>
                 <?php
                 } else {
+                    // AUDITORÍA: ERROR GENERAL
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'UNIDAD_MEDIDA', "ID: $id_unidad_medida | Error del sistema");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'unidad_medida_mostrar.php?error=true';

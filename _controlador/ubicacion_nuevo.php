@@ -1,8 +1,8 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('crear_ubicacion')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'UBICACION', 'CREAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -43,15 +43,29 @@ if (!verificarPermisoEspecifico('crear_ubicacion')) {
                 $rpta = GrabarUbicacion($nom, $est);
 
                 if ($rpta == "SI") {
+                    //  AUDITORÍA: REGISTRO EXITOSO
+                    $estado_texto = ($est == 1) ? 'Activo' : 'Inactivo';
+                    $descripcion = "Nombre: '$nom' | Estado: $estado_texto";
+                    GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'UBICACION', $descripcion);
             ?>
                     <script Language="JavaScript">
                         location.href = 'ubicacion_mostrar.php?registrado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    //  AUDITORÍA: ERROR - YA EXISTE
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'UBICACION', "Nombre: '$nom' - Ya existe");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'ubicacion_mostrar.php?existe=true';
+                    </script>
+            <?php
+                } else {
+                    //  AUDITORÍA: ERROR GENERAL
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'UBICACION', "Nombre: '$nom' - Error del sistema");
+                ?>
+                    <script Language="JavaScript">
+                        location.href = 'ubicacion_mostrar.php?error=true';
                     </script>
             <?php
                 }

@@ -1,55 +1,60 @@
 <?php
 //-----------------------------------------------------------------------
-function MostrarAuditoria($fecha_inicio, $fecha_fin)
-{
-	// Función temporal vacía - siempre retorna un array vacío
-    return array();
-}
-
-//-----------------------------------------------------------------------
-function GrabarAuditoria($id_usuario, $nom_usuario, $accion, $modulo, $descripcion)
-{
-	// Función temporal vacía - siempre retorna "SI"
-    return "SI";
-}
-/*
+// FUNCIÓN: Mostrar registros de auditoría por rango de fechas
 //-----------------------------------------------------------------------
 function MostrarAuditoria($fecha_inicio, $fecha_fin)
 {
-	include("../_conexion/conexion.php");
+    include("../_conexion/conexion.php");
 
-	$sqla = "SELECT * FROM auditoria WHERE DATE(fecha) BETWEEN '$fecha_inicio' AND '$fecha_fin' ORDER BY fecha DESC";
-	$resa = mysqli_query($con, $sqla);
+    // Preparar consulta con parámetros
+    $sql = "SELECT * FROM auditoria 
+            WHERE DATE(fecha) BETWEEN ? AND ? 
+            ORDER BY fecha DESC";
+    
+    $stmt = mysqli_prepare($con, $sql);
+    mysqli_stmt_bind_param($stmt, "ss", $fecha_inicio, $fecha_fin);
+    mysqli_stmt_execute($stmt);
+    $resultado_query = mysqli_stmt_get_result($stmt);
 
-	$resultado = array();
+    $resultado = array();
+    while ($row = mysqli_fetch_array($resultado_query, MYSQLI_ASSOC)) {
+        $resultado[] = $row;
+    }
 
-	while ($rowa = mysqli_fetch_array($resa, MYSQLI_ASSOC)) {
-		$resultado[] = $rowa;
-	}
+    mysqli_stmt_close($stmt);
+    mysqli_close($con);
 
-	return $resultado;
-
-	mysqli_close($con);
+    return $resultado;
 }
 
 //-----------------------------------------------------------------------
+// FUNCIÓN: Grabar evento en la auditoría
+//-----------------------------------------------------------------------
 function GrabarAuditoria($id_usuario, $nom_usuario, $accion, $modulo, $descripcion)
 {
-	include("../_conexion/conexion.php");
+    include("../_conexion/conexion.php");
 
     date_default_timezone_set('America/Lima');
     $fecha_actual = date("Y-m-d H:i:s");
 
-    $sql = "INSERT INTO auditoria VALUES (NULL, '$id_usuario', '$nom_usuario', '$accion', '$modulo', '$descripcion', '$fecha_actual')";
-    if (mysqli_query($con, $sql)) {
+    // Preparar consulta con parámetros para evitar SQL injection
+    $sql = "INSERT INTO auditoria (id_usuario, nom_usuario, accion, modulo, descripcion, fecha) 
+            VALUES (?, ?, ?, ?, ?, ?)";
+    
+    $stmt = mysqli_prepare($con, $sql);
+    mysqli_stmt_bind_param($stmt, "isssss", $id_usuario, $nom_usuario, $accion, $modulo, $descripcion, $fecha_actual);
+    
+    if (mysqli_stmt_execute($stmt)) {
         $rpta = "SI";
     } else {
         $rpta = "NO";
+        // Log del error (opcional)
+        error_log("Error en auditoría: " . mysqli_error($con));
     }
 
-	mysqli_close($con);
+    mysqli_stmt_close($stmt);
+    mysqli_close($con);
     
-	return $rpta;
+    return $rpta;
 }
-*/
 ?>

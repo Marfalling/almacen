@@ -1,8 +1,8 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php"); 
 
 if (!verificarPermisoEspecifico('crear_cargo')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'CARGO', 'CREAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -32,6 +32,8 @@ if (!verificarPermisoEspecifico('crear_cargo')) {
             require_once("../_modelo/m_cargo.php");
 
             //-------------------------------------------
+            // OPERACIÓN DE REGISTRO
+            //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
                 $nom = strtoupper($_REQUEST['nom']);
                 $est = isset($_REQUEST['est']) ? 1 : 0;
@@ -39,12 +41,16 @@ if (!verificarPermisoEspecifico('crear_cargo')) {
                 $rpta = GrabarCargo($nom, $est);
 
                 if ($rpta == "SI") {
+                    //  AUDITORÍA: REGISTRO EXITOSO
+                    GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'CARGO', $nom);
             ?>
                     <script Language="JavaScript">
                         location.href = 'cargo_mostrar.php?registrado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    //  AUDITORÍA: YA EXISTE
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'CARGO', "$nom YA EXISTE");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'cargo_mostrar.php?existe=true';

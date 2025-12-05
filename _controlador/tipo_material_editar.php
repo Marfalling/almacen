@@ -1,8 +1,8 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('editar_tipo de material')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'TIPO_MATERIAL', 'EDITAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -38,21 +38,52 @@ if (!verificarPermisoEspecifico('editar_tipo de material')) {
                 $nom = strtoupper($_REQUEST['nom']);
                 $est = isset($_REQUEST['est']) ? 1 : 0;
 
+                //  OBTENER DATOS ANTES DE EDITAR
+                $material_actual = ObtenerMaterialTipo($id_material_tipo);
+                $nom_anterior = $material_actual['nom_material_tipo'] ?? '';
+                $est_anterior = $material_actual['est_material_tipo'] ?? 0;
+
+                //  EJECUTAR ACTUALIZACIÓN
                 $rpta = ActualizarMaterialTipo($id_material_tipo, $nom, $est);
 
                 if ($rpta == "SI") {
+                    //  COMPARAR Y CONSTRUIR DESCRIPCIÓN
+                    $cambios = [];
+                    
+                    if ($nom_anterior != $nom) {
+                        $cambios[] = "Nombre: '$nom_anterior' → '$nom'";
+                    }
+                    
+                    if ($est_anterior != $est) {
+                        $estado_ant = ($est_anterior == 1) ? 'Activo' : 'Inactivo';
+                        $estado_nvo = ($est == 1) ? 'Activo' : 'Inactivo';
+                        $cambios[] = "Estado: $estado_ant → $estado_nvo";
+                    }
+                    
+                    if (empty($cambios)) {
+                        $descripcion = "ID: $id_material_tipo | Sin cambios";
+                    } else {
+                        $descripcion = "ID: $id_material_tipo | " . implode(' | ', $cambios);
+                    }
+                    
+                    //  AUDITORÍA: EDICIÓN EXITOSA
+                    GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'TIPO_MATERIAL', $descripcion);
                 ?>
                     <script Language="JavaScript">
                         location.href = 'tipo_material_mostrar.php?actualizado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    //  AUDITORÍA: ERROR - YA EXISTE
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'TIPO_MATERIAL', "ID: $id_material_tipo | Nombre '$nom' ya existe");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'tipo_material_mostrar.php?existe=true';
                     </script>
                 <?php
                 } else {
+                    //  AUDITORÍA: ERROR GENERAL
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'TIPO_MATERIAL', "ID: $id_material_tipo | Error del sistema");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'tipo_material_mostrar.php?error=true';

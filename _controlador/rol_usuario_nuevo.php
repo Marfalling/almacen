@@ -1,8 +1,8 @@
 <?php 
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('crear_rol de usuario')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'ROL_USUARIO', 'CREAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -48,6 +48,8 @@ $es_superadmin = esSuperAdmin($id);
                 
                 // Validar que se hayan seleccionado permisos
                 if (empty($permisos)) {
+                    //  AUDITORÍA: ERROR - SIN PERMISOS
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'ROL_USUARIO', "Nombre: '$nom_rol' - Sin permisos seleccionados");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'rol_usuario_nuevo.php?sin_permisos=true';
@@ -59,18 +61,27 @@ $es_superadmin = esSuperAdmin($id);
                 $rpta = GrabarRol($nom_rol, $permisos, $est);
                 
                 if ($rpta == "SI") {
+                    //  AUDITORÍA: REGISTRO EXITOSO
+                    $estado_texto = ($est == 1) ? 'Activo' : 'Inactivo';
+                    $cantidad_permisos = count($permisos);
+                    $descripcion = "Nombre: '$nom_rol' | Estado: $estado_texto | $cantidad_permisos permiso(s)";
+                    GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'ROL_USUARIO', $descripcion);
             ?>
                     <script Language="JavaScript">
                         location.href = 'rol_usuario_mostrar.php?registrado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    //  AUDITORÍA: ERROR - YA EXISTE
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'ROL_USUARIO', "Nombre: '$nom_rol' - Ya existe");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'rol_usuario_mostrar.php?existe=true';
                     </script>
             <?php
                 } else {
+                    //  AUDITORÍA: ERROR GENERAL
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'ROL_USUARIO', "Nombre: '$nom_rol' - Error del sistema");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'rol_usuario_mostrar.php?error=true';

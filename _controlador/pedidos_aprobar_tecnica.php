@@ -1,12 +1,16 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
+
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 require_once("../_modelo/m_pedidos.php");
 
 if (!verificarPermisoEspecifico('aprobar_pedidos')) {
-    require_once("../_modelo/m_auditoria.php");
-    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'APROBAR');
-    header("location: bienvenido.php?permisos=true");
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'APROBAR TECNICA');
+    echo json_encode([
+        "tipo_mensaje" => "error",
+        "mensaje" => "No tienes permisos para aprobar pedidos."
+    ]);
     exit;
 }
 
@@ -17,11 +21,17 @@ if ($id_pedido) {
     $resultado = AprobarPedidoTecnica($id_pedido, $id_personal);
 
     if ($resultado) {
+        //  AUDITORÍA: APROBACIÓN TÉCNICA EXITOSA
+        GrabarAuditoria($id, $usuario_sesion, 'APROBAR', 'PEDIDOS', "ID: $id_pedido (APROBACIÓN TÉCNICA)");
+        
         echo json_encode([
             "tipo_mensaje" => "success",
             "mensaje" => "Pedido aprobado técnicamente."
         ]);
     } else {
+        //  AUDITORÍA: ERROR AL APROBAR TÉCNICAMENTE
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL APROBAR', 'PEDIDOS', "ID: $id_pedido (APROBACIÓN TÉCNICA)");
+        
         echo json_encode([
             "tipo_mensaje" => "error",
             "mensaje" => "Error al aprobar técnicamente el pedido."

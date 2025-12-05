@@ -1,13 +1,13 @@
 <?php
 //=======================================================================
-// uso_material_nuevo.php - CONTROLADOR CORREGIDO
+// uso_material_nuevo.php - CONTROLADOR CON AUDITORÍA
 //=======================================================================
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 // VERIFICACIÓN DE PERMISOS
 if (!verificarPermisoEspecifico('crear_uso de material')) {
-    require_once("../_modelo/m_auditoria.php");
-    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'USO DE MATERIAL', 'CREAR');
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'USO_MATERIAL', 'CREAR');
     header("location: bienvenido.php?permisos=true");
     exit;
 }
@@ -31,7 +31,7 @@ if (!verificarPermisoEspecifico('crear_uso de material')) {
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-
+            require_once("../_modelo/m_producto.php");
             require_once("../_modelo/m_uso_material.php");
             require_once("../_modelo/m_almacen.php");
             require_once("../_modelo/m_ubicacion.php");
@@ -87,6 +87,9 @@ if (!verificarPermisoEspecifico('crear_uso de material')) {
 
                 // Validar que hay materiales
                 if (empty($materiales)) {
+                    //  AUDITORÍA: ERROR - SIN MATERIALES
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'USO_MATERIAL', "Sin materiales agregados");
+                    
                     $mostrar_alerta = true;
                     $tipo_alerta = 'warning';
                     $titulo_alerta = 'Datos incompletos';
@@ -96,21 +99,47 @@ if (!verificarPermisoEspecifico('crear_uso de material')) {
                                            $id, $materiales, $archivos_subidos);
 
                     if ($rpta == "SI") {
+                        $almacen_data = ConsultarAlmacen($id_almacen);
+                        $ubicacion_data = ObtenerUbicacion($id_ubicacion);
+                        $solicitante_data = ObtenerPersonal($id_solicitante);
+
+                        $nom_almacen = !empty($almacen_data) ? $almacen_data[0]['nom_almacen'] : '';
+                        $nom_ubicacion = $ubicacion_data ? $ubicacion_data['nom_ubicacion'] : '';
+                        $nom_solicitante = $solicitante_data ? $solicitante_data['nom_personal'] : '';
+
+                        //  CONSTRUIR DETALLE DE PRODUCTOS CON CANTIDADES
+                        $productos_detalle = [];
+                        foreach ($materiales as $mat) {
+                            //  USAR FUNCIÓN DEL MODELO
+                            $producto_data = ObtenerProductoPorId($mat['id_producto']);
+                            $nom_producto = $producto_data ? $producto_data['nom_producto'] : "ID:" . $mat['id_producto'];
+                            
+                            $desc_corta = (strlen($nom_producto) > 30) 
+                                ? substr($nom_producto, 0, 30) . '...' 
+                                : $nom_producto;
+                            
+                            $productos_detalle[] = "$desc_corta (Cant: {$mat['cantidad']})";
+                        }
+                        $desc_productos = implode(' | ', $productos_detalle);
+
+                        $descripcion = "Almacén: '$nom_almacen' | Ubicación: '$nom_ubicacion' | Solicitante: '$nom_solicitante' | Productos: $desc_productos";
+                        GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'USO_MATERIAL', $descripcion);
                         ?>
                         <script Language="JavaScript">
-                            // Usar setTimeout para asegurar que la página se carga completamente
                             setTimeout(function() {
                                 window.location.href = 'uso_material_mostrar.php?registrado=true';
                             }, 100);
                         </script>
                         <?php
-                        exit; // Detener ejecución después del éxito
+                        exit;
                     } else {
+                        //  AUDITORÍA: ERROR AL REGISTRAR
+                        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'USO_MATERIAL', "Error: " . $rpta);
+                        
                         $mostrar_alerta = true;
                         $tipo_alerta = 'error';
                         $titulo_alerta = 'Error al registrar';
-                        $mensaje_alerta = str_replace("'", "\'", $rpta); // Escapar comillas simples
-                        // NO continuar con el procesamiento cuando hay error
+                        $mensaje_alerta = str_replace("'", "\'", $rpta);
                     }
                 }
             }

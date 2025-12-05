@@ -1,13 +1,12 @@
 <?php
 //=======================================================================
-// CONTROLADOR: salidas_denegar.php (VERSIÓN ACTUALIZADA)
-//=======================================================================
-// Este controlador ahora usa DenegarSalidaConFlujoCompleto() 
-// para manejar el bloqueo de ubicaciones y la conversión automática OS → OC
+// CONTROLADOR: salidas_denegar.php (SIMPLIFICADO CON AUDITORÍA)
 //=======================================================================
 
 session_start();
 header('Content-Type: application/json');
+
+require_once("../_modelo/m_auditoria.php");
 
 // Validar sesión
 if (!isset($_SESSION['id_personal'])) {
@@ -18,13 +17,11 @@ if (!isset($_SESSION['id_personal'])) {
     exit;
 }
 
-// Cargar modelo
+// Cargar modelos
 require_once("../_modelo/m_salidas.php");
 require_once("../_modelo/m_pedidos.php");
 
-// ============================================
-// VALIDAR DATOS
-// ============================================
+// Validar datos
 if (!isset($_POST['id_salida']) || empty($_POST['id_salida'])) {
     echo json_encode([
         'success' => false,
@@ -36,6 +33,8 @@ if (!isset($_POST['id_salida']) || empty($_POST['id_salida'])) {
 $id_salida = intval($_POST['id_salida']);
 $id_personal = intval($_SESSION['id_personal']);
 $motivo = isset($_POST['motivo']) ? trim($_POST['motivo']) : 'Salida denegada por el usuario';
+$id_usuario_sesion = $_SESSION['id'] ?? 0;
+$usuario_sesion = $_SESSION['usuario_sesion'] ?? '';
 
 // ============================================
 // VALIDAR QUE LA SALIDA EXISTE Y ESTÁ PENDIENTE
@@ -50,6 +49,7 @@ $res_validar = mysqli_query($con, $sql_validar);
 
 if (!$res_validar || mysqli_num_rows($res_validar) == 0) {
     mysqli_close($con);
+    GrabarAuditoria($id_usuario_sesion, $usuario_sesion, 'ERROR AL DENEGAR', 'SALIDAS', "ID: $id_salida - Salida no encontrada");
     echo json_encode([
         'success' => false,
         'message' => 'Salida no encontrada'
@@ -73,6 +73,8 @@ if ($estado_actual != 1) {
     ];
     $nombre_estado = $estados[$estado_actual] ?? 'DESCONOCIDO';
     
+    GrabarAuditoria($id_usuario_sesion, $usuario_sesion, 'ERROR AL DENEGAR', 'SALIDAS', "ID: $id_salida | Estado: $nombre_estado");
+    
     echo json_encode([
         'success' => false,
         'message' => "No se puede denegar. La salida está en estado: $nombre_estado"
@@ -89,12 +91,24 @@ error_log("🔴 INICIANDO DENEGACIÓN CON FLUJO COMPLETO - Salida ID: $id_salida
 $resultado = DenegarSalidaConFlujoCompleto($id_salida, $id_personal, $motivo);
 
 // ============================================
-// PROCESAR RESPUESTA
+// PROCESAR RESPUESTA Y AUDITAR
 // ============================================
 if ($resultado['success']) {
-    //  ÉXITO
+    
     error_log(" Denegación exitosa - Salida ID: $id_salida");
     error_log("   Items convertidos a OC: " . ($resultado['total_convertidos'] ?? 0));
+    
+    //  AUDITORÍA: DENEGACIÓN EXITOSA (FORMATO MEJORADO)
+    $items_convertidos = $resultado['total_convertidos'] ?? 0;
+    $motivo_resumido = substr($motivo, 0, 50);
+    
+    if ($items_convertidos > 0) {
+        $descripcion = "ID: $id_salida (DENEGADA - $items_convertidos item(s) OS→OC)";
+    } else {
+        $descripcion = "ID: $id_salida (DENEGADA - $motivo_resumido)";
+    }
+    
+    GrabarAuditoria($id_usuario_sesion, $usuario_sesion, 'DENEGAR', 'SALIDAS', $descripcion);
     
     // Construir mensaje detallado
     $mensaje_respuesta = "✅ Salida denegada correctamente.\n\n";
@@ -149,6 +163,9 @@ if ($resultado['success']) {
 } else {
     //  ERROR
     error_log(" Error al denegar salida: " . $resultado['message']);
+    
+    //  AUDITORÍA: ERROR AL DENEGAR
+    GrabarAuditoria($id_usuario_sesion, $usuario_sesion, 'ERROR AL DENEGAR', 'SALIDAS', "ID: $id_salida | " . $resultado['message']);
     
     echo json_encode([
         'success' => false,

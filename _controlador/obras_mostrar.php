@@ -13,7 +13,7 @@ require_once("../_modelo/m_obras.php");
 $obras = MostrarObras();
 
 require_once("../_modelo/m_auditoria.php");
-GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'OBRAS', 'MOSTRAR');
+//GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'OBRAS', 'MOSTRAR');
 ?>
 <!DOCTYPE html>
 <html lang="es">

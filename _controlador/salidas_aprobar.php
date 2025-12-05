@@ -6,10 +6,10 @@
 
 header('Content-Type: application/json; charset=utf-8');
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");  
 require_once("../_modelo/m_salidas.php");
 
 if (!verificarPermisoEspecifico('aprobar_salidas')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'SALIDAS', 'APROBAR');
     
     echo json_encode([
@@ -33,8 +33,12 @@ $resultado = AprobarSalidaConMovimientos($id_salida, $id_personal);
 
 if (is_array($resultado)) {
     
-    // Salida anulada por falta de stock
+    // Caso: Salida anulada por falta de stock
     if (isset($resultado['anulada']) && $resultado['anulada'] === true) {
+        
+        //  AUDITORÍA: ANULACIÓN AUTOMÁTICA POR STOCK
+        GrabarAuditoria($id, $usuario_sesion, 'ANULAR', 'SALIDAS', "ID: $id_salida (ANULADA AUTOMÁTICAMENTE - Falta de stock)");
+        
         echo json_encode([
             "success" => false,
             "anulada" => true,
@@ -43,9 +47,26 @@ if (is_array($resultado)) {
         exit;
     }
     
+    // Caso: Aprobación exitosa
+    if (isset($resultado['success']) && $resultado['success'] === true) {
+        
+        //  AUDITORÍA: APROBACIÓN EXITOSA (FORMATO MEJORADO)
+        GrabarAuditoria($id, $usuario_sesion, 'APROBAR', 'SALIDAS', "ID: $id_salida (APROBACIÓN TÉCNICA)");
+        
+    } else {
+        
+        //  AUDITORÍA: ERROR AL APROBAR
+        $mensaje_error = $resultado['message'] ?? 'Error desconocido';
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL APROBAR', 'SALIDAS', "ID: $id_salida | $mensaje_error");
+    }
+    
     echo json_encode($resultado);
+    
 } else {
-    //  Respuesta inesperada
+    
+    //  AUDITORÍA: RESPUESTA INESPERADA
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL APROBAR', 'SALIDAS', "ID: $id_salida | Respuesta inesperada");
+    
     echo json_encode([
         "success" => false,
         "message" => "Error inesperado al procesar la aprobación."
@@ -53,3 +74,4 @@ if (is_array($resultado)) {
 }
 
 exit;
+?>

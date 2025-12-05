@@ -6,36 +6,30 @@
 // PEDIDOS - CREAR (pedidos_nuevo.php)
 
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('crear_pedidos')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'CREAR');
     header("location: bienvenido.php?permisos=true");
     exit;
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
     <title>Nuevo Pedido</title>
-
     <?php require_once("../_vista/v_estilo.php"); ?>
 </head>
-
 <body class="nav-md">
     <div class="container body">
         <div class="main_container">
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-
             require_once("../_modelo/m_pedidos.php");
             require_once("../_modelo/m_almacen.php");
             require_once("../_modelo/m_tipo_producto.php");
@@ -60,7 +54,7 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
             }
             
             //=======================================================================
-            // CONTROLADOR ACTUALIZADO CON PERSONAL
+            // CONTROLADOR ACTUALIZADO CON AUDITORÍA
             //=======================================================================
             if (isset($_REQUEST['registrar'])) {
                 // Recibir datos del formulario
@@ -76,24 +70,21 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                 $lugar_entrega = strtoupper($_REQUEST['lugar_entrega']);
                 $aclaraciones = strtoupper($_REQUEST['aclaraciones']);
                 
-                //  Procesar materiales con centros de costo Y PERSONAL
+                // Procesar materiales
                 $materiales = array();
                 $errores_validacion = array();
                 
                 if (isset($_REQUEST['descripcion']) && is_array($_REQUEST['descripcion'])) {
                     for ($i = 0; $i < count($_REQUEST['descripcion']); $i++) {
-                        
                         $sst_descripcion = trim($_REQUEST['sst'][$i]);
                         $ot_detalle = isset($_REQUEST['ot_detalle'][$i]) ? trim($_REQUEST['ot_detalle'][$i]) : '';
                         
-                        // Procesar centros de costo múltiples
+                        // Procesar centros de costo
                         $centros_costo_material = array();
-                        
                         if (isset($_REQUEST['centros_costo'])) {
                             if (is_array($_REQUEST['centros_costo'])) {
                                 if (isset($_REQUEST['centros_costo'][$i])) {
                                     $centros_value = $_REQUEST['centros_costo'][$i];
-                                    
                                     if (is_array($centros_value)) {
                                         $centros_costo_material = $centros_value;
                                     } else if (is_string($centros_value) && !empty($centros_value)) {
@@ -103,21 +94,18 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                             }
                         }
                         
-                        // Limpiar y validar IDs de centros de costo
                         $centros_costo_material = array_map('intval', $centros_costo_material);
                         $centros_costo_material = array_filter($centros_costo_material, function($id) {
                             return $id > 0;
                         });
                         $centros_costo_material = array_unique($centros_costo_material);
                         
-                        //  NUEVO: Procesar personal asignado
+                        // Procesar personal
                         $personal_material = array();
-                        
                         if (isset($_REQUEST['personal_ids'])) {
                             if (is_array($_REQUEST['personal_ids'])) {
                                 if (isset($_REQUEST['personal_ids'][$i])) {
                                     $personal_value = $_REQUEST['personal_ids'][$i];
-                                    
                                     if (is_array($personal_value)) {
                                         $personal_material = $personal_value;
                                     } else if (is_string($personal_value) && !empty($personal_value)) {
@@ -127,7 +115,6 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                             }
                         }
                         
-                        // Limpiar y validar IDs de personal
                         $personal_material = array_map('intval', $personal_material);
                         $personal_material = array_filter($personal_material, function($id) {
                             return $id > 0;
@@ -164,30 +151,34 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                                 $materiales, $archivos_subidos);
 
                 if ($rpta == "SI") {
+                    //  AUDITORÍA: REGISTRO EXITOSO
+                    $descripcion = "Nombre: '$nom_pedido' | Solicitante: '$solicitante' | OT: '$num_ot' | Fecha: '$fecha_necesidad' | " . count($materiales) . " materiales";
+                    GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'PEDIDOS', $descripcion);
             ?>
                     <script Language="JavaScript">
                         location.href = 'pedidos_mostrar.php?registrado=true';
                     </script>
                 <?php
+                    exit;
                 } else {
+                    //  AUDITORÍA: ERROR
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'PEDIDOS', "Nombre: '$nom_pedido' - Error: $rpta");
                 ?>
                     <script Language="JavaScript">
                         alert('Error al registrar el pedido: <?php echo addslashes($rpta); ?>');
                         location.href = 'pedidos_mostrar.php?error=true';
                     </script>
             <?php
+                    exit;
                 }
             }
-
             //-------------------------------------------
 
-            
             require_once("../_vista/v_pedidos_nuevo.php");
             require_once("../_vista/v_footer.php");
             ?>
         </div>
     </div>
-
     <?php
     require_once("../_vista/v_script.php");
     require_once("../_vista/v_alertas.php");

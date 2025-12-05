@@ -1,9 +1,9 @@
 <?php
 
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('crear_usuarios')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'USUARIO', 'CREAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -48,6 +48,8 @@ $es_superadmin = esSuperAdmin($id);
                 
                 // Validar que se haya seleccionado un rol
                 if (empty($rol_seleccionado)) {
+                    //  AUDITORÍA: ERROR - SIN ROL SELECCIONADO
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'USUARIO', "Usuario: '$usu' | Sin rol seleccionado");
             ?>
                     <script Language="JavaScript">
                         alert('Error: Debe seleccionar un rol para el usuario.');
@@ -62,6 +64,8 @@ $es_superadmin = esSuperAdmin($id);
 
                 // Validaciones adicionales del lado del servidor
                 if (empty($id_personal)) {
+                    //  AUDITORÍA: ERROR - SIN PERSONAL SELECCIONADO
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'USUARIO', "Usuario: '$usu' | Sin personal seleccionado");
             ?>
                     <script Language="JavaScript">
                         alert('Error: Debe seleccionar un personal.');
@@ -72,6 +76,8 @@ $es_superadmin = esSuperAdmin($id);
                 }
 
                 if (empty($usu)) {
+                    //  AUDITORÍA: ERROR - NOMBRE DE USUARIO VACÍO
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'USUARIO', "Nombre de usuario vacío");
             ?>
                     <script Language="JavaScript">
                         alert('Error: El nombre de usuario es obligatorio.');
@@ -83,6 +89,8 @@ $es_superadmin = esSuperAdmin($id);
 
                 // Validar que el usuario no contenga espacios
                 if (preg_match('/\s/', $usu)) {
+                    //  AUDITORÍA: ERROR - USUARIO CON ESPACIOS
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'USUARIO', "Usuario: '$usu' | Contiene espacios");
             ?>
                     <script Language="JavaScript">
                         alert('Error: El nombre de usuario no puede contener espacios.');
@@ -93,6 +101,8 @@ $es_superadmin = esSuperAdmin($id);
                 }
 
                 if (empty($pass)) {
+                    //  AUDITORÍA: ERROR - CONTRASEÑA VACÍA
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'USUARIO', "Usuario: '$usu' | Contraseña vacía");
             ?>
                     <script Language="JavaScript">
                         alert('Error: La contraseña es obligatoria.');
@@ -104,6 +114,8 @@ $es_superadmin = esSuperAdmin($id);
 
                 // Validar longitud mínima de contraseña
                 if (strlen($pass) < 6) {
+                    //  AUDITORÍA: ERROR - CONTRASEÑA CORTA
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'USUARIO', "Usuario: '$usu' | Contraseña menor a 6 caracteres");
             ?>
                     <script Language="JavaScript">
                         alert('Error: La contraseña debe tener al menos 6 caracteres.');
@@ -116,24 +128,42 @@ $es_superadmin = esSuperAdmin($id);
                 $rpta = GrabarUsuario($id_personal, $usu, $pass, $est, $roles);
 
                 if ($rpta == "SI") {
+                    //  OBTENER NOMBRES PARA AUDITORÍA
+                    require_once("../_modelo/m_personal.php");
+                    $personal_data = ObtenerPersonal($id_personal);
+                    $rol_data = ObtenerRol($rol_seleccionado);
+                    
+                    $nom_personal = $personal_data ? $personal_data['nom_personal'] : '';
+                    $nom_rol = $rol_data ? $rol_data['nom_rol'] : '';
+                    $estado_texto = ($est == 1) ? 'Activo' : 'Inactivo';
+                    
+                    //  AUDITORÍA: REGISTRO EXITOSO
+                    $descripcion = "Usuario: '$usu' | Personal: '$nom_personal' | Rol: '$nom_rol' | Estado: $estado_texto";
+                    GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'USUARIO', $descripcion);
                 ?>
                     <script Language="JavaScript">
                         location.href = 'usuario_mostrar.php?registrado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    //  AUDITORÍA: ERROR - YA EXISTE
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'USUARIO', "Usuario: '$usu' - Ya existe");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'usuario_mostrar.php?existe=true';
                     </script>
                 <?php
                 } else if ($rpta == "PERSONAL_YA_ASIGNADO") {
+                    //  AUDITORÍA: ERROR - PERSONAL YA TIENE USUARIO
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'USUARIO', "Usuario: '$usu' | Personal ya tiene usuario asignado");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'usuario_mostrar.php?personal_asignado=true';
                     </script>
                 <?php
                 } else if ($rpta == "ERROR_SINCRONIZAR") {
+                    //  AUDITORÍA: ERROR - SINCRONIZACIÓN
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'USUARIO', "Usuario: '$usu' | Error al sincronizar");
                 ?>
                     <script Language="JavaScript">
                         alert('Error al sincronizar el personal de la base de Inspecciones. Intente nuevamente.');
@@ -141,6 +171,8 @@ $es_superadmin = esSuperAdmin($id);
                     </script>
                 <?php
                 } else if ($rpta == "PERSONAL_NO_ENCONTRADO") {
+                    //  AUDITORÍA: ERROR - PERSONAL NO ENCONTRADO
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'USUARIO', "Usuario: '$usu' | Personal no encontrado");
                 ?>
                     <script Language="JavaScript">
                         alert('Error: El personal seleccionado no fue encontrado en ninguna base de datos.');
@@ -148,6 +180,8 @@ $es_superadmin = esSuperAdmin($id);
                     </script>
                 <?php
                 } else {
+                    //  AUDITORÍA: ERROR GENERAL
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'USUARIO', "Usuario: '$usu' | Error del sistema");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'usuario_mostrar.php?error=true';
@@ -163,7 +197,6 @@ $es_superadmin = esSuperAdmin($id);
             if ($es_superadmin) {
                 $roles_activos = MostrarRolesActivos();
             } else {
-                
                 $roles_activos = MostrarRolesActivosFiltrados();
             }
 

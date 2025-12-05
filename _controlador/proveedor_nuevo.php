@@ -3,9 +3,9 @@
 // CONTROLADOR: proveedor_nuevo.php
 //=======================================================================
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('crear_proveedor')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PROVEEDOR', 'CREAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -34,8 +34,10 @@ if (isset($_REQUEST['registrar'])) {
         $lista_monedas = $_POST['id_moneda'] ?? [];
         $lista_corrientes = $_POST['cta_corriente'] ?? [];
         $lista_interbancarias = $_POST['cta_interbancaria'] ?? [];
+        
+        $cantidad_cuentas = count($lista_bancos);
 
-        for ($i = 0; $i < count($lista_bancos); $i++) {
+        for ($i = 0; $i < $cantidad_cuentas; $i++) {
             $id_banco = intval($lista_bancos[$i]);
             $moneda = intval($lista_monedas[$i]);
             $cta_corriente = $lista_corrientes[$i];
@@ -43,12 +45,23 @@ if (isset($_REQUEST['registrar'])) {
             GrabarCuentaProveedor($id_proveedor, $id_banco, $moneda, $cta_corriente, $cta_interbancaria);
         }
 
+        //  AUDITORÍA: REGISTRO EXITOSO
+        $estado_texto = ($est == 1) ? 'Activo' : 'Inactivo';
+        $descripcion = "Nombre: '$nom' | RUC: '$ruc' | Estado: $estado_texto | $cantidad_cuentas cuenta(s) bancaria(s)";
+        GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'PROVEEDOR', $descripcion);
+
         header("location: proveedor_mostrar.php?registrado=true");
         exit;
     } elseif ($id_proveedor === "NO") {
+        //  AUDITORÍA: ERROR - YA EXISTE
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'PROVEEDOR', "Nombre: '$nom' | RUC: '$ruc' - Ya existe");
+        
         header("location: proveedor_mostrar.php?existe=true");
         exit;
     } else {
+        //  AUDITORÍA: ERROR GENERAL
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'PROVEEDOR', "Nombre: '$nom' | RUC: '$ruc' - Error del sistema");
+        
         header("location: proveedor_mostrar.php?error=true");
         exit;
     }
@@ -85,5 +98,3 @@ if (isset($_REQUEST['registrar'])) {
     ?>
 </body>
 </html>
-
-

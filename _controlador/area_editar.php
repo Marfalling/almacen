@@ -1,9 +1,9 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php"); 
 
 if (!verificarPermisoEspecifico('editar_area')) {
-    //require_once("../_modelo/m_auditoria.php");
-    //GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'AREA', 'EDITAR');
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'AREA', 'EDITAR');
     header("location: bienvenido.php?permisos=true");
     exit;
 }
@@ -33,20 +33,26 @@ if (!verificarPermisoEspecifico('editar_area')) {
 			require_once("../_modelo/m_area.php");
 
 			//-------------------------------------------
+			// OPERACIÓN DE EDICIÓN
+			//-------------------------------------------
 			if (isset($_REQUEST['registrar'])) {
 				$id_area = $_REQUEST['id_area'];
-				$nom = $_REQUEST['nom'];
+				$nom = strtoupper($_REQUEST['nom']); 
 				$est = isset($_REQUEST['est']) ? 1 : 0;
 
 				$rpta = EditarArea($id_area, $nom, $est);
 
 				if ($rpta == "SI") {
+					//  AUDITORÍA: EDICIÓN EXITOSA
+					GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'AREA', "ID: $id_area - $nom");
 				?>
 					<script Language="JavaScript">
 						location.href = 'area_mostrar.php?actualizado=true';
 					</script>
 				<?php
 				} else if ($rpta == "NO") {
+					//  AUDITORÍA: ERROR AL EDITAR
+					GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'AREA', "ID: $id_area - $nom");
 				?>
 					<script Language="JavaScript">
 						location.href = 'area_mostrar.php?error=true';
@@ -75,7 +81,7 @@ if (!verificarPermisoEspecifico('editar_area')) {
 			} else {
 			?>
 				<script Language="JavaScript">
-					//location.href = 'dashboard.php?error=true';
+					//location.href = 'dashboard.php?error=true'; 
 				</script>
 			<?php
 				exit;

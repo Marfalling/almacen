@@ -1,9 +1,13 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('importar_proveedor')) {
-    require_once("../_modelo/m_auditoria.php");
-    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PROVEEDOR', 'IMPORTAR');
+    try {
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PROVEEDOR', 'IMPORTAR');
+    } catch (Exception $e) {
+        error_log(" Error al auditar acceso denegado: " . $e->getMessage());
+    }
     header("location: bienvenido.php?permisos=true");
     exit;
 }
@@ -43,6 +47,11 @@ if (!verificarPermisoEspecifico('importar_proveedor')) {
                 if (($handle = fopen($archivo, "r")) !== FALSE) {
                     fgetcsv($handle, 1000, $delimiter); // Omitir encabezado
 
+                    $proveedores_nuevos = 0;
+                    $proveedores_existentes = 0;
+                    $cuentas_nuevas = 0;
+                    $errores = 0;
+
                     while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
 
                         // Detectar codificación y convertir solo si no es UTF-8
@@ -77,25 +86,47 @@ if (!verificarPermisoEspecifico('importar_proveedor')) {
 
                         if (!$prov) {
                             $id_proveedor = GrabarProveedor($nom, $ruc, $dir, $tel, $cont, $est, $mail);
+                            if ($id_proveedor && $id_proveedor != "ERROR" && $id_proveedor != "NO") {
+                                $proveedores_nuevos++;
+                            } else {
+                                $errores++;
+                            }
                         } else {
                             $id_proveedor = $prov['id_proveedor'];
+                            $proveedores_existentes++;
                         }
 
                         // Grabar cuenta si no existe
                         if ($id_proveedor && $id_proveedor != "ERROR" && $id_proveedor != "NO") {
                             if (!CuentaProveedorExiste($id_proveedor, $cta, $cci)) {
                                 GrabarCuentaProveedorConEstado($id_proveedor, $banco, $mon, $cta, $cci, $est_cta);
+                                $cuentas_nuevas++;
                             }
                         }
                     }
 
                     fclose($handle);
+                    
+                    //  AUDITORÍA: IMPORTACIÓN EXITOSA (PROTEGIDA)
+                    try {
+                        $descripcion = "$proveedores_nuevos proveedor(es) nuevo(s) | $proveedores_existentes existente(s) | $cuentas_nuevas cuenta(s) nueva(s) | $errores error(es)";
+                        GrabarAuditoria($id, $usuario_sesion, 'IMPORTAR', 'PROVEEDOR', $descripcion);
+                    } catch (Exception $e) {
+                        error_log(" Error al auditar importación exitosa: " . $e->getMessage());
+                        //  Continúa el flujo normal aunque falle la auditoría
+                    }
                     ?>
                         <script>
                             location.href = 'proveedor_mostrar.php?actualizado=true';
                         </script>
                     <?php
                 } else {
+                    //  AUDITORÍA: ERROR AL ABRIR ARCHIVO (PROTEGIDA)
+                    try {
+                        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL IMPORTAR', 'PROVEEDOR', "No se pudo abrir el archivo");
+                    } catch (Exception $e) {
+                        error_log(" Error al auditar fallo de apertura: " . $e->getMessage());
+                    }
                     ?>
                         <script>
                             location.href = 'proveedor_mostrar.php?error=true';
@@ -103,6 +134,12 @@ if (!verificarPermisoEspecifico('importar_proveedor')) {
                     <?php
                 }
             } else {
+                //  AUDITORÍA: NO SE RECIBIÓ ARCHIVO (PROTEGIDA)
+                try {
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL IMPORTAR', 'PROVEEDOR', "No se recibió archivo");
+                } catch (Exception $e) {
+                    error_log(" Error al auditar falta de archivo: " . $e->getMessage());
+                }
                 ?>
                     <script>
                         location.href = 'proveedor_mostrar.php?error=true';
@@ -120,4 +157,3 @@ if (!verificarPermisoEspecifico('importar_proveedor')) {
     ?>
 </body>
 </html>
-

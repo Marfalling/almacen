@@ -1,13 +1,14 @@
 <?php
 
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('editar_usuarios')) {
-    require_once("../_modelo/m_auditoria.php");
-    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'USUARIOS', 'EDITAR');
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'USUARIO', 'EDITAR');
     header("location: bienvenido.php?permisos=true");
     exit;
 }
+
 require_once("../_modelo/m_usuario.php");
 require_once("../_modelo/m_rol.php");
 
@@ -43,11 +44,21 @@ $es_superadmin = esSuperAdmin($id);
                 $pass = $_REQUEST['pass']; // Puede estar vacío si no se cambia
                 $est = isset($_REQUEST['est']) ? 1 : 0;
                 
+                //  OBTENER DATOS ANTES DE EDITAR
+                $usuario_actual = ObtenerUsuario($id_usuario);
+                $usu_anterior = $usuario_actual['usu_usuario'] ?? '';
+                $est_anterior = $usuario_actual['est_usuario'] ?? 0;
+                $roles_anteriores = ObtenerRolesUsuario($id_usuario);
+                $rol_anterior_id = !empty($roles_anteriores) ? $roles_anteriores[0]['id_rol'] : 0;
+                $rol_anterior_nom = !empty($roles_anteriores) ? $roles_anteriores[0]['nom_rol'] : '';
+                
                 // Obtener rol seleccionado (ahora es solo uno)
                 $rol_seleccionado = isset($_REQUEST['rol_seleccionado']) ? $_REQUEST['rol_seleccionado'] : null;
                 
                 // Validar que se haya seleccionado un rol
                 if (empty($rol_seleccionado)) {
+                    //  AUDITORÍA: ERROR - SIN ROL SELECCIONADO
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'USUARIO', "ID: $id_usuario | Usuario: '$usu' | Sin rol seleccionado");
                 ?>
                     <script Language="JavaScript">
                         alert('Error: Debe seleccionar un rol para el usuario.');
@@ -59,6 +70,8 @@ $es_superadmin = esSuperAdmin($id);
 
                 // Validaciones adicionales del lado del servidor
                 if (empty($usu)) {
+                    //  AUDITORÍA: ERROR - NOMBRE DE USUARIO VACÍO
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'USUARIO', "ID: $id_usuario | Nombre de usuario vacío");
                 ?>
                     <script Language="JavaScript">
                         alert('Error: El nombre de usuario es obligatorio.');
@@ -70,6 +83,8 @@ $es_superadmin = esSuperAdmin($id);
 
                 // Validar que el usuario no contenga espacios
                 if (preg_match('/\s/', $usu)) {
+                    //  AUDITORÍA: ERROR - USUARIO CON ESPACIOS
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'USUARIO', "ID: $id_usuario | Usuario: '$usu' | Contiene espacios");
                 ?>
                     <script Language="JavaScript">
                         alert('Error: El nombre de usuario no puede contener espacios.');
@@ -81,6 +96,8 @@ $es_superadmin = esSuperAdmin($id);
 
                 // Si se está cambiando la contraseña, validar longitud mínima
                 if (!empty($pass) && strlen($pass) < 6) {
+                    //  AUDITORÍA: ERROR - CONTRASEÑA CORTA
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'USUARIO', "ID: $id_usuario | Usuario: '$usu' | Contraseña menor a 6 caracteres");
                 ?>
                     <script Language="JavaScript">
                         alert('Error: La contraseña debe tener al menos 6 caracteres.');
@@ -93,21 +110,57 @@ $es_superadmin = esSuperAdmin($id);
                 // Convertir el rol único en un array para mantener compatibilidad con la función existente
                 $roles = array($rol_seleccionado);
 
+                //  EJECUTAR ACTUALIZACIÓN
                 $rpta = EditarUsuario($id_usuario, $usu, $pass, $est, $roles);
 
                 if ($rpta == "SI") {
+                    //  COMPARAR Y CONSTRUIR DESCRIPCIÓN
+                    $cambios = [];
+                    
+                    if ($usu_anterior != $usu) {
+                        $cambios[] = "Usuario: '$usu_anterior' → '$usu'";
+                    }
+                    
+                    if (!empty($pass)) {
+                        $cambios[] = "Contraseña actualizada";
+                    }
+                    
+                    if ($rol_anterior_id != $rol_seleccionado) {
+                        $rol_nuevo_data = ObtenerRol($rol_seleccionado);
+                        $rol_nuevo_nom = $rol_nuevo_data ? $rol_nuevo_data['nom_rol'] : '';
+                        $cambios[] = "Rol: '$rol_anterior_nom' → '$rol_nuevo_nom'";
+                    }
+                    
+                    if ($est_anterior != $est) {
+                        $estado_ant = ($est_anterior == 1) ? 'Activo' : 'Inactivo';
+                        $estado_nvo = ($est == 1) ? 'Activo' : 'Inactivo';
+                        $cambios[] = "Estado: $estado_ant → $estado_nvo";
+                    }
+                    
+                    if (empty($cambios)) {
+                        $descripcion = "ID: $id_usuario | Usuario: '$usu' | Sin cambios";
+                    } else {
+                        $descripcion = "ID: $id_usuario | " . implode(' | ', $cambios);
+                    }
+                
+                    //  AUDITORÍA: EDICIÓN EXITOSA
+                    GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'USUARIO', $descripcion);
                 ?>
                     <script Language="JavaScript">
                         location.href = 'usuario_mostrar.php?actualizado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    //  AUDITORÍA: ERROR - YA EXISTE
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'USUARIO', "ID: $id_usuario | Usuario '$usu' ya existe");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'usuario_mostrar.php?error=true';
                     </script>
                 <?php
                 } else if ($rpta == "ERROR_SINCRONIZAR") {
+                    // AUDITORÍA: ERROR - SINCRONIZACIÓN
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'USUARIO', "ID: $id_usuario | Error al sincronizar");
                 ?>
                     <script Language="JavaScript">
                         alert('Error al sincronizar el personal de la base de Inspecciones. Intente nuevamente.');
@@ -115,6 +168,8 @@ $es_superadmin = esSuperAdmin($id);
                     </script>
                 <?php
                 } else if ($rpta == "PERSONAL_NO_ENCONTRADO") {
+                    //  AUDITORÍA: ERROR - PERSONAL NO ENCONTRADO
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'USUARIO', "ID: $id_usuario | Personal no encontrado");
                 ?>
                     <script Language="JavaScript">
                         alert('Error: El personal asociado a este usuario no fue encontrado en ninguna base de datos.');
@@ -122,6 +177,8 @@ $es_superadmin = esSuperAdmin($id);
                     </script>
                 <?php
                 } else {
+                    //  AUDITORÍA: ERROR GENERAL
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'USUARIO', "ID: $id_usuario | Error del sistema");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'usuario_mostrar.php?error=true';
@@ -166,6 +223,8 @@ $es_superadmin = esSuperAdmin($id);
                 }
                 
             } else {
+                //  AUDITORÍA: USUARIO NO ENCONTRADO
+                GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'USUARIO', "ID: $id_usuario | No encontrado");
             ?>
                 <script Language="JavaScript">
                     location.href = 'dashboard.php?error=true';

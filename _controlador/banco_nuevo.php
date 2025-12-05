@@ -1,9 +1,9 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php"); 
 
 if (!verificarPermisoEspecifico('crear_banco')) {
-    require_once("../_modelo/m_auditoria.php");
-    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'MODULOS', 'CREAR');
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'BANCO', 'CREAR'); 
     header("location: bienvenido.php?permisos=true");
     exit;
 }
@@ -35,6 +35,8 @@ if (!verificarPermisoEspecifico('crear_banco')) {
             require_once("../_modelo/m_banco.php");
 
             //-------------------------------------------
+            // OPERACIÓN DE REGISTRO
+            //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
                 $cod = strtoupper(trim($_REQUEST['cod']));
                 $nom = strtoupper($_REQUEST['nom']);
@@ -43,12 +45,16 @@ if (!verificarPermisoEspecifico('crear_banco')) {
                 $rpta = GrabarBanco($cod, $nom, $est);
 
                 if ($rpta == "SI") {
+                    //  AUDITORÍA: REGISTRO EXITOSO
+                    GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'BANCO', "$cod - $nom");
             ?>
                     <script Language="JavaScript">
                         location.href = 'banco_mostrar.php?registrado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    // AUDITORÍA: ERROR - YA EXISTE O ERROR AL REGISTRAR
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'BANCO', "$cod - $nom YA EXISTE");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'banco_mostrar.php?existe=true';

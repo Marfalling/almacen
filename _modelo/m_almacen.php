@@ -217,10 +217,10 @@ function ConsultarAlmacen($id_almacen)
 {
     include("../_conexion/conexion.php");
 
-    $sqlc = "SELECT a.*, c.nom_cliente, o.nom_obra 
+    $sqlc = "SELECT a.*, c.nom_cliente, s.nom_subestacion AS nom_obra 
              FROM almacen a 
                 LEFT JOIN {$bd_complemento}.cliente c ON a.id_cliente = c.id_cliente
-                LEFT JOIN {$bd_complemento}.obra o ON a.id_obra = o.id_obra
+                LEFT JOIN {$bd_complemento}.subestacion s ON a.id_obra = s.id_subestacion
              WHERE a.id_almacen = $id_almacen";
     $resc = mysqli_query($con, $sqlc);
 

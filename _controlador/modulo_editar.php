@@ -1,8 +1,8 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('editar_modulos')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'MODULOS', 'EDITAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -36,40 +36,84 @@ if (!verificarPermisoEspecifico('editar_modulos')) {
             $acciones_disponibles = MostrarAcciones();
 
             //-------------------------------------------
+            // OPERACIÓN DE EDICIÓN
+            //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
                 $id_modulo = $_REQUEST['id_modulo'];
-                $nom_modulo = strtoupper(trim($_REQUEST['nom_modulo']));
-                $est = isset($_REQUEST['est']) ? 1 : 0;
-                $acciones = isset($_REQUEST['acciones']) ? $_REQUEST['acciones'] : array();
+                
+                //  OBTENER DATOS ANTES DE EDITAR
+                $modulo_antes = ObtenerModulo($id_modulo);
+                $nom_anterior = $modulo_antes['nom_modulo'];
+                $est_anterior = $modulo_antes['est_modulo'];
+                $acciones_anteriores = ObtenerAccionesModulo($id_modulo);
+                
+                // Obtener nuevos valores
+                $nom_nuevo = strtoupper(trim($_REQUEST['nom_modulo']));
+                $est_nuevo = isset($_REQUEST['est']) ? 1 : 0;
+                $acciones_nuevas = isset($_REQUEST['acciones']) ? $_REQUEST['acciones'] : array();
 
                 // Validar que se hayan seleccionado acciones
-                if (empty($acciones)) {
+                if (empty($acciones_nuevas)) {
                 ?>
                     <script Language="JavaScript">
                         location.href = 'modulo_editar.php?id_modulo=<?php echo $id_modulo; ?>&sin_acciones=true';
                     </script>
                 <?php
                 } else {
-                    $rpta = ActualizarModuloCompleto($id_modulo, $nom_modulo, $acciones, $est);
+                    $rpta = ActualizarModuloCompleto($id_modulo, $nom_nuevo, $acciones_nuevas, $est_nuevo);
 
                     if ($rpta == "SI") {
+                        //  CONSTRUIR DESCRIPCIÓN CON CAMBIOS
+                        $cambios = [];
+                        
+                        if ($nom_anterior != $nom_nuevo) {
+                            $cambios[] = "Nombre: '$nom_anterior' → '$nom_nuevo'";
+                        }
+                        
+                        if ($est_anterior != $est_nuevo) {
+                            $estado_ant = ($est_anterior == 1) ? 'Activo' : 'Inactivo';
+                            $estado_nue = ($est_nuevo == 1) ? 'Activo' : 'Inactivo';
+                            $cambios[] = "Estado: $estado_ant → $estado_nue";
+                        }
+                        
+                        // Comparar acciones
+                        $ids_anteriores = array_column($acciones_anteriores, 'id_accion');
+                        sort($ids_anteriores);
+                        sort($acciones_nuevas);
+                        
+                        if ($ids_anteriores != $acciones_nuevas) {
+                            $cambios[] = "Acciones: " . count($ids_anteriores) . " → " . count($acciones_nuevas) . " permisos";
+                        }
+                        
+                        if (count($cambios) == 0) {
+                            $descripcion = "ID: $id_modulo | Sin cambios";
+                        } else {
+                            $descripcion = "ID: $id_modulo | " . implode(' | ', $cambios);
+                        }
+                        
+                        GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'MODULO', $descripcion);
                 ?>
                         <script Language="JavaScript">
                             location.href = 'modulo_mostrar.php?actualizado=true';
                         </script>
                     <?php
+                        exit;
                     } else if ($rpta == "NO") {
+                        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'MODULO', "ID: $id_modulo - Módulo ya existe");
                     ?>
                         <script Language="JavaScript">
                             location.href = 'modulo_mostrar.php?existe=true';
                         </script>
                     <?php
+                        exit;
                     } else {
+                        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'MODULO', "ID: $id_modulo");
                     ?>
                         <script Language="JavaScript">
                             location.href = 'modulo_mostrar.php?error=true';
                         </script>
                 <?php
+                        exit;
                     }
                 }
             }

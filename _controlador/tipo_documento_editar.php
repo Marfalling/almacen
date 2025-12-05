@@ -1,9 +1,9 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('editar_tipo de documento')) {
-    require_once("../_modelo/m_auditoria.php");
-    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'MONEDA', 'EDITAR');
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'TIPO DOCUMENTO', 'EDITAR');
     header("location: bienvenido.php?permisos=true");
     exit;
 }
@@ -41,15 +41,52 @@ if (!verificarPermisoEspecifico('editar_tipo de documento')) {
                 $nom = strtoupper($_REQUEST['nom']);
                 $est = isset($_REQUEST['est']) ? 1 : 0;
 
+                //  OBTENER DATOS ANTES DE EDITAR
+                $tipo_doc_actual = ObtenerTipoDocumento($id_tipo_documento);
+                $nom_anterior = $tipo_doc_actual['nom_tipo_documento'] ?? '';
+                $est_anterior = $tipo_doc_actual['est_tipo_documento'] ?? 0;
+
+                //  EJECUTAR ACTUALIZACIÓN
                 $rpta = EditarTipoDocumento($id_tipo_documento, $nom, $est);
 
                 if ($rpta == "SI") {
+                    //  COMPARAR Y CONSTRUIR DESCRIPCIÓN
+                    $cambios = [];
+                    
+                    if ($nom_anterior != $nom) {
+                        $cambios[] = "Nombre: '$nom_anterior' → '$nom'";
+                    }
+                    
+                    if ($est_anterior != $est) {
+                        $estado_ant = ($est_anterior == 1) ? 'Activo' : 'Inactivo';
+                        $estado_nvo = ($est == 1) ? 'Activo' : 'Inactivo';
+                        $cambios[] = "Estado: $estado_ant → $estado_nvo";
+                    }
+                    
+                    if (empty($cambios)) {
+                        $descripcion = "ID: $id_tipo_documento | Sin cambios";
+                    } else {
+                        $descripcion = "ID: $id_tipo_documento | " . implode(' | ', $cambios);
+                    }
+                    
+                    //  AUDITORÍA: EDICIÓN EXITOSA
+                    GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'TIPO DOCUMENTO', $descripcion);
                 ?>
                     <script Language="JavaScript">
                         location.href = 'tipo_documento_mostrar.php?actualizado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    //  AUDITORÍA: ERROR - YA EXISTE
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'TIPO DOCUMENTO', "ID: $id_tipo_documento | Nombre '$nom' ya existe");
+                ?>
+                    <script Language="JavaScript">
+                        location.href = 'tipo_documento_mostrar.php?error=true';
+                    </script>
+                <?php
+                } else {
+                    //  AUDITORÍA: ERROR GENERAL
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'TIPO DOCUMENTO', "ID: $id_tipo_documento | Error del sistema");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'tipo_documento_mostrar.php?error=true';

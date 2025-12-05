@@ -5,7 +5,7 @@
 require_once("../_conexion/sesion.php");
 require_once("../_conexion/conexion.php");
 require_once("../_modelo/m_comprobante.php");
-
+require_once("../_modelo/m_auditoria.php"); 
 
 // ====================================================================
 // VALIDAR QUE SE RECIBIÓ ID DE COMPRA
@@ -151,6 +151,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         if (strpos($resultado, 'SI|') === 0) {
             $partes = explode('|', $resultado);
             $id_comprobante = $partes[1];
+            
+            //  AUDITORÍA: COMPROBANTE REGISTRADO
+            $serie = trim($_POST['serie']);
+            $numero = trim($_POST['numero']);
+            $monto = number_format(floatval($_POST['total_pagar']), 2);
+            
+            GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'COMPROBANTES', 
+                "ID: $id_comprobante | OC: $id_compra | Serie-Número: $serie-$numero | Monto: S/ $monto");
+            
             ?>
             <script>
             setTimeout(function() {
@@ -160,6 +169,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             <?php
             exit();
         } else {
+            //  AUDITORÍA: ERROR AL REGISTRAR
+            GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'COMPROBANTES', 
+                "OC: $id_compra | Error: $resultado");
+            
             $mostrar_alerta = true;
             $tipo_alerta = 'error';
             $titulo_alerta = 'Error al registrar';
@@ -177,6 +190,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
     $comprobante_actual = ConsultarComprobante($id_comprobante);
     
     if (!$comprobante_actual) {
+        //  AUDITORÍA: COMPROBANTE NO ENCONTRADO
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'COMPROBANTES', 
+            "ID: $id_comprobante - Comprobante no encontrado");
+        
         $mostrar_alerta = true;
         $tipo_alerta = 'error';
         $titulo_alerta = 'Comprobante no encontrado';
@@ -238,6 +255,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             $resultado = EditarComprobante($id_comprobante, $datos);
 
             if ($resultado === "SI") {
+                //  AUDITORÍA: COMPROBANTE EDITADO
+                $serie = trim($_POST['serie']);
+                $numero = trim($_POST['numero']);
+                $monto = number_format(floatval($_POST['total_pagar']), 2);
+                
+                GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'COMPROBANTES', 
+                    "ID: $id_comprobante | OC: $id_compra | Serie-Número: $serie-$numero | Monto: S/ $monto");
+                
                 ?>
                 <script>
                 setTimeout(function() {
@@ -247,6 +272,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 <?php
                 exit();
             } else {
+                //  AUDITORÍA: ERROR AL EDITAR
+                GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'COMPROBANTES', 
+                    "ID: $id_comprobante | Error: $resultado");
+                
                 $mostrar_alerta = true;
                 $tipo_alerta = 'error';
                 $titulo_alerta = 'Error al actualizar';
@@ -314,6 +343,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         );
 
         if (strpos($resultado, 'SI|') === 0) {
+            //  AUDITORÍA: VOUCHER SUBIDO
+            $destinatarios = [];
+            if ($enviar_proveedor) $destinatarios[] = 'Proveedor';
+            if ($enviar_contabilidad) $destinatarios[] = 'Contabilidad';
+            if ($enviar_tesoreria) $destinatarios[] = 'Tesorería';
+            if ($enviar_compras) $destinatarios[] = 'Compras';
+            $dest_texto = !empty($destinatarios) ? implode(', ', $destinatarios) : 'Ninguno';
+            
+            GrabarAuditoria($id, $usuario_sesion, 'SUBIR VOUCHER', 'COMPROBANTES', 
+                "ID: $id_comprobante | OC: $id_compra | Notificado a: $dest_texto");
+            
             ?>
             <script>
             setTimeout(function() {
@@ -323,6 +363,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
             <?php
             exit();
         } else {
+            //  AUDITORÍA: ERROR AL SUBIR VOUCHER
+            GrabarAuditoria($id, $usuario_sesion, 'ERROR AL SUBIR VOUCHER', 'COMPROBANTES', 
+                "ID: $id_comprobante | Error: $resultado");
+            
             $mostrar_alerta = true;
             $tipo_alerta = 'error';
             $titulo_alerta = 'Error al subir voucher';
@@ -330,6 +374,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
         }
     }
 }
+
 // ====================================================================
 // FUNCIÓN PARA PROCESAR ARCHIVOS
 // ====================================================================
@@ -466,17 +511,20 @@ if (isset($_GET['alert']) && $_GET['alert'] === 'success') {
         ?>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                Swal.fire({
+                var alertConfig = {
                     icon: '<?php echo $tipo_alerta; ?>',
                     title: '<?php echo $titulo_alerta; ?>',
                     html: '<?php echo $mensaje_alerta; ?>',
                     confirmButtonText: 'Entendido',
                     confirmButtonColor: '<?php echo ($tipo_alerta == "error") ? "#d33" : "#3085d6"; ?>'
-                    <?php if ($tipo_alerta === 'success'){ ?>,
-                    timer: 3000,
-                    timerProgressBar: true
-                    <?php } ?>
-                }).then(function() {
+                };
+                
+                <?php if ($tipo_alerta === 'success'){ ?>
+                alertConfig.timer = 3000;
+                alertConfig.timerProgressBar = true;
+                <?php } ?>
+                
+                Swal.fire(alertConfig).then(function() {
                     <?php if (isset($_GET['alert'])): ?>
                     if (window.history.replaceState) {
                         const url = new URL(window.location);
@@ -488,7 +536,7 @@ if (isset($_GET['alert']) && $_GET['alert'] === 'success') {
                     <?php endif; ?>
                 });
             });
-            </script>
+        </script>
         <?php
     }
     ?>

@@ -1,10 +1,14 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 require_once("../_modelo/m_proveedor.php");
 
 header('Content-Type: application/json');
 
 if (!verificarPermisoEspecifico('crear_proveedor')) {
+    //  AUDITORÍA: ERROR DE ACCESO
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PROVEEDOR', 'REGISTRAR AJAX');
+    
     echo json_encode([
         'success' => false,
         'message' => 'No tiene permisos para crear proveedores'
@@ -23,6 +27,9 @@ if (isset($_POST['registrar_ajax'])) {
     
     // Validar RUC
     if (strlen($ruc) != 11 || !ctype_digit($ruc)) {
+        //  AUDITORÍA: ERROR DE VALIDACIÓN
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'PROVEEDOR', "RUC inválido: '$ruc' | Nombre: '$nom'");
+        
         echo json_encode([
             'success' => false,
             'message' => 'El RUC debe tener exactamente 11 dígitos numéricos'
@@ -34,6 +41,9 @@ if (isset($_POST['registrar_ajax'])) {
     $rpta = GrabarProveedor($nom, $ruc, $dir, $tel, $cont, $est, $email);
     
     if ($rpta == "NO") {
+        //  AUDITORÍA: ERROR - YA EXISTE
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'PROVEEDOR', "Nombre: '$nom' | RUC: '$ruc' - Ya existe (AJAX)");
+        
         echo json_encode([
             'success' => false,
             'message' => 'Ya existe un proveedor con ese nombre o RUC'
@@ -42,6 +52,9 @@ if (isset($_POST['registrar_ajax'])) {
     }
     
     if ($rpta == "ERROR") {
+        //  AUDITORÍA: ERROR DEL SISTEMA
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'PROVEEDOR', "Nombre: '$nom' | RUC: '$ruc' - Error del sistema (AJAX)");
+        
         echo json_encode([
             'success' => false,
             'message' => 'Error al registrar el proveedor'
@@ -52,6 +65,8 @@ if (isset($_POST['registrar_ajax'])) {
     $id_proveedor = $rpta;
     
     // Registrar cuentas bancarias si existen
+    $cantidad_cuentas = 0;
+    
     if (
         isset($_POST['id_banco'], $_POST['id_moneda'], $_POST['cta_corriente'], $_POST['cta_interbancaria']) &&
         is_array($_POST['id_banco'])
@@ -65,9 +80,15 @@ if (isset($_POST['registrar_ajax'])) {
             // Solo registrar si hay datos válidos
             if (!empty($id_banco) && !empty($id_moneda) && !empty($cta_corriente)) {
                 GrabarCuentaProveedor($id_proveedor, $id_banco, $id_moneda, $cta_corriente, $cta_interbancaria);
+                $cantidad_cuentas++;
             }
         }
     }
+    
+    //  AUDITORÍA: REGISTRO EXITOSO
+    $estado_texto = ($est == 1) ? 'Activo' : 'Inactivo';
+    $descripcion = "Nombre: '$nom' | RUC: '$ruc' | Estado: $estado_texto | $cantidad_cuentas cuenta(s) bancaria(s) (AJAX)";
+    GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'PROVEEDOR', $descripcion);
     
     echo json_encode([
         'success' => true,
@@ -77,6 +98,9 @@ if (isset($_POST['registrar_ajax'])) {
     ]);
     
 } else {
+    // AUDITORÍA: SOLICITUD INVÁLIDA
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'PROVEEDOR', "Solicitud inválida - Parámetro 'registrar_ajax' no recibido");
+    
     echo json_encode([
         'success' => false,
         'message' => 'Solicitud inválida'

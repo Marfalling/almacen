@@ -3,9 +3,9 @@
 // PEDIDOS - EDITAR (pedidos_editar.php)
 //=======================================================================
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('editar_pedidos')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'EDITAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -13,25 +13,20 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
 ?>
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
     <title>Editar Pedido</title>
-
     <?php require_once("../_vista/v_estilo.php"); ?>
 </head>
-
 <body class="nav-md">
     <div class="container body">
         <div class="main_container">
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-
             require_once("../_modelo/m_pedidos.php");
             require_once("../_modelo/m_almacen.php");
             require_once("../_modelo/m_unidad_medida.php");
@@ -39,7 +34,7 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
             require_once("../_modelo/m_tipo_material.php");
             require_once("../_modelo/m_ubicacion.php");
             require_once("../_modelo/m_centro_costo.php"); 
-            require_once("../_modelo/m_personal.php"); // AGREGADO: Modelo de personal
+            require_once("../_modelo/m_personal.php");
 
             // Cargar datos necesarios para el formulario
             $unidades_medida = MostrarUnidadMedidaActiva();
@@ -47,7 +42,7 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
             $material_tipos = MostrarMaterialTipoActivos();
             $ubicaciones = MostrarUbicacionesActivas(); 
             $centros_costo = MostrarCentrosCostoActivos(); 
-            $personal_list = MostrarPersonalActivo(); //  AGREGADO - Lista de personal activo
+            $personal_list = MostrarPersonalActivo();
             
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/pedidos/")) {
@@ -58,9 +53,19 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
             $pedido_detalle = ConsultarPedidoDetalle($id_pedido);
 
             //=======================================================================
-            // CONTROLADOR ACTUALIZADO - CENTROS DE COSTO MULTIPLES
+            // CONTROLADOR ACTUALIZADO - CON AUDITORÍA
             //=======================================================================
             if (isset($_REQUEST['actualizar'])) {
+                //  OBTENER DATOS ANTES DE EDITAR
+                $pedido_antes = ConsultarPedido($id_pedido);
+                if (!empty($pedido_antes)) {
+                    $pedido_antes = $pedido_antes[0];
+                    $nom_pedido_anterior = $pedido_antes['nom_pedido'];
+                    $fecha_necesidad_anterior = $pedido_antes['fec_req_pedido'];  // ← CORREGIDO
+                    $num_ot_anterior = $pedido_antes['ot_pedido'];                 // ← CORREGIDO
+                    $lugar_entrega_anterior = $pedido_antes['lug_pedido'];         // ← CORREGIDO
+                }
+                
                 $id_ubicacion = intval($_REQUEST['id_ubicacion']);
                 $id_centro_costo = intval($_REQUEST['id_centro_costo']); 
                 $nom_pedido = strtoupper($_REQUEST['nom_pedido']);
@@ -76,17 +81,14 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                 
                 if (isset($_REQUEST['descripcion']) && is_array($_REQUEST['descripcion'])) {
                     for ($i = 0; $i < count($_REQUEST['descripcion']); $i++) {
-                        
                         $sst_descripcion = trim($_REQUEST['sst'][$i]);
                         $ot_detalle = isset($_REQUEST['ot_detalle'][$i]) ? trim($_REQUEST['ot_detalle'][$i]) : '';
 
-                        // Procesar centros de costo múltiples para este material
+                        // Procesar centros de costo múltiples
                         $centros_costo_material = array();
-                        
                         if (isset($_REQUEST['centros_costo']) && is_array($_REQUEST['centros_costo'])) {
                             if (isset($_REQUEST['centros_costo'][$i])) {
                                 $centros_value = $_REQUEST['centros_costo'][$i];
-                                
                                 if (is_array($centros_value)) {
                                     $centros_costo_material = $centros_value;
                                 } else if (is_string($centros_value) && !empty($centros_value)) {
@@ -95,7 +97,6 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                             }
                         }
                         
-                        // Limpiar y validar IDs
                         $centros_costo_material = array_map('intval', $centros_costo_material);
                         $centros_costo_material = array_filter($centros_costo_material, function($id) {
                             return $id > 0;
@@ -103,11 +104,9 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                         $centros_costo_material = array_unique($centros_costo_material);
                         
                         $personal_material = array();
-                        
                         if (isset($_REQUEST['personal_ids']) && is_array($_REQUEST['personal_ids'])) {
                             if (isset($_REQUEST['personal_ids'][$i])) {
                                 $personal_value = $_REQUEST['personal_ids'][$i];
-                                
                                 if (is_array($personal_value)) {
                                     $personal_material = $personal_value;
                                 } else if (is_string($personal_value) && !empty($personal_value)) {
@@ -116,13 +115,11 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                             }
                         }
                         
-                        // Limpiar y validar IDs de personal
                         $personal_material = array_map('intval', $personal_material);
                         $personal_material = array_filter($personal_material, function($id) {
                             return $id > 0;
                         });
                         $personal_material = array_unique($personal_material);
-
 
                         $materiales[] = array(
                             'id_producto' => $_REQUEST['id_material'][$i],
@@ -138,7 +135,6 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                         );
                     }
                 }
-                
 
                 // Procesar archivos
                 $archivos_subidos = array();
@@ -149,23 +145,109 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                     }
                 }
 
-                // LLAMADA ACTUALIZADA con centros de costo múltiples
                 $rpta = ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedido, $fecha_necesidad, 
                         $num_ot, $contacto, $lugar_entrega, 
                         $aclaraciones, $materiales, $archivos_subidos);
 
                 if ($rpta == "SI") {
-            ?>
+                    //  CONSTRUIR DESCRIPCIÓN CON CAMBIOS DEL PEDIDO
+                    $cambios = [];
+                    
+                    if ($nom_pedido_anterior != $nom_pedido) {
+                        $cambios[] = "Nombre: '$nom_pedido_anterior' → '$nom_pedido'";
+                    }
+                    
+                    if ($fecha_necesidad_anterior != $fecha_necesidad) {
+                        $cambios[] = "Fecha: '$fecha_necesidad_anterior' → '$fecha_necesidad'";
+                    }
+                    
+                    if ($num_ot_anterior != $num_ot) {
+                        $cambios[] = "OT: '$num_ot_anterior' → '$num_ot'";
+                    }
+                    
+                    if ($lugar_entrega_anterior != $lugar_entrega) {
+                        $cambios[] = "Lugar entrega: '$lugar_entrega_anterior' → '$lugar_entrega'";
+                    }
+                    
+                    //  AUDITORÍA DETALLADA DE MATERIALES
+                    $cambios_materiales = [];
+                    
+                    // Obtener datos ANTES de la edición
+                    $materiales_antes = [];
+                    foreach ($pedido_detalle as $det) {
+                        $id_det = intval($det['id_pedido_detalle']);
+                        $materiales_antes[$id_det] = [
+                            'descripcion' => $det['prod_pedido_detalle'],
+                            'cantidad' => floatval($det['cant_pedido_detalle'])
+                        ];
+                    }
+                    
+                    // Comparar con los nuevos datos
+                    foreach ($materiales as $material) {
+                        $id_det = intval($material['id_detalle']);
+                        $nueva_cantidad = floatval($material['cantidad']);
+                        $nueva_descripcion = $material['descripcion'];
+                        
+                        if (isset($materiales_antes[$id_det])) {
+                            // Material existente - verificar cambios
+                            $cantidad_anterior = $materiales_antes[$id_det]['cantidad'];
+                            $descripcion_anterior = $materiales_antes[$id_det]['descripcion'];
+                            
+                            // Acortar descripciones largas
+                            $desc_corta = (strlen($nueva_descripcion) > 40) 
+                                ? substr($nueva_descripcion, 0, 40) . '...' 
+                                : $nueva_descripcion;
+                            
+                            if ($cantidad_anterior != $nueva_cantidad) {
+                                $cambios_materiales[] = "$desc_corta: $cantidad_anterior → $nueva_cantidad";
+                            }
+                            
+                            // Remover de la lista para detectar eliminados
+                            unset($materiales_antes[$id_det]);
+                        } else {
+                            // Material nuevo
+                            $desc_corta = (strlen($nueva_descripcion) > 40) 
+                                ? substr($nueva_descripcion, 0, 40) . '...' 
+                                : $nueva_descripcion;
+                            $cambios_materiales[] = "NUEVO: $desc_corta (Cant: $nueva_cantidad)";
+                        }
+                    }
+                    
+                    // Detectar materiales eliminados
+                    foreach ($materiales_antes as $id_det => $datos) {
+                        $desc_corta = (strlen($datos['descripcion']) > 40) 
+                            ? substr($datos['descripcion'], 0, 40) . '...' 
+                            : $datos['descripcion'];
+                        $cambios_materiales[] = "ELIMINADO: $desc_corta (Cant: {$datos['cantidad']})";
+                    }
+                    
+                    //  CONSTRUIR DESCRIPCIÓN FINAL
+                    if (!empty($cambios_materiales)) {
+                        $cambios[] = "Materiales: " . implode(' | ', $cambios_materiales);
+                    } else {
+                        $cambios[] = count($materiales) . " materiales (sin cambios)";
+                    }
+                    
+                    if (count($cambios) == 0) {
+                        $descripcion = "ID: $id_pedido | Sin cambios";
+                    } else {
+                        $descripcion = "ID: $id_pedido | " . implode(' | ', $cambios);
+                    }
+                    
+                    GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'PEDIDOS', $descripcion);
+                ?>
                     <script Language="JavaScript">
                         location.href = 'pedidos_mostrar.php?actualizado=true';
                     </script>
                 <?php
                 } else {
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'PEDIDOS', "ID: $id_pedido - Error: $rpta");
                 ?>
                     <script Language="JavaScript">
                         alert('Error al actualizar el pedido: <?php echo $rpta; ?>');
                     </script>
-            <?php
+                <?php
+
                 }
             }
             //-------------------------------------------

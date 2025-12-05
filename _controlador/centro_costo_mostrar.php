@@ -36,7 +36,6 @@ $centros = ObtenerCentrosCosto();
 
 // Registrar auditoría
 require_once("../_modelo/m_auditoria.php");
-GrabarAuditoria($id, $usuario_sesion, 'INGRESO', 'CENTRO DE COSTO', 'MOSTRAR');
 ?>
 <!DOCTYPE html>
 <html lang="es">

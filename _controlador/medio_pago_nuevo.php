@@ -1,9 +1,9 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('crear_medio de pago')) {
-    require_once("../_modelo/m_auditoria.php");
-    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'MODULOS', 'CREAR');
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'MEDIO DE PAGO', 'CREAR');
     header("location: bienvenido.php?permisos=true");
     exit;
 }
@@ -35,6 +35,8 @@ if (!verificarPermisoEspecifico('crear_medio de pago')) {
             require_once("../_modelo/m_medio_pago.php");
 
             //-------------------------------------------
+            // OPERACIÓN DE REGISTRO
+            //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
                 $nom = strtoupper($_REQUEST['nom']);
                 $est = isset($_REQUEST['est']) ? 1 : 0;
@@ -42,17 +44,24 @@ if (!verificarPermisoEspecifico('crear_medio de pago')) {
                 $rpta = GrabarMedioPago($nom, $est);
 
                 if ($rpta == "SI") {
+                    //  AUDITORÍA: REGISTRO EXITOSO
+                    $estado_texto = ($est == 1) ? 'Activo' : 'Inactivo';
+                    GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'MEDIO DE PAGO', "Nombre: '$nom' | Estado: $estado_texto");
             ?>
                     <script Language="JavaScript">
                         location.href = 'medio_pago_mostrar.php?registrado=true';
                     </script>
                 <?php
+                    exit;
                 } else if ($rpta == "NO") {
+                    //  AUDITORÍA: ERROR AL REGISTRAR
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'MEDIO DE PAGO', "Nombre: '$nom' - Ya existe");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'medio_pago_mostrar.php?existe=true';
                     </script>
             <?php
+                    exit;
                 }
             }
             //-------------------------------------------

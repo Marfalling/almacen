@@ -115,6 +115,27 @@ function ActualizarObra($id_obra, $nom, $est) {
     return $res ? "SI" : "ERROR";
 }
 //-----------------------------------------------------------------------
+function ObtenerObra($id_obra)
+{
+    include("../_conexion/conexion.php");
+    $id_obra = intval($id_obra);
+
+    $sql = "SELECT id_subestacion as id_obra, nom_subestacion as nom_obra, act_subestacion 
+            FROM {$bd_complemento}.subestacion 
+            WHERE id_subestacion = $id_obra LIMIT 1";
+    
+    $res = mysqli_query($con, $sql);
+    
+    if ($res && mysqli_num_rows($res) > 0) {
+        $obra = mysqli_fetch_assoc($res);
+        mysqli_close($con);
+        return $obra;
+    } else {
+        mysqli_close($con);
+        return false;
+    }
+}
+//-----------------------------------------------------------------------
 function ejecutarSyncObras($url)
 {
     /*

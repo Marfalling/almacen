@@ -1,8 +1,8 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('crear_producto')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PRODUCTO', 'CREAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -36,6 +36,7 @@ if (!verificarPermisoEspecifico('crear_producto')) {
             require_once("../_modelo/m_tipo_producto.php");
             require_once("../_modelo/m_tipo_material.php");
             require_once("../_modelo/m_unidad_medida.php");
+            
             // Obtener datos para los select
             $producto_tipos = MostrarProductoTipoActivos();
             $material_tipos = MostrarMaterialTipoActivos(); 
@@ -60,52 +61,49 @@ if (!verificarPermisoEspecifico('crear_producto')) {
 
                 // Función para subir archivos
                 function subirArchivo($archivo, $prefijo) {
-                if ($archivo['error'] == 0) {
-                    $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
-                    $extensiones_permitidas = array('pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx');
-                    
-                    if (in_array($extension, $extensiones_permitidas)) {
-                        // Crear directorio si no existe
-                        $directorio = "../_uploads/documentos/";
-                        if (!file_exists($directorio)) {
-                            mkdir($directorio, 0755, true);
-                        }
+                    if ($archivo['error'] == 0) {
+                        $extension = strtolower(pathinfo($archivo['name'], PATHINFO_EXTENSION));
+                        $extensiones_permitidas = array('pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx');
                         
-                        // Generar nombre optimizado (máximo 35 caracteres)
-                        $prefijo_corto = '';
-                        if ($prefijo === 'calibrado') {
-                            $prefijo_corto = 'cal';
-                        } elseif ($prefijo === 'operatividad') {
-                            $prefijo_corto = 'ope';
-                        } elseif ($prefijo === 'homologacion') {
-                            $prefijo_corto = 'hom';
-                        } else {
-                            $prefijo_corto = substr($prefijo, 0, 3);
-                        }
+                        if (in_array($extension, $extensiones_permitidas)) {
+                            $directorio = "../_uploads/documentos/";
+                            if (!file_exists($directorio)) {
+                                mkdir($directorio, 0755, true);
+                            }
+                            
+                            $prefijo_corto = '';
+                            if ($prefijo === 'calibrado') {
+                                $prefijo_corto = 'cal';
+                            } elseif ($prefijo === 'operatividad') {
+                                $prefijo_corto = 'ope';
+                            } elseif ($prefijo === 'homologacion') {
+                                $prefijo_corto = 'hom';
+                            } else {
+                                $prefijo_corto = substr($prefijo, 0, 3);
+                            }
 
-                        $timestamp = date('YmdHis'); // 14 caracteres
-                        $random = substr(md5(uniqid(rand(), true)), 0, 4); // 4 caracteres
-                        
-                        // Estructura: prefijo(3) + _ + timestamp(14) + _ + random(4) + .ext = ~25-30 caracteres
-                        $nombre_archivo = $prefijo_corto . '_' . $timestamp . '_' . $random . '.' . $extension;
-                        $ruta_completa = $directorio . $nombre_archivo;
-                        
-                        // Verificar que no existe (muy improbable)
-                        $contador = 1;
-                        while (file_exists($ruta_completa) && $contador < 10) {
-                            $nombre_sin_ext = pathinfo($nombre_archivo, PATHINFO_FILENAME);
-                            $nombre_archivo = $nombre_sin_ext . $contador . '.' . $extension;
+                            $timestamp = date('YmdHis');
+                            $random = substr(md5(uniqid(rand(), true)), 0, 4);
+                            
+                            $nombre_archivo = $prefijo_corto . '_' . $timestamp . '_' . $random . '.' . $extension;
                             $ruta_completa = $directorio . $nombre_archivo;
-                            $contador++;
-                        }
-                        
-                        if (move_uploaded_file($archivo['tmp_name'], $ruta_completa)) {
-                            return $nombre_archivo;
+                            
+                            $contador = 1;
+                            while (file_exists($ruta_completa) && $contador < 10) {
+                                $nombre_sin_ext = pathinfo($nombre_archivo, PATHINFO_FILENAME);
+                                $nombre_archivo = $nombre_sin_ext . $contador . '.' . $extension;
+                                $ruta_completa = $directorio . $nombre_archivo;
+                                $contador++;
+                            }
+                            
+                            if (move_uploaded_file($archivo['tmp_name'], $ruta_completa)) {
+                                return $nombre_archivo;
+                            }
                         }
                     }
+                    return '';
                 }
-                return '';
-            }
+                
                 // Procesar archivos subidos
                 $hom_producto = '';
                 $dcal_producto = '';
@@ -129,18 +127,36 @@ if (!verificarPermisoEspecifico('crear_producto')) {
                                       $dope_producto, $est);
 
                 if ($rpta == "SI") {
+                    //  AUDITORÍA: REGISTRO EXITOSO
+                    $estado_texto = ($est == 1) ? 'Activo' : 'Inactivo';
+                    
+                    //  OBTENER NOMBRES
+                    $tipo_prod_data = ObtenerProductoTipo($id_producto_tipo);
+                    $tipo_mat_data = ObtenerMaterialTipo($id_material_tipo);
+                    $unid_med_data = ObtenerUnidadMedida($id_unidad_medida);
+                    
+                    $nom_tipo_producto = $tipo_prod_data ? $tipo_prod_data['nom_producto_tipo'] : '';
+                    $nom_tipo_material = $tipo_mat_data ? $tipo_mat_data['nom_material_tipo'] : '';
+                    $nom_unidad = $unid_med_data ? $unid_med_data['nom_unidad_medida'] : '';
+                    
+                    $descripcion = "Código: '$cod_material' | Nombre: '$nom_producto' | Tipo: '$nom_tipo_producto' | Material: '$nom_tipo_material' | Unidad: '$nom_unidad' | Estado: $estado_texto";
+                    GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'PRODUCTO', $descripcion);
             ?>
                     <script Language="JavaScript">
                         location.href = 'producto_mostrar.php?registrado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    //  AUDITORÍA: ERROR - YA EXISTE
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'PRODUCTO', "Código: '$cod_material' | Nombre: '$nom_producto' - Ya existe");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'producto_mostrar.php?existe=true';
                     </script>
             <?php
                 } else {
+                    //  AUDITORÍA: ERROR GENERAL
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'PRODUCTO', "Código: '$cod_material' | Nombre: '$nom_producto' - Error del sistema");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'producto_mostrar.php?error=true';

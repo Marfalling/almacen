@@ -1,8 +1,8 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('editar_proveedor')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PROVEEDOR', 'EDITAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -49,40 +49,80 @@ if (!verificarPermisoEspecifico('editar_proveedor')) {
                 $email = strtolower(trim($_REQUEST['email']));
                 $est = isset($_REQUEST['est']) ? 1 : 0;
 
-                // Primero actualizamos los datos principales
+                //  OBTENER DATOS ANTES DE EDITAR
+                $datos_antes = ObtenerProveedor($id_proveedor);
+                $nom_anterior = $datos_antes['nom_proveedor'] ?? '';
+                $ruc_anterior = $datos_antes['ruc_proveedor'] ?? '';
+                $est_anterior = $datos_antes['est_proveedor'] ?? 0;
+                
+                // Contar cuentas antes
+                $cuentas_antes = ObtenerCuentasProveedor($id_proveedor);
+                $cant_cuentas_antes = count($cuentas_antes);
+
+                //  ACTUALIZAR DATOS PRINCIPALES
                 $rpta = ActualizarProveedor($id_proveedor, $nom, $ruc, $dir, $tel, $cont, $est, $email);
 
                 if ($rpta == "SI") {
-                    // --- Procesar las cuentas bancarias ---
-                    // Eliminar cuentas anteriores
+                    // Procesar cuentas bancarias
                     EliminarCuentasProveedor($id_proveedor);
 
-                    // Obtener arrays desde el formulario
                     $lista_bancos = $_POST['id_banco'] ?? [];
                     $lista_monedas = $_POST['id_moneda'] ?? [];
                     $lista_corrientes = $_POST['cta_corriente'] ?? [];
                     $lista_interbancarias = $_POST['cta_interbancaria'] ?? [];
+                    
+                    $cantidad_cuentas = count($lista_bancos);
 
-                    // Insertar cada cuenta
-                    for ($i = 0; $i < count($lista_bancos); $i++) {
+                    for ($i = 0; $i < $cantidad_cuentas; $i++) {
                         $id_banco = strtoupper(trim($lista_bancos[$i]));
                         $moneda = intval($lista_monedas[$i]);
                         $cta_corriente = trim($lista_corrientes[$i]);
                         $cta_interbancaria = trim($lista_interbancarias[$i]);
                         GrabarCuentaProveedor($id_proveedor, $id_banco, $moneda, $cta_corriente, $cta_interbancaria);
                     }
+                    
+                    //  COMPARAR Y CONSTRUIR DESCRIPCIÓN
+                    $cambios = [];
+                    
+                    if ($nom_anterior != $nom) {
+                        $cambios[] = "Nombre: '$nom_anterior' → '$nom'";
+                    }
+                    if ($ruc_anterior != $ruc) {
+                        $cambios[] = "RUC: '$ruc_anterior' → '$ruc'";
+                    }
+                    if ($est_anterior != $est) {
+                        $estado_ant = ($est_anterior == 1) ? 'Activo' : 'Inactivo';
+                        $estado_nvo = ($est == 1) ? 'Activo' : 'Inactivo';
+                        $cambios[] = "Estado: $estado_ant → $estado_nvo";
+                    }
+                    if ($cant_cuentas_antes != $cantidad_cuentas) {
+                        $cambios[] = "Cuentas: $cant_cuentas_antes → $cantidad_cuentas";
+                    }
+                    
+                    if (empty($cambios)) {
+                        $descripcion = "ID: $id_proveedor | Sin cambios";
+                    } else {
+                        $descripcion = "ID: $id_proveedor | " . implode(' | ', $cambios);
+                    }
+                    
+                    //  AUDITORÍA: EDICIÓN EXITOSA
+                    GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'PROVEEDOR', $descripcion);
                     ?>
                         <script Language="JavaScript">
                             location.href = 'proveedor_mostrar.php?actualizado=true';
                         </script>
                     <?php
                 } else if ($rpta == "NO") {
+                    //  AUDITORÍA: ERROR - YA EXISTE
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'PROVEEDOR', "ID: $id_proveedor | RUC '$ruc' ya existe");
                     ?>
                         <script Language="JavaScript">
                             location.href = 'proveedor_mostrar.php?existe=true';
                         </script>
                     <?php
                 } else {
+                    //  AUDITORÍA: ERROR GENERAL
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'PROVEEDOR', "ID: $id_proveedor | Error del sistema");
                     ?>
                         <script Language="JavaScript">
                             location.href = 'proveedor_mostrar.php?error=true';

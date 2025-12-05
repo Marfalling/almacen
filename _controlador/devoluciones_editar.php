@@ -1,13 +1,10 @@
 <?php
-//=======================================================================
-// DEVOLUCIONES - EDITAR (devoluciones_editar.php)
-//=======================================================================
 require_once("../_conexion/sesion.php");
 require_once("../_conexion/conexion.php");
+require_once("../_modelo/m_auditoria.php"); 
 
 if (!verificarPermisoEspecifico('editar_devoluciones')) {
-    require_once("../_modelo/m_auditoria.php");
-    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'DEVOLUCIONES', 'EDITAR');
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'DEVOLUCION', 'EDITAR');
     header("location: bienvenido.php?permisos=true");
     exit;
 }
@@ -30,7 +27,7 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-
+            require_once("../_modelo/m_producto.php");
             require_once("../_modelo/m_devolucion.php");
             require_once("../_modelo/m_uso_material.php");
             require_once("../_modelo/m_almacen.php");
@@ -90,17 +87,46 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
             $nom_cliente_actual = $devolucion_datos[0]['nom_cliente_destino'] ?? null;
 
             //=======================================================================
-            // CONTROLADOR 
+            // OPERACIÓN DE EDICIÓN
             //=======================================================================
             if (isset($_REQUEST['actualizar'])) {
+                //  OBTENER DATOS ANTES DE EDITAR
+                $devolucion_antes = ConsultarDevolucion($id_devolucion);
+                $id_almacen_anterior = $devolucion_antes[0]['id_almacen'];
+                $nom_almacen_anterior = $devolucion_antes[0]['nom_almacen'] ?? '';
+                $id_ubicacion_anterior = $devolucion_antes[0]['id_ubicacion'];
+                $nom_ubicacion_anterior = $devolucion_antes[0]['nom_ubicacion'] ?? '';
+                $id_cliente_anterior = $devolucion_antes[0]['id_cliente_destino'] ?? 0;
+                $nom_cliente_anterior = $devolucion_antes[0]['nom_cliente_destino'] ?? '';
+                $obs_anterior = $devolucion_antes[0]['obs_devolucion'] ?? '';
+                $detalles_anteriores = ConsultarDevolucionDetalle($id_devolucion);
+                
+                // Obtener nuevos valores
                 $id_almacen = intval($_REQUEST['id_almacen']);
                 $id_ubicacion = intval($_REQUEST['id_ubicacion']);
                 
-                // nuevo: capturar cliente destino (editable en el formulario)
                 $cliente_destino = ObtenerClientePorAlmacen($id_almacen);
                 $id_cliente_destino = $cliente_destino['id_cliente'] ?? 0;
+                $nom_cliente_nuevo = $cliente_destino['nom_cliente'] ?? '';
 
                 $obs_devolucion = mysqli_real_escape_string($con, $_REQUEST['obs_devolucion']);
+                
+                // Obtener nombres de almacén y ubicación nuevos
+                $nom_almacen_nuevo = '';
+                foreach ($almacenes as $alm) {
+                    if ($alm['id_almacen'] == $id_almacen) {
+                        $nom_almacen_nuevo = $alm['nom_almacen'];
+                        break;
+                    }
+                }
+                
+                $nom_ubicacion_nuevo = '';
+                foreach ($ubicaciones as $ubi) {
+                    if ($ubi['id_ubicacion'] == $id_ubicacion) {
+                        $nom_ubicacion_nuevo = $ubi['nom_ubicacion'];
+                        break;
+                    }
+                }
                 
                 // Procesar materiales
                 $materiales = array();
@@ -109,7 +135,7 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
                         if (!empty($id_producto) && !empty($_REQUEST['cantidad'][$index])) {
                             $materiales[] = array(
                                 'id_devolucion_detalle' => isset($_REQUEST['id_devolucion_detalle'][$index]) 
-                                ? intval($_REQUEST['id_devolucion_detalle'][$index]) 
+                                    ? intval($_REQUEST['id_devolucion_detalle'][$index]) 
                                 : 0, // ✅ Si es 0, indica que es un registro NUEVO
                                 'id_producto' => intval($id_producto),
                                 'descripcion' => mysqli_real_escape_string($con, $_REQUEST['descripcion'][$index]),
@@ -166,6 +192,86 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
                                     $obs_devolucion, $materiales);
                             
                             if ($resultado === "SI") {
+                                //  CONSTRUIR DESCRIPCIÓN CON CAMBIOS
+                                $cambios = [];
+
+                                if ($id_almacen_anterior != $id_almacen) {
+                                    $cambios[] = "Almacén: '$nom_almacen_anterior' → '$nom_almacen_nuevo'";
+                                }
+
+                                if ($id_ubicacion_anterior != $id_ubicacion) {
+                                    $cambios[] = "Ubicación: '$nom_ubicacion_anterior' → '$nom_ubicacion_nuevo'";
+                                }
+
+                                if ($id_cliente_anterior != $id_cliente_destino) {
+                                    $cambios[] = "Cliente: '$nom_cliente_anterior' → '$nom_cliente_nuevo'";
+                                }
+
+                                if (trim($obs_anterior) != trim($obs_devolucion)) {
+                                    $cambios[] = "Observación modificada";
+                                }
+
+                                //  COMPARAR MATERIALES (DETALLADO)
+                                $cambios_materiales = [];
+
+                                // Crear índice de materiales anteriores
+                                $materiales_antes_index = [];
+                                foreach ($detalles_anteriores as $det) {
+                                    $id_prod = intval($det['id_producto']);
+                                    $materiales_antes_index[$id_prod] = [
+                                        'descripcion' => $det['nom_producto'],
+                                        'cantidad' => floatval($det['cant_devolucion_detalle'])
+                                    ];
+                                }
+
+                                // Comparar con materiales nuevos
+                                foreach ($materiales as $mat) {
+                                    $id_prod = intval($mat['id_producto']);
+                                    
+                                    //  USAR FUNCIÓN DEL MODELO
+                                    $producto_data = ObtenerProductoPorId($id_prod);
+                                    $nom_producto = $producto_data ? $producto_data['nom_producto'] : "ID:$id_prod";
+                                    
+                                    $desc_corta = (strlen($nom_producto) > 30) 
+                                        ? substr($nom_producto, 0, 30) . '...' 
+                                        : $nom_producto;
+                                    
+                                    if (isset($materiales_antes_index[$id_prod])) {
+                                        // Producto existente
+                                        $cantidad_anterior = $materiales_antes_index[$id_prod]['cantidad'];
+                                        $cantidad_nueva = floatval($mat['cantidad']);
+                                        
+                                        if ($cantidad_anterior != $cantidad_nueva) {
+                                            $cambios_materiales[] = "$desc_corta: $cantidad_anterior → $cantidad_nueva";
+                                        }
+                                        
+                                        unset($materiales_antes_index[$id_prod]);
+                                    } else {
+                                        // Producto nuevo
+                                        $cambios_materiales[] = "NUEVO: $desc_corta (Cant: {$mat['cantidad']})";
+                                    }
+                                }
+
+                                // Detectar productos eliminados
+                                foreach ($materiales_antes_index as $id_prod => $datos) {
+                                    $desc_corta = (strlen($datos['descripcion']) > 30) 
+                                        ? substr($datos['descripcion'], 0, 30) . '...' 
+                                        : $datos['descripcion'];
+                                    $cambios_materiales[] = "ELIMINADO: $desc_corta (Cant: {$datos['cantidad']})";
+                                }
+
+                                // Agregar cambios de materiales
+                                if (!empty($cambios_materiales)) {
+                                    $cambios[] = "Materiales: " . implode(' | ', $cambios_materiales);
+                                }
+
+                                if (count($cambios) == 0) {
+                                    $descripcion = "ID: $id_devolucion | Cliente: $nom_cliente_nuevo | Sin cambios";
+                                } else {
+                                    $descripcion = "ID: $id_devolucion | Cliente: $nom_cliente_nuevo | " . implode(' | ', $cambios);
+                                }
+
+                                GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'DEVOLUCION', $descripcion);
                                 ?>
                                 <script Language="JavaScript">
                                     setTimeout(function() {
@@ -175,6 +281,8 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
                                 <?php
                                 exit();
                             } else {
+                                GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'DEVOLUCION', "ID: $id_devolucion - " . substr($resultado, 0, 100));
+                                
                                 $mostrar_alerta = true;
                                 $tipo_alerta = 'error';
                                 $titulo_alerta = 'Error al actualizar';

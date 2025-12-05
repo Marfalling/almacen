@@ -1,10 +1,10 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 // VERIFICAR PERMISOS
 if (!verificarPermisoEspecifico('anular_pedidos')) {
-    require_once("../_modelo/m_auditoria.php");
-    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'VERIFICAR');
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'VALIDAR ANULACIÓN');
     header("location: bienvenido.php?permisos=true");
     exit;
 }
@@ -94,6 +94,11 @@ try {
 
     mysqli_close($con);
 
+    //  AUDITORÍA: VALIDACIÓN REALIZADA
+    $puede_anular = ($total_ordenes_compra == 0 && $total_ordenes_salida == 0);
+    $resultado_validacion = $puede_anular ? "Puede anular" : "No puede anular (OC: $total_ordenes_compra, OS: $total_ordenes_salida)";
+    GrabarAuditoria($id, $usuario_sesion, 'VALIDAR ANULACIÓN', 'PEDIDOS', "ID: $id_pedido | $resultado_validacion");
+
     // ============================================
     // 📤 RESPUESTA
     // ============================================
@@ -108,6 +113,10 @@ try {
 
 } catch (Exception $e) {
     error_log("❌ ERROR en pedido_validar_anulacion.php: " . $e->getMessage());
+    
+    //  AUDITORÍA: ERROR EN VALIDACIÓN
+    $id_pedido_log = isset($id_pedido) ? $id_pedido : 0;
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL VALIDAR ANULACIÓN', 'PEDIDOS', "ID: $id_pedido_log | Error: " . $e->getMessage());
     
     echo json_encode([
         'error' => true,

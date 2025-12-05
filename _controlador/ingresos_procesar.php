@@ -1,9 +1,9 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 // Verificar permisos
 if (!verificarPermisoEspecifico('crear_ingresos') && !verificarPermisoEspecifico('editar_ingresos')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'INGRESOS', 'PROCESAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -109,7 +109,7 @@ try {
                 continue;
             }
             
-            // ✅ MISMA FUNCIÓN PARA TODO
+            //  MISMA FUNCIÓN PARA TODO
             $resultado = ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_personal);
 
             if ($resultado['success']) {
@@ -131,7 +131,6 @@ try {
             $pedido_data = mysqli_fetch_assoc($res_pedido);
             $id_pedido_asociado = $pedido_data['id_pedido'];
             
-            //  SOLO LLAMAR A LA FUNCIÓN UNIFICADA
             require_once("../_modelo/m_pedidos.php");
             ActualizarEstadoPedidoUnificado($id_pedido_asociado, $con);
         }
@@ -139,8 +138,11 @@ try {
         mysqli_close($con);
     }
 
-    // Preparar respuesta
+    // Preparar respuesta y auditoría
     if ($resultados_exitosos == $total_productos && $total_productos > 0) {
+        //  AUDITORÍA: INGRESO EXITOSO
+        GrabarAuditoria($id, $usuario_sesion, 'PROCESAR', 'INGRESO', "Compra ID: $id_compra | $resultados_exitosos productos");
+        
         $response = [
             "tipo_mensaje" => "success",
             "mensaje" => "Ingreso procesado exitosamente.\n\n" .
@@ -149,6 +151,9 @@ try {
             "doc_adjuntos" => count($documentos_ingreso)
         ];
     } elseif ($resultados_exitosos > 0) {
+        //  AUDITORÍA: INGRESO PARCIAL CON ERRORES
+        GrabarAuditoria($id, $usuario_sesion, 'PROCESAR PARCIAL', 'INGRESO', "Compra ID: $id_compra | $resultados_exitosos de $total_productos productos");
+        
         $mensaje_parcial = "Ingreso parcial: $resultados_exitosos de $total_productos productos ingresados correctamente.";
         if (!empty($errores)) {
             $mensaje_parcial .= "\n\nErrores: " . implode("; ", array_slice($errores, 0, 2));
@@ -158,6 +163,9 @@ try {
             "mensaje" => $mensaje_parcial
         ];
     } else {
+        //  AUDITORÍA: ERROR AL PROCESAR
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL PROCESAR', 'INGRESO', "Compra ID: $id_compra");
+        
         $mensaje_error = "No se pudo procesar el ingreso.";
         if (!empty($errores)) {
             $mensaje_error .= "\n\nErrores: " . implode("; ", array_slice($errores, 0, 2));
@@ -172,11 +180,17 @@ try {
     echo json_encode($response);
 
 } catch (Exception $e) {
+    //  AUDITORÍA: ERROR DE EXCEPCIÓN
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR SISTEMA', 'INGRESO', substr($e->getMessage(), 0, 100));
+    
     echo json_encode([
         "tipo_mensaje" => "error",
         "mensaje" => "Error del servidor: " . $e->getMessage()
     ]);
 } catch (Error $e) {
+    //  AUDITORÍA: ERROR FATAL
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR FATAL', 'INGRESO', substr($e->getMessage(), 0, 100));
+    
     echo json_encode([
         "tipo_mensaje" => "error", 
         "mensaje" => "Error fatal del servidor: " . $e->getMessage()

@@ -584,7 +584,7 @@ function MostrarProductosConStockPorTipo($limit, $offset, $search, $orderColumn,
 }
 
 // Función para mostrar productos en modal con filtro de tipo de producto
-function MostrarProductosModalFiltrado($limit, $offset, $searchValue, $orderColumn, $orderDirection, $tipoProducto = 0, $id_almacen, $id_ubicacion)
+function MostrarProductosModalFiltrado($limit, $offset, $searchValue, $orderColumn, $orderDirection, $id_almacen, $id_ubicacion, $tipoProducto = 0)
 {
     include("../_conexion/conexion.php");
 
@@ -657,7 +657,7 @@ function MostrarProductosModalFiltrado($limit, $offset, $searchValue, $orderColu
 }
 
 // Función para contar total de productos en modal con filtro
-function NumeroRegistrosTotalProductosModal($tipoProducto = 0, $id_almacen, $id_ubicacion)
+function NumeroRegistrosTotalProductosModal($id_almacen, $id_ubicacion, $tipoProducto = 0)
 {
     include("../_conexion/conexion.php");
 
@@ -684,7 +684,7 @@ function NumeroRegistrosTotalProductosModal($tipoProducto = 0, $id_almacen, $id_
 }
 
 // Función para contar productos filtrados en modal
-function NumeroRegistrosFiltradosProductosModal($searchValue, $tipoProducto = 0, $id_almacen, $id_ubicacion)
+function NumeroRegistrosFiltradosProductosModal($searchValue, $id_almacen, $id_ubicacion, $tipoProducto = 0)
 {
     include("../_conexion/conexion.php");
 

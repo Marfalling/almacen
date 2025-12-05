@@ -1,8 +1,8 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php"); 
 
 if (!verificarPermisoEspecifico('crear_almacen')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'ALMACEN', 'CREAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -32,6 +32,8 @@ if (!verificarPermisoEspecifico('crear_almacen')) {
             require_once("../_modelo/m_almacen.php");
 
             //-------------------------------------------
+            // OPERACIÓN DE REGISTRO
+            //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
                 $id_cliente = $_REQUEST['id_cliente'];
                 $id_obra = $_REQUEST['id_obra'];
@@ -41,12 +43,16 @@ if (!verificarPermisoEspecifico('crear_almacen')) {
                 $rpta = GrabarAlmacen($id_cliente, $id_obra, $nom, $est);
 
                 if ($rpta == "SI") {
+                    //  AUDITORÍA: REGISTRO EXITOSO
+                    GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'ALMACEN', $nom);
             ?>
                     <script Language="JavaScript">
                         location.href = 'almacen_mostrar.php?registrado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    //  AUDITORÍA: ERROR - YA EXISTE O ERROR AL REGISTRAR
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'ALMACEN', "$nom (YA EXISTE O ERROR EN BD)");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'almacen_mostrar.php?existe=true';

@@ -1,8 +1,8 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php"); 
 
 if (!verificarPermisoEspecifico('crear_area')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'AREA', 'CREAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -33,6 +33,8 @@ if (!verificarPermisoEspecifico('crear_area')) {
             require_once("../_modelo/m_area.php");
 
             //-------------------------------------------
+            // OPERACIÓN DE REGISTRO
+            //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
                 $nom = strtoupper($_REQUEST['nom']);
                 $est = isset($_REQUEST['est']) ? 1 : 0;
@@ -40,12 +42,15 @@ if (!verificarPermisoEspecifico('crear_area')) {
                 $rpta = GrabarArea($nom, $est);
 
                 if ($rpta == "SI") {
+                    //  REGISTRO EXITOSO
+                    GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'AREA', $nom);
             ?>
                     <script Language="JavaScript">
                         location.href = 'area_mostrar.php?registrado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'AREA', "$nom YA EXISTE");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'area_mostrar.php?existe=true';

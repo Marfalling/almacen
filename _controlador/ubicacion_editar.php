@@ -1,13 +1,12 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('editar_ubicacion')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'UBICACION', 'EDITAR');
     header("location: bienvenido.php?permisos=true");
     exit;
 }
-
 
 //=======================================================================
 // CONTROLADOR: ubicacion_editar.php
@@ -40,21 +39,52 @@ if (!verificarPermisoEspecifico('editar_ubicacion')) {
                 $nom = strtoupper($_REQUEST['nom']);
                 $est = isset($_REQUEST['est']) ? 1 : 0;
 
+                // OBTENER DATOS ANTES DE EDITAR
+                $ubicacion_actual = ObtenerUbicacion($id_ubicacion);
+                $nom_anterior = $ubicacion_actual['nom_ubicacion'] ?? '';
+                $est_anterior = $ubicacion_actual['est_ubicacion'] ?? 0;
+
+                //  EJECUTAR ACTUALIZACIÓN
                 $rpta = ActualizarUbicacion($id_ubicacion, $nom, $est);
 
                 if ($rpta == "SI") {
+                    //  COMPARAR Y CONSTRUIR DESCRIPCIÓN
+                    $cambios = [];
+                    
+                    if ($nom_anterior != $nom) {
+                        $cambios[] = "Nombre: '$nom_anterior' → '$nom'";
+                    }
+                    
+                    if ($est_anterior != $est) {
+                        $estado_ant = ($est_anterior == 1) ? 'Activo' : 'Inactivo';
+                        $estado_nvo = ($est == 1) ? 'Activo' : 'Inactivo';
+                        $cambios[] = "Estado: $estado_ant → $estado_nvo";
+                    }
+                    
+                    if (empty($cambios)) {
+                        $descripcion = "ID: $id_ubicacion | Sin cambios";
+                    } else {
+                        $descripcion = "ID: $id_ubicacion | " . implode(' | ', $cambios);
+                    }
+                    
+                    // AUDITORÍA: EDICIÓN EXITOSA
+                    GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'UBICACION', $descripcion);
                 ?>
                     <script Language="JavaScript">
                         location.href = 'ubicacion_mostrar.php?actualizado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    //  AUDITORÍA: ERROR - YA EXISTE
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'UBICACION', "ID: $id_ubicacion | Nombre '$nom' ya existe");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'ubicacion_mostrar.php?existe=true';
                     </script>
                 <?php
                 } else {
+                    // AUDITORÍA: ERROR GENERAL
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'UBICACION', "ID: $id_ubicacion | Error del sistema");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'ubicacion_mostrar.php?error=true';

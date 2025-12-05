@@ -1,8 +1,8 @@
 <?php 
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('crear_personal')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PERSONAL', 'CREAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -34,7 +34,6 @@ if (!verificarPermisoEspecifico('crear_personal')) {
             require_once("../_modelo/m_personal.php");
             require_once("../_modelo/m_area.php");
             require_once("../_modelo/m_cargo.php");
-            require_once("../_conexion/conexion.php");
 
             //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
@@ -48,6 +47,8 @@ if (!verificarPermisoEspecifico('crear_personal')) {
 
                 // Validación de campos obligatorios
                 if (empty($id_area) || empty($id_cargo) || empty($nom) || empty($dni)) {
+                    //  AUDITORÍA: ERROR POR CAMPOS INCOMPLETOS
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'PERSONAL', "Campos incompletos | Nombre: '$nom' | DNI: '$dni'");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'personal_mostrar.php?incompleto=true';
@@ -60,18 +61,33 @@ if (!verificarPermisoEspecifico('crear_personal')) {
                 $rpta = GrabarPersonal($id_area, $id_cargo, $nom, $dni, $email, $tel, $est);
 
                 if ($rpta == "SI") {
+                    // AUDITORÍA: REGISTRO EXITOSO
+                    $estado_texto = ($est == 1) ? 'Activo' : 'Inactivo';
+                    
+                    //  OBTENER NOMBRES DE ÁREA Y CARGO
+                    $area_data = ObtenerArea($id_area);
+                    $cargo_data = ObtenerCargo($id_cargo);
+                    $nom_area = !empty($area_data) ? $area_data[0]['nom_area'] : '';
+                    $nom_cargo = isset($cargo_data['nom_cargo']) ? $cargo_data['nom_cargo'] : '';
+                    
+                    $descripcion = "Nombre: '$nom' | DNI: '$dni' | Área: '$nom_area' | Cargo: '$nom_cargo' | Estado: $estado_texto";
+                    GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'PERSONAL', $descripcion);
                 ?>
                     <script Language="JavaScript">
                         location.href = 'personal_mostrar.php?registrado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'PERSONAL', "Nombre: '$nom' | DNI: '$dni' - Ya existe");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'personal_mostrar.php?existe=true';
                     </script>
                 <?php
                 } else {
+                    
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'PERSONAL', "Nombre: '$nom' | DNI: '$dni' - Error del sistema");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'personal_mostrar.php?error=true';
@@ -81,43 +97,9 @@ if (!verificarPermisoEspecifico('crear_personal')) {
             }
             //-------------------------------------------
 
-            // Obtener listas necesarias para la vista (áreas y cargos)
-            function ObtenerAreas()
-            {
-                include("../_conexion/conexion.php");
-
-                $sql = "SELECT id_area, nom_area 
-                        FROM {$bd_complemento}.area 
-                        WHERE act_area = 1 
-                        ORDER BY nom_area";
-
-                $res = $con->query($sql);
-
-                $areas = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
-
-                mysqli_close($con);
-                return $areas;
-            }
-
-            function ObtenerCargos()
-            {
-                include("../_conexion/conexion.php");
-
-                $sql = "SELECT id_cargo, nom_cargo 
-                        FROM {$bd_complemento}.cargo 
-                        WHERE act_cargo = 1 
-                        ORDER BY nom_cargo";
-
-                $res = $con->query($sql);
-
-                $cargos = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
-
-                mysqli_close($con);
-                return $cargos;
-            }
-
-            $areas = ObtenerAreas();
-            $cargos = ObtenerCargos();
+            //  USAR FUNCIONES EXISTENTES EN LUGAR DE CREAR NUEVAS
+            $areas = MostrarAreasActivas();
+            $cargos = MostrarCargosActivos();
 
             require_once("../_vista/v_personal_nuevo.php");
             require_once("../_vista/v_footer.php");

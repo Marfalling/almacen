@@ -1,8 +1,8 @@
 <?php
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('editar_rol de usuario')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'ROL_USUARIO', 'EDITAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -50,6 +50,8 @@ $es_superadmin = esSuperAdmin($id);
                 
                 // Validar que se hayan seleccionado permisos
                 if (empty($permisos)) {
+                    //  AUDITORÍA: ERROR - SIN PERMISOS
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'ROL_USUARIO', "ID: $id_rol | Nombre: '$nom_rol' - Sin permisos seleccionados");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'rol_usuario_editar.php?id_rol=<?php echo $id_rol; ?>&sin_permisos=true';
@@ -58,21 +60,60 @@ $es_superadmin = esSuperAdmin($id);
                     exit();
                 }
 
+                //  OBTENER DATOS ANTES DE EDITAR
+                $datos_antes = ObtenerRol($id_rol);
+                $nom_anterior = $datos_antes['nom_rol'] ?? '';
+                $est_anterior = $datos_antes['est_rol'] ?? 0;
+                
+                // Contar permisos antes
+                $permisos_antes = $datos_antes['permisos'] ?? [];
+                $cantidad_permisos_antes = count($permisos_antes);
+
+                //  EJECUTAR EDICIÓN
                 $rpta = EditarRol($id_rol, $nom_rol, $permisos, $est);
 
                 if ($rpta == "SI") {
+                    //  COMPARAR Y CONSTRUIR DESCRIPCIÓN
+                    $cambios = [];
+                    
+                    if ($nom_anterior != $nom_rol) {
+                        $cambios[] = "Nombre: '$nom_anterior' → '$nom_rol'";
+                    }
+                    if ($est_anterior != $est) {
+                        $estado_ant = ($est_anterior == 1) ? 'Activo' : 'Inactivo';
+                        $estado_nvo = ($est == 1) ? 'Activo' : 'Inactivo';
+                        $cambios[] = "Estado: $estado_ant → $estado_nvo";
+                    }
+                    
+                    $cantidad_permisos_nuevos = count($permisos);
+                    if ($cantidad_permisos_antes != $cantidad_permisos_nuevos) {
+                        $cambios[] = "Permisos: $cantidad_permisos_antes → $cantidad_permisos_nuevos";
+                    }
+                    
+                    if (empty($cambios)) {
+                        $descripcion = "ID: $id_rol | Sin cambios";
+                    } else {
+                        $descripcion = "ID: $id_rol | " . implode(' | ', $cambios);
+                    }
+                    
+                    //  AUDITORÍA: EDICIÓN EXITOSA
+                    GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'ROL_USUARIO', $descripcion);
                 ?>
                     <script Language="JavaScript">
                         location.href = 'rol_usuario_mostrar.php?actualizado=true';
                     </script>
                 <?php
                 } else if ($rpta == "NO") {
+                    //  AUDITORÍA: ERROR - YA EXISTE
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'ROL_USUARIO', "ID: $id_rol | Nombre '$nom_rol' ya existe");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'rol_usuario_mostrar.php?existe=true';
                     </script>
                 <?php
                 } else {
+                    //  AUDITORÍA: ERROR GENERAL
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'ROL_USUARIO', "ID: $id_rol | Error del sistema");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'rol_usuario_mostrar.php?error=true';

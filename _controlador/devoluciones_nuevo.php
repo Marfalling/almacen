@@ -4,10 +4,10 @@
 // ====================================================================
 require_once("../_conexion/sesion.php");
 require_once("../_conexion/conexion.php");
+require_once("../_modelo/m_auditoria.php"); 
 
 if (!verificarPermisoEspecifico('crear_devoluciones')) {
-    require_once("../_modelo/m_auditoria.php");
-    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'DEVOLUCIONES', 'CREAR');
+    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'DEVOLUCION', 'CREAR');
     header("location: bienvenido.php?permisos=true");
     exit;
 }
@@ -31,8 +31,7 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-            
-            
+            require_once("../_modelo/m_producto.php");
             require_once("../_modelo/m_devolucion.php");
             require_once("../_modelo/m_almacen.php");
             require_once("../_modelo/m_ubicacion.php");
@@ -54,7 +53,7 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
             $mensaje_alerta = '';
 
             //=======================================================================
-            // CONTROLADOR
+            // OPERACIÓN DE REGISTRO
             //=======================================================================
             if (isset($_REQUEST['registrar'])) {
                 $id_almacen   = intval($_REQUEST['id_almacen']);
@@ -122,6 +121,34 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
                         $resultado = GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devolucion, $materiales, $id_cliente_destino);
                         
                         if ($resultado === "SI") {
+                            $nom_almacen = '';
+                            foreach ($almacenes as $alm) {
+                                if ($alm['id_almacen'] == $id_almacen) {
+                                    $nom_almacen = $alm['nom_almacen'];
+                                    break;
+                                }
+                            }
+
+                            // Obtener nombre del cliente
+                            $nom_cliente = $cliente_destino['nom_cliente'] ?? '';
+
+                            //  CONSTRUIR DETALLE DE PRODUCTOS
+                            $productos_detalle = [];
+                            foreach ($materiales as $mat) {
+                                //  USAR FUNCIÓN DEL MODELO
+                                $producto_data = ObtenerProductoPorId($mat['id_producto']);
+                                $nom_producto = $producto_data ? $producto_data['nom_producto'] : "ID:" . $mat['id_producto'];
+                                
+                                $desc_corta = (strlen($nom_producto) > 30) 
+                                    ? substr($nom_producto, 0, 30) . '...' 
+                                    : $nom_producto;
+                                
+                                $productos_detalle[] = "$desc_corta (Cant: {$mat['cantidad']})";
+                            }
+                            $desc_productos = implode(' | ', $productos_detalle);
+
+                            $descripcion = "Almacén: '$nom_almacen' | Cliente: '$nom_cliente' | Productos: $desc_productos";
+                            GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'DEVOLUCION', $descripcion);
                             ?>
                             <script Language="JavaScript">
                                 setTimeout(function() {
@@ -131,6 +158,9 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
                             <?php
                             exit();
                         } else {
+                            //  AUDITORÍA: ERROR AL REGISTRAR
+                            GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'DEVOLUCION', "Almacén: $id_almacen");
+                            
                             $mostrar_alerta = true;
                             $tipo_alerta = 'error';
                             $titulo_alerta = 'Error al registrar';
@@ -170,7 +200,7 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
                     confirmButtonColor: '<?php echo ($tipo_alerta == "error") ? "#d33" : "#3085d6"; ?>'
                 });
             } else {
-                alert('<?php echo $titulo_alerta . ": " . $mensaje_alerta; ?>');
+                alert('<?php echo $titulo_alerta . ": " . strip_tags($mensaje_alerta); ?>');
             }
         });
         </script>

@@ -1,11 +1,11 @@
 <?php
 //=======================================================================
-// SALIDAS - EDITAR (salidas_editar.php)
+// SALIDAS - EDITAR CON AUDITORÍA (salidas_editar.php)
 //=======================================================================
 require_once("../_conexion/sesion.php");
+require_once("../_modelo/m_auditoria.php");
 
 if (!verificarPermisoEspecifico('editar_salidas')) {
-    require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'SALIDAS', 'EDITAR');
     header("location: bienvenido.php?permisos=true");
     exit;
@@ -39,14 +39,14 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
             require_once("../_modelo/m_tipo_material.php");
             require_once("../_modelo/m_documentos.php");
 
-            // Variables para mostrar alertas
             $mostrar_alerta = false;
             $tipo_alerta = '';
             $titulo_alerta = '';
             $mensaje_alerta = '';
 
-            // Verificar que se haya pasado el ID de la salida
+            // Verificar ID de la salida
             if (!isset($_GET['id']) || empty($_GET['id'])) {
+                GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'SALIDAS', 'ID no especificado');
                 ?>
                 <script Language="JavaScript">
                     setTimeout(function() {
@@ -62,6 +62,8 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
             // Cargar datos de la salida
             $salida_datos = ConsultarSalida($id_salida);
             if (empty($salida_datos)) {
+                GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'SALIDAS', "ID: $id_salida - Salida no encontrada");
+                
                 $mostrar_alerta = true;
                 $tipo_alerta = 'error';
                 $titulo_alerta = 'Salida no encontrada';
@@ -97,7 +99,7 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
             unset($detalle); 
 
             // Cargar datos para el formulario
-            $almacenes = MostrarAlmacenesActivos();
+            $almacenes = MostrarAlmacenesActivosConArceBase(); // Incluye BASE ARCE
             $ubicaciones = MostrarUbicacionesActivas();
             $personal = MostrarPersonal();
             $material_tipos = MostrarMaterialTipoActivos();
@@ -140,12 +142,13 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
             }
 
             //=======================================================================
-            // 🔥 CONTROLADOR - VERSIÓN CORREGIDA
+            // CONTROLADOR CON AUDITORÍA
             //=======================================================================
             if (isset($_REQUEST['actualizar'])) {
-                error_log("========================================");
-                error_log("🔧 INICIO ACTUALIZACIÓN SALIDA");
-                error_log("========================================");
+                
+                //  OBTENER DATOS ANTES DE EDITAR
+                $salida_antes = $salida_datos[0];
+                $detalles_antes = $salida_detalles;
                 
                 $id_material_tipo = intval($_REQUEST['id_material_tipo']);
                 $id_almacen_origen = intval($_REQUEST['id_almacen_origen']);
@@ -165,32 +168,24 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                 
                 if (isset($_REQUEST['id_producto']) && is_array($_REQUEST['id_producto'])) {
                     
-                    error_log("📦 Total de productos recibidos: " . count($_REQUEST['id_producto']));
-                    
                     foreach ($_REQUEST['id_producto'] as $index => $id_producto) {
                         if (!empty($id_producto) && !empty($_REQUEST['cantidad'][$index])) {
                             
                             $cantidad = floatval($_REQUEST['cantidad'][$index]);
                             $descripcion = isset($_REQUEST['descripcion'][$index]) ? $_REQUEST['descripcion'][$index] : '';
                             
-                            // 🔹 OBTENER id_salida_detalle DESDE salida_detalles
                             $id_salida_detalle = 0;
                             if (isset($salida_detalles[$index])) {
                                 $id_salida_detalle = intval($salida_detalles[$index]['id_salida_detalle']);
                             }
                             
-                            // 🔹 OBTENER id_pedido_detalle si existe
                             $id_pedido_detalle = 0;
                             if (isset($salida_detalles[$index]) && isset($salida_detalles[$index]['id_pedido_detalle'])) {
                                 $id_pedido_detalle = intval($salida_detalles[$index]['id_pedido_detalle']);
                             }
                             
-                            // 🔹 DETERMINAR SI ES NUEVO (si no tiene id_salida_detalle)
                             $es_nuevo = ($id_salida_detalle <= 0) ? '1' : '0';
                             
-                            error_log("   Item $index: id_salida_detalle=$id_salida_detalle | id_pedido_detalle=$id_pedido_detalle | id_producto=$id_producto | cantidad=$cantidad | es_nuevo=$es_nuevo");
-                            
-                            //  CONSTRUIR EL ARRAY CON LA ESTRUCTURA CORRECTA
                             $materiales[] = array(
                                 'id_salida_detalle' => $id_salida_detalle,
                                 'id_producto' => intval($id_producto),
@@ -203,21 +198,15 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                     }
                 }
 
-                error_log("📋 Total de materiales procesados: " . count($materiales));
-
                 // Validar que haya al menos un material
                 if (count($materiales) > 0) {
                     
-                    // ============================================================
-                    // 🔥 VALIDACIÓN DE STOCKS (OPCIONAL - Puedes quitarlo si no es necesario)
-                    // ============================================================
+                    // Validación de stocks
                     $errores_stock = array();
                     
                     foreach ($materiales as $material) {
-                        // Obtener stock actual del producto en la ubicación origen
                         $stock_actual = ObtenerStockDisponible($material['id_producto'], $id_almacen_origen, $id_ubicacion_origen);
                         
-                        // Obtener cantidad previamente asignada en esta salida para este producto
                         $cantidad_previa = 0;
                         foreach ($salida_detalles as $detalle_previo) {
                             if ($detalle_previo['id_producto'] == $material['id_producto']) {
@@ -226,29 +215,24 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                             }
                         }
                         
-                        // Stock disponible = stock actual + cantidad que se va a "devolver" por la edición
                         $stock_disponible = $stock_actual + $cantidad_previa;
                         
-                        // Verificar si la nueva cantidad excede el stock disponible
                         if ($material['cantidad'] > $stock_disponible) {
                             $errores_stock[] = "El producto '{$material['descripcion']}' no tiene suficiente stock. Disponible: {$stock_disponible}, solicitado: {$material['cantidad']}";
                         }
                     }
                     
-                    // Si hay errores de stock, no proceder
                     if (count($errores_stock) > 0) {
+                        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'SALIDAS', 
+                            "ID: $id_salida | Stock insuficiente");
+                        
                         $mostrar_alerta = true;
                         $tipo_alerta = 'warning';
                         $titulo_alerta = 'Stock insuficiente';
                         $mensaje_alerta = implode('<br>', $errores_stock);
                         
-                        error_log("❌ ERRORES DE STOCK: " . implode(" | ", $errores_stock));
                     } else {
-                        // ============================================================
-                        // ✅ LLAMAR A LA FUNCIÓN ACTUALIZAR
-                        // ============================================================
-                        error_log("🚀 Llamando a ActualizarSalida...");
-                        
+                        // Actualizar salida
                         $resultado = ActualizarSalida(
                             $id_salida, 
                             $id_almacen_origen, 
@@ -263,10 +247,161 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                             $materiales
                         );
                         
-                        error_log("📤 Resultado: $resultado");
-                        
                         if ($resultado === "SI") {
-                            error_log("✅ ACTUALIZACIÓN EXITOSA");
+                            //  CONSTRUIR DESCRIPCIÓN CON CAMBIOS
+                            $cambios = [];
+
+                            // Comparar documento
+                            if ($salida_antes['ndoc_salida'] != $ndoc_salida) {
+                                $cambios[] = "Doc: '{$salida_antes['ndoc_salida']}' → '$ndoc_salida'";
+                            }
+
+                            // Comparar fecha
+                            if ($salida_antes['fec_req_salida'] != $fec_req_salida) {
+                                $cambios[] = "Fecha: '{$salida_antes['fec_req_salida']}' → '$fec_req_salida'";
+                            }
+
+                            // Comparar almacén origen
+                            if ($salida_antes['id_almacen_origen'] != $id_almacen_origen) {
+                                $alm_ant = '';
+                                $alm_nue = '';
+                                foreach ($almacenes as $alm) {
+                                    if ($alm['id_almacen'] == $salida_antes['id_almacen_origen']) $alm_ant = $alm['nom_almacen'];
+                                    if ($alm['id_almacen'] == $id_almacen_origen) $alm_nue = $alm['nom_almacen'];
+                                }
+                                $cambios[] = "Alm.Origen: '$alm_ant' → '$alm_nue'";
+                            }
+
+                            // Comparar ubicación origen
+                            if ($salida_antes['id_ubicacion_origen'] != $id_ubicacion_origen) {
+                                $ubi_ant = '';
+                                $ubi_nue = '';
+                                foreach ($ubicaciones as $ubi) {
+                                    if ($ubi['id_ubicacion'] == $salida_antes['id_ubicacion_origen']) $ubi_ant = $ubi['nom_ubicacion'];
+                                    if ($ubi['id_ubicacion'] == $id_ubicacion_origen) $ubi_nue = $ubi['nom_ubicacion'];
+                                }
+                                $cambios[] = "Ubi.Origen: '$ubi_ant' → '$ubi_nue'";
+                            }
+
+                            // Comparar almacén destino
+                            if ($salida_antes['id_almacen_destino'] != $id_almacen_destino) {
+                                $alm_ant = '';
+                                $alm_nue = '';
+                                foreach ($almacenes as $alm) {
+                                    if ($alm['id_almacen'] == $salida_antes['id_almacen_destino']) $alm_ant = $alm['nom_almacen'];
+                                    if ($alm['id_almacen'] == $id_almacen_destino) $alm_nue = $alm['nom_almacen'];
+                                }
+                                $cambios[] = "Alm.Destino: '$alm_ant' → '$alm_nue'";
+                            }
+
+                            // Comparar ubicación destino
+                            if ($salida_antes['id_ubicacion_destino'] != $id_ubicacion_destino) {
+                                $ubi_ant = '';
+                                $ubi_nue = '';
+                                foreach ($ubicaciones as $ubi) {
+                                    if ($ubi['id_ubicacion'] == $salida_antes['id_ubicacion_destino']) $ubi_ant = $ubi['nom_ubicacion'];
+                                    if ($ubi['id_ubicacion'] == $id_ubicacion_destino) $ubi_nue = $ubi['nom_ubicacion'];
+                                }
+                                $cambios[] = "Ubi.Destino: '$ubi_ant' → '$ubi_nue'";
+                            }
+
+                            // Comparar personal encargado
+                            if ($salida_antes['id_personal_encargado'] != $id_personal_encargado) {
+                                $per_ant = '';
+                                $per_nue = '';
+                                foreach ($personal as $per) {
+                                    if ($per['id_personal'] == $salida_antes['id_personal_encargado']) {
+                                        $per_ant = $per['nom_personal'];
+                                    }
+                                    if ($per['id_personal'] == $id_personal_encargado) {
+                                        $per_nue = $per['nom_personal'];
+                                    }
+                                }
+                                $cambios[] = "Encargado: '$per_ant' → '$per_nue'";
+                            }
+
+                            // Comparar personal que recibe
+                            if ($salida_antes['id_personal_recibe'] != $id_personal_recibe) {
+                                $per_ant = '';
+                                $per_nue = '';
+                                foreach ($personal as $per) {
+                                    if ($per['id_personal'] == $salida_antes['id_personal_recibe']) {
+                                        $per_ant = $per['nom_personal'];
+                                    }
+                                    if ($per['id_personal'] == $id_personal_recibe) {
+                                        $per_nue = $per['nom_personal'];
+                                    }
+                                }
+                                $cambios[] = "Recibe: '$per_ant' → '$per_nue'";
+                            }
+
+                            //  COMPARAR MATERIALES (DETALLADO)
+                            $cambios_materiales = [];
+
+                            // Crear índice de materiales anteriores por id_producto
+                            $materiales_antes_index = [];
+                            foreach ($detalles_antes as $det) {
+                                $id_prod = intval($det['id_producto']);
+                                $materiales_antes_index[$id_prod] = [
+                                    'descripcion' => $det['prod_salida_detalle'],
+                                    'cantidad' => floatval($det['cant_salida_detalle'])
+                                ];
+                            }
+
+                            // Crear índice de materiales nuevos por id_producto
+                            $materiales_nuevos_index = [];
+                            foreach ($materiales as $mat) {
+                                $id_prod = intval($mat['id_producto']);
+                                $materiales_nuevos_index[$id_prod] = [
+                                    'descripcion' => $mat['descripcion'],
+                                    'cantidad' => floatval($mat['cantidad'])
+                                ];
+                            }
+
+                            // Comparar cantidades
+                            foreach ($materiales_nuevos_index as $id_prod => $datos_nuevos) {
+                                $desc_corta = (strlen($datos_nuevos['descripcion']) > 30) 
+                                    ? substr($datos_nuevos['descripcion'], 0, 30) . '...' 
+                                    : $datos_nuevos['descripcion'];
+                                
+                                if (isset($materiales_antes_index[$id_prod])) {
+                                    // Producto existente
+                                    $cantidad_anterior = $materiales_antes_index[$id_prod]['cantidad'];
+                                    $cantidad_nueva = $datos_nuevos['cantidad'];
+                                    
+                                    if ($cantidad_anterior != $cantidad_nueva) {
+                                        $cambios_materiales[] = "$desc_corta: $cantidad_anterior → $cantidad_nueva";
+                                    }
+                                    
+                                    // Remover para detectar eliminados
+                                    unset($materiales_antes_index[$id_prod]);
+                                } else {
+                                    // Producto nuevo
+                                    $cambios_materiales[] = "NUEVO: $desc_corta (Cant: {$datos_nuevos['cantidad']})";
+                                }
+                            }
+
+                            // Detectar productos eliminados
+                            foreach ($materiales_antes_index as $id_prod => $datos) {
+                                $desc_corta = (strlen($datos['descripcion']) > 30) 
+                                    ? substr($datos['descripcion'], 0, 30) . '...' 
+                                    : $datos['descripcion'];
+                                $cambios_materiales[] = "ELIMINADO: $desc_corta (Cant: {$datos['cantidad']})";
+                            }
+
+                            // Agregar cambios de materiales
+                            if (!empty($cambios_materiales)) {
+                                $cambios[] = "Materiales: " . implode(' | ', $cambios_materiales);
+                            }
+
+                            if (count($cambios) == 0) {
+                                $descripcion = "ID: $id_salida | Doc: $ndoc_salida | Sin cambios";
+                            } else {
+                                $descripcion = "ID: $id_salida | Doc: $ndoc_salida | " . implode(' | ', $cambios);
+                            }
+
+                            GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'SALIDAS', $descripcion);
+                            
                             ?>
                             <script Language="JavaScript">
                                 setTimeout(function() {
@@ -276,7 +411,9 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                             <?php
                             exit();
                         } else {
-                            error_log("❌ ERROR EN ACTUALIZACIÓN: $resultado");
+                            GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'SALIDAS', 
+                                "ID: $id_salida | Error del sistema");
+                            
                             $mostrar_alerta = true;
                             $tipo_alerta = 'error';
                             $titulo_alerta = 'Error al actualizar';
@@ -284,18 +421,17 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                         }
                     }
                 } else {
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'SALIDAS', 
+                        "ID: $id_salida | Sin materiales");
+                    
                     $mostrar_alerta = true;
                     $tipo_alerta = 'warning';
                     $titulo_alerta = 'Datos incompletos';
                     $mensaje_alerta = 'Debe tener al menos un material en la salida';
                 }
-                
-                error_log("========================================");
-                error_log("🔧 FIN ACTUALIZACIÓN SALIDA");
-                error_log("========================================");
             }
             
-            // Solo mostrar la vista si hay datos válidos de salida
+            // Solo mostrar la vista si hay datos válidos
             if (!empty($salida_datos)) {
                 require_once("../_vista/v_salidas_editar.php");
             }

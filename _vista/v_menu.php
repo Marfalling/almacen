@@ -384,7 +384,7 @@ require_once("../_conexion/sesion.php");
           <!-- AUDITORÍA --> 
           <?php if (verificarPermisoEspecifico('ver_auditoria')): ?>
           <li>
-            <a href="#"><i class="fa fa-eye"></i> Auditoría</a>
+            <a href="auditoria_mostrar.php"><i class="fa fa-eye"></i> Auditoría</a>
           </li>
           <?php endif; ?>
 

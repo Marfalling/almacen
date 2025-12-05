@@ -62,7 +62,7 @@ $tiene_permiso_importar = verificarPermisoEspecifico('importar_proveedor');
                                     </button>
                                 </span>
                             <?php } else { ?>
-                                <button class="btn btn-outline-secondary btn-sm" 
+                                <button class="btn btn-outline-success btn-sm" 
                                         data-toggle="modal" 
                                         data-target="#modalImportar"
                                         title="Importar proveedores desde CSV">
