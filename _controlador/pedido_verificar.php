@@ -4,10 +4,22 @@ require_once("../_modelo/m_auditoria.php");
 // ============================================
 // CONFIGURAR ZONA HORARIA 
 // ============================================
+$id_usuario = isset($_SESSION['id_usuario']) ? intval($_SESSION['id_usuario']) : 0;
+$usuario_sesion = isset($_SESSION['usuario']) ? $_SESSION['usuario'] : 'DESCONOCIDO';
+$id = isset($_SESSION['id']) ? intval($_SESSION['id']) : $id_usuario;
+
+//  VALIDAR QUE EXISTA ID DE USUARIO
+if ($id_usuario <= 0 && isset($_SESSION['id'])) {
+    $id_usuario = intval($_SESSION['id']);
+}
+
+if ($id <= 0 && $id_usuario > 0) {
+    $id = $id_usuario;
+}
 date_default_timezone_set('America/Lima');
 // ============================================
 if (!verificarPermisoEspecifico('verificar_pedidos')) {
-    GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'VERIFICAR');
+    GrabarAuditoria($id_usuario, $usuario_sesion, 'ERROR DE ACCESO', 'PEDIDOS', 'VERIFICAR');
     header("location: bienvenido.php?permisos=true");
     exit;
 }
@@ -94,7 +106,7 @@ if (isset($_REQUEST['verificar_item'])) {
                         //  AUDITORÍA: VERIFICACIÓN EXITOSA
                         $nom_producto = $detalle['nom_producto'] ?? 'Producto';
                         $descripcion = "Pedido ID: $id_pedido_real | Detalle ID: $id_pedido_detalle | Producto: '$nom_producto' | OC: $cant_oc | OS: $cant_os";
-                        GrabarAuditoria($id, $usuario_sesion, 'VERIFICAR ITEM', 'PEDIDOS', $descripcion);
+                        GrabarAuditoria($id_usuario, $usuario_sesion, 'VERIFICAR ITEM', 'PEDIDOS', $descripcion);
                         
                         $id_producto   = intval($detalle['id_producto']);
                         $id_almacen    = intval($pedido_row['id_almacen']);
@@ -106,7 +118,7 @@ if (isset($_REQUEST['verificar_item'])) {
                         exit;
                     } else {
                         //  AUDITORÍA: ERROR AL VERIFICAR
-                        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL VERIFICAR', 'PEDIDOS', "Pedido ID: $id_pedido_real | Error: $rpta");
+                        GrabarAuditoria($id_usuario, $usuario_sesion, 'ERROR AL VERIFICAR', 'PEDIDOS', "Pedido ID: $id_pedido_real | Error: $rpta");
                         
                         $alerta = [
                             "icon" => "error",
@@ -186,15 +198,15 @@ if (isset($_REQUEST['crear_orden'])) {
     if ($rpta != "SI") {
         //  AUDITORÍA: ERROR AL CREAR ORDEN
         $tipo_orden = $es_orden_servicio ? 'Orden Servicio' : 'Orden Compra';
-        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL CREAR ORDEN', 'PEDIDOS', "Pedido ID: $id_pedido | Tipo: $tipo_orden | Error: $rpta");
+        GrabarAuditoria($id_usuario, $usuario_sesion, 'ERROR AL CREAR ORDEN', 'PEDIDOS', "Pedido ID: $id_pedido | Tipo: $tipo_orden | Error: $rpta");
         echo $rpta;
         exit;
     }
     
-    //  AUDITORÍA: ORDEN CREADA EXITOSAMENTE
+    //  AUDITORÍA: ORDEN CREADA (sin consultas SQL adicionales)
     $tipo_orden = $es_orden_servicio ? 'Orden Servicio' : 'Orden Compra';
     $descripcion = "Pedido ID: $id_pedido | Tipo: $tipo_orden | Proveedor ID: $proveedor | Fecha: $fecha_orden | " . count($items) . " items";
-    GrabarAuditoria($id, $usuario_sesion, 'CREAR ORDEN', 'PEDIDOS', $descripcion);
+    GrabarAuditoria($id_usuario, $usuario_sesion, 'CREAR ORDEN', 'PEDIDOS', $descripcion);
     
     echo "SI";
     exit;
@@ -239,6 +251,23 @@ if (isset($_REQUEST['actualizar_orden'])) {
     }
     
     include("../_conexion/conexion.php");
+    
+    // ========================================================================
+    //  OBTENER DATOS ANTES DE EDITAR
+    // ========================================================================
+    $sql_orden_antes = "SELECT cd.id_compra_detalle, cd.cant_compra_detalle, cd.id_producto
+                        FROM compra_detalle cd
+                        WHERE cd.id_compra = $id_compra AND cd.est_compra_detalle = 1";
+    $res_antes = mysqli_query($con, $sql_orden_antes);
+
+    $items_antes = [];
+    while ($row_antes = mysqli_fetch_assoc($res_antes)) {
+        $id_cd = intval($row_antes['id_compra_detalle']);
+        $items_antes[$id_cd] = [
+            'id_producto' => intval($row_antes['id_producto']),
+            'cantidad' => floatval($row_antes['cant_compra_detalle'])
+        ];
+    }
     
     // ========================================================================
     // 🔹 PASO 1: ELIMINAR FÍSICAMENTE LOS ITEMS MARCADOS
@@ -383,7 +412,7 @@ if (isset($_REQUEST['actualizar_orden'])) {
     if ($rpta != "SI") {
         //  AUDITORÍA: ERROR AL ACTUALIZAR
         $tipo_orden = $es_orden_servicio ? 'Orden Servicio' : 'Orden Compra';
-        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL ACTUALIZAR ORDEN', 'PEDIDOS', "Orden ID: $id_compra | Pedido ID: $id_pedido | Error: $rpta");
+        GrabarAuditoria($id_usuario, $usuario_sesion, 'ERROR AL ACTUALIZAR ORDEN', 'PEDIDOS', "Orden ID: $id_compra | Pedido ID: $id_pedido | Error: $rpta");
         
         echo $rpta;
         mysqli_close($con);
@@ -489,10 +518,54 @@ if (isset($_REQUEST['actualizar_orden'])) {
         }
     }
     
-    //  AUDITORÍA: ORDEN ACTUALIZADA EXITOSAMENTE
+    // ========================================================================
+    //  AUDITORÍA: COMPARAR CAMBIOS Y REGISTRAR
+    // ========================================================================
     $tipo_orden = $es_orden_servicio ? 'Orden Servicio' : 'Orden Compra';
-    $descripcion = "Orden ID: $id_compra | Pedido ID: $id_pedido | Tipo: $tipo_orden | " . count($items_existentes) . " items existentes | " . count($items_nuevos) . " items nuevos";
-    GrabarAuditoria($id, $usuario_sesion, 'ACTUALIZAR ORDEN', 'PEDIDOS', $descripcion);
+    $cambios_items = [];
+
+    // Comparar items existentes (cambios de cantidad)
+    foreach ($items_existentes as $key => $item) {
+        $id_cd = intval($key);
+        $cantidad_nueva = floatval($item['cantidad']);
+        
+        if (isset($items_antes[$id_cd])) {
+            $cantidad_anterior = $items_antes[$id_cd]['cantidad'];
+            $id_producto = $items_antes[$id_cd]['id_producto'];
+            
+            if ($cantidad_anterior != $cantidad_nueva) {
+                $cambios_items[] = "Producto ID:$id_producto: $cantidad_anterior → $cantidad_nueva";
+            }
+            
+            // Remover para detectar eliminados
+            unset($items_antes[$id_cd]);
+        }
+    }
+
+    // Detectar eliminados (los que NO fueron marcados explícitamente)
+    foreach ($items_antes as $id_cd => $datos) {
+        // Solo si NO está en items_eliminados
+        if (!in_array($id_cd, $items_eliminados)) {
+            $id_producto = $datos['id_producto'];
+            $cambios_items[] = "ELIMINADO: Producto ID:$id_producto (Cant: {$datos['cantidad']})";
+        }
+    }
+
+    // Items nuevos
+    foreach ($items_nuevos as $nuevo) {
+        $id_producto = $nuevo['id_producto'];
+        $cantidad = $nuevo['cantidad'];
+        $cambios_items[] = "NUEVO: Producto ID:$id_producto (Cant: $cantidad)";
+    }
+
+    // Construir descripción final
+    if (!empty($cambios_items)) {
+        $descripcion = "Orden ID: $id_compra | Pedido ID: $id_pedido | Tipo: $tipo_orden | Cambios: " . implode(' | ', $cambios_items);
+    } else {
+        $descripcion = "Orden ID: $id_compra | Pedido ID: $id_pedido | Tipo: $tipo_orden | Sin cambios en cantidades";
+    }
+
+    GrabarAuditoria($id_usuario, $usuario_sesion, 'ACTUALIZAR ORDEN', 'PEDIDOS', $descripcion);
 
     mysqli_close($con);
     echo "SI";
@@ -507,13 +580,13 @@ if (isset($_REQUEST['finalizar_verificacion'])) {
     
     if ($resultado['success']) {
         //  AUDITORÍA: PEDIDO FINALIZADO
-        GrabarAuditoria($id, $usuario_sesion, 'FINALIZAR PEDIDO', 'PEDIDOS', "Pedido ID: $id_pedido - Finalizado exitosamente");
+        GrabarAuditoria($id_usuario, $usuario_sesion, 'FINALIZAR PEDIDO', 'PEDIDOS', "Pedido ID: $id_pedido - Finalizado exitosamente");
         
         header("Location: pedidos_mostrar.php?success=finalizado");
         exit;
     } else {
         //  AUDITORÍA: ERROR AL FINALIZAR
-        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL FINALIZAR', 'PEDIDOS', "Pedido ID: $id_pedido | Error: " . $resultado['mensaje']);
+        GrabarAuditoria($id_usuario, $usuario_sesion, 'ERROR AL FINALIZAR', 'PEDIDOS', "Pedido ID: $id_pedido | Error: " . $resultado['mensaje']);
         
         $alerta = [
             "icon" => $resultado['tipo'],
@@ -697,10 +770,23 @@ if (isset($_REQUEST['crear_salida'])) {
                 $id_salida = isset($resultado['id_salida']) ? intval($resultado['id_salida']) : 0;
                 
                 error_log("✅ Salida creada correctamente - ID: $id_salida");
-                //  AUDITORÍA: SALIDA CREADA EXITOSAMENTE
-                $descripcion = "Salida ID: $id_salida | Pedido ID: $id_pedido | Doc: '$ndoc_salida' | Fecha: '$fec_salida' | " . count($materiales) . " materiales | Encargado ID: $id_personal_encargado";
                 
-                GrabarAuditoria($id, $usuario_sesion, 'CREAR SALIDA', 'PEDIDOS', $descripcion);
+                //  AUDITORÍA: SALIDA CREADA CON DETALLE DE MATERIALES
+                $detalle_materiales = [];
+                foreach ($materiales as $mat) {
+                    $desc = $mat['descripcion'];
+                    $cant = $mat['cantidad'];
+                    
+                    // Acortar descripción si es muy larga
+                    if (strlen($desc) > 40) {
+                        $desc = substr($desc, 0, 40) . '...';
+                    }
+                    
+                    $detalle_materiales[] = "$desc: $cant";
+                }
+
+                $descripcion = "Salida ID: $id_salida | Pedido ID: $id_pedido | Doc: '$ndoc_salida' | Fecha: '$fec_salida' | Materiales: " . implode(' | ', $detalle_materiales);
+                GrabarAuditoria($id_usuario, $usuario_sesion, 'CREAR SALIDA', 'PEDIDOS', $descripcion);
                 
                 // ============================================================================
                 // 🔹 SUBIDA DE ARCHIVOS
@@ -789,6 +875,9 @@ if (isset($_REQUEST['crear_salida'])) {
                 $mensaje_error = isset($resultado['message']) ? $resultado['message'] : 'Error desconocido al crear la salida';
                 error_log("❌ Error al crear salida: $mensaje_error");
                 
+                // AUDITORÍA: ERROR AL CREAR
+                GrabarAuditoria($id_usuario, $usuario_sesion, 'ERROR AL CREAR SALIDA', 'PEDIDOS', "Pedido ID: $id_pedido | Error: $mensaje_error");
+                
                 if (strpos($mensaje_error, 'ERROR DE STOCK') !== false || 
                     strpos($mensaje_error, 'Stock insuficiente') !== false) {
                     
@@ -822,6 +911,23 @@ if (isset($_REQUEST['crear_salida'])) {
                     $id_salida = intval($matches[1]);
                 }
                 
+                //  AUDITORÍA: SALIDA CREADA
+                $detalle_materiales = [];
+                foreach ($materiales as $mat) {
+                    $desc = $mat['descripcion'];
+                    $cant = $mat['cantidad'];
+                    
+                    if (strlen($desc) > 40) {
+                        $desc = substr($desc, 0, 40) . '...';
+                    }
+                    
+                    $detalle_materiales[] = "$desc: $cant";
+                }
+
+                $descripcion = "Salida ID: $id_salida | Pedido ID: $id_pedido | Doc: '$ndoc_salida' | Materiales: " . implode(' | ', $detalle_materiales);
+                GrabarAuditoria($id_usuario, $usuario_sesion, 'CREAR SALIDA', 'PEDIDOS', $descripcion);
+                
+                // SUBIDA DE ARCHIVOS
                 if ($id_salida > 0 && isset($_FILES['documentos_salida']) && count($_FILES['documentos_salida']['name']) > 0) {
                     include_once("../_modelo/m_documentos.php");
                     
@@ -845,7 +951,7 @@ if (isset($_REQUEST['crear_salida'])) {
                     }
                 }
                 
-                // 🔹 ENVIAR CORREO
+                // ENVIAR CORREO
                 if ($id_salida > 0) {
                     EnviarCorreoSalidaCreada($id_salida);
                 }
@@ -856,6 +962,9 @@ if (isset($_REQUEST['crear_salida'])) {
             } else {
                 $mensaje_error = str_replace(['ERROR: ', 'ERROR DE VALIDACIÓN: ', 'ERROR DE STOCK: '], '', $resultado);
                 error_log("❌ Error al crear salida: $mensaje_error");
+                
+                // AUDITORÍA: ERROR AL CREAR
+                GrabarAuditoria($id_usuario, $usuario_sesion, 'ERROR AL CREAR SALIDA', 'PEDIDOS', "Pedido ID: $id_pedido | Error: $mensaje_error");
                 
                 if (strpos($resultado, 'ERROR DE STOCK') !== false || 
                     strpos($resultado, 'Stock insuficiente') !== false) {
@@ -958,7 +1067,30 @@ if (isset($_REQUEST['actualizar_salida'])) {
     
     error_log("👤 ACTUALIZAR - Personal sesión: $id_personal | Encargado: $id_personal_encargado | Receptor: $id_personal_recibe");
     
-    // 🔹 CONSTRUIR ARRAY DE MATERIALES
+    // ========================================================================
+    //  OBTENER DATOS ANTES DE EDITAR
+    // ========================================================================
+    $sql_antes = "SELECT sd.id_salida_detalle, sd.cant_salida_detalle, sd.prod_salida_detalle, sd.id_producto
+                  FROM salida_detalle sd
+                  WHERE sd.id_salida = $id_salida
+                  AND sd.est_salida_detalle = 1";
+    $res_antes = mysqli_query($con, $sql_antes);
+
+    $items_antes = [];
+    while ($row = mysqli_fetch_assoc($res_antes)) {
+        $id_sd = intval($row['id_salida_detalle']);
+        $items_antes[$id_sd] = [
+            'nombre' => $row['prod_salida_detalle'],
+            'cantidad' => floatval($row['cant_salida_detalle']),
+            'id_producto' => intval($row['id_producto'])
+        ];
+    }
+    
+    error_log("📊 Items ANTES de actualizar: " . count($items_antes));
+    
+    // ========================================================================
+    //  CONSTRUIR ARRAY DE MATERIALES
+    // ========================================================================
     $materiales = [];
 
     if (isset($_REQUEST['items_salida']) && is_string($_REQUEST['items_salida'])) {
@@ -1023,14 +1155,65 @@ if (isset($_REQUEST['actualizar_salida'])) {
     mysqli_close($con);
 
     if (strpos($resultado, 'OK') === 0 || strpos($resultado, 'SI') === 0) {
-        //  AUDITORÍA: SALIDA ACTUALIZADA
-        $descripcion = "Salida ID: $id_salida | Pedido ID: $id_pedido | " . count($materiales) . " materiales";
-        GrabarAuditoria($id, $usuario_sesion, 'ACTUALIZAR SALIDA', 'PEDIDOS', $descripcion);
+        
+        // ========================================================================
+        //  COMPARAR CAMBIOS Y CONSTRUIR DESCRIPCIÓN
+        // ========================================================================
+        $cambios_materiales = [];
+
+        foreach ($materiales as $mat) {
+            $id_sd = intval($mat['id_salida_detalle']);
+            $cantidad_nueva = floatval($mat['cantidad']);
+            $nombre = $mat['descripcion'];
+            
+            if ($id_sd > 0 && isset($items_antes[$id_sd])) {
+                // Item existente - comparar cantidad
+                $cantidad_anterior = $items_antes[$id_sd]['cantidad'];
+                
+                if (strlen($nombre) > 40) {
+                    $nombre = substr($nombre, 0, 40) . '...';
+                }
+                
+                if ($cantidad_anterior != $cantidad_nueva) {
+                    $cambios_materiales[] = "$nombre: $cantidad_anterior → $cantidad_nueva";
+                    error_log("✏️ CAMBIO: $nombre ($cantidad_anterior → $cantidad_nueva)");
+                }
+                
+                unset($items_antes[$id_sd]);
+            } else {
+                // Item nuevo
+                if (strlen($nombre) > 40) {
+                    $nombre = substr($nombre, 0, 40) . '...';
+                }
+                $cambios_materiales[] = "NUEVO: $nombre (Cant: $cantidad_nueva)";
+                error_log("🆕 NUEVO: $nombre (Cant: $cantidad_nueva)");
+            }
+        }
+
+        // Detectar eliminados
+        foreach ($items_antes as $datos) {
+            $nombre = $datos['nombre'];
+            if (strlen($nombre) > 40) {
+                $nombre = substr($nombre, 0, 40) . '...';
+            }
+            $cambios_materiales[] = "ELIMINADO: $nombre (Cant: {$datos['cantidad']})";
+            error_log("🗑️ ELIMINADO: $nombre (Cant: {$datos['cantidad']})");
+        }
+
+        // Descripción final
+        if (!empty($cambios_materiales)) {
+            $descripcion = "Salida ID: $id_salida | Pedido ID: $id_pedido | Cambios: " . implode(' | ', $cambios_materiales);
+        } else {
+            $descripcion = "Salida ID: $id_salida | Pedido ID: $id_pedido | Sin cambios en cantidades";
+        }
+
+        error_log("📝 AUDITORÍA: $descripcion");
+        GrabarAuditoria($id_usuario, $usuario_sesion, 'ACTUALIZAR SALIDA', 'PEDIDOS', $descripcion);
         
         echo json_encode(['success' => true]);
     } else {
-        //  AUDITORÍA: ERROR AL ACTUALIZAR SALIDA
-        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL ACTUALIZAR SALIDA', 'PEDIDOS', "Salida ID: $id_salida | Error: $resultado");
+        //  AUDITORÍA: ERROR AL ACTUALIZAR
+        GrabarAuditoria($id_usuario, $usuario_sesion, 'ERROR AL ACTUALIZAR SALIDA', 'PEDIDOS', "Salida ID: $id_salida | Error: $resultado");
         
         if (strpos($resultado, 'ERROR DE STOCK') !== false || 
             strpos($resultado, 'Stock insuficiente') !== false) {
