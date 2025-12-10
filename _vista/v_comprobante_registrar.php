@@ -647,7 +647,7 @@ require_once("../_modelo/m_detraccion.php");
                     
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Archivo XML</label>
+                            <label>Archivo XML <span class="text-danger">*</span> </label>
                             <input type="file" name="archivo_xml" class="form-control" accept=".xml" required>
                             <small class="form-text text-muted">Máximo 5MB</small>
                         </div>
@@ -852,7 +852,7 @@ require_once("../_modelo/m_detraccion.php");
                     
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Archivo XML</label>
+                            <label>Archivo XML <span class="text-danger">*</span> </label>
                             <div id="xml_actual" class="mb-2"></div>
                             <input type="file" name="archivo_xml" class="form-control" accept=".xml">
                         </div>
