@@ -2,43 +2,23 @@
 // Llamada a funciones
 require_once("_modelo/m_almacen.php");
 
-// Obtener parámetros opcionales
-$id_cliente = isset($_POST['id_cliente']) ? intval($_POST['id_cliente']) : 0;
+// MOVER EL HEADER AL INICIO
+header('Content-Type: application/json; charset=utf-8');
 
 try {
-    // Consultar almacenes activos
-    if ($id_cliente > 0) {
-        // Filtrar por cliente específico
-        $almacenes = MostrarAlmacenesActivosPorCliente($id_cliente);
-    } else {
-        // Mostrar todos los almacenes activos (incluyendo ARCE base)
-        $almacenes = MostrarAlmacenesActivosConArceBase();
-    }
+    $almacenes = MostrarAlmacenesActivos();
 
     if (empty($almacenes)) {
-        $rpta = [
-            "status" => "info",
-            "message" => "No hay almacenes disponibles.",
-            "data" => []
-        ];
+        // Devolver array vacío en lugar de objeto
+        echo json_encode([], JSON_UNESCAPED_UNICODE);
     } else {
-        $rpta = [
-            "status" => "success",
-            "message" => "Almacenes obtenidos correctamente.",
-            "data" => $almacenes
-        ];
+        // Devolver directamente el array de almacenes
+        echo json_encode($almacenes, JSON_UNESCAPED_UNICODE);
     }
 
 } catch (Exception $e) {
-    error_log("❌ Error en almacen_mostrar_.php: " . $e->getMessage());
-    $rpta = [
-        "status" => "error",
-        "message" => "Error al obtener almacenes. Intente nuevamente.",
-        "data" => []
-    ];
+    error_log("❌ Error en almacen_mostrar.php: " . $e->getMessage());
+    // Devolver array vacío en caso de error
+    echo json_encode([], JSON_UNESCAPED_UNICODE);
 }
-
-// Respuesta al app
-header('Content-Type: application/json; charset=utf-8');
-echo json_encode($rpta, JSON_UNESCAPED_UNICODE);
 ?>

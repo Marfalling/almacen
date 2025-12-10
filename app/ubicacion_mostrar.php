@@ -2,34 +2,23 @@
 // Llamada a funciones
 require_once("_modelo/m_ubicacion.php");
 
+// Establecer header al inicio
+header('Content-Type: application/json; charset=utf-8');
+
 try {
-    // Consultar ubicaciones activas
     $ubicaciones = MostrarUbicacionesActivas();
 
     if (empty($ubicaciones)) {
-        $rpta = [
-            "status" => "info",
-            "message" => "No hay ubicaciones disponibles.",
-            "data" => []
-        ];
+        // Devolver array vacío en lugar de objeto
+        echo json_encode([], JSON_UNESCAPED_UNICODE);
     } else {
-        $rpta = [
-            "status" => "success",
-            "message" => "Ubicaciones obtenidas correctamente.",
-            "data" => $ubicaciones
-        ];
+        // Devolver directamente el array de ubicaciones
+        echo json_encode($ubicaciones, JSON_UNESCAPED_UNICODE);
     }
 
 } catch (Exception $e) {
-    error_log("❌ Error en ubicacion_mostrar_.php: " . $e->getMessage());
-    $rpta = [
-        "status" => "error",
-        "message" => "Error al obtener ubicaciones. Intente nuevamente.",
-        "data" => []
-    ];
+    error_log("❌ Error en ubicacion_mostrar.php: " . $e->getMessage());
+    // Devolver array vacío en caso de error
+    echo json_encode([], JSON_UNESCAPED_UNICODE);
 }
-
-// Respuesta al app
-header('Content-Type: application/json; charset=utf-8');
-echo json_encode($rpta, JSON_UNESCAPED_UNICODE);
 ?>

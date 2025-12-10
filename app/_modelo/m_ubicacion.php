@@ -97,4 +97,27 @@ function ConsultarUbicacionUsuario($id_usuario)
     mysqli_close($con);
     return $resultado;
 }
+
+function MostrarUbicacionesActivas()
+{
+    include("../_conexion/conexion.php");
+
+    $sql = "
+        SELECT 
+            id_ubicacion,
+            nom_ubicacion,
+            est_ubicacion
+        FROM ubicacion
+        WHERE est_ubicacion = 1
+        ORDER BY nom_ubicacion ASC;
+    ";
+
+    $res = mysqli_query($con, $sql);
+    $resultado = mysqli_fetch_all($res, MYSQLI_ASSOC);
+
+    mysqli_close($con);
+    return $resultado;
+}
+
+
 ?>

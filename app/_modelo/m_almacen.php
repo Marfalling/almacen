@@ -29,4 +29,27 @@ function MostrarAlmacenesActivosPorCliente($id_cliente)
     mysqli_close($con);
     return $resultado;
 }
+
+function MostrarAlmacenesActivos()
+{
+    include("../_conexion/conexion.php");
+
+    $sql = "
+        SELECT 
+            id_almacen,
+            id_cliente,
+            id_obra,
+            nom_almacen,
+            est_almacen
+        FROM almacen
+        WHERE est_almacen = 1
+        ORDER BY nom_almacen ASC;
+    ";
+
+    $res = mysqli_query($con, $sql);
+    $resultado = mysqli_fetch_all($res, MYSQLI_ASSOC);
+
+    mysqli_close($con);
+    return $resultado;
+}
 ?>
