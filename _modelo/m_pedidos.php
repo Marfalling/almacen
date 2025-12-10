@@ -4398,7 +4398,6 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
     }
     
     $estado_actual = intval($row_estado['est_pedido']);
-    
     error_log("   📊 Estado actual: $estado_actual");
     
     // No tocar si está anulado o finalizado
@@ -4409,15 +4408,17 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
     }
     
     // PASO 2: Verificar si requiere OC
-    $sql_requiere_oc = "SELECT COUNT(*) as total 
-                        FROM compra 
+    $sql_requiere_oc = "SELECT COALESCE(SUM(cant_oc_pedido_detalle), 0) as total_oc_verificada
+                        FROM pedido_detalle 
                         WHERE id_pedido = $id_pedido 
-                        AND est_compra != 0";
+                        AND est_pedido_detalle IN (1, 2)";
+    
     $res_oc = mysqli_query($con, $sql_requiere_oc);
     $row_oc = mysqli_fetch_assoc($res_oc);
-    $requiere_oc = ($row_oc['total'] > 0);
+    $total_oc_verificada = floatval($row_oc['total_oc_verificada']);
+    $requiere_oc = ($total_oc_verificada > 0);
     
-    error_log("   📦 Requiere OC: " . ($requiere_oc ? 'SÍ' : 'NO'));
+    error_log("   📦 Requiere OC: " . ($requiere_oc ? "SÍ (verificada: $total_oc_verificada)" : 'NO'));
     
     // PASO 3: Verificar si OC está 100% ingresada
     $oc_completada = false;
@@ -4457,45 +4458,58 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
     }
     
     // PASO 4: Verificar si requiere OS
-    $sql_requiere_os = "SELECT COUNT(*) as total 
-                        FROM salida 
+    $sql_requiere_os = "SELECT COALESCE(SUM(cant_os_pedido_detalle), 0) as total_os_verificada
+                        FROM pedido_detalle 
                         WHERE id_pedido = $id_pedido 
-                        AND est_salida != 0";
+                        AND est_pedido_detalle IN (1, 2)";
+    
     $res_os = mysqli_query($con, $sql_requiere_os);
     $row_os = mysqli_fetch_assoc($res_os);
-    $requiere_os = ($row_os['total'] > 0);
+    $total_os_verificada = floatval($row_os['total_os_verificada']);
+    $requiere_os = ($total_os_verificada > 0);
     
-    error_log("   📦 Requiere OS: " . ($requiere_os ? 'SÍ' : 'NO'));
+    error_log("   📦 Requiere OS: " . ($requiere_os ? "SÍ (verificada: $total_os_verificada)" : 'NO'));
     
     // PASO 5: Verificar si OS está 100% recepcionada
     $os_completada = false;
     
     if ($requiere_os) {
-        // Verificar que TODAS las salidas estén recepcionadas (estado 2)
-        $sql_os_pendientes = "SELECT COUNT(*) as total_pendientes
-                              FROM salida 
-                              WHERE id_pedido = $id_pedido 
-                              AND est_salida NOT IN (0, 2, 4)";
+        // Total RECEPCIONADO (solo salidas con estado 2)
+        $sql_os_recepcionada = "SELECT COALESCE(SUM(sd.cant_salida_detalle), 0) as total_recepcionada
+                               FROM salida s
+                               INNER JOIN salida_detalle sd ON s.id_salida = sd.id_salida
+                               WHERE s.id_pedido = $id_pedido
+                               AND s.est_salida = 2
+                               AND sd.est_salida_detalle = 1";
         
-        $res_os_pend = mysqli_query($con, $sql_os_pendientes);
-        $row_os_pend = mysqli_fetch_assoc($res_os_pend);
+        $res_recepcionada = mysqli_query($con, $sql_os_recepcionada);
+        $row_recepcionada = mysqli_fetch_assoc($res_recepcionada);
+        $total_os_recepcionada = floatval($row_recepcionada['total_recepcionada']);
         
-        $os_completada = ($row_os_pend['total_pendientes'] == 0);
+        // Comparar: recepcionado >= verificado
+        $os_completada = ($total_os_recepcionada >= $total_os_verificada && $total_os_verificada > 0);
         
-        error_log("   📊 OS - Pendientes: {$row_os_pend['total_pendientes']} | Completada: " . ($os_completada ? 'SÍ' : 'NO'));
+        error_log("   📊 OS - Verificada: $total_os_verificada | Recepcionada: $total_os_recepcionada | Completada: " . ($os_completada ? 'SÍ' : 'NO'));
     } else {
         $os_completada = true;
         error_log("   ✅ No requiere OS - considerado completado");
     }
     
     // PASO 6: DETERMINAR ESTADO FINAL
-    $nuevo_estado = 1; // Por defecto PENDIENTE
+    $nuevo_estado = 1; // Por defecto PENDIENTE/APROBADO
     
     if ($oc_completada && $os_completada) {
         $nuevo_estado = 2; // ATENDIDO
         error_log("   🎯 Nuevo estado: 2 (ATENDIDO) - OC y OS completadas");
     } else {
-        error_log("   ⏸️ Nuevo estado: 1 (PENDIENTE) - Faltan OC o OS");
+        error_log("   ⏸️ Nuevo estado: 1 (PENDIENTE/APROBADO) - Faltan OC o OS por completar");
+        
+        if (!$oc_completada) {
+            error_log("      📦 Pendiente: OC no completada");
+        }
+        if (!$os_completada) {
+            error_log("      📦 Pendiente: OS no completada");
+        }
     }
     
     // PASO 7: ACTUALIZAR SI CAMBIÓ

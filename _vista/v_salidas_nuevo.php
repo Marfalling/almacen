@@ -196,8 +196,8 @@
 
                                     <!-- Personal Encargado -->
                                     <div class="form-group">
-                                        <label class="control-label">Personal Encargado:</label>
-                                        <select name="id_personal_encargado" id="id_personal_encargado" class="form-control">
+                                        <label class="control-label">Personal Encargado: <span class="text-danger">*</span></label>
+                                        <select name="id_personal_encargado" id="id_personal_encargado" class="form-control" required>
                                             <option value="0">No especificado</option>
                                             <?php foreach ($personal as $persona) { ?>
                                                 <option value="<?php echo $persona['id_personal']; ?>" 
@@ -247,9 +247,9 @@
 
                                     <!-- Personal que Recibe -->
                                     <div class="form-group">
-                                        <label class="control-label">Personal que Recibe:</label>
-                                        <select name="id_personal_recibe" id="id_personal_recibe" class="form-control">
-                                            <option value="0">No especificado</option>
+                                        <label class="control-label">Personal que Recibe: <span class="text-danger">*</span></label>
+                                        <select name="id_personal_recibe" id="id_personal_recibe" class="form-control" required>
+                                            <option value="">No especificado</option>
                                             <?php foreach ($personal as $persona) { ?>
                                                 <option value="<?php echo $persona['id_personal']; ?>">
                                                     <?php echo $persona['nom_personal']; ?>

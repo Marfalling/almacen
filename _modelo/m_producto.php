@@ -588,9 +588,31 @@ function MostrarProductosModalFiltrado($limit, $offset, $searchValue, $orderColu
 {
     include("../_conexion/conexion.php");
 
-    // Construir la consulta base
+    // Construir WHERE base
+    $whereConditions = "p.est_producto = 1 
+                        AND pt.est_producto_tipo = 1
+                        AND mt.est_material_tipo = 1
+                        AND um.est_unidad_medida = 1";
+
+    // FILTRO POR TIPO DE PRODUCTO si se especifica
+    if ($tipoProducto > 0) {
+        $whereConditions .= " AND p.id_producto_tipo = $tipoProducto";
+    }
+
+    // Aplicar filtro de búsqueda ANTES del GROUP BY
+    if (!empty($searchValue)) {
+        $searchValue = mysqli_real_escape_string($con, $searchValue);
+        $whereConditions .= " AND (p.cod_material LIKE '%$searchValue%' 
+                          OR p.nom_producto LIKE '%$searchValue%'
+                          OR p.mar_producto LIKE '%$searchValue%'
+                          OR p.mod_producto LIKE '%$searchValue%'
+                          OR pt.nom_producto_tipo LIKE '%$searchValue%'
+                          OR um.nom_unidad_medida LIKE '%$searchValue%')";
+    }
+
+    // Construir la consulta completa
     $sql = "SELECT p.id_producto, p.cod_material, p.nom_producto, p.mar_producto, p.mod_producto,
-                   pt.nom_producto_tipo, um.nom_unidad_medida, p.id_unidad_medida,
+                   pt.nom_producto_tipo, um.nom_unidad_medida, um.id_unidad_medida,
                    COALESCE(SUM(
                     CASE
                         -- INGRESOS
@@ -615,39 +637,20 @@ function MostrarProductosModalFiltrado($limit, $offset, $searchValue, $orderColu
             LEFT JOIN movimiento mov ON p.id_producto = mov.id_producto 
                       AND mov.id_almacen = $id_almacen 
                       AND mov.id_ubicacion = $id_ubicacion
-            WHERE p.est_producto = 1 
-            AND pt.est_producto_tipo = 1
-            AND mt.est_material_tipo = 1
-            AND um.est_unidad_medida = 1";
-
-    // FILTRO POR TIPO DE PRODUCTO si se especifica
-    if ($tipoProducto > 0) {
-        $sql .= " AND p.id_producto_tipo = $tipoProducto";
-    }
-
-    $sql .= " GROUP BY p.id_producto, p.cod_material, p.nom_producto, p.mar_producto, p.mod_producto, 
-                       pt.nom_producto_tipo, um.nom_unidad_medida";
-
-    // Aplicar filtro de búsqueda
-    if (!empty($searchValue)) {
-        $searchValue = mysqli_real_escape_string($con, $searchValue);
-        $sql .= " AND (p.cod_material LIKE '%$searchValue%' 
-                  OR p.nom_producto LIKE '%$searchValue%'
-                  OR p.mar_producto LIKE '%$searchValue%'
-                  OR p.mod_producto LIKE '%$searchValue%'
-                  OR pt.nom_producto_tipo LIKE '%$searchValue%'
-                  OR um.nom_unidad_medida LIKE '%$searchValue%')";
-    }
-
-    // Aplicar ordenamiento
-    $sql .= " ORDER BY $orderColumn $orderDirection";
-
-    // Aplicar paginación
-    $sql .= " LIMIT $offset, $limit";
+            WHERE $whereConditions
+            GROUP BY p.id_producto, p.cod_material, p.nom_producto, p.mar_producto, p.mod_producto, 
+                     pt.nom_producto_tipo, um.nom_unidad_medida, um.id_unidad_medida
+            ORDER BY $orderColumn $orderDirection
+            LIMIT $offset, $limit";
 
     $resultado = mysqli_query($con, $sql);
+    
+    if (!$resultado) {
+        mysqli_close($con);
+        return array();
+    }
+    
     $productos = array();
-
     while ($row = mysqli_fetch_array($resultado, MYSQLI_ASSOC)) {
         $productos[] = $row;
     }
@@ -661,24 +664,31 @@ function NumeroRegistrosTotalProductosModal($id_almacen, $id_ubicacion, $tipoPro
 {
     include("../_conexion/conexion.php");
 
-    $sql = "SELECT COUNT(*) as total
+    $whereConditions = "p.est_producto = 1 
+                        AND pt.est_producto_tipo = 1
+                        AND mt.est_material_tipo = 1
+                        AND um.est_unidad_medida = 1";
+
+    // FILTRO POR TIPO DE PRODUCTO si se especifica
+    if ($tipoProducto > 0) {
+        $whereConditions .= " AND p.id_producto_tipo = $tipoProducto";
+    }
+
+    $sql = "SELECT COUNT(DISTINCT p.id_producto) as total
             FROM producto p 
             INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
             INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo
             INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
-            WHERE p.est_producto = 1 
-            AND pt.est_producto_tipo = 1
-            AND mt.est_material_tipo = 1
-            AND um.est_unidad_medida = 1";
-
-    // FILTRO POR TIPO DE PRODUCTO si se especifica
-    if ($tipoProducto > 0) {
-        $sql .= " AND p.id_producto_tipo = $tipoProducto";
-    }
+            WHERE $whereConditions";
 
     $resultado = mysqli_query($con, $sql);
-    $row = mysqli_fetch_assoc($resultado);
     
+    if (!$resultado) {
+        mysqli_close($con);
+        return 0;
+    }
+    
+    $row = mysqli_fetch_assoc($resultado);
     mysqli_close($con);
     return intval($row['total']);
 }
@@ -688,35 +698,42 @@ function NumeroRegistrosFiltradosProductosModal($searchValue, $id_almacen, $id_u
 {
     include("../_conexion/conexion.php");
 
-    $sql = "SELECT COUNT(*) as total
-            FROM producto p 
-            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
-            INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo
-            INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
-            WHERE p.est_producto = 1 
-            AND pt.est_producto_tipo = 1
-            AND mt.est_material_tipo = 1
-            AND um.est_unidad_medida = 1";
+    $whereConditions = "p.est_producto = 1 
+                        AND pt.est_producto_tipo = 1
+                        AND mt.est_material_tipo = 1
+                        AND um.est_unidad_medida = 1";
 
     // FILTRO POR TIPO DE PRODUCTO si se especifica
     if ($tipoProducto > 0) {
-        $sql .= " AND p.id_producto_tipo = $tipoProducto";
+        $whereConditions .= " AND p.id_producto_tipo = $tipoProducto";
     }
 
     // Aplicar filtro de búsqueda
     if (!empty($searchValue)) {
         $searchValue = mysqli_real_escape_string($con, $searchValue);
-        $sql .= " AND (p.cod_material LIKE '%$searchValue%' 
-                  OR p.nom_producto LIKE '%$searchValue%'
-                  OR p.mar_producto LIKE '%$searchValue%'
-                  OR p.mod_producto LIKE '%$searchValue%'
-                  OR pt.nom_producto_tipo LIKE '%$searchValue%'
-                  OR um.nom_unidad_medida LIKE '%$searchValue%')";
+        $whereConditions .= " AND (p.cod_material LIKE '%$searchValue%' 
+                          OR p.nom_producto LIKE '%$searchValue%'
+                          OR p.mar_producto LIKE '%$searchValue%'
+                          OR p.mod_producto LIKE '%$searchValue%'
+                          OR pt.nom_producto_tipo LIKE '%$searchValue%'
+                          OR um.nom_unidad_medida LIKE '%$searchValue%')";
     }
 
+    $sql = "SELECT COUNT(DISTINCT p.id_producto) as total
+            FROM producto p 
+            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
+            INNER JOIN material_tipo mt ON p.id_material_tipo = mt.id_material_tipo
+            INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+            WHERE $whereConditions";
+
     $resultado = mysqli_query($con, $sql);
-    $row = mysqli_fetch_assoc($resultado);
     
+    if (!$resultado) {
+        mysqli_close($con);
+        return 0;
+    }
+    
+    $row = mysqli_fetch_assoc($resultado);
     mysqli_close($con);
     return intval($row['total']);
 }

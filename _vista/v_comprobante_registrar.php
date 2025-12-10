@@ -1416,9 +1416,10 @@ function CargarModalEditar(id_comprobante) {
                 return;
             }
             
-            console.log(' Cargando datos para edición:', data);
+            console.log('📥 Cargando datos para edición:', data);
+            console.log('📅 Fecha recibida (fec_pago):', data.fec_pago);
             
-            // Llenar campos
+            // Llenar campos básicos
             document.getElementById('edit_id_comprobante').value = data.id_comprobante;
             document.getElementById('edit_id_tipo_documento').value = data.id_tipo_documento;
             document.getElementById('edit_serie').value = data.serie;
@@ -1426,12 +1427,32 @@ function CargarModalEditar(id_comprobante) {
             document.getElementById('edit_monto_total_igv').value = data.monto_total_igv;
             document.getElementById('edit_id_moneda').value = data.id_moneda;
             
+            //  Cargar medio de pago
             if (data.id_medio_pago) {
                 document.getElementById('edit_id_medio_pago').value = data.id_medio_pago;
+                console.log('✅ Medio de pago cargado:', data.id_medio_pago);
+            } else {
+                document.getElementById('edit_id_medio_pago').value = '';
+                console.log('⚠️ Sin medio de pago');
             }
             
-            if (data.fec_pago) {
-                document.getElementById('edit_fec_pago').value = data.fec_pago;
+            //  Procesar y cargar fecha de emisión
+            const inputFecha = document.getElementById('edit_fec_pago');
+            
+            if (data.fec_pago && data.fec_pago !== '0000-00-00' && data.fec_pago !== '0000-00-00 00:00:00' && data.fec_pago !== null) {
+                // Extraer solo la parte de fecha (YYYY-MM-DD)
+                let fechaFormateada = data.fec_pago.trim().split(' ')[0]; 
+                
+                console.log('📅 Fecha formateada para input:', fechaFormateada);
+                
+                inputFecha.value = fechaFormateada;
+                
+                // Verificar que realmente se asignó
+                console.log('✅ Valor del input después de asignar:', inputFecha.value);
+                
+            } else {
+                inputFecha.value = '';
+                console.log('⚠️ Fecha vacía, null o inválida:', data.fec_pago);
             }
 
             let simbolo = (data.id_moneda == 1) ? "S/." : "US$";
@@ -1455,6 +1476,18 @@ function CargarModalEditar(id_comprobante) {
             setTimeout(function() {
                 setupCuentaControlEdit();
                 calcularTotalPagar(true);
+                
+                if (data.id_cuenta_proveedor) {
+                    const cuentaSelect = document.getElementById('edit_id_cuenta_proveedor');
+                    if (cuentaSelect && !cuentaSelect.disabled) {
+                        cuentaSelect.value = data.id_cuenta_proveedor;
+                        console.log('✅ Cuenta bancaria cargada:', data.id_cuenta_proveedor);
+                    } else {
+                        console.log('⚠️ Select de cuenta deshabilitado o no existe');
+                    }
+                } else {
+                    console.log('⚠️ Sin id_cuenta_proveedor en los datos');
+                }
             }, 100);
             
             // Archivos
@@ -1520,13 +1553,18 @@ function VerDetalleComprobante(id_comprobante) {
                 }
             }
             
+            //  Mostrar "-" cuando es null o vacío
+            let cuentaDeposito = (data.nro_cuenta_proveedor && data.nro_cuenta_proveedor.trim() !== '') 
+                ? data.nro_cuenta_proveedor 
+                : '-';
+            
             let html = `
                 <table class="table table-sm table-bordered">
                     <tr><th width="35%">Tipo Documento:</th><td>${data.nom_tipo_documento}</td></tr>
                     <tr><th>Serie - Número:</th><td><strong>${data.num_comprobante}</strong></td></tr>
                     <tr><th>Proveedor:</th><td>${data.nom_proveedor}</td></tr>
                     <tr><th>RUC:</th><td>${data.ruc_proveedor}</td></tr>
-                    <tr><th>Cuenta Depósito:</th><td>${data.nro_cuenta_proveedor}</td></tr>
+                    <tr><th>Cuenta Depósito:</th><td>${cuentaDeposito}</td></tr>
                     <tr><th>Medio de Pago:</th><td>${data.nom_medio_pago || 'No especificado'}</td></tr>
                     <tr><th>Fecha de Pago:</th><td>${data.fec_pago || 'Pendiente'}</td></tr>
                     <tr><th>Monto con IGV:</th><td>${data.simbolo_moneda} ${parseFloat(data.monto_total_igv).toFixed(2)}</td></tr>

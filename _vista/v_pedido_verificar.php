@@ -172,7 +172,7 @@ $monedas = MostrarMoneda();
                                         $pedido['id_almacen'],
                                         $pedido['id_ubicacion']
                                     );
-                                    
+                               
                                     $detalle['stock_total_almacen'] = ObtenerStockTotalAlmacen(
                                         $detalle['id_producto'],
                                         $pedido['id_almacen']
@@ -849,19 +849,19 @@ $monedas = MostrarMoneda();
                                         // CASO 9: Ambos verificados y ambos pendientes
                                         //---------------------------------------------
                                         elseif ($se_verifico_os && $se_verifico_oc && $pendiente_os > 0 && $pendiente_oc > 0 && !$pedidoAnulado) { ?>
-<button type="button" 
-        class="btn btn-success btn-sm btn-agregarSalida" 
-        data-id-detalle="<?= $id_detalle ?>"
-        data-id-producto="<?= $detalle['id_producto'] ?>"
-        data-codigo-producto="<?= htmlspecialchars($detalle['cod_material'] ?? '') ?>"  
-        data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
-        data-cantidad-disponible="<?= $pendiente_os ?>"
-        data-almacen-destino="<?= $pedido['id_almacen'] ?>"
-        data-ubicacion-destino="<?= $pedido['id_ubicacion'] ?>"
-        data-otras-ubicaciones='<?= json_encode($detalle['otras_ubicaciones_con_stock']) ?>'
-        style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
-    <i class="fa fa-truck"></i> OS (<?= number_format($pendiente_os, 2) ?>)
-</button>
+                                            <button type="button" 
+                                                    class="btn btn-success btn-sm btn-agregarSalida" 
+                                                    data-id-detalle="<?= $id_detalle ?>"
+                                                    data-id-producto="<?= $detalle['id_producto'] ?>"
+                                                    data-codigo-producto="<?= htmlspecialchars($detalle['cod_material'] ?? '') ?>"  
+                                                    data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
+                                                    data-cantidad-disponible="<?= $pendiente_os ?>"
+                                                    data-almacen-destino="<?= $pedido['id_almacen'] ?>"
+                                                    data-ubicacion-destino="<?= $pedido['id_ubicacion'] ?>"
+                                                    data-otras-ubicaciones='<?= json_encode($detalle['otras_ubicaciones_con_stock']) ?>'
+                                                    style="padding: 2px 8px; font-size: 11px; margin-right: 4px;">
+                                                <i class="fa fa-truck"></i> OS (<?= number_format($pendiente_os, 2) ?>)
+                                            </button>
                                             
                                             <!-- BOTÓN FUNCIONAL INTEGRADO -->
                                             <button type="button" 
@@ -2066,16 +2066,29 @@ $monedas = MostrarMoneda();
                                                                     $pedido['id_ubicacion']
                                                                 );
                                                                 
+                                                                //  VALIDAR QUE SEA UN ARRAY
+                                                                if (!is_array($ubicaciones_disponibles)) {
+                                                                    $ubicaciones_disponibles = [];
+                                                                }
+                                                                
+                                                                //  ORDENAR POR STOCK DESCENDENTE (MAYOR A MENOR) ANTES DE PRESELECCIONAR
+                                                                if (!empty($ubicaciones_disponibles)) {
+                                                                    usort($ubicaciones_disponibles, function($a, $b) {
+                                                                        return floatval($b['stock']) <=> floatval($a['stock']);
+                                                                    });
+                                                                }
+                                                                
+                                                                
                                                                 $id_ubicacion_origen_preseleccionada = null;
                                                                 if ($modo_editar_salida && isset($salida_data)) {
                                                                     $id_ubicacion_origen_preseleccionada = $salida_data['id_ubicacion_origen'];
                                                                 } elseif (!empty($ubicaciones_disponibles)) {
-                                                                    // Preseleccionar la primera ubicación NO bloqueada
+                                                                    // AHORA PRESELECCIONAR LA PRIMERA UBICACIÓN NO BLOQUEADA (YA ESTÁ ORDENADA POR MAYOR STOCK)
                                                                     foreach ($ubicaciones_disponibles as $ub) {
                                                                         $key_ub = $ub['id_almacen'] . '_' . $ub['id_ubicacion'];
                                                                         if (!isset($bloqueadas_keys[$key_ub])) {
                                                                             $id_ubicacion_origen_preseleccionada = $ub['id_ubicacion'];
-                                                                            break;
+                                                                            break; // Esta será la de MAYOR STOCK porque ya ordenamos
                                                                         }
                                                                     }
                                                                 }
@@ -3177,6 +3190,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         max="${cantidadMaxima.toFixed(2)}" 
                         step="0.01"
                         data-cantidad-maxima="${cantidadMaxima}"
+                        data-cantidad-maxima-os="${cantidadOS}"
                         style="font-size: 12px; font-weight: bold; padding: 4px 8px; text-align: center;" 
                         required>
                     <small class="text-info" style="font-size: 9px; display: block; text-align: center; margin-top: 1px;">
@@ -6744,7 +6758,7 @@ if (btnReverificar) {
 
 
 
-    function configurarControlOrigenDinamico() {
+   function configurarControlOrigenDinamico() {
     const ubicacionOrigenSelect = document.getElementById('ubicacion_origen_salida');
     const almacenOrigenSelect = document.getElementById('almacen_origen_salida');
     
@@ -6770,12 +6784,12 @@ if (btnReverificar) {
         
         const optionSeleccionada = this.options[this.selectedIndex];
         const idAlmacen = parseInt(optionSeleccionada.getAttribute('data-id-almacen'));
-        const stock = parseFloat(optionSeleccionada.getAttribute('data-stock'));
+        const stockNuevo = parseFloat(optionSeleccionada.getAttribute('data-stock')) || 0;
         
         console.log('📊 Datos de la ubicación:', {
             ubicacion: ubicacionSeleccionada,
             almacen: idAlmacen,
-            stock: stock
+            stock: stockNuevo
         });
         
         //  ACTUALIZAR ALMACÉN ORIGEN
@@ -6786,6 +6800,83 @@ if (btnReverificar) {
             console.error('❌ No se pudo actualizar el almacén:', { idAlmacen, almacenOrigenSelect });
         }
         
+        //  ACTUALIZAR CANTIDADES MÁXIMAS DE TODOS LOS ITEMS AGREGADOS
+        const itemsAgregados = document.querySelectorAll('[id^="item-salida-"]');
+        
+        console.log(' DEBUG - Items encontrados:', itemsAgregados.length);
+        
+        if (itemsAgregados.length > 0) {
+            console.log(` Actualizando ${itemsAgregados.length} items con nuevo stock de ubicación...`);
+            
+            itemsAgregados.forEach((itemElement, index) => {
+                console.log(`\n Procesando item ${index + 1}:`, itemElement.id);
+                
+                const cantidadInput = itemElement.querySelector('.cantidad-salida');
+                
+                if (!cantidadInput) {
+                    console.error(` No se encontró input de cantidad para item ${index + 1}`);
+                    return;
+                }
+                
+                console.log('✓ Input encontrado');
+                
+                // DEBUG: Verificar atributos
+                console.log('🔍 DEBUG - Atributos del input:', {
+                    'data-cantidad-maxima': cantidadInput.getAttribute('data-cantidad-maxima'),
+                    'data-cantidad-maxima-os': cantidadInput.getAttribute('data-cantidad-maxima-os'),
+                    'value': cantidadInput.value,
+                    'max': cantidadInput.getAttribute('max')
+                });
+                
+                // Obtener la cantidad máxima de OS del data attribute
+                const cantidadMaximaOS = parseFloat(cantidadInput.getAttribute('data-cantidad-maxima-os')) || 0;
+                
+                console.log('📊 Cantidad OS extraída:', cantidadMaximaOS);
+                
+                if (cantidadMaximaOS === 0) {
+                    console.error('❌ PROBLEMA: data-cantidad-maxima-os es 0 o no existe');
+                    console.error('   Verifica que el atributo se esté agregando al crear el item');
+                    return;
+                }
+                
+                // Calcular nueva cantidad máxima (el menor entre stock y cantidad OS)
+                const nuevaCantidadMaxima = Math.min(cantidadMaximaOS, stockNuevo);
+                
+                console.log('📊 Cálculo:', {
+                    cantidadOS: cantidadMaximaOS,
+                    stockNuevo: stockNuevo,
+                    resultado: nuevaCantidadMaxima
+                });
+                
+                // Actualizar el max del input
+                cantidadInput.setAttribute('max', nuevaCantidadMaxima.toFixed(2));
+                cantidadInput.setAttribute('data-cantidad-maxima', nuevaCantidadMaxima.toFixed(2));
+                
+                // Si el valor actual excede el nuevo máximo, ajustarlo
+                const valorActual = parseFloat(cantidadInput.value) || 0;
+                if (valorActual > nuevaCantidadMaxima) {
+                    cantidadInput.value = nuevaCantidadMaxima.toFixed(2);
+                    console.log(` Valor ajustado de ${valorActual} a ${nuevaCantidadMaxima.toFixed(2)}`);
+                } else {
+                    console.log(` Valor actual ${valorActual} es válido (≤ ${nuevaCantidadMaxima.toFixed(2)})`);
+                }
+                
+                // Actualizar el texto del máximo
+                const smallMaximo = itemElement.querySelector('small.text-info');
+                if (smallMaximo) {
+                    smallMaximo.innerHTML = `<i class="fa fa-arrow-up"></i> Máx: ${nuevaCantidadMaxima.toFixed(2)}`;
+                    console.log('✓ Texto de máximo actualizado');
+                } else {
+                    console.warn(' No se encontró elemento small.text-info');
+                }
+                
+                console.log(` Item ${index + 1} actualizado correctamente`);
+            });
+            
+            console.log('\n Todos los items procesados');
+        } else {
+            console.log(' No hay items agregados para actualizar');
+        }
         
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     });
