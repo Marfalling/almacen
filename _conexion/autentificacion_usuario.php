@@ -61,7 +61,7 @@ if ($row != null) {
 
     header("location: bienvenido.php");
 } else {
-    GrabarAuditoria(0, $usu, 'INTENTO DE ACCESO FALLIDO', 'SESIÓN', 'LOGIN');
+    GrabarAuditoria(null, $usu, 'INTENTO DE ACCESO FALLIDO', 'SESIÓN', 'LOGIN');
     ?>
     <script Language="JavaScript">
         location.href = 'index.php?acceso=true';
