@@ -10,11 +10,23 @@ $usuario = AutentificarUsuario($user,$pass);
 //respuesta al app
 if($usuario==NULL)
 {
-    $rpta = -1;
+    $rpta = [
+        'status' => 'error',
+        'message' => 'Credenciales incorrectas'
+    ];
 }
 else 
 {
-    $rpta = $usuario[0]['id_usuario'];
+    $rpta = [
+        'status' => 'success',
+        'id_usuario' => $usuario[0]['id_usuario'],
+        'id_personal' => $usuario[0]['id_personal'],
+        'nom_personal' => $usuario[0]['nom_personal'],
+        'usuario' => $usuario[0]['usu_usuario']
+    ];
 }
-echo $rpta;
+
+// Devolver JSON
+header('Content-Type: application/json; charset=utf-8');
+echo json_encode($rpta, JSON_UNESCAPED_UNICODE);
 ?>
