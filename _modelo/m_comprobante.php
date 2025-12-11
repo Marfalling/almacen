@@ -400,7 +400,7 @@ function SubirVoucherComprobante($id_comprobante, $archivo_voucher, $id_personal
             $asunto = "Voucher de Pago - Comprobante {$comprobante['num_comprobante']}";
             
             // URL del voucher
-            $url_voucher = "https://montajeseingenieriaarceperusac.pe/almacen/_upload/vouchers/" . $archivo_voucher;
+            $url_voucher = "https://arceperusac.com/_upload/vouchers/" . $archivo_voucher;
             $simbolo = ($comprobante['id_comprobante'] == 1) ? 'S/' : 'U$';
             $mensaje = "
             <html>
