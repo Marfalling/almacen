@@ -43,6 +43,7 @@ function MostrarAlmacenesActivos()
             est_almacen
         FROM almacen
         WHERE est_almacen = 1
+        AND id_almacen != 1
         ORDER BY nom_almacen ASC;
     ";
 

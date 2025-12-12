@@ -141,12 +141,11 @@ function MostrarUsoMaterial($id_usuario, $filtro = null)
     $sql = "SELECT usm.*, 
                 alm.nom_almacen, 
                 o.nom_subestacion as nom_obra,
-                c.nom_cliente, 
+                c.nom_cliente as nom_cliente, 
                 u.nom_ubicacion, 
                 per1.nom_personal AS nom_registrado,
                 COALESCE(per2.nom_personal, 'Sin solicitante') AS nom_solicitante,
-                DATE_FORMAT(usm.fec_uso_material, '%d/%m/%Y') as fecha_formato,
-                TIME_FORMAT(usm.fec_uso_material, '%H:%i') as hora_formato
+                DATE_FORMAT(usm.fec_uso_material, '%d/%m/%Y') as fecha_formato
             FROM uso_material usm 
             LEFT JOIN almacen alm ON usm.id_almacen = alm.id_almacen 
             LEFT JOIN {$bd_complemento}.subestacion o ON alm.id_obra = o.id_subestacion
@@ -162,6 +161,40 @@ function MostrarUsoMaterial($id_usuario, $filtro = null)
     
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
         $resultado[] = $rowc;
+    }
+    
+    mysqli_close($con);
+    return $resultado;
+}
+
+function ConsultarUsoMaterialDetalle($id_uso_material) 
+{
+    include("../_conexion/conexion.php");
+    
+    $sql = "SELECT umd.*, 
+                p.nom_producto,
+                um.nom_unidad_medida
+            FROM uso_material_detalle umd
+            LEFT JOIN producto p ON umd.id_producto = p.id_producto
+            LEFT JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+            WHERE umd.id_uso_material = '$id_uso_material' 
+            AND umd.est_uso_material_detalle <> 99
+            ORDER BY p.nom_producto";
+    
+    $resc = mysqli_query($con, $sql) or die("Error en consulta detalle: " . mysqli_error($con));
+    $resultado = array();
+    
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $resultado[] = array(
+            "id_uso_material_detalle" => $rowc['id_uso_material_detalle'],
+            "id_uso_material" => $rowc['id_uso_material'],
+            "id_producto" => $rowc['id_producto'],
+            "nom_producto" => $rowc['nom_producto'] ?: 'Producto sin nombre',
+            "cant_uso_material_detalle" => floatval($rowc['cant_uso_material_detalle']),
+            "obs_uso_material_detalle" => $rowc['obs_uso_material_detalle'] ?: '',
+            "nom_unidad_medida" => $rowc['nom_unidad_medida'] ?: 'UND',
+            "est_uso_material_detalle" => $rowc['est_uso_material_detalle']
+        );
     }
     
     mysqli_close($con);
