@@ -22,22 +22,22 @@ try {
         exit;
     }
 
-    $resultado = AnularUsoMaterial($id_uso_material);
+    $resultado = ConsultarUsoMaterialCompleto($id_uso_material);
     
-    if ($resultado === "SI") {
+    if (empty($resultado)) {
         echo json_encode([
-            'status' => 'success',
-            'message' => 'Uso de material anulado correctamente'
+            'status' => 'error',
+            'message' => 'Uso de material no encontrado'
         ], JSON_UNESCAPED_UNICODE);
     } else {
         echo json_encode([
-            'status' => 'error',
-            'message' => $resultado
+            'status' => 'success',
+            'data' => $resultado
         ], JSON_UNESCAPED_UNICODE);
     }
 
 } catch (Exception $e) {
-    error_log("❌ Error en uso_material_anular.php: " . $e->getMessage());
+    error_log("❌ Error en uso_material_consultar.php: " . $e->getMessage());
     echo json_encode([
         'status' => 'error',
         'message' => 'Error interno del servidor'
