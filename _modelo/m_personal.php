@@ -104,7 +104,7 @@ function GrabarPersonal($id_area, $id_cargo, $nom, $dni, $email, $cel, $est)
 
     // por convención ponemos pass_personal = dni (como estaba en tus datos)
     $pass = $dni;
-    mysqli_stmt_bind_param($stmt, "iiisssssiss",
+    mysqli_stmt_bind_param($stmt, "iiisssssis",
         $id_cargo, $id_area, $id_tipo,
         $nom_completo, $dni, $cel, $email, $pass, $est, $fecha_peru
     );
