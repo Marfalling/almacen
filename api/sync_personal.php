@@ -53,7 +53,7 @@ foreach ($res["data"] as $r) {
             // Remoto es más nuevo → UPDATE
             $sqlUpd = "UPDATE personal SET id_cargo=?, id_area=?, id_tipo=?, nom_personal=?, dni_personal=?, cel_personal=?, email_personal=?, pass_personal=?, act_personal=?, updated_at=? WHERE id_personal=?";
             $stmtUpd = $con->prepare($sqlUpd);
-            $stmtUpd->bind_param("iiisssssis", $id_cargo, $id_area, $id_tipo, $nom, $dni, $cel, $email, $pass, $act, $updated_at, $id);
+            $stmtUpd->bind_param("iiisssssisi", $id_cargo, $id_area, $id_tipo, $nom, $dni, $cel, $email, $pass, $act, $updated_at, $id);
             $stmtUpd->execute();
         }
 
@@ -65,7 +65,7 @@ foreach ($res["data"] as $r) {
     $sqlIns = "INSERT INTO personal (id_personal, id_cargo, id_area, id_tipo, nom_personal, dni_personal, cel_personal, email_personal, pass_personal, act_personal, updated_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     $stmtIns = $con->prepare($sqlIns);
-    $stmtIns->bind_param("iiisssssis", $id, $id_cargo, $id_area, $id_tipo, $nom, $dni, $cel, $email, $pass, $act, $updated_at);
+    $stmtIns->bind_param("iiiisssssis", $id, $id_cargo, $id_area, $id_tipo, $nom, $dni, $cel, $email, $pass, $act, $updated_at);
     $stmtIns->execute();
 }
 

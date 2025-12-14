@@ -40,7 +40,7 @@ if ($resultSel->num_rows > 0) {
                       SET id_cargo=?, id_area=?, id_tipo=?, nom_personal=?, dni_personal=?, cel_personal=?, email_personal=?, pass_personal=?, act_personal=?, updated_at=? 
                       WHERE id_personal=?";
         $stmtUpdate = $con->prepare($sqlUpdate);
-        $stmtUpdate->bind_param("iiisssssis", $id_cargo, $id_area, $id_tipo, $nom, $dni, $cel, $email, $pass, $act, $updated_at_remoto, $id);
+        $stmtUpdate->bind_param("iiisssssisi", $id_cargo, $id_area, $id_tipo, $nom, $dni, $cel, $email, $pass, $act, $updated_at_remoto, $id);
         $stmtUpdate->execute();
 
         echo json_encode(["status"=>"ok","msg"=>"updated"]);
@@ -56,7 +56,7 @@ if ($resultSel->num_rows > 0) {
 $sqlInsert = "INSERT INTO personal (id_personal, id_cargo, id_area, id_tipo, nom_personal, dni_personal, cel_personal, email_personal, pass_personal, act_personal, updated_at)
               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 $stmtInsert = $con->prepare($sqlInsert);
-$stmtInsert->bind_param("iiissssssis", $id, $id_cargo, $id_area, $id_tipo, $nom, $dni, $cel, $email, $pass, $act, $updated_at_remoto);
+$stmtInsert->bind_param("iiiisssssis", $id, $id_cargo, $id_area, $id_tipo, $nom, $dni, $cel, $email, $pass, $act, $updated_at_remoto);
 $stmtInsert->execute();
 
 echo json_encode(["status"=>"ok","msg"=>"inserted"]);
