@@ -49,42 +49,60 @@ try {
     }
 
     // ============================================
-    // VALIDACIÓN 2: VERIFICAR DOCUMENTO NUEVO
+    // VALIDACIÓN 2: VERIFICAR DOCUMENTO PARA CADA INGRESO
     // ============================================
     include("../_conexion/conexion.php");
-    
-    // Obtener la fecha del último ingreso para esta compra
-    $sql_ultimo_ingreso = "SELECT MAX(fec_ingreso) as ultima_fecha 
-                          FROM ingreso 
-                          WHERE id_compra = $id_compra";
-    $res_ultimo = mysqli_query($con, $sql_ultimo_ingreso);
-    $row_ultimo = mysqli_fetch_assoc($res_ultimo);
-    $fecha_ultimo_ingreso = $row_ultimo['ultima_fecha'];
-    
-    if ($fecha_ultimo_ingreso) {
-        // Ya hubo ingresos previos, verificar que haya documento nuevo
-        $sql_doc_nuevo = "SELECT COUNT(*) as total 
-                         FROM documentos 
-                         WHERE entidad = 'ingresos' 
-                         AND id_entidad = $id_compra 
-                         AND fec_subida > '$fecha_ultimo_ingreso'";
+
+    // Paso 1: Contar ingresos previos
+    $sql_count_ingresos = "SELECT COUNT(DISTINCT i.id_ingreso) as total_ingresos,
+                                MAX(i.fec_ingreso) as ultima_fecha
+                        FROM ingreso i
+                        INNER JOIN ingreso_detalle id ON i.id_ingreso = id.id_ingreso
+                        WHERE i.id_compra = $id_compra 
+                        AND i.est_ingreso = 1
+                        AND id.est_ingreso_detalle = 1";
+    $res_count = mysqli_query($con, $sql_count_ingresos);
+    $row_count = mysqli_fetch_assoc($res_count);
+    $total_ingresos_previos = intval($row_count['total_ingresos']);
+    $fecha_ultimo_ingreso = $row_count['ultima_fecha'];
+
+    // Si no hay ingresos previos, solo verificar que haya al menos 1 documento
+    if ($total_ingresos_previos == 0) {
+        // Primera vez, VALIDACIÓN 1 ya verificó que hay docs
+        mysqli_close($con);
+    } else {
+        // Ya hubo ingresos, DEBE haber documento DESPUÉS del último ingreso
+        $sql_doc_nuevo = "SELECT COUNT(*) as total,
+                                MAX(fec_subida) as ultimo_doc_subido
+                        FROM documentos 
+                        WHERE entidad = 'ingresos' 
+                        AND id_entidad = $id_compra 
+                        AND fec_subida > '$fecha_ultimo_ingreso'";
         $res_doc_nuevo = mysqli_query($con, $sql_doc_nuevo);
         $row_doc_nuevo = mysqli_fetch_assoc($res_doc_nuevo);
         
         if ($row_doc_nuevo['total'] == 0) {
+            // Contar docs totales para mensaje informativo
+            $sql_count_docs = "SELECT COUNT(*) as total_docs 
+                            FROM documentos 
+                            WHERE entidad = 'ingresos' 
+                            AND id_entidad = $id_compra";
+            $res_count_docs = mysqli_query($con, $sql_count_docs);
+            $total_documentos = mysqli_fetch_assoc($res_count_docs)['total_docs'];
+            
             mysqli_close($con);
             echo json_encode([
                 "tipo_mensaje" => "warning",
                 "mensaje" => "DEBE SUBIR UN NUEVO DOCUMENTO PARA ESTE INGRESO.\n\n" .
-                            "Ya se realizó un ingreso anterior. Cada ingreso requiere su propia guía de remisión.\n\n" .
-                            "Último ingreso: " . date('d/m/Y H:i', strtotime($fecha_ultimo_ingreso)) . "\n\n" .
-                            "Por favor, suba el nuevo documento antes de continuar."
+                        "Ya se realizó un ingreso anterior. Cada ingreso requiere su propia guía de remisión.\n\n" .
+                        "Último ingreso: " . date('d/m/Y H:i', strtotime($fecha_ultimo_ingreso)) . "\n\n" .
+                        "Por favor, suba el nuevo documento antes de continuar."
             ]);
             exit;
         }
+        
+        mysqli_close($con);
     }
-    
-    mysqli_close($con);
     // ============================================
 
     if (!function_exists('ProcesarIngresoProducto')) {
