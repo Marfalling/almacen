@@ -155,12 +155,12 @@
                                         <div class="col-md-6">
                                             <label>Material/Servicio <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
-                                                <input type="text" name="descripcion[]" class="form-control" placeholder="Material o Servicio" required>
+                                                <input type="text" name="descripcion[]" class="form-control producto-input" placeholder="Material o Servicio"  readonly required>
                                                 <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" data-toggle="tooltip" title="Buscar Material"  type="button">
                                                     <i class="fa fa-search"></i>
                                                 </button>
                                             </div>
-                                            <input type="hidden" name="id_material[]" value="">
+                                            <input type="hidden" name="id_material[]" class="id-producto-hidden" value="" required>
                                         </div>
 
                                         <div class="col-md-3">
@@ -559,6 +559,116 @@ let contadorMateriales = 1;
 let valorInicialTipoPedido = '';
 let formularioModificado = false;
 let aplicarCentroCostoAutomaticamente = false;
+let valorInicialAlmacen = '';
+let valorInicialUbicacion = '';
+
+// ============================================
+// FUNCIÓN: LIMPIAR SOLO LA SECCIÓN DE MATERIALES
+// ============================================
+function limpiarSeccionMateriales() {
+    const contenedorMateriales = document.getElementById('contenedor-materiales');
+    if (!contenedorMateriales) return;
+    
+    const materialesItems = contenedorMateriales.querySelectorAll('.material-item');
+    
+    // Eliminar todos los items adicionales (mantener solo el primero)
+    for (let i = 1; i < materialesItems.length; i++) {
+        // Destruir Select2 antes de eliminar
+        const selectsADestruir = materialesItems[i].querySelectorAll('select');
+        selectsADestruir.forEach(select => {
+            if ($(select).data('select2')) {
+                $(select).select2('destroy');
+            }
+        });
+        materialesItems[i].remove();
+    }
+    
+    // Limpiar el primer item de material
+    const primerMaterial = contenedorMateriales.querySelector('.material-item');
+    if (primerMaterial) {
+        // Limpiar inputs de texto y hidden
+        const inputs = primerMaterial.querySelectorAll('input[name="descripcion[]"], input[name="id_material[]"], input[name="cantidad[]"], input[name="observaciones[]"], input[name="ot_detalle[]"], input[name="sst[]"], textarea');
+        inputs.forEach(input => {
+            input.value = '';
+        });
+        
+        // Limpiar input de archivos
+        const fileInputs = primerMaterial.querySelectorAll('input[type="file"]');
+        fileInputs.forEach(input => {
+            input.value = '';
+        });
+        
+        // Limpiar selects con Select2
+        const selects = primerMaterial.querySelectorAll('select');
+        selects.forEach(select => {
+            if ($(select).data('select2')) {
+                $(select).val(null).trigger('change');
+            } else {
+                select.selectedIndex = 0;
+            }
+        });
+        
+        // Ocultar botón eliminar del primer item
+        const btnEliminar = primerMaterial.querySelector('.eliminar-material');
+        if (btnEliminar) {
+            btnEliminar.style.display = 'none';
+        }
+    }
+    
+    // Resetear contador
+    contadorMateriales = 1;
+    
+    // Actualizar eventos
+    actualizarEventosEliminar();
+}
+
+// ============================================
+// FUNCIÓN: VERIFICAR SI HAY MATERIALES SELECCIONADOS
+// ============================================
+function hayMaterialesSeleccionados() {
+    const materialesItems = document.querySelectorAll('.material-item');
+    
+    for (let item of materialesItems) {
+        const inputDescripcion = item.querySelector('input[name="descripcion[]"]');
+        const inputIdMaterial = item.querySelector('input[name="id_material[]"]');
+        
+        // Si tiene descripción o ID de producto, considera que hay materiales
+        if ((inputDescripcion && inputDescripcion.value.trim() !== '') || 
+            (inputIdMaterial && inputIdMaterial.value.trim() !== '')) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// ============================================
+// FUNCIÓN: MOSTRAR ALERTA AL CAMBIAR FILTROS
+// ============================================
+function mostrarAlertaCambioFiltro(nombreFiltro, callback) {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: `Cambio de ${nombreFiltro}`,
+            html: `Al cambiar el <strong>${nombreFiltro}</strong>, se limpiarán todos los productos/materiales seleccionados.<br><br>¿Desea continuar?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, continuar',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                callback(true);
+            } else {
+                callback(false);
+            }
+        });
+    } else {
+        const confirmar = confirm(`Al cambiar el ${nombreFiltro}, se limpiarán todos los productos/materiales seleccionados.\n\n¿Desea continuar?`);
+        callback(confirmar);
+    }
+}
 
 // ============================================
 // FUNCIONES GLOBALES - BÚSQUEDA DE PRODUCTOS
@@ -1081,42 +1191,38 @@ document.addEventListener('DOMContentLoaded', function() {
         $(selectTipoPedido).on('select2:select', function(e) {
             const valorActual = $(this).val();
             
-            if (formularioModificado && valorInicialTipoPedido !== valorActual) {
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        title: '¿Estás seguro?',
-                        text: 'Si cambias el tipo de pedido, todos los cambios realizados en el formulario se perderán.',
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#3085d6',
-                        confirmButtonText: 'Sí, continuar',
-                        cancelButtonText: 'Cancelar',
-                        reverseButtons: true
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            limpiarFormularioCompleto();
+            // Si cambió y hay materiales seleccionados
+            if (valorInicialTipoPedido !== valorActual && hayMaterialesSeleccionados()) {
+                mostrarAlertaCambioFiltro('Tipo de Pedido', (confirmar) => {
+                    if (confirmar) {
+                        limpiarSeccionMateriales();
+                        valorInicialTipoPedido = valorActual;
+                        
+                        // Actualizar visibilidad de campos de personal
+                        const esServicio = esTipoServicio(valorActual);
+                        toggleCamposPersonal(esServicio);
+                        
+                        // Mensaje de confirmación
+                        if (typeof Swal !== 'undefined') {
                             Swal.fire({
-                                title: 'Formulario limpiado',
-                                text: 'Todos los cambios han sido eliminados.',
+                                title: 'Materiales limpiados',
+                                text: 'Los productos seleccionados han sido eliminados.',
                                 icon: 'success',
-                                timer: 2000,
+                                timer: 1500,
                                 showConfirmButton: false
                             });
-                        } else {
-                            $(selectTipoPedido).val(valorInicialTipoPedido).trigger('change');
                         }
-                    });
-                } else {
-                    if (confirm('Si cambias el tipo de pedido, todos los cambios realizados en el formulario se perderán. ¿Continuar?')) {
-                        limpiarFormularioCompleto();
-                        alert('Formulario limpiado');
                     } else {
+                        // Revertir cambio
                         $(selectTipoPedido).val(valorInicialTipoPedido).trigger('change');
                     }
-                }
+                });
             } else {
                 valorInicialTipoPedido = valorActual;
+                
+                // Actualizar visibilidad de campos de personal
+                const esServicio = esTipoServicio(valorActual);
+                toggleCamposPersonal(esServicio);
             }
         });
     }
@@ -1442,6 +1548,89 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function inicializarUbicaciones() {
         todasUbicaciones = Array.from(selectUbicacion.options).slice(1); // Excluir "Seleccionar"
+    }
+
+    if (selectAlmacen) {
+    // Guardar valor inicial
+    $(selectAlmacen).on('select2:opening', function() {
+        valorInicialAlmacen = $(this).val();
+    });
+    
+    // Detectar cambio
+    $(selectAlmacen).on('select2:select', function(e) {
+            const valorActual = $(this).val();
+            
+            // Si cambió y hay materiales seleccionados
+            if (valorInicialAlmacen !== valorActual && hayMaterialesSeleccionados()) {
+                mostrarAlertaCambioFiltro('Almacén', (confirmar) => {
+                    if (confirmar) {
+                        limpiarSeccionMateriales();
+                        valorInicialAlmacen = valorActual;
+                        
+                        // Filtrar ubicaciones (código existente)
+                        filtrarUbicacionesPorAlmacen();
+                        
+                        // Mensaje de confirmación
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                title: 'Materiales limpiados',
+                                text: 'Los productos seleccionados han sido eliminados.',
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        }
+                    } else {
+                        // Revertir cambio
+                        $(selectAlmacen).val(valorInicialAlmacen).trigger('change');
+                    }
+                });
+            } else {
+                valorInicialAlmacen = valorActual;
+                filtrarUbicacionesPorAlmacen();
+            }
+        });
+    }
+
+    // ============================================
+    // CONTROL DE CAMBIO EN UBICACIÓN
+    // ============================================
+    if (selectUbicacion) {
+        // Guardar valor inicial
+        $(selectUbicacion).on('select2:opening', function() {
+            valorInicialUbicacion = $(this).val();
+        });
+        
+        // Detectar cambio
+        $(selectUbicacion).on('select2:select', function(e) {
+            const valorActual = $(this).val();
+            
+            // Si cambió y hay materiales seleccionados
+            if (valorInicialUbicacion !== valorActual && hayMaterialesSeleccionados()) {
+                mostrarAlertaCambioFiltro('Ubicación', (confirmar) => {
+                    if (confirmar) {
+                        limpiarSeccionMateriales();
+                        valorInicialUbicacion = valorActual;
+                        
+                        // Mensaje de confirmación
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                title: 'Materiales limpiados',
+                                text: 'Los productos seleccionados han sido eliminados.',
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                        }
+                    } else {
+                        // Revertir cambio
+                        $(selectUbicacion).val(valorInicialUbicacion).trigger('change');
+                    }
+                });
+            } else {
+                valorInicialUbicacion = valorActual;
+            }
+        });
     }
 
     function filtrarUbicacionesPorAlmacen() {

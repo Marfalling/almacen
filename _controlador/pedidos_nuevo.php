@@ -73,7 +73,7 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                 // Procesar materiales
                 $materiales = array();
                 $errores_validacion = array();
-                
+
                 if (isset($_REQUEST['descripcion']) && is_array($_REQUEST['descripcion'])) {
                     for ($i = 0; $i < count($_REQUEST['descripcion']); $i++) {
                         $sst_descripcion = trim($_REQUEST['sst'][$i]);
@@ -93,7 +93,7 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                                 }
                             }
                         }
-                        
+
                         $centros_costo_material = array_map('intval', $centros_costo_material);
                         $centros_costo_material = array_filter($centros_costo_material, function($id) {
                             return $id > 0;
@@ -120,7 +120,7 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                             return $id > 0;
                         });
                         $personal_material = array_unique($personal_material);
-
+                        
                         $materiales[] = array(
                             'id_producto' => $_REQUEST['id_material'][$i],
                             'descripcion' => $_REQUEST['descripcion'][$i],
@@ -134,7 +134,51 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                         );
                     }
                 }
-                
+
+                // Validar que todos los materiales tengan un ID de producto válido
+                if (!empty($materiales)) {
+                    foreach ($materiales as $index => $material) {
+                        $id_producto = isset($material['id_producto']) ? trim($material['id_producto']) : '';
+                        $descripcion = isset($material['descripcion']) ? trim($material['descripcion']) : '';
+                        
+                        // Validar que tenga ID de producto
+                        if (empty($id_producto) || $id_producto === '0' || $id_producto === '') {
+                            if (!empty($descripcion)) {
+                                $errores_validacion[] = "Material " . ($index + 1) . ": '{$descripcion}' - No tiene un producto seleccionado válido";
+                            } else {
+                                $errores_validacion[] = "Material " . ($index + 1) . " - Sin producto seleccionado";
+                            }
+                        }
+                        
+                        // Validar que el ID sea numérico y mayor a 0
+                        if (!empty($id_producto) && (!is_numeric($id_producto) || intval($id_producto) <= 0)) {
+                            $errores_validacion[] = "Material " . ($index + 1) . ": ID de producto inválido ({$id_producto})";
+                        }
+                    }
+                }
+
+                // Si hay errores, detener el proceso
+                if (!empty($errores_validacion)) {
+                    $mensaje_error = "No se puede registrar el pedido. Errores encontrados:\\n\\n";
+                    $mensaje_error .= implode("\\n", $errores_validacion);
+                    $mensaje_error .= "\\n\\nDebe buscar y seleccionar productos válidos para todos los materiales.";
+                    
+                    // Auditoría del error
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR VALIDACIÓN', 'PEDIDOS', 
+                                "Productos inválidos: " . implode("; ", $errores_validacion));
+                    ?>
+                    <script Language="JavaScript">
+                        alert('<?php echo addslashes($mensaje_error); ?>');
+                        history.back();
+                    </script>
+                    <?php
+                    exit;
+                }
+
+                // ═══════════════════════════════════════════════════════════════
+                // FIN DE LA VALIDACIÓN
+                // ═══════════════════════════════════════════════════════════════
+
                 // Procesar archivos
                 $archivos_subidos = array();
                 foreach ($_FILES as $key => $file) {
