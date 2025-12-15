@@ -21,6 +21,7 @@ if ($id_personal_actual === 0) {
 
 require_once("../_modelo/m_pedidos.php");
 require_once("../_modelo/m_compras.php");
+require_once("../_modelo/m_centro_costo.php"); 
 
 // ========================================================================
 // Filtro de fechas con valores por defecto dinámicos

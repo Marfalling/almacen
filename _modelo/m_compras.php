@@ -245,6 +245,10 @@ function ConsultarCompraPorId($id_compra)
     $sql = "SELECT c.*, 
                 p.nom_proveedor,
                 p.ruc_proveedor,
+                p.dir_proveedor,
+                p.tel_proveedor,
+                p.cont_proveedor,
+                p.mail_proveedor,
                 m.nom_moneda,
                 CASE 
                     WHEN m.id_moneda = 1 THEN 'S/.'
@@ -302,7 +306,7 @@ function ConsultarCompraPorId($id_compra)
     
     $compra = mysqli_fetch_assoc($resultado);
 
-     if ($compra) {
+    if ($compra) {
         $compra['esta_pagada'] = esCompraPagada($id_compra);
     }
     

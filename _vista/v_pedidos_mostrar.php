@@ -273,6 +273,8 @@ function AprobarPedidoTecnica(id_pedido) {
                                                                 $titulo_editar = "No se puede editar - Pedido con items verificados";
                                                             } elseif ($pedido['est_pedido'] == 2) {
                                                                 $titulo_editar = "No se puede editar - Pedido completado (órdenes en proceso)";
+                                                            } elseif ($tiene_tecnica) {
+                                                                $titulo_editar = "No se puede editar - Pedido aprobado técnicamente";
                                                             } else {
                                                                 $puede_editar_proceso = true;
                                                             }
@@ -516,6 +518,7 @@ foreach($pedidos as $pedido) {
                 </button>
             </div>
             <div class="modal-body">
+                <!-- INFORMACIÓN GENERAL -->
                 <div class="row">
                     <div class="col-md-12">
                         <h5><strong>Información General</strong></h5>
@@ -523,18 +526,34 @@ foreach($pedidos as $pedido) {
                             <tr>
                                 <td><strong>Código del Pedido:</strong></td>
                                 <td><?php echo $pedido_info['cod_pedido']; ?></td>
-                                <td><strong>Fecha del Pedido:</strong></td>
-                                <td><?php echo date('d/m/Y H:i', strtotime($pedido_info['fec_pedido'])); ?></td>
+                                <td><strong>Tipo de Pedido:</strong></td>
+                                <td><?php echo $pedido_info['nom_producto_tipo']; ?></td>
                             </tr>
                             <tr>
                                 <td><strong>Nombre del Pedido:</strong></td>
                                 <td><?php echo $pedido_info['nom_pedido']; ?></td>
-                                <td><strong>Fecha de Necesidad:</strong></td>
-                                <td><?php echo date('d/m/Y', strtotime($pedido_info['fec_req_pedido'])); ?></td>
+                                <td><strong>Fecha del Pedido:</strong></td>
+                                <td><?php echo date('d/m/Y H:i', strtotime($pedido_info['fec_pedido'])); ?></td>
                             </tr>
                             <tr>
-                                <td><strong>OT/LCL/LCA:</strong></td>
-                                <td><?php echo $pedido_info['ot_pedido']; ?></td>
+                                <td><strong>Almacén:</strong></td>
+                                <td><?php echo $pedido_info['nom_almacen']; ?></td>
+                                <td><strong>Ubicación:</strong></td>
+                                <td><?php echo $pedido_info['nom_ubicacion']; ?></td>
+                            </tr>
+                            <tr>
+                                <td><strong>Solicitante:</strong></td>
+                                <td><?php echo $pedido_info['nom_personal']; ?></td>
+                                <td><strong>Centro de Costo (Solicitante):</strong></td>
+                                <td>
+                                    <span class="badge badge-primary badge_size">
+                                        <?php echo !empty($pedido_info['nom_centro_costo']) ? $pedido_info['nom_centro_costo'] : 'Sin asignar'; ?>
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Fecha de Necesidad:</strong></td>
+                                <td><?php echo date('d/m/Y', strtotime($pedido_info['fec_req_pedido'])); ?></td>
                                 <td><strong>Contacto:</strong></td>
                                 <td><?php echo $pedido_info['cel_pedido']; ?></td>
                             </tr>
@@ -545,13 +564,14 @@ foreach($pedidos as $pedido) {
                             <?php if (!empty($pedido_info['acl_pedido'])) { ?>
                             <tr>
                                 <td><strong>Aclaraciones:</strong></td>
-                                <td colspan="3"><?php echo $pedido_info['acl_pedido']; ?></td>
+                                <td colspan="3"><?php echo nl2br($pedido_info['acl_pedido']); ?></td>
                             </tr>
                             <?php } ?>
                         </table>
                     </div>
                 </div>
 
+                <!-- DETALLES DEL PEDIDO -->
                 <div class="row mt-3">
                     <div class="col-md-12">
                         <h5><strong>Detalles del Pedido</strong></h5>
@@ -561,9 +581,11 @@ foreach($pedidos as $pedido) {
                                     <tr>
                                         <th>#</th>
                                         <th>Material/Servicio</th>
-                                        <th>Unidad de Medida</th>
+                                        <th>Unidad</th>
                                         <th>Cantidad</th>
-                                        <th>Observaciones</th>
+                                        <th>Centro(s) de Costo</th>
+                                        <th>Personal Asignado</th>
+                                        <th>Nº OT/LCL/LCA</th>
                                         <th>Descripción SST/MA/CA</th>
                                         <th>Archivos</th>
                                     </tr>
@@ -572,23 +594,35 @@ foreach($pedidos as $pedido) {
                                     <?php 
                                     $contador_detalle = 1;
                                     foreach ($pedido_detalle as $detalle) { 
-                                        // Parsear comentarios para extraer unidad y observaciones
+                                        // Parsear comentarios para extraer unidad
                                         $comentario = $detalle['com_pedido_detalle'];
                                         $unidad_nombre = '';
-                                        $observaciones = '';
                                         
                                         // Extraer unidad de medida del comentario
                                         if (preg_match('/Unidad:\s*([^|]*)\s*\|/', $comentario, $matches)) {
                                             $unidad_nombre = trim($matches[1]);
                                         }
                                         
-                                        // Extraer observaciones del comentario
-                                        if (preg_match('/Obs:\s*(.*)$/', $comentario, $matches)) {
-                                            $observaciones = trim($matches[1]);
-                                        }
-                                        
                                         // La descripción SST/MA/CA está en req_pedido
                                         $sst_descripcion = $detalle['req_pedido'];
+                                        
+                                        // OT/LCL/LCA - extraer del comentario
+                                        $ot_numero = '';
+                                        if (preg_match('/OT:\s*([^|]*)\s*\|/', $comentario, $matches)) {
+                                            $ot_numero = trim($matches[1]);
+                                        }
+                                        
+                                        // Obtener centros de costo del detalle
+                                        $centros_costo_detalle = [];
+                                        if (function_exists('ObtenerCentrosCostoDetalle')) {
+                                            $centros_costo_detalle = ObtenerCentrosCostoDetalle($detalle['id_pedido_detalle']);
+                                        }
+                                        
+                                        // Obtener personal asignado
+                                        $personal_asignado = [];
+                                        if (function_exists('ObtenerPersonalDetalleCompleto')) {
+                                            $personal_asignado = ObtenerPersonalDetalleCompleto($detalle['id_pedido_detalle']);
+                                        }
                                     ?>
                                         <tr>
                                             <td><?php echo $contador_detalle; ?></td>
@@ -601,26 +635,53 @@ foreach($pedidos as $pedido) {
                                                 <?php } ?>
                                             </td>
                                             <td>
-                                                <span class="badge badge-secondary badge_size"><?php echo $unidad_nombre; ?></span>
+                                                <span class="badge badge-secondary badge_size">
+                                                    <?php echo !empty($unidad_nombre) ? $unidad_nombre : 'N/A'; ?>
+                                                </span>
                                             </td>
                                             <td>
                                                 <span class="badge badge-primary badge_size"><?php echo $detalle['cant_pedido_detalle']; ?></span>
                                                 <?php if ($detalle['cant_oc_pedido_detalle'] !== null) { ?>
-                                                    <br><small class="text-success">Verificado: <?php echo $detalle['cant_oc_pedido_detalle']; ?></small>
+                                                    <br><small class="text-success"><i class="fa fa-check"></i> Verificado: <?php echo $detalle['cant_oc_pedido_detalle']; ?></small>
                                                 <?php } ?>
                                             </td>
                                             <td>
-                                                <?php if (!empty($observaciones)) { ?>
-                                                    <small><?php echo $observaciones; ?></small>
+                                                <?php if (!empty($centros_costo_detalle)) { 
+                                                    foreach ($centros_costo_detalle as $centro) { ?>
+                                                        <span class="badge badge-info badge_size mb-1 d-block">
+                                                            <?php echo $centro['nom_centro_costo']; ?>
+                                                        </span>
+                                                    <?php } 
+                                                } else { ?>
+                                                    <small class="text-muted">Sin asignar</small>
+                                                <?php } ?>
+                                            </td>
+                                            <td>
+                                                <?php if (!empty($personal_asignado)) { 
+                                                    foreach ($personal_asignado as $persona) { ?>
+                                                        <span class="badge badge-success badge_size mb-1 d-block">
+                                                            <?php echo $persona['nom_personal']; ?>
+                                                            <?php if (!empty($persona['nom_cargo'])) { ?>
+                                                                <br><small><?php echo $persona['nom_cargo']; ?></small>
+                                                            <?php } ?>
+                                                        </span>
+                                                    <?php } 
+                                                } else { ?>
+                                                    <small class="text-muted">-</small>
+                                                <?php } ?>
+                                            </td>
+                                            <td>
+                                                <?php if (!empty($ot_numero)) { ?>
+                                                    <span class="badge badge-warning badge_size"><?php echo $ot_numero; ?></span>
                                                 <?php } else { ?>
-                                                    <small class="text-muted">Sin observaciones</small>
+                                                    <small class="text-muted">-</small>
                                                 <?php } ?>
                                             </td>
                                             <td>
                                                 <?php if (!empty($sst_descripcion)) { ?>
                                                     <small><?php echo nl2br($sst_descripcion); ?></small>
                                                 <?php } else { ?>
-                                                    <small class="text-muted">Sin descripción SST/MA/CA</small>
+                                                    <small class="text-muted">-</small>
                                                 <?php } ?>
                                             </td>
                                             <td>
@@ -659,12 +720,12 @@ foreach($pedidos as $pedido) {
                                                         }
                                                 ?>
                                                         <a href="../_archivos/pedidos/<?php echo $archivo; ?>" 
-                                                        target="_blank" 
-                                                        class="btn btn-sm btn-outline-primary mb-1 d-block text-left <?php echo $clase_color; ?>"
-                                                        title="Ver <?php echo $archivo; ?>"
-                                                        style="font-size: 11px;">
+                                                           target="_blank" 
+                                                           class="btn btn-sm btn-outline-primary mb-1 d-block text-left <?php echo $clase_color; ?>"
+                                                           title="Ver <?php echo $archivo; ?>"
+                                                           style="font-size: 11px;">
                                                             <i class="fa <?php echo $icono; ?>"></i> 
-                                                            <?php echo strlen($archivo) > 20 ? substr($archivo, 0, 20) . '...' : $archivo; ?>
+                                                            <?php echo strlen($archivo) > 25 ? substr($archivo, 0, 25) . '...' : $archivo; ?>
                                                         </a>
                                                 <?php } 
                                                 } else { ?>

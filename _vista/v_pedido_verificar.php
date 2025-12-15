@@ -58,24 +58,14 @@ $monedas = MostrarMoneda();
                                 <tr>
                                     <td style="width: 20%; background-color: #f8f9fa;"><strong>Código del Pedido:</strong></td>
                                     <td style="width: 30%;"><?php echo $pedido['cod_pedido']; ?></td>
-                                    <td style="width: 20%; background-color: #f8f9fa;"><strong>Fecha del Pedido:</strong></td>
-                                    <td style="width: 30%;"><?php echo date('d/m/Y H:i', strtotime($pedido['fec_pedido'])); ?></td>
+                                    <td style="width: 20%; background-color: #f8f9fa;"><strong>Tipo de Pedido:</strong></td>
+                                    <td style="width: 30%;"><?php echo $pedido['nom_producto_tipo']; ?></td>
                                 </tr>
                                 <tr>
                                     <td style="background-color: #f8f9fa;"><strong>Nombre del Pedido:</strong></td>
                                     <td><?php echo $pedido['nom_pedido']; ?></td>
-                                    <td style="background-color: #f8f9fa;"><strong>Fecha de Necesidad:</strong></td>
-                                    <td><?php echo date('d/m/Y', strtotime($pedido['fec_req_pedido'])); ?></td>
-                                </tr>
-                                <tr>
-                                    <td style="background-color: #f8f9fa;"><strong>OT/LCL/LCA:</strong></td>
-                                    <td><?php echo $pedido['ot_pedido']; ?></td>
-                                    <td style="background-color: #f8f9fa;"><strong>Contacto:</strong></td>
-                                    <td><?php echo $pedido['cel_pedido']; ?></td>
-                                </tr>
-                                <tr>
-                                    <td style="background-color: #f8f9fa;"><strong>Lugar de Entrega:</strong></td>
-                                    <td colspan="3"><?php echo $pedido['lug_pedido']; ?></td>
+                                    <td style="background-color: #f8f9fa;"><strong>Fecha del Pedido:</strong></td>
+                                    <td><?php echo date('d/m/Y H:i', strtotime($pedido['fec_pedido'])); ?></td>
                                 </tr>
                                 <tr>
                                     <td style="background-color: #f8f9fa;"><strong>Almacén:</strong></td>
@@ -90,15 +80,30 @@ $monedas = MostrarMoneda();
                                     <td><?php echo $pedido['nom_obra']; ?></td>
                                 </tr>
                                 <tr>
-                                    <td style="background-color: #f8f9fa;"><strong>Centro de Costos:</strong></td>
-                                    <td><?php echo $pedido['nom_centro_costo']; ?></td>
                                     <td style="background-color: #f8f9fa;"><strong>Solicitante:</strong></td>
                                     <td><?php echo $pedido['nom_personal']; ?></td>
+                                    <td style="background-color: #f8f9fa;"><strong>Centro de Costo:</strong></td>
+                                    <td>
+                                        <span class="badge badge-primary badge_size">
+                                            <?php echo !empty($pedido['nom_centro_costo']) ? $pedido['nom_centro_costo'] : 'Sin asignar'; ?>
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="background-color: #f8f9fa;"><strong>Fecha de Necesidad:</strong></td>
+                                    <td><?php echo date('d/m/Y', strtotime($pedido['fec_req_pedido'])); ?></td>
+                                    <td style="background-color: #f8f9fa;"><strong>Contacto:</strong></td>
+                                    <td><?php echo $pedido['cel_pedido']; ?></td>
+                                </tr>
+                                <tr>
+
+                                    <td style="background-color: #f8f9fa;"><strong>Lugar de Entrega:</strong></td>
+                                    <td><?php echo $pedido['lug_pedido']; ?></td>
                                 </tr>
                                 <?php if (!empty($pedido['acl_pedido'])) { ?>
                                 <tr>
                                     <td style="background-color: #f8f9fa;"><strong>Aclaraciones:</strong></td>
-                                    <td colspan="3"><?php echo $pedido['acl_pedido']; ?></td>
+                                    <td colspan="3"><?php echo nl2br($pedido['acl_pedido']); ?></td>
                                 </tr>
                                 <?php } ?>
                             </tbody>
@@ -1651,6 +1656,7 @@ $monedas = MostrarMoneda();
                                                                 style="font-size: 12px; resize: none;"><?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['obs_compra']) : ''; ?></textarea>
                                                     </div>
                                                 </div>
+                                                <!--
                                                 <div class="row mb-2">
                                                     <div class="col-md-12">
                                                         <label style="font-size: 11px; font-weight: bold;">Tipo de Porte:</label>
@@ -1659,6 +1665,7 @@ $monedas = MostrarMoneda();
                                                             placeholder="Ej. Marítimo, Terrestre, Aéreo" style="font-size: 12px;">
                                                     </div>
                                                 </div>
+                                                -->
                                                 <!-- SECCIÓN DE DETRACCIÓN, RETENCIÓN Y PERCEPCIÓN -->
                                                 <div class="row mb-2">
                                                     <div class="col-md-12">
@@ -6274,7 +6281,7 @@ function agregarItemAOrden(item) {
             html += `<div class="row mt-3"><div class="col-md-12"><div class="border-top pt-2">`;
             if (compra.denv_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Dirección de Envío:</strong> ${compra.denv_compra}</p>`;
             if (compra.obs_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Observaciones:</strong> ${compra.obs_compra}</p>`;
-            if (compra.port_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Tipo de Porte:</strong> ${compra.port_compra}</p>`;
+            //if (compra.port_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Tipo de Porte:</strong> ${compra.port_compra}</p>`;
             html += `</div></div></div>`;
         }
         

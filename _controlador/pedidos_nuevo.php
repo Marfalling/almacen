@@ -47,6 +47,8 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
             $ubicaciones = MostrarUbicacionesActivas(); 
             $centros_costo = MostrarCentrosCostoActivos();
             $personal_list = MostrarPersonalActivo(); //  AGREGADO - Lista de personal activo
+            $centro_costo_usuario = ObtenerCentroCostoPersonal($id_personal);
+
             
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/pedidos/")) {

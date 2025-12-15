@@ -8,8 +8,36 @@ $html = '
     <title>Orden de Compra</title>
     <style>
         @page {
-            margin: 15mm 10mm 15mm 10mm;
+            margin: 12mm 10mm 12mm 10mm; /* Reducido de 15mm a 12mm */
             size: A4;
+        }
+
+        /* INFORMACIÓN GENERAL */
+        .info-general {
+            border: 1px solid #000;
+            padding: 8px; /* Reducido de 10px a 8px */
+            margin-bottom: 10px; /* Reducido de 15px a 10px */
+        }
+
+        /* TABLA DE PRODUCTOS */
+        .detalles-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px; /* Reducido de 15px a 10px */
+            font-size: 8pt;
+        }
+
+        /* TOTALES */
+        .totales-section {
+            float: right;
+            width: 300px;
+            margin-bottom: 10px; /* Reducido de 15px a 10px */
+        }
+
+        /* MENSAJE FORMAL */
+        .mensaje-formal {
+            margin-bottom: 10px; /* Reducido de 15px a 10px */
+            line-height: 1.4;
         }
         
         body {
@@ -160,11 +188,6 @@ $html = '
             width: 48%;
         }
 
-        /* MENSAJE FORMAL */
-        .mensaje-formal {
-            margin-bottom: 15px;
-            line-height: 1.4;
-        }
 
         /* INFORMACIÓN DE LA OBRA Y FECHA */
         .obra-info {
@@ -206,12 +229,6 @@ $html = '
             vertical-align: top;
         }
             
-        .detalles-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
-            font-size: 8pt;
-        }
         
         .detalles-table th {
             background-color: #d0d0d0;
@@ -238,12 +255,6 @@ $html = '
         .col-precio { width: 15%; }
         .col-total { width: 15%; }
 
-        /* TOTALES */
-        .totales-section {
-            float: right;
-            width: 300px;
-            margin-bottom: 15px;
-        }
         
         .totales-table {
             width: 100%;
@@ -267,13 +278,6 @@ $html = '
             background-color: #fff;
             text-align: right;
             width: 40%;
-        }
-
-        /* INFORMACIÓN GENERAL */
-        .info-general {
-            border: 1px solid #000;
-            padding: 10px;
-            margin-bottom: 15px;
         }
 
         .info-row {
@@ -423,10 +427,11 @@ $html = '
             <div class="info-row">
                 <div class="info-left">
                     <div><strong>PROVEEDOR:</strong> ' . $nom_proveedor . '</div>
-                    <div><strong>RUC:</strong> ' .$ruc_proveedor. '</div>
-                    <div><strong>CONTACTO:</strong> ' .$cont_proveedor. '</div>
-                    <div><strong>TELÉFONO:</strong> ' .$tel_proveedor. '</div>
-                    <div><strong>DIRECCIÓN:</strong> ' .$dir_proveedor. '</div>
+                    <div><strong>RUC:</strong> ' . $ruc_proveedor . '</div>
+                    <div><strong>CONTACTO:</strong> ' . $cont_proveedor . '</div>
+                    <div><strong>TELÉFONO:</strong> ' . $tel_proveedor . '</div>
+                    <div><strong>EMAIL:</strong> ' . $email_proveedor . '</div>
+                    <div><strong>DIRECCIÓN:</strong> ' . $dir_proveedor . '</div>
                 </div>
             </div>
         </div>
@@ -526,13 +531,13 @@ $html = '
                 <div class="info-left">
                     <div><strong>DIRECCIÓN DE ENVÍO:</strong> ' . $lugar_entrega . '</div>
                     <div><strong>REFERENCIA:</strong> ' .$aclaraciones. '</div>
-                    <div><strong>PLAZO DE ENTREGA:</strong> ' . $plazo_entrega . '</div>
+                    <div><strong>Condición de Pago:</strong> ' . $plazo_entrega . '</div> 
                     <div><strong>SOLICITADO POR:</strong> ' .$nom_personal. '</div>
                 </div>
                 <div class="info-right">
                     <div><strong>MONEDA:</strong> ' .$moneda. '</div>
                     <div><strong>FECHA REQ.:</strong> ' .$fecha_requerida. '</div>
-                    <div><strong>CONDICIONES DE PAGO:</strong> ' .$portes. '</div>
+                    <!-- <div><strong>CONDICIONES DE PAGO:</strong> ' .$portes. '</div> -->
                     <div><strong>TELÉFONO:</strong> ' .$telefono. '</div>
                 </div>
             </div>

@@ -43,6 +43,7 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
             $ubicaciones = MostrarUbicacionesActivas(); 
             $centros_costo = MostrarCentrosCostoActivos(); 
             $personal_list = MostrarPersonalActivo();
+            $centro_costo_usuario = ObtenerCentroCostoPersonal($id_personal);
             
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/pedidos/")) {
@@ -61,13 +62,18 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                 if (!empty($pedido_antes)) {
                     $pedido_antes = $pedido_antes[0];
                     $nom_pedido_anterior = $pedido_antes['nom_pedido'];
-                    $fecha_necesidad_anterior = $pedido_antes['fec_req_pedido'];  // ← CORREGIDO
-                    $num_ot_anterior = $pedido_antes['ot_pedido'];                 // ← CORREGIDO
-                    $lugar_entrega_anterior = $pedido_antes['lug_pedido'];         // ← CORREGIDO
+                    $fecha_necesidad_anterior = $pedido_antes['fec_req_pedido'];
+                    $num_ot_anterior = $pedido_antes['ot_pedido'];
+                    $lugar_entrega_anterior = $pedido_antes['lug_pedido'];
+                    
+                    // El centro de costo NO se modifica, viene del pedido original
+                    $id_centro_costo = intval($pedido_antes['id_centro_costo']);
+                } else {
+                    echo "<script>alert('Error: No se pudo obtener los datos del pedido'); history.back();</script>";
+                    exit;
                 }
                 
-                $id_ubicacion = intval($_REQUEST['id_ubicacion']);
-                $id_centro_costo = intval($_REQUEST['id_centro_costo']); 
+                $id_ubicacion = intval($_REQUEST['id_ubicacion']);                
                 $nom_pedido = strtoupper($_REQUEST['nom_pedido']);
                 $fecha_necesidad = $_REQUEST['fecha_necesidad'];
                 $num_ot = strtoupper($_REQUEST['num_ot']);

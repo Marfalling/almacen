@@ -58,19 +58,25 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                 </div>
                             </div>
 
+                            <!-- Centro de Costos - SOLO LECTURA PARA SOLICITANTE -->
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Centro de Costos <span class="text-danger">*</span>:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <select name="id_centro_costo" id="id_centro_costo" class="form-control" required>
-                                        <option value="">Seleccionar</option>
-                                        <?php 
-                                        foreach ($centros_costo as $centro) { ?>
-                                            <option value="<?php echo $centro['id_centro_costo']; ?>"
-                                                    <?php echo ($centro['id_centro_costo'] == $pedido['id_centro_costo']) ? 'selected' : ''; ?>>
-                                                <?php echo $centro['nom_centro_costo']; ?>
-                                            </option>
-                                        <?php } ?>
-                                    </select>
+                                    <?php 
+                                    // Buscar el nombre del centro de costo del pedido
+                                    $nombre_centro_costo = 'N/A';
+                                    foreach ($centros_costo as $centro) {
+                                        if ($centro['id_centro_costo'] == $pedido['id_centro_costo']) {
+                                            $nombre_centro_costo = $centro['nom_centro_costo'];
+                                            break;
+                                        }
+                                    }
+                                    ?>
+                                    <input type="text" class="form-control" 
+                                        value="<?php echo htmlspecialchars($nombre_centro_costo); ?>" 
+                                        readonly>
+                                    <input type="hidden" name="id_centro_costo" 
+                                        value="<?php echo $pedido['id_centro_costo']; ?>">
                                 </div>
                             </div>
 
@@ -114,7 +120,8 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                 </div>
                             </div>
 
-                            <div class="form-group row">
+                            <!-- CAMPO OT DE CABECERA OCULTO -->
+                            <div class="form-group row" style="display: none;">
                                 <label class="control-label col-md-3 col-sm-3">Nº OT/LCL/LCA:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <input type="text" name="num_ot" class="form-control" value="<?php echo $pedido['ot_pedido']; ?>" placeholder="Nº OT/LCL/LCA">
@@ -235,6 +242,12 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                         </div>
 
                                         <div class="col-md-6">
+                                            <label>Descripción SST/MA/CA <span class="text-danger">*</span>:</label>
+                                            <input type="text" name="sst[]" class="form-control" value="<?php echo htmlspecialchars($sst_descripcion); ?>" placeholder="Requisitos de SST, MA y CA" required>
+                                        </div>
+
+                                        <!-- CAMPO OBSERVACIONES OCULTO -->
+                                        <div class="col-md-6" style="display: none;">
                                             <label>Observaciones:</label>
                                             <input type="text" name="observaciones[]" class="form-control"  
                                                 value="<?php echo $observaciones; ?>" placeholder="Observaciones o comentarios">
@@ -286,11 +299,6 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                     </div>
 
                                     <div class="row mt-2">
-                                        <div class="col-md-6">
-                                            <label>Descripción SST/MA/CA <span class="text-danger">*</span>:</label>
-                                            <input type="text" name="sst[]" class="form-control" value="<?php echo htmlspecialchars($sst_descripcion); ?>" placeholder="Requisitos de SST, MA y CA" required>
-                                        </div>
-
                                         <div class="col-md-6">
                                             <label>Adjuntar Archivos:</label>
                                             <input type="hidden" name="id_detalle[]" value="<?php echo $detalle['id_pedido_detalle']; ?>">
@@ -389,7 +397,7 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
 
                             <div class="form-group">
                                 <div class="col-md-2 col-sm-2 offset-md-8">
-                                    <a href="pedidos_mostrar.php" class="btn btn-outline-danger btn-block"">Cancelar</a>
+                                    <a href="pedidos_mostrar.php" class="btn btn-outline-danger btn-block">Cancelar</a>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
                                     <button type="submit" name="actualizar" id="btn_actualizar" class="btn btn-success btn-block">Actualizar</button>
@@ -955,100 +963,66 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ============================================
-    // FUNCIÓN: Centro de Costo de Cabecera
+    // APLICAR CENTRO DE COSTO DEL SOLICITANTE AUTOMÁTICAMENTE A MATERIALES
     // ============================================
-    const selectCentroCostoCabecera = document.querySelector('select[name="id_centro_costo"]');
-    
-    function aplicarCentroCostoATodosMateriales(centroCostoId) {
-        const selectsCentrosCosto = document.querySelectorAll('select.select2-centros-costo-detalle');
+    // Obtener centro de costo del solicitante (desde input hidden)
+    const inputCentroCostoCabecera = document.querySelector('input[name="id_centro_costo"]');
+
+    if (inputCentroCostoCabecera && inputCentroCostoCabecera.value) {
+        const centroCostoSolicitante = inputCentroCostoCabecera.value;
         
-        selectsCentrosCosto.forEach(select => {
-            if ($(select).data('select2')) {
-                let valoresActuales = $(select).val() || [];
-                
-                if (!valoresActuales.includes(centroCostoId)) {
-                    valoresActuales = [centroCostoId];
-                    $(select).val(valoresActuales).trigger('change');
-                }
-            }
-        });
-    }
-    
-    if (selectCentroCostoCabecera) {
-        $(selectCentroCostoCabecera).on('select2:select', function(e) {
-            const centroCostoSeleccionado = $(this).val();
-            const nombreCentroCosto = $(this).find('option:selected').text();
-            
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'question',
-                    title: '¿Aplicar a todos los materiales?',
-                    html: `¿Desea aplicar el centro de costo <strong>"${nombreCentroCosto}"</strong> a todos los materiales del pedido?<br><br><small>Los nuevos materiales también usarán este centro de costo automáticamente.</small>`,
-                    showCancelButton: true,
-                    confirmButtonText: 'Sí, aplicar',
-                    cancelButtonText: 'No, solo cabecera',
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#6c757d'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        aplicarCentroCostoAutomaticamente = true;
-                        aplicarCentroCostoATodosMateriales(centroCostoSeleccionado);
-                        formularioModificado = true;
-                        
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Aplicado',
-                            text: 'El centro de costo se aplicará a todos los materiales actuales y futuros',
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                    } else {
-                        aplicarCentroCostoAutomaticamente = false;
+        console.log(" Centro de costo del solicitante:", centroCostoSolicitante);
+        
+        // Función para aplicar a un material específico
+        function aplicarCentroCostoAMaterial(materialItem) {
+            const selectCentros = materialItem.querySelector('select.select2-centros-costo-detalle');
+            if (selectCentros) {
+                // Esperar a que Select2 esté inicializado
+                if ($(selectCentros).data('select2')) {
+                    console.log("✅ Aplicando centro de costo a material existente");
+                    // Si ya tiene centros de costo seleccionados, agregar el del solicitante si no está
+                    let valoresActuales = $(selectCentros).val() || [];
+                    if (!valoresActuales.includes(centroCostoSolicitante)) {
+                        valoresActuales.push(centroCostoSolicitante);
+                        $(selectCentros).val(valoresActuales).trigger('change');
                     }
-                });
-            } else {
-                const confirmar = confirm(`¿Desea aplicar el centro de costo "${nombreCentroCosto}" a todos los materiales del pedido?\n\nLos nuevos materiales también usarán este centro de costo automáticamente.`);
-                if (confirmar) {
-                    aplicarCentroCostoAutomaticamente = true;
-                    aplicarCentroCostoATodosMateriales(centroCostoSeleccionado);
-                    formularioModificado = true;
-                    alert('El centro de costo se aplicará a todos los materiales actuales y futuros');
                 } else {
-                    aplicarCentroCostoAutomaticamente = false;
-                }
-            }
-        });
-    }
-    
-    // ============================================
-    // FUNCIÓN: Observador para materiales nuevos
-    // ============================================
-    const btnAgregarMaterialOriginal = document.getElementById('agregar-material');
-    if (btnAgregarMaterialOriginal) {
-        const observador = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.addedNodes.length > 0) {
-                    mutation.addedNodes.forEach(function(nodo) {
-                        if (nodo.classList && nodo.classList.contains('material-item')) {
-                            if (aplicarCentroCostoAutomaticamente) {
-                                const centroCostoCabecera = document.querySelector('select[name="id_centro_costo"]');
-                                if (centroCostoCabecera && centroCostoCabecera.value) {
-                                    const selectCentros = nodo.querySelector('select.select2-centros-costo-detalle');
-                                    if (selectCentros && $(selectCentros).data('select2')) {
-                                        setTimeout(() => {
-                                            $(selectCentros).val([centroCostoCabecera.value]).trigger('change');
-                                        }, 100);
-                                    }
-                                }
-                            }
+                    // Si Select2 no está inicializado, hacerlo primero
+                    console.log(" Inicializando Select2 y aplicando centro de costo");
+                    $(selectCentros).select2({
+                        placeholder: 'Seleccionar uno o más centros de costo...',
+                        allowClear: true,
+                        width: '100%',
+                        multiple: true,
+                        language: {
+                            noResults: function () { return 'No se encontraron resultados'; }
                         }
                     });
+                    setTimeout(() => {
+                        let valoresActuales = $(selectCentros).val() || [];
+                        if (!valoresActuales.includes(centroCostoSolicitante)) {
+                            valoresActuales.push(centroCostoSolicitante);
+                            $(selectCentros).val(valoresActuales).trigger('change');
+                        }
+                    }, 200);
                 }
-            });
-        });
+            }
+        }
         
+        // Observar nuevos materiales agregados dinámicamente
         const contenedorMateriales = document.getElementById('contenedor-materiales');
         if (contenedorMateriales) {
+            const observador = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(nodo) {
+                        if (nodo.classList && nodo.classList.contains('material-item')) {
+                            console.log(" Nuevo material agregado, aplicando centro de costo del solicitante");
+                            aplicarCentroCostoAMaterial(nodo);
+                        }
+                    });
+                });
+            });
+            
             observador.observe(contenedorMateriales, { childList: true });
         }
     }

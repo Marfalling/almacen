@@ -957,7 +957,7 @@ function EliminarDocumento(id_doc) {
                                         </select>
                                     </div>
                                     <div class="col-md-6">
-                                        <label style="font-size: 11px; font-weight: bold;">Plazo de Entrega (días):</label>
+                                        <label style="font-size: 11px; font-weight: bold;">Condición de Pago (días):</label>
                                         <input type="number" class="form-control form-control-sm" name="plazo_entrega" id="edit_plazo_entrega" min="0" placeholder="0 = Contado">
                                         <small class="text-muted">Dejar vacío o 0 para contado</small>
                                     </div>
@@ -977,12 +977,13 @@ function EliminarDocumento(id_doc) {
                                     </div>
                                 </div>
                                 
-                                <div class="row mb-2">
+                                <!-- <div class="row mb-2">
                                     <div class="col-md-12">
                                         <label style="font-size: 11px; font-weight: bold;">Tipo de Porte:</label>
                                         <input type="text" class="form-control form-control-sm" name="tipo_porte" id="edit_tipo_porte">
                                     </div>
                                 </div>
+                                -->
                                 
                                 <!-- SECCIÓN DE DETRACCIÓN, RETENCIÓN Y PERCEPCIÓN -->
                                 <div class="row mb-2">
@@ -1854,7 +1855,7 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
         html += `<div class="row mt-3"><div class="col-md-12"><div class="border-top pt-2">`;
         if (compra.denv_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Dirección de Envío:</strong> ${compra.denv_compra}</p>`;
         if (compra.obs_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Observaciones:</strong> ${compra.obs_compra}</p>`;
-        if (compra.port_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Tipo de Porte:</strong> ${compra.port_compra}</p>`;
+        //if (compra.port_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Tipo de Porte:</strong> ${compra.port_compra}</p>`;
         html += `</div></div></div>`;
     }
     
@@ -2112,7 +2113,7 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
     document.getElementById('edit_plazo_entrega').value = orden.plaz_compra || '';
     document.getElementById('edit_direccion_envio').value = orden.denv_compra || '';
     document.getElementById('edit_observaciones_orden').value = orden.obs_compra || '';
-    document.getElementById('edit_tipo_porte').value = orden.port_compra || '';
+    //document.getElementById('edit_tipo_porte').value = orden.port_compra || '';
 
     let inputEliminados = document.getElementById('edit_items_eliminados');
     if (!inputEliminados) {

@@ -161,3 +161,57 @@ function ObtenerCentrosCostoPorDetalle($id_pedido_detalle)
     mysqli_close($con);
     return $centros;
 }
+//-----------------------------------------------------------------------
+// Obtener centro de costo (área) de un personal
+function ObtenerCentroCostoPersonal($id_personal)
+{
+    include("../_conexion/conexion.php");
+    
+    $id_personal = intval($id_personal);
+    $centro_costo = null;
+    
+    $sql = "SELECT 
+                a.id_area as id_centro_costo,
+                a.nom_area as nom_centro_costo
+            FROM {$bd_complemento}.personal p
+            INNER JOIN {$bd_complemento}.area a ON p.id_area = a.id_area
+            WHERE p.id_personal = $id_personal 
+            AND a.act_area = 1
+            LIMIT 1";
+    
+    $resultado = mysqli_query($con, $sql);
+    
+    if ($resultado && mysqli_num_rows($resultado) > 0) {
+        $centro_costo = mysqli_fetch_assoc($resultado);
+    }
+    
+    mysqli_close($con);
+    return $centro_costo;
+}
+//Obtener centros de costo de un detalle de pedido (para mostrar en modal)
+function ObtenerCentrosCostoDetalle($id_pedido_detalle)
+{
+    include("../_conexion/conexion.php");
+    
+    $id_pedido_detalle = intval($id_pedido_detalle);
+    $centros = array();
+    
+    $sql = "SELECT 
+                cc.id_centro_costo,
+                a.nom_area as nom_centro_costo
+            FROM pedido_detalle_centro_costo cc
+            INNER JOIN {$bd_complemento}.area a ON cc.id_centro_costo = a.id_area
+            WHERE cc.id_pedido_detalle = $id_pedido_detalle
+            ORDER BY a.nom_area ASC";
+    
+    $resultado = mysqli_query($con, $sql);
+    
+    if ($resultado) {
+        while ($row = mysqli_fetch_assoc($resultado)) {
+            $centros[] = $row;
+        }
+    }
+    
+    mysqli_close($con);
+    return $centros;
+}

@@ -78,6 +78,7 @@ $ruc_proveedor = $compra['ruc_proveedor'] ?? '';
 $dir_proveedor = $compra['dir_proveedor'] ?? '';
 $tel_proveedor = $compra['tel_proveedor'] ?? '';
 $cont_proveedor = $compra['cont_proveedor'] ?? '';
+$email_proveedor = $compra['mail_proveedor'] ?? ''; 
 
 // Moneda
 $moneda = $compra['nom_moneda'] ?? 'SOLES';
