@@ -92,7 +92,7 @@ try {
     }
 
     // Llamar función para editar
-    $resultado = EditarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id_solicitante, $id_personal, $materiales);
+    $resultado = ActualizarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id_solicitante, $id_personal, $materiales);
     
     // Devolver resultado
     echo json_encode($resultado, JSON_UNESCAPED_UNICODE);

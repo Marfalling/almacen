@@ -328,33 +328,64 @@ function ConsultarUsoMaterialCompleto($id_uso_material)
     return $resultado;
 }
 
-function EditarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id_solicitante, $id_personal, $materiales) 
+function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante, $materiales, $archivos_subidos) 
 {
     include("../_conexion/conexion.php");
     
+    // Obtener datos actuales del uso de material
+    $sql_actual = "SELECT id_almacen, id_personal, id_ubicacion as ubicacion_anterior 
+                   FROM uso_material 
+                   WHERE id_uso_material = $id_uso_material";
+    $result_actual = mysqli_query($con, $sql_actual);
+    $row_actual = mysqli_fetch_assoc($result_actual);
+    $id_almacen = $row_actual['id_almacen'];
+    $id_personal = $row_actual['id_personal'];
+    $ubicacion_anterior = $row_actual['ubicacion_anterior'];
+
     // Iniciar transacción
     mysqli_autocommit($con, false);
 
     try {
-        // PRIMERO: Validar TODOS los stocks antes de actualizar NADA
-        foreach ($materiales as $material) {
+        // Actualizar uso de material principal
+        $sql = "UPDATE uso_material SET 
+                id_ubicacion = $id_ubicacion,
+                id_solicitante = $id_solicitante
+                WHERE id_uso_material = $id_uso_material";
+
+        if (!mysqli_query($con, $sql)) {
+            throw new Exception('Error al actualizar uso de material: ' . mysqli_error($con));
+        }
+        
+        // Desactivar TODOS los movimientos anteriores
+        $sql_desactivar_movimientos = "UPDATE movimiento SET est_movimiento = 0 
+                                      WHERE id_orden = $id_uso_material 
+                                      AND tipo_orden = 4 
+                                      AND est_movimiento = 1";
+        
+        if (!mysqli_query($con, $sql_desactivar_movimientos)) {
+            throw new Exception('Error al desactivar movimientos anteriores: ' . mysqli_error($con));
+        }
+        
+        // Obtener todos los detalles existentes
+        $sql_existentes = "SELECT id_uso_material_detalle, id_producto, cant_uso_material_detalle
+                          FROM uso_material_detalle 
+                          WHERE id_uso_material = $id_uso_material 
+                          AND est_uso_material_detalle = 1";
+        $result_existentes = mysqli_query($con, $sql_existentes);
+        
+        $detalles_existentes = array();
+        while ($row = mysqli_fetch_assoc($result_existentes)) {
+            $detalles_existentes[$row['id_uso_material_detalle']] = $row;
+        }
+        
+        // Procesar cada material de la lista final
+        foreach ($materiales as $index => $material) {
             $id_producto = intval($material['id_producto']);
-            $cantidad_nueva = floatval($material['cantidad']);
+            $cantidad = floatval($material['cantidad']);
+            $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
             $id_detalle = isset($material['id_detalle']) ? intval($material['id_detalle']) : 0;
             
-            // Obtener cantidad anterior si es una actualización
-            $cantidad_anterior = 0;
-            if ($id_detalle > 0) {
-                $sql_anterior = "SELECT cant_uso_material_detalle 
-                               FROM uso_material_detalle 
-                               WHERE id_uso_material_detalle = $id_detalle";
-                $result_anterior = mysqli_query($con, $sql_anterior);
-                if ($row_anterior = mysqli_fetch_assoc($result_anterior)) {
-                    $cantidad_anterior = floatval($row_anterior['cant_uso_material_detalle']);
-                }
-            }
-            
-            // Calcular stock disponible considerando la cantidad anterior
+            // Verificar stock disponible (ahora que los movimientos anteriores están desactivados)
             $sql_stock = "SELECT COALESCE(SUM(CASE
                             WHEN mov.tipo_movimiento = 1 AND mov.est_movimiento != 0 THEN
                                 CASE
@@ -375,84 +406,75 @@ function EditarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id_sol
             $row_stock = mysqli_fetch_assoc($result_stock);
             $stock_actual = floatval($row_stock['stock_actual']);
             
-            // Sumar la cantidad anterior al stock disponible (devolver lo que se había usado)
-            $stock_disponible = $stock_actual + $cantidad_anterior;
-            
-            if ($stock_disponible < $cantidad_nueva) {
-                mysqli_close($con);
-                return [
-                    'status' => 'error',
-                    'message' => "Stock insuficiente para el producto ID: $id_producto. Stock disponible: " . number_format($stock_disponible, 2) . ", Cantidad solicitada: " . number_format($cantidad_nueva, 2)
-                ];
-            }
-        }
-        
-        // SEGUNDO: Actualizar datos principales
-        $sql_update = "UPDATE uso_material SET 
-                        id_almacen = $id_almacen,
-                        id_ubicacion = $id_ubicacion,
-                        id_solicitante = $id_solicitante,
-                        id_personal = $id_personal
-                      WHERE id_uso_material = $id_uso_material";
-
-        if (!mysqli_query($con, $sql_update)) {
-            throw new Exception('Error al actualizar uso de material: ' . mysqli_error($con));
-        }
-
-        // TERCERO: Desactivar movimientos anteriores
-        $sql_desactivar = "UPDATE movimiento SET est_movimiento = 0 
-                          WHERE id_orden = $id_uso_material 
-                          AND tipo_orden = 4 
-                          AND est_movimiento = 1";
-        
-        if (!mysqli_query($con, $sql_desactivar)) {
-            throw new Exception('Error al desactivar movimientos anteriores: ' . mysqli_error($con));
-        }
-
-        // CUARTO: Eliminar detalles anteriores
-        $sql_eliminar_detalle = "UPDATE uso_material_detalle SET est_uso_material_detalle = 99 
-                                WHERE id_uso_material = $id_uso_material";
-        
-        if (!mysqli_query($con, $sql_eliminar_detalle)) {
-            throw new Exception('Error al eliminar detalles anteriores: ' . mysqli_error($con));
-        }
-
-        // QUINTO: Insertar nuevos detalles y movimientos
-        foreach ($materiales as $material) {
-            $id_producto = intval($material['id_producto']);
-            $cantidad = floatval($material['cantidad']);
-            $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
-            
-            // Insertar nuevo detalle
-            $sql_detalle = "INSERT INTO uso_material_detalle (
-                                id_uso_material, id_producto, cant_uso_material_detalle, 
-                                obs_uso_material_detalle, est_uso_material_detalle
-                            ) VALUES (
-                                $id_uso_material, $id_producto, $cantidad, 
-                                '$observaciones', 1
-                            )";
-            
-            if (!mysqli_query($con, $sql_detalle)) {
-                throw new Exception('Error al insertar nuevo detalle: ' . mysqli_error($con));
+            if ($stock_actual < $cantidad) {
+                throw new Exception("Stock insuficiente para el producto ID: $id_producto. Stock disponible: " . number_format($stock_actual, 2) . ", Cantidad solicitada: " . number_format($cantidad, 2));
             }
             
-            // Registrar nuevo movimiento
+            if ($id_detalle > 0 && isset($detalles_existentes[$id_detalle])) {
+                //ACTUALIZAR detalle existente
+                $sql_detalle = "UPDATE uso_material_detalle SET 
+                                cant_uso_material_detalle = $cantidad,
+                                obs_uso_material_detalle = '$observaciones'
+                                WHERE id_uso_material_detalle = $id_detalle";
+                
+                if (!mysqli_query($con, $sql_detalle)) {
+                    throw new Exception('Error al actualizar detalle: ' . mysqli_error($con));
+                }
+                
+                $id_detalle_actual = $id_detalle;
+            } else {
+                // INSERTAR nuevo detalle
+                $sql_detalle = "INSERT INTO uso_material_detalle (
+                                    id_uso_material, id_producto, cant_uso_material_detalle, 
+                                    obs_uso_material_detalle, est_uso_material_detalle
+                                ) VALUES (
+                                    $id_uso_material, $id_producto, $cantidad, 
+                                    '$observaciones', 1
+                                )";
+                
+                if (!mysqli_query($con, $sql_detalle)) {
+                    throw new Exception('Error al insertar detalle: ' . mysqli_error($con));
+                }
+                
+                $id_detalle_actual = mysqli_insert_id($con);
+            }
+            
+            // Crear NUEVO movimiento de salida
             $sql_movimiento = "INSERT INTO movimiento (
                                 id_personal, id_orden, id_producto, id_almacen, 
                                 id_ubicacion, tipo_orden, tipo_movimiento, 
                                 cant_movimiento, fec_movimiento, est_movimiento
-                              ) VALUES (
+                            ) VALUES (
                                 $id_personal, $id_uso_material, $id_producto, $id_almacen, 
                                 $id_ubicacion, 4, 2, 
                                 $cantidad, NOW(), 1
-                              )";
+                            )";
             
             if (!mysqli_query($con, $sql_movimiento)) {
                 throw new Exception('Error al registrar nuevo movimiento: ' . mysqli_error($con));
             }
+            
+            // Guardar archivos si existen
+            if (isset($archivos_subidos[$index]) && !empty($archivos_subidos[$index]['name'][0])) {
+                foreach ($archivos_subidos[$index]['name'] as $key => $archivo_nombre) {
+                    if (!empty($archivo_nombre)) {
+                        $extension = pathinfo($archivo_nombre, PATHINFO_EXTENSION);
+                        $nuevo_nombre = "uso_material_" . $id_uso_material . "_detalle_" . $id_detalle_actual . "_" . $key . "_" . uniqid() . "." . $extension;
+                        
+                        $ruta_destino = "../_archivos/uso_material/" . $nuevo_nombre;
+                        
+                        if (move_uploaded_file($archivos_subidos[$index]['tmp_name'][$key], $ruta_destino)) {
+                            $sql_doc = "INSERT INTO uso_material_detalle_documento (
+                                            id_uso_material_detalle, nom_uso_material_detalle_documento, 
+                                            est_uso_material_detalle_documento
+                                        ) VALUES ($id_detalle_actual, '$nuevo_nombre', 1)";
+                            mysqli_query($con, $sql_doc);
+                        }
+                    }
+                }
+            }
         }
         
-        // Confirmar transacción
         mysqli_commit($con);
         mysqli_close($con);
         
@@ -463,7 +485,6 @@ function EditarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id_sol
         ];
         
     } catch (Exception $e) {
-        // Revertir transacción
         mysqli_rollback($con);
         mysqli_close($con);
         
@@ -473,5 +494,4 @@ function EditarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id_sol
         ];
     }
 }
-
 ?>

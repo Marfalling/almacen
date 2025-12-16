@@ -22,19 +22,21 @@ try {
         exit;
     }
 
-    $resultado = ConsultarUsoMaterialCompleto($id_uso_material);
-    
-    if (empty($resultado)) {
+    // Consultar datos completos
+    $datos = ConsultarUsoMaterialCompleto($id_uso_material);
+
+    if (empty($datos)) {
         echo json_encode([
             'status' => 'error',
-            'message' => 'Uso de material no encontrado'
+            'message' => 'No se encontraron datos'
         ], JSON_UNESCAPED_UNICODE);
-    } else {
-        echo json_encode([
-            'status' => 'success',
-            'data' => $resultado
-        ], JSON_UNESCAPED_UNICODE);
+        exit;
     }
+
+    echo json_encode([
+        'status' => 'success',
+        'data' => $datos
+    ], JSON_UNESCAPED_UNICODE);
 
 } catch (Exception $e) {
     error_log("❌ Error en uso_material_consultar.php: " . $e->getMessage());
