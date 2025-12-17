@@ -54,13 +54,6 @@ function eliminarDocumento(idDoc) {
             <div class="title_left">
                 <h3>Editar Salida</h3>
             </div>
-            <div class="title_right">
-                <div class="col-md-12 col-sm-12 col-xs-12 form-group" style="text-align: right; padding-right: 0;">
-                    <a href="salidas_mostrar.php" class="btn btn-secondary">
-                        <i class="fa fa-arrow-left"></i> Volver a Salidas
-                    </a>
-                </div>
-            </div>
         </div>
 
         <div class="clearfix"></div>
@@ -93,11 +86,33 @@ function eliminarDocumento(idDoc) {
                                     <input type="hidden" name="id_material_tipo" value="<?php echo $salida_datos[0]['id_material_tipo']; ?>">
                                     <small class="form-text text-muted">El tipo de material no se puede modificar</small>
                                 </div>
-                                <label class="control-label col-md-2 col-sm-2">Nº Documento de Salida <span class="text-danger">*</span>:</label>
+                                <!--
+                                <label class="control-label col-md-2 col-sm-2">Nº Documento de Salida:</label>
                                 <div class="col-md-3 col-sm-3">
                                     <input type="text" name="ndoc_salida" class="form-control" 
-                                           placeholder="Número de documento de Salida" 
-                                           value="<?php echo htmlspecialchars($salida_datos[0]['ndoc_salida']); ?>" required>
+                                        placeholder="Número de documento (opcional)" 
+                                        value="<?php echo htmlspecialchars($salida_datos[0]['ndoc_salida'] ?? ''); ?>">
+                                    <small class="text-muted">Campo opcional</small>
+                                </div>
+                                -->
+
+                                <label class="control-label col-md-2 col-sm-2">Centro de Costo <span class="text-danger">*</span>:</label>
+                                <div class="col-md-3 col-sm-3">
+                                    <?php if ($centro_costo_usuario) { ?>
+                                        <input type="text" class="form-control" 
+                                            value="<?php echo htmlspecialchars($centro_costo_usuario['nom_centro_costo']); ?>" 
+                                            readonly 
+                                            style="background-color: #e9ecef; font-weight: 500;">
+                                        <input type="hidden" name="id_centro_costo" 
+                                            value="<?php echo $centro_costo_usuario['id_centro_costo']; ?>">
+                                    <?php } else { ?>
+                                        <input type="text" class="form-control" 
+                                            value="Sin centro de costo asignado" 
+                                            readonly 
+                                            style="background-color: #f8d7da; color: #721c24;">
+                                        <input type="hidden" name="id_centro_costo" value="">
+                                        <small class="text-danger">No tienes un área asignada. Contacta con el administrador.</small>
+                                    <?php } ?>
                                 </div>
                             </div>
 
@@ -119,7 +134,7 @@ function eliminarDocumento(idDoc) {
                                 <label class="control-label col-md-3 col-sm-3">Observaciones:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <textarea name="obs_salida" class="form-control" rows="2" 
-                                              placeholder="Observaciones"><?php echo htmlspecialchars($salida_datos[0]['obs_salida']); ?></textarea>
+                                    placeholder="Observaciones"><?php echo htmlspecialchars($salida_datos[0]['obs_salida'] ?? ''); ?></textarea>
                                 </div>
                             </div>
 
@@ -160,17 +175,30 @@ function eliminarDocumento(idDoc) {
                                         </select>
                                     </div>
 
+                                    <!-- Personal Encargado CON CENTRO DE COSTO -->
                                     <div class="form-group">
-                                        <label class="control-label">Personal Encargado:</label>
-                                        <select name="id_personal_encargado" class="form-control">
+                                        <label class="control-label">Personal Encargado: <span class="text-danger">*</span></label>
+                                        <select name="id_personal_encargado" id="id_personal_encargado" class="form-control" required>
                                             <option value="0">No especificado</option>
                                             <?php foreach ($personal as $persona) { ?>
-                                                <option value="<?php echo $persona['id_personal']; ?>" 
-                                                    <?php echo ($persona['id_personal'] == $salida_datos[0]['id_personal_encargado']) ? 'selected' : ''; ?>>
+                                                <option value="<?php echo $persona['id_personal']; ?>"
+                                                        data-centro-costo="<?php 
+                                                            if (isset($centros_costo_personal[$persona['id_personal']])) {
+                                                                echo htmlspecialchars($centros_costo_personal[$persona['id_personal']]['nom_centro_costo']);
+                                                            } else {
+                                                                echo '';
+                                                            }
+                                                        ?>"
+                                                        <?php echo ($persona['id_personal'] == $salida_datos[0]['id_personal_encargado']) ? 'selected' : ''; ?>>
                                                     <?php echo $persona['nom_personal']; ?>
                                                 </option>
                                             <?php } ?>
                                         </select>
+                                        
+                                        <!-- Info de centro de costo -->
+                                        <small class="form-text text-muted" id="info-centro-costo-encargado" style="display: none;">
+                                            <strong>Centro de Costo:</strong> <span id="texto-centro-costo-encargado"></span>
+                                        </small>
                                     </div>
                                 </div>
 
@@ -207,17 +235,30 @@ function eliminarDocumento(idDoc) {
                                         </select>
                                     </div>
 
+                                    <!-- Personal que Recibe CON CENTRO DE COSTO -->
                                     <div class="form-group">
-                                        <label class="control-label">Personal que Recibe:</label>
-                                        <select name="id_personal_recibe" class="form-control">
+                                        <label class="control-label">Personal que Recibe: <span class="text-danger">*</span></label>
+                                        <select name="id_personal_recibe" id="id_personal_recibe" class="form-control" required>
                                             <option value="0">No especificado</option>
                                             <?php foreach ($personal as $persona) { ?>
                                                 <option value="<?php echo $persona['id_personal']; ?>"
-                                                    <?php echo ($persona['id_personal'] == $salida_datos[0]['id_personal_recibe']) ? 'selected' : ''; ?>>
+                                                        data-centro-costo="<?php 
+                                                            if (isset($centros_costo_personal[$persona['id_personal']])) {
+                                                                echo htmlspecialchars($centros_costo_personal[$persona['id_personal']]['nom_centro_costo']);
+                                                            } else {
+                                                                echo '';
+                                                            }
+                                                        ?>"
+                                                        <?php echo ($persona['id_personal'] == $salida_datos[0]['id_personal_recibe']) ? 'selected' : ''; ?>>
                                                     <?php echo $persona['nom_personal']; ?>
                                                 </option>
                                             <?php } ?>
                                         </select>
+                                        
+                                        <!-- Info de centro de costo -->
+                                        <small class="form-text text-muted" id="info-centro-costo-recibe" style="display: none;">
+                                            <strong>Centro de Costo:</strong> <span id="texto-centro-costo-recibe"></span>
+                                        </small>
                                     </div>
                                 </div>
                             </div>
@@ -242,8 +283,16 @@ function eliminarDocumento(idDoc) {
                                             <label>Material <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
                                                 <input type="text" name="descripcion[]" class="form-control" 
-                                                       placeholder="Material" 
-                                                       value="<?php echo htmlspecialchars($detalle['prod_salida_detalle']); ?>" required>
+                                                    placeholder="Material" 
+                                                    value="<?php 
+                                                        // Priorizar nom_producto, luego prod_salida_detalle, sino ID
+                                                        $nombre_producto = !empty($detalle['nom_producto']) 
+                                                                            ? $detalle['nom_producto'] 
+                                                                            : (!empty($detalle['prod_salida_detalle']) 
+                                                                            ? $detalle['prod_salida_detalle'] 
+                                                                            : 'Producto ID ' . $detalle['id_producto']);
+                                                        echo htmlspecialchars($nombre_producto);
+                                                    ?>" readonly required>
                                                 <input type="hidden" name="id_producto[]" value="<?php echo $detalle['id_producto']; ?>">
                                                 <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
                                                     <i class="fa fa-search"></i>
@@ -334,15 +383,11 @@ function eliminarDocumento(idDoc) {
                                 </div>
                             </div>
 
-                            <!-- 🔹 SUBIR NUEVOS DOCUMENTOS -->
-                            <div class="form-group mt-3">
-                                <label class="control-label d-block">Agregar Nuevos Documentos:</label>
-                                <div>
-                                    <input type="file" name="documento[]" class="form-control mb-2" multiple>
-                                    <small class="text-muted d-block">
-                                        Puede seleccionar uno o varios archivos para adjuntar.
-                                    </small>
-                                </div>
+                            <!-- 🔹 SUBIR NUEVOS DOCUMENTOS (OPCIONAL) -->
+                            <div class="form-group">
+                                <label>Subir Documentos Adicionales (Opcional)</label>
+                                <input type="file" name="documento[]" id="documento" class="form-control" multiple>
+                                <small class="text-muted">Puede adjuntar nuevos documentos si lo desea</small>
                             </div>
 
                             <div class="ln_solid"></div>
@@ -353,8 +398,8 @@ function eliminarDocumento(idDoc) {
                                         <div class="col-md-3">
                                             <a href="salidas_mostrar.php" class="btn btn-outline-secondary btn-block">
                                                 <i class="fa fa-times"></i> Cancelar
-                                            </a>
-                                        </div>
+                                    </a>
+                                </div>
                                         <div class="col-md-3">
                                             <button type="submit" name="actualizar" id="btn_actualizar" class="btn btn-success btn-block">
                                                 <i class="fa fa-save"></i> Actualizar Salida
@@ -415,6 +460,73 @@ function eliminarDocumento(idDoc) {
         </div>
     </div>
 </div>
+
+<?php require_once("../_vista/v_script.php"); ?>
+
+<script>
+$(document).ready(function() {
+    console.log('🔄 Inicializando centros de costo en v_salidas_editar...');
+    
+    // ============================================
+    // FUNCIÓN: Actualizar Centro de Costo
+    // ============================================
+    function actualizarCentroCosto(selectId, infoDivId, textoSpanId) {
+        const $select = $('#' + selectId);
+        const selectedOption = $select.find('option:selected');
+        const centroCosto = selectedOption.data('centro-costo');
+        const $infoDiv = $('#' + infoDivId);
+        const $textoSpan = $('#' + textoSpanId);
+        const valorSeleccionado = $select.val();
+        
+        console.log('📊 Actualizando centro de costo:', {
+            selectId: selectId,
+            valor: valorSeleccionado,
+            centroCosto: centroCosto
+        });
+        
+        if (centroCosto && centroCosto.trim() !== '' && valorSeleccionado !== '0' && valorSeleccionado !== '') {
+            $textoSpan.text(centroCosto);
+            $infoDiv.fadeIn(300);
+            console.log('✅ Centro mostrado:', centroCosto);
+        } else {
+            $infoDiv.fadeOut(300);
+            $textoSpan.text('');
+            console.log('❌ Centro oculto');
+        }
+    }
+    
+    // ============================================
+    // EVENTOS: Change
+    // ============================================
+    $('#id_personal_encargado').on('change', function() {
+        console.log('🔄 Change en personal encargado');
+        actualizarCentroCosto('id_personal_encargado', 'info-centro-costo-encargado', 'texto-centro-costo-encargado');
+    });
+    
+    $('#id_personal_recibe').on('change', function() {
+        console.log('🔄 Change en personal que recibe');
+        actualizarCentroCosto('id_personal_recibe', 'info-centro-costo-recibe', 'texto-centro-costo-recibe');
+    });
+    
+    // ============================================
+    //  INICIALIZACIÓN: Mostrar centros al cargar (MODO EDICIÓN)
+    // ============================================
+    function inicializarCentrosCosto() {
+        console.log('🎯 Inicializando centros de costo al cargar página (EDICIÓN)...');
+        actualizarCentroCosto('id_personal_encargado', 'info-centro-costo-encargado', 'texto-centro-costo-encargado');
+        actualizarCentroCosto('id_personal_recibe', 'info-centro-costo-recibe', 'texto-centro-costo-recibe');
+        console.log('✅ Centros de costo inicializados en modo edición');
+    }
+    
+    // Ejecutar después de que Select2 se inicialice
+    setTimeout(inicializarCentrosCosto, 300);
+    
+    // Backup: reintentar después de 1 segundo
+    setTimeout(inicializarCentrosCosto, 1000);
+    
+    console.log('✅ Script de centros de costo cargado en v_salidas_editar');
+});
+</script>
 
 <script>
 // Variable global para rastrear qué botón de búsqueda se clickeó
@@ -914,7 +1026,12 @@ document.addEventListener('DOMContentLoaded', function() {
             inputs.forEach(input => {
                 if (input.type !== 'button') {
                     input.value = '';
-                    input.removeAttribute('readonly');
+                    //  MANTENER readonly en el campo de descripción
+                    if (input.name === 'descripcion[]') {
+                        input.setAttribute('readonly', 'readonly');
+                    } else {
+                        input.removeAttribute('readonly');
+                    }
                     input.removeAttribute('title');
                     input.removeAttribute('data-stock-disponible');
                 }

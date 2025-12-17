@@ -5,11 +5,21 @@
 require_once("m_pedidos.php");
 // Ahora crea la salida en estado PENDIENTE (1) sin generar movimientos
 //=======================================================================
-function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_origen, 
-                     $id_almacen_destino, $id_ubicacion_destino, $ndoc_salida, 
-                     $fec_req_salida, $obs_salida, $id_personal_encargado, 
-                     $id_personal_recibe, $id_personal, $materiales, $id_pedido = null) 
-{
+function GrabarSalida(
+    $id_material_tipo, 
+    $id_almacen_origen, 
+    $id_ubicacion_origen,
+    $id_almacen_destino, 
+    $id_ubicacion_destino, 
+    $ndoc_salida,
+    $fec_req_salida, 
+    $obs_salida, 
+    $id_personal_encargado,
+    $id_personal_recibe, 
+    $id_personal_registrador, 
+    $materiales, 
+    $id_pedido = null
+) {
     //  VALIDACIÓN 1: Lógica de cantidades verificadas
     $errores_validacion = ValidarSalidaAntesDeProcesar(
         $id_material_tipo, $id_almacen_origen, $id_ubicacion_origen, 
@@ -66,28 +76,99 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
         
         return "ERROR DE STOCK: " . $mensaje_error . " Las cantidades del pedido han sido re-verificadas automáticamente.";
     }
-        
-    //  SI PASÓ VALIDACIONES, CONTINUAR
+    
     include("../_conexion/conexion.php");
-
-    $ndoc_salida = mysqli_real_escape_string($con, $ndoc_salida);
-    $fec_req_salida = mysqli_real_escape_string($con, $fec_req_salida);
-    $obs_salida = mysqli_real_escape_string($con, $obs_salida);
-    $id_pedido_sql = ($id_pedido && $id_pedido > 0) ? intval($id_pedido) : "NULL";
-
-    //  CAMBIO CRÍTICO: Crear en estado PENDIENTE (1)
+    
+    //  Limpiar valores básicos
+    $id_material_tipo = intval($id_material_tipo);
+    $id_almacen_origen = intval($id_almacen_origen);
+    $id_ubicacion_origen = intval($id_ubicacion_origen);
+    $id_almacen_destino = intval($id_almacen_destino);
+    $id_ubicacion_destino = intval($id_ubicacion_destino);
+    $ndoc_salida = !empty($ndoc_salida) ? "'" . mysqli_real_escape_string($con, $ndoc_salida) . "'" : "NULL";
+    
+    $fec_req_salida = !empty($fec_req_salida) ? "'" . mysqli_real_escape_string($con, $fec_req_salida) . "'" : "NULL";
+    $obs_salida = !empty($obs_salida) ? "'" . mysqli_real_escape_string($con, $obs_salida) . "'" : "NULL";
+    
+    $id_personal_encargado_val = ($id_personal_encargado > 0) ? intval($id_personal_encargado) : "NULL";
+    $id_personal_recibe_val = ($id_personal_recibe > 0) ? intval($id_personal_recibe) : "NULL";
+    $id_personal_registrador = intval($id_personal_registrador);
+    
+    $id_pedido_sql = ($id_pedido > 0) ? intval($id_pedido) : "NULL";
+    
+    //Obtener centros de costo
+    require_once("m_centro_costo.php");
+    
+    $id_encargado_centro_costo = "NULL";
+    if ($id_personal_encargado > 0) {
+        $centro_encargado = ObtenerCentroCostoPersonal($id_personal_encargado);
+        if ($centro_encargado && isset($centro_encargado['id_centro_costo'])) {
+            $id_encargado_centro_costo = intval($centro_encargado['id_centro_costo']);
+        }
+    }
+    
+    $id_recibe_centro_costo = "NULL";
+    if ($id_personal_recibe > 0) {
+        $centro_recibe = ObtenerCentroCostoPersonal($id_personal_recibe);
+        if ($centro_recibe && isset($centro_recibe['id_centro_costo'])) {
+            $id_recibe_centro_costo = intval($centro_recibe['id_centro_costo']);
+        }
+    }
+    
+    $id_registrador_centro_costo = "NULL";
+    $centro_registrador = ObtenerCentroCostoPersonal($id_personal_registrador);
+    if ($centro_registrador && isset($centro_registrador['id_centro_costo'])) {
+        $id_registrador_centro_costo = intval($centro_registrador['id_centro_costo']);
+    }
+    
+    // Validar que haya materiales
+    if (!is_array($materiales) || count($materiales) == 0) {
+        mysqli_close($con);
+        return "ERROR: Debe agregar al menos un material";
+    }
+    
+    // Fecha actual
+    $fec_salida = date('Y-m-d H:i:s');
+    
+    //  INSERT CON CENTROS DE COSTO - Estado PENDIENTE (1)
     $sql = "INSERT INTO salida (
-                id_material_tipo, id_pedido, id_almacen_origen, id_ubicacion_origen, 
-                id_almacen_destino, id_ubicacion_destino, id_personal, 
-                id_personal_encargado, id_personal_recibe, ndoc_salida, 
-                fec_req_salida, fec_salida, obs_salida, est_salida
-            ) VALUES (
-                $id_material_tipo, $id_pedido_sql, $id_almacen_origen, $id_ubicacion_origen, 
-                $id_almacen_destino, $id_ubicacion_destino, $id_personal, 
-                $id_personal_encargado, $id_personal_recibe, '$ndoc_salida', 
-                '$fec_req_salida', NOW(), '$obs_salida', 1
-            )";
-
+        id_material_tipo,
+        id_pedido,
+        id_almacen_origen,
+        id_ubicacion_origen,
+        id_almacen_destino,
+        id_ubicacion_destino,
+        id_personal,
+        id_registrador_centro_costo,
+        id_personal_encargado,
+        id_encargado_centro_costo,
+        id_personal_recibe,
+        id_recibe_centro_costo,
+        ndoc_salida,
+        fec_req_salida,
+        fec_salida,
+        obs_salida,
+        est_salida
+    ) VALUES (
+        $id_material_tipo,
+        $id_pedido_sql,
+        $id_almacen_origen,
+        $id_ubicacion_origen,
+        $id_almacen_destino,
+        $id_ubicacion_destino,
+        $id_personal_registrador,
+        $id_registrador_centro_costo,
+        $id_personal_encargado_val,
+        $id_encargado_centro_costo,
+        $id_personal_recibe_val,
+        $id_recibe_centro_costo,
+        $ndoc_salida,
+        $fec_req_salida,
+        '$fec_salida',
+        $obs_salida,
+        1
+    )";
+    
     if (mysqli_query($con, $sql)) {
         $id_salida = mysqli_insert_id($con);
         
@@ -102,7 +183,7 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
             $id_pedido_detalle_sql = ($id_pedido_detalle !== null) ? $id_pedido_detalle : "NULL";
                
             //  VALIDACIÓN FINAL DE SEGURIDAD
-            $stock_actual = ObtenerStockDisponible($id_producto, $id_almacen_origen, $id_ubicacion_origen, $id_pedido);
+            $stock_actual = ObtenerStockDisponible($id_producto, $id_almacen_origen, $id_ubicacion_origen, $id_pedido);          
             if ($cantidad > $stock_actual) {
                 if ($id_pedido && $id_pedido_detalle !== null) {
                     ReverificarItemAutomaticamente($id_pedido_detalle);
@@ -114,29 +195,40 @@ function GrabarSalida($id_material_tipo, $id_almacen_origen, $id_ubicacion_orige
                 return "ERROR DE STOCK: Stock insuficiente para '{$descripcion}'. Se requieren {$cantidad} unidades pero solo hay {$stock_actual} disponibles.";
             }
             
-            //  Insertar detalle
+            // Insertar detalle
             $sql_detalle = "INSERT INTO salida_detalle (
-                                id_salida, id_pedido_detalle, id_producto, prod_salida_detalle, 
-                                cant_salida_detalle, est_salida_detalle
-                            ) VALUES (
-                                $id_salida, $id_pedido_detalle_sql, $id_producto, '$descripcion', 
-                                $cantidad, 1
-                            )";
+                id_salida, 
+                id_pedido_detalle, 
+                id_producto, 
+                prod_salida_detalle, 
+                cant_salida_detalle, 
+                est_salida_detalle
+            ) VALUES (
+                $id_salida, 
+                $id_pedido_detalle_sql, 
+                $id_producto, 
+                '$descripcion', 
+                $cantidad, 
+                1
+            )";
             
             if (!mysqli_query($con, $sql_detalle)) {
                 error_log("❌ Error al insertar detalle: " . mysqli_error($con));
+                mysqli_query($con, "DELETE FROM salida WHERE id_salida = $id_salida");
+                mysqli_close($con);
+                return "ERROR: No se pudo insertar el detalle";
             }
         }
 
         mysqli_close($con);
-
-        // NO actualizar estados hasta aprobar
+        
         error_log(" Salida creada en estado PENDIENTE (ID: $id_salida)");
         
         return array('success' => true, 'id_salida' => intval($id_salida));
     } else {
+        $error = mysqli_error($con);
         mysqli_close($con);
-        return "ERROR: " . mysqli_error($con);
+        return "ERROR: " . $error;
     }
 }
 
@@ -849,11 +941,19 @@ function ConsultarSalidaDetalle($id_salida)
  * 3. Validación de stock corregida (por detalle, no por producto global)
  * 4. Exclusión de movimientos de la salida actual en cálculos
  */
-function ActualizarSalida($id_salida, $id_almacen_origen, $id_ubicacion_origen,
-                         $id_almacen_destino, $id_ubicacion_destino, $ndoc_salida, 
-                         $fec_req_salida, $obs_salida, $id_personal_encargado, 
-                         $id_personal_recibe, $materiales) 
-{
+function ActualizarSalida(
+    $id_salida, 
+    $id_almacen_origen, 
+    $id_ubicacion_origen,
+    $id_almacen_destino, 
+    $id_ubicacion_destino, 
+    $ndoc_salida, 
+    $fec_req_salida, 
+    $obs_salida, 
+    $id_personal_encargado, 
+    $id_personal_recibe, 
+    $materiales
+) {
     include("../_conexion/conexion.php");
 
     error_log("🔧 ActualizarSalida - ID Salida: $id_salida");
@@ -975,23 +1075,47 @@ function ActualizarSalida($id_salida, $id_almacen_origen, $id_ubicacion_origen,
     }
     
     // ============================================================
-    // ✅ ACTUALIZAR ENCABEZADO DE LA SALIDA
+    // OBTENER CENTROS DE COSTO
+    // ============================================================
+    require_once("m_centro_costo.php");
+    
+    $id_encargado_centro_costo = "NULL";
+    if ($id_personal_encargado > 0) {
+        $centro_encargado = ObtenerCentroCostoPersonal($id_personal_encargado);
+        if ($centro_encargado && isset($centro_encargado['id_centro_costo'])) {
+            $id_encargado_centro_costo = intval($centro_encargado['id_centro_costo']);
+        }
+    }
+    
+    $id_recibe_centro_costo = "NULL";
+    if ($id_personal_recibe > 0) {
+        $centro_recibe = ObtenerCentroCostoPersonal($id_personal_recibe);
+        if ($centro_recibe && isset($centro_recibe['id_centro_costo'])) {
+            $id_recibe_centro_costo = intval($centro_recibe['id_centro_costo']);
+        }
+    }
+    
+    // ============================================================
+    //  ACTUALIZAR ENCABEZADO CON CENTROS DE COSTO
     // ============================================================
     
-    $ndoc_salida = mysqli_real_escape_string($con, $ndoc_salida);
+    // ndoc_salida puede ser NULL
+    $ndoc_salida = !empty($ndoc_salida) ? "'" . mysqli_real_escape_string($con, $ndoc_salida) . "'" : "NULL";
     $fec_req_salida = mysqli_real_escape_string($con, $fec_req_salida);
-    $obs_salida = mysqli_real_escape_string($con, $obs_salida);
+    $obs_salida = !empty($obs_salida) ? "'" . mysqli_real_escape_string($con, $obs_salida) . "'" : "NULL";
 
     $sql = "UPDATE salida SET 
                 id_almacen_origen = $id_almacen_origen,
                 id_ubicacion_origen = $id_ubicacion_origen,
                 id_almacen_destino = $id_almacen_destino,
                 id_ubicacion_destino = $id_ubicacion_destino,
-                ndoc_salida = '$ndoc_salida',
+                ndoc_salida = $ndoc_salida,
                 fec_req_salida = '$fec_req_salida',
-                obs_salida = '$obs_salida',
+                obs_salida = $obs_salida,
                 id_personal_encargado = $id_personal_encargado,
-                id_personal_recibe = $id_personal_recibe
+                id_encargado_centro_costo = $id_encargado_centro_costo,
+                id_personal_recibe = $id_personal_recibe,
+                id_recibe_centro_costo = $id_recibe_centro_costo
             WHERE id_salida = $id_salida";
 
     if (!mysqli_query($con, $sql)) {

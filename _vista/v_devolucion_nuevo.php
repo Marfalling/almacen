@@ -24,7 +24,7 @@
                         <form class="form-horizontal form-label-left" action="devoluciones_nuevo.php" method="post" enctype="multipart/form-data">
                             <!-- Información básica -->
                             <div class="form-group row">
-                                <label class="control-label col-md-3">Almacén <span class="text-danger">*</span>:</label>
+                                <label class="control-label col-md-3">Almacén Origen<span class="text-danger">*</span>:</label>
                                 <div class="col-md-9">
                                     <select id="id_almacen" name="id_almacen" class="form-control" required>
                                         <option value="">Seleccionar Almacén</option>
@@ -39,7 +39,7 @@
                             </div>
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3">Ubicación <span class="text-danger">*</span>:</label>
+                                <label class="control-label col-md-3">Ubicación Origen<span class="text-danger">*</span>:</label>
                                 <div class="col-md-9">
                                     <select id="id_ubicacion" name="id_ubicacion" class="form-control" required>
                                         <option value="">Seleccionar Ubicación</option>
@@ -93,7 +93,7 @@
                                         <div class="col-md-8">
                                             <label>Material <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
-                                                <input type="text" name="descripcion[]" class="form-control" placeholder="Material" required>
+                                                <input type="text" name="descripcion[]" class="form-control" placeholder="Buscar material..." readonly required>
                                                 <input type="hidden" name="id_producto[]" value="">
                                                 <button title="Buscar Material" data-toggle="tooltip" onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
                                                     <i class="fa fa-search"></i>

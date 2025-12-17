@@ -617,7 +617,7 @@ require_once("../_modelo/m_detraccion.php");
 
                     <div class="col-md-6">                    
                         <div class="form-group">
-                            <label for="id_cuenta_proveedor">Cuenta bancaria</label>
+                            <label for="id_cuenta_proveedor">Cuenta bancaria del proveedor</label>
                             <select name="id_cuenta_proveedor" id="id_cuenta_proveedor" class="form-control" disabled>
                                 <option value="">-- Primero selecciona un medio de pago --</option>
                                 <?php if (!empty($oc['cuentas'])): ?>
@@ -822,7 +822,7 @@ require_once("../_modelo/m_detraccion.php");
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="edit_id_cuenta_proveedor">Cuenta bancaria</label>
+                            <label for="edit_id_cuenta_proveedor">Cuenta bancaria del proveedor</label>
                             <select name="edit_id_cuenta_proveedor" id="edit_id_cuenta_proveedor" class="form-control" disabled>
                                 <option value="">-- Primero selecciona un medio de pago --</option>
                                 <?php if (!empty($oc['cuentas'])): ?>

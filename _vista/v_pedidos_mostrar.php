@@ -751,10 +751,35 @@ foreach($pedidos as $pedido) {
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
                 <?php
                 $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
+                $tiene_tecnica = !empty($pedido['id_personal_aprueba_tecnica']);
                 $puede_editar_modal = true;
+                $titulo_editar_modal = '';
                 
-                if ($pedido['tiene_verificados'] == 1 || $es_rechazado) {
+                // Aplicar las mismas validaciones que en la tabla
+                if ($pedido['est_pedido'] == 0) {
                     $puede_editar_modal = false;
+                    $titulo_editar_modal = "No se puede editar - Pedido anulado";
+                } elseif ($pedido['est_pedido'] >= 3) {
+                    $puede_editar_modal = false;
+                    $estados = [
+                        3 => "aprobado",
+                        4 => "ingresado",
+                        5 => "finalizado"
+                    ];
+                    $estado_nombre = $estados[$pedido['est_pedido']] ?? "procesado";
+                    $titulo_editar_modal = "No se puede editar - Pedido {$estado_nombre}";
+                } elseif ($es_rechazado) {
+                    $puede_editar_modal = false;
+                    $titulo_editar_modal = "No se puede editar - Pedido rechazado";
+                } elseif ($pedido['tiene_verificados'] == 1) {
+                    $puede_editar_modal = false;
+                    $titulo_editar_modal = "No se puede editar - Pedido con items verificados";
+                } elseif ($pedido['est_pedido'] == 2) {
+                    $puede_editar_modal = false;
+                    $titulo_editar_modal = "No se puede editar - Pedido completado (órdenes en proceso)";
+                } elseif ($tiene_tecnica) {
+                    $puede_editar_modal = false;
+                    $titulo_editar_modal = "No se puede editar - Pedido aprobado técnicamente";
                 }
                 
                 if (!$tiene_permiso_editar) { ?>
@@ -764,16 +789,12 @@ foreach($pedidos as $pedido) {
                             disabled>
                         <i class="fa fa-edit"></i> Editar Pedido
                     </button>
-                <?php } elseif (!$puede_editar_modal) { 
-                    if ($es_rechazado) { ?>
-                        <a href="#" class="btn btn-outline-secondary disabled" title="No se puede editar - Pedido rechazado" tabindex="-1" aria-disabled="true">
-                            <i class="fa fa-edit"></i> Pedido rechazado
-                        </a>
-                    <?php } else { ?>
-                        <a href="#" class="btn btn-outline-secondary disabled" title="No se puede editar - Pedido verificado" tabindex="-1" aria-disabled="true">
-                            <i class="fa fa-edit"></i> No se puede editar
-                        </a>
-                    <?php } ?>
+                <?php } elseif (!$puede_editar_modal) { ?>
+                    <a href="#" class="btn btn-outline-secondary disabled" 
+                    title="<?php echo $titulo_editar_modal; ?>" 
+                    tabindex="-1" aria-disabled="true">
+                        <i class="fa fa-edit"></i> No se puede editar
+                    </a>
                 <?php } else { ?>
                     <a href="pedidos_editar.php?id=<?php echo $pedido['id_pedido']; ?>" class="btn btn-warning">
                         <i class="fa fa-edit"></i> Editar Pedido

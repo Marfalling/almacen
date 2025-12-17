@@ -531,7 +531,7 @@ $html = '
                 <div class="info-left">
                     <div><strong>DIRECCIÓN DE ENVÍO:</strong> ' . $lugar_entrega . '</div>
                     <div><strong>REFERENCIA:</strong> ' .$aclaraciones. '</div>
-                    <div><strong>Condición de Pago:</strong> ' . $plazo_entrega . '</div> 
+                    <div><strong>Condición de Pago:</strong> ' . $condicion_pago. '</div> 
                     <div><strong>SOLICITADO POR:</strong> ' .$nom_personal. '</div>
                 </div>
                 <div class="info-right">

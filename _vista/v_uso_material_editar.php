@@ -93,7 +93,7 @@
                                             <label>Material <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
                                                 <input type="text" name="descripcion[]" class="form-control" 
-                                                       value="<?php echo $detalle['nom_producto']; ?>" required>
+                                                       value="<?php echo $detalle['nom_producto']; ?>" readonly required>
                                                 <input type="hidden" name="id_producto[]" value="<?php echo $detalle['id_producto']; ?>">
                                                 <input type="hidden" name="id_detalle[]" value="<?php echo $detalle['id_uso_material_detalle']; ?>">
                                                 <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">

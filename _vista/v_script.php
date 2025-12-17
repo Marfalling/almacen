@@ -660,30 +660,107 @@ $(document).ready(function () {
 
 </script>
 <!-- Personal encargado y receptor (v_pedido_verificar.php) -->
+<!-- Personal encargado y receptor - CENTROS DE COSTO (Compatible con Select2 existente) -->
+<!-- Personal encargado y receptor - SELECT2 + CENTROS DE COSTO -->
 <script>
-$(document).ready(function () {
-  function initSelect2($el, placeholder) {
-    if ($el.length) {
-      $el.select2({
-        placeholder: placeholder,
-        allowClear: true,           
-        width: '100%',
-        minimumInputLength: 0,
-        language: {
-          noResults: function () { return 'No se encontraron resultados'; },
-          searching: function () { return 'Buscando...'; }
+$(document).ready(function() {
+    
+    console.log('🔄 Inicializando Select2 y centros de costo para pedido_verificar...');
+    
+    // ============================================
+    // 1. INICIALIZAR SELECT2 PRIMERO
+    // ============================================
+    function initSelect2Personal(selector, placeholder) {
+        const $el = $(selector);
+        if ($el.length && !$el.hasClass('select2-hidden-accessible')) {
+            $el.select2({
+                placeholder: placeholder,
+                allowClear: true,           
+                width: '100%',
+                minimumInputLength: 0,
+                language: {
+                    noResults: function () { return 'No se encontraron resultados'; },
+                    searching: function () { return 'Buscando...'; }
+                }
+            });
+            console.log('✅ Select2 inicializado:', selector);
         }
-      });
     }
-  }
-
-  // Inicializar Select2 para personal encargado y receptor
-  initSelect2($('#personal_encargado_salida'), 'Seleccionar personal encargado...');
-  initSelect2($('#personal_recibe_salida'), 'Seleccionar personal que recibe...');
+    
+    // Inicializar Select2 en ambos campos
+    initSelect2Personal('#personal_encargado_salida', 'Seleccionar personal encargado...');
+    initSelect2Personal('#personal_recibe_salida', 'Seleccionar personal que recibe...');
+    
+    // ============================================
+    // 2. FUNCIÓN: Actualizar Centro de Costo
+    // ============================================
+    function actualizarCentroCosto(selectId, infoDivId, textoSpanId) {
+        const $select = $('#' + selectId);
+        const selectedOption = $select.find('option:selected');
+        const centroCosto = selectedOption.data('centro-costo');
+        const $infoDiv = $('#' + infoDivId);
+        const $textoSpan = $('#' + textoSpanId);
+        const valorSeleccionado = $select.val();
+        
+        console.log('📊 Actualizando:', {
+            selectId: selectId,
+            valor: valorSeleccionado,
+            centroCosto: centroCosto
+        });
+        
+        if (valorSeleccionado && valorSeleccionado !== '0' && valorSeleccionado !== '' && 
+            centroCosto && centroCosto.trim() !== '') {
+            $textoSpan.text(centroCosto);
+            $infoDiv.show();
+            console.log('✅ Centro de costo mostrado:', centroCosto);
+        } else {
+            $infoDiv.hide();
+            $textoSpan.text('');
+            console.log('❌ Centro de costo oculto');
+        }
+    }
+    
+    // ============================================
+    // 3. EVENTOS: Usar eventos de Select2
+    // ============================================
+    $('#personal_encargado_salida')
+        .on('select2:select change', function(e) {
+            console.log('🔄 Evento en personal encargado');
+            actualizarCentroCosto('personal_encargado_salida', 'info-centro-costo-encargado', 'texto-centro-costo-encargado');
+        });
+    
+    $('#personal_recibe_salida')
+        .on('select2:select change', function(e) {
+            console.log('🔄 Evento en personal que recibe');
+            actualizarCentroCosto('personal_recibe_salida', 'info-centro-costo-recibe', 'texto-centro-costo-recibe');
+        });
+    
+    // ============================================
+    // 4. INICIALIZACIÓN: Mostrar centros al cargar
+    // ============================================
+    function inicializarCentrosCosto() {
+        console.log('🎯 Inicializando centros de costo...');
+        
+        // Para pedido_verificar.php
+        if ($('#personal_encargado_salida').length) {
+            actualizarCentroCosto('personal_encargado_salida', 'info-centro-costo-encargado', 'texto-centro-costo-encargado');
+        }
+        if ($('#personal_recibe_salida').length) {
+            actualizarCentroCosto('personal_recibe_salida', 'info-centro-costo-recibe', 'texto-centro-costo-recibe');
+        }
+        
+        console.log('✅ Centros de costo inicializados');
+    }
+    
+    // Ejecutar después de que Select2 se haya inicializado
+    setTimeout(inicializarCentrosCosto, 200);
+    
+    // Backup: intentar de nuevo después de 1 segundo
+    setTimeout(inicializarCentrosCosto, 1000);
+    
+    console.log('✅ Sistema de Select2 y centros de costo listo para pedido_verificar');
 });
 </script>
-
-
 
 
 

@@ -109,9 +109,25 @@
                                         <?php }} ?>
                                     </select>
                                 </div>
-                                <label class="control-label col-md-2 col-sm-2">Nº Documento de Salida <span class="text-danger">*</span>:</label>
+                                
+                                <!-- CENTRO DE COSTO DEL SOLICITANTE -->
+                                <label class="control-label col-md-2 col-sm-2">Centro de Costo <span class="text-danger">*</span>:</label>
                                 <div class="col-md-3 col-sm-3">
-                                    <input type="text" name="ndoc_salida" class="form-control" placeholder="Número de documento de Salida" required>
+                                    <?php if ($centro_costo_usuario) { ?>
+                                        <input type="text" class="form-control" 
+                                            value="<?php echo htmlspecialchars($centro_costo_usuario['nom_centro_costo']); ?>" 
+                                            readonly 
+                                            style="background-color: #e9ecef; font-weight: 500;">
+                                        <input type="hidden" name="id_centro_costo" 
+                                            value="<?php echo $centro_costo_usuario['id_centro_costo']; ?>">
+                                    <?php } else { ?>
+                                        <input type="text" class="form-control" 
+                                            value="Sin centro de costo asignado" 
+                                            readonly 
+                                            style="background-color: #f8d7da; color: #721c24;">
+                                        <input type="hidden" name="id_centro_costo" value="">
+                                        <small class="text-danger">No tienes un área asignada. Contacta con el administrador.</small>
+                                    <?php } ?>
                                 </div>
                             </div>
 
@@ -136,8 +152,8 @@
                             <div class="ln_solid"></div>
 
                             <div class="form-group">
-                                <label>Subir Documento</label>
-                                <input type="file" name="documento[]" id="documento" class="form-control" multiple required>
+                                <label>Subir Documento (Opcional)</label>
+                                <input type="file" name="documento[]" id="documento" class="form-control" multiple>
                             </div>
 
                             <div class="ln_solid"></div>
@@ -200,12 +216,24 @@
                                         <select name="id_personal_encargado" id="id_personal_encargado" class="form-control" required>
                                             <option value="0">No especificado</option>
                                             <?php foreach ($personal as $persona) { ?>
-                                                <option value="<?php echo $persona['id_personal']; ?>" 
-                                                    <?php echo ($persona['id_personal'] == $id_personal) ? 'selected' : ''; ?>>
+                                                <option value="<?php echo $persona['id_personal']; ?>"
+                                                        data-centro-costo="<?php 
+                                                            if (isset($centros_costo_personal[$persona['id_personal']])) {
+                                                                echo htmlspecialchars($centros_costo_personal[$persona['id_personal']]['nom_centro_costo']);
+                                                            } else {
+                                                                echo '';
+                                                            }
+                                                        ?>"
+                                                        <?php echo ($persona['id_personal'] == $id_personal) ? 'selected' : ''; ?>>
                                                     <?php echo $persona['nom_personal']; ?>
                                                 </option>
                                             <?php } ?>
                                         </select>
+                                        
+                                        <!-- Info de centro de costo -->
+                                        <small class="form-text text-muted" id="info-centro-costo-encargado" style="display: none;">
+                                            <strong>Centro de Costo:</strong> <span id="texto-centro-costo-encargado"></span>
+                                        </small>
                                     </div>
                                 </div>
 
@@ -245,17 +273,29 @@
                                         </select>
                                     </div>
 
-                                    <!-- Personal que Recibe -->
+                                    <!-- Personal que Recibe CON CENTRO DE COSTO -->
                                     <div class="form-group">
                                         <label class="control-label">Personal que Recibe: <span class="text-danger">*</span></label>
                                         <select name="id_personal_recibe" id="id_personal_recibe" class="form-control" required>
-                                            <option value="">No especificado</option>
+                                            <option value="">Seleccionar</option>
                                             <?php foreach ($personal as $persona) { ?>
-                                                <option value="<?php echo $persona['id_personal']; ?>">
+                                                <option value="<?php echo $persona['id_personal']; ?>"
+                                                        data-centro-costo="<?php 
+                                                            if (isset($centros_costo_personal[$persona['id_personal']])) {
+                                                                echo htmlspecialchars($centros_costo_personal[$persona['id_personal']]['nom_centro_costo']);
+                                                            } else {
+                                                                echo '';
+                                                            }
+                                                        ?>">
                                                     <?php echo $persona['nom_personal']; ?>
                                                 </option>
                                             <?php } ?>
                                         </select>
+                                        
+                                        <!-- ✅ NUEVO: Info de centro de costo estilo Cliente/Obra -->
+                                        <small class="form-text text-muted" id="info-centro-costo-recibe" style="display: none;">
+                                            <strong>Centro de Costo:</strong> <span id="texto-centro-costo-recibe"></span>
+                                        </small>
                                     </div>
                                 </div>
                             </div>
@@ -322,7 +362,7 @@
                                             <div class="col-md-6">
                                                 <label>Material <span class="text-danger">*</span>:</label>
                                                 <div class="input-group">
-                                                    <input type="text" name="descripcion[]" class="form-control" placeholder="Material" required>
+                                                    <input type="text" name="descripcion[]" class="form-control" placeholder="Material" readonly required>
                                                     <input type="hidden" name="id_producto[]" value="">
                                                     <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" data-toggle="tooltip" title="Buscar Material" type="button">
                                                         <i class="fa fa-search"></i>
@@ -439,7 +479,71 @@
 </div>
 
 <?php require_once("../_vista/v_script.php"); ?>
-
+<script>
+$(document).ready(function() {
+    console.log('🔄 Inicializando centros de costo en v_salidas_nuevo...');
+    
+    // ============================================
+    // FUNCIÓN: Actualizar Centro de Costo
+    // ============================================
+    function actualizarCentroCosto(selectId, infoDivId, textoSpanId) {
+        const $select = $('#' + selectId);
+        const selectedOption = $select.find('option:selected');
+        const centroCosto = selectedOption.data('centro-costo');
+        const $infoDiv = $('#' + infoDivId);
+        const $textoSpan = $('#' + textoSpanId);
+        const valorSeleccionado = $select.val();
+        
+        console.log('📊 Actualizando centro de costo:', {
+            selectId: selectId,
+            valor: valorSeleccionado,
+            centroCosto: centroCosto
+        });
+        
+        if (valorSeleccionado && valorSeleccionado !== '0' && valorSeleccionado !== '' && 
+            centroCosto && centroCosto.trim() !== '') {
+            $textoSpan.text(centroCosto);
+            $infoDiv.fadeIn(300);
+            console.log('✅ Centro mostrado:', centroCosto);
+        } else {
+            $infoDiv.fadeOut(300);
+            $textoSpan.text('');
+            console.log('❌ Centro oculto');
+        }
+    }
+    
+    // ============================================
+    // EVENTOS: Change
+    // ============================================
+    $('#id_personal_recibe').on('change', function() {
+        console.log('🔄 Change en personal que recibe');
+        actualizarCentroCosto('id_personal_recibe', 'info-centro-costo-recibe', 'texto-centro-costo-recibe');
+    });
+    
+    $('#id_personal_encargado').on('change', function() {
+        console.log('🔄 Change en personal encargado');
+        actualizarCentroCosto('id_personal_encargado', 'info-centro-costo-encargado', 'texto-centro-costo-encargado');
+    });
+    
+    // ============================================
+    //  INICIALIZACIÓN: Mostrar centros al cargar
+    // ============================================
+    function inicializarCentrosCosto() {
+        console.log('🎯 Inicializando centros de costo al cargar página...');
+        actualizarCentroCosto('id_personal_encargado', 'info-centro-costo-encargado', 'texto-centro-costo-encargado');
+        actualizarCentroCosto('id_personal_recibe', 'info-centro-costo-recibe', 'texto-centro-costo-recibe');
+        console.log('✅ Centros de costo inicializados');
+    }
+    
+    // Ejecutar después de que Select2 se inicialice
+    setTimeout(inicializarCentrosCosto, 300);
+    
+    // Backup: reintentar después de 1 segundo
+    setTimeout(inicializarCentrosCosto, 1000);
+    
+    console.log('✅ Script de centros de costo cargado en v_salidas_nuevo');
+});
+</script>
 <script>
 // Variables globales desde PHP para control de salidas
 window.ID_CLIENTE_ARCE = <?php echo $id_cliente_arce; ?>;
@@ -1255,7 +1359,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 inputs.forEach(input => {
                     if (input.type !== 'button') {
                         input.value = '';
-                        input.removeAttribute('readonly');
+                        // ✅ MANTENER readonly en el campo de descripción
+                        if (input.name === 'descripcion[]') {
+                            input.setAttribute('readonly', 'readonly');
+                        } else {
+                            input.removeAttribute('readonly');
+                        }
                         input.removeAttribute('title');
                         input.removeAttribute('disabled');
                     }

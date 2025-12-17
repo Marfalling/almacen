@@ -96,7 +96,7 @@
                                         <div class="col-md-6">
                                             <label>Material <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
-                                                <input type="text" name="descripcion[]" class="form-control" placeholder="Buscar material" required>
+                                                <input type="text" name="descripcion[]" class="form-control" placeholder="Buscar material" readonly required>
                                                 <input type="hidden" name="id_producto[]" value="">
                                                 <button title="Buscar Material" data-toggle="tooltip" onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
                                                     <i class="fa fa-search"></i>

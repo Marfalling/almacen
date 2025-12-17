@@ -38,7 +38,7 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
             require_once("../_modelo/m_personal.php");
             require_once("../_modelo/m_tipo_material.php");
             require_once("../_modelo/m_documentos.php");
-
+            require_once("../_modelo/m_centro_costo.php");
             $mostrar_alerta = false;
             $tipo_alerta = '';
             $titulo_alerta = '';
@@ -80,29 +80,28 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
 
             // Cargar detalles de la salida
             $salida_detalles = ConsultarSalidaDetalle($id_salida);
-            //  CALCULAR cantidad_disponible_origen PARA CADA DETALLE
+            
+            // Calcular cantidad_disponible_origen para cada detalle
             foreach ($salida_detalles as &$detalle) {
                 $id_producto = intval($detalle['id_producto']);
                 $id_almacen_origen = intval($salida_datos[0]['id_almacen_origen']);
                 $id_ubicacion_origen = intval($salida_datos[0]['id_ubicacion_origen']);
                 
-                // Obtener stock ACTUAL en la ubicación origen
                 $stock_actual = ObtenerStockDisponible($id_producto, $id_almacen_origen, $id_ubicacion_origen);
-                
-                // La cantidad que está actualmente en ESTA salida
                 $cantidad_en_salida = floatval($detalle['cant_salida_detalle']);
                 
-                // Disponible = stock actual + lo que se "liberaría" si eliminamos este item
                 $detalle['cantidad_disponible_origen'] = $stock_actual + $cantidad_en_salida;
-                
             }
             unset($detalle); 
 
             // Cargar datos para el formulario
-            $almacenes = MostrarAlmacenesActivosConArceBase(); // Incluye BASE ARCE
+            $almacenes = MostrarAlmacenesActivosConArceBase();
             $ubicaciones = MostrarUbicacionesActivas();
-            $personal = MostrarPersonal();
+            $personal = MostrarPersonalActivo();
             $material_tipos = MostrarMaterialTipoActivos();
+            $centros_costo_personal = ObtenerCentrosCostoTodoPersonal();
+            $centro_costo_usuario = ObtenerCentroCostoPersonal($id_personal);
+
 
             // Cargar documentos asociados a la salida
             $documentos = MostrarDocumentos('salidas', $id_salida);
@@ -146,7 +145,7 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
             //=======================================================================
             if (isset($_REQUEST['actualizar'])) {
                 
-                //  OBTENER DATOS ANTES DE EDITAR
+                // Obtener datos antes de editar
                 $salida_antes = $salida_datos[0];
                 $detalles_antes = $salida_detalles;
                 

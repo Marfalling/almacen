@@ -72,6 +72,12 @@ $aclaraciones = $compra['acl_pedido'] ?? '';
 $plazo_entrega = $compra['plaz_compra'] ?? '';
 $portes = $compra['port_compra'] ?? '';
 
+// Definir condición de pago de forma clara
+$es_contado = empty($plazo_entrega) || $plazo_entrega == '0' || $plazo_entrega == 0;
+$condicion_pago = $es_contado 
+    ? 'Contado' 
+    : 'Crédito (' . $plazo_entrega . ' días)';
+
 // Datos del proveedor
 $nom_proveedor = $compra['nom_proveedor'] ?? '';
 $ruc_proveedor = $compra['ruc_proveedor'] ?? '';

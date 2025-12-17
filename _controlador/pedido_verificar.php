@@ -33,7 +33,8 @@ require_once("../_modelo/m_movimientos.php");
 require_once("../_modelo/m_almacen.php");
 require_once("../_modelo/m_ubicacion.php");
 require_once("../_modelo/m_salidas.php");   
-require_once("../_modelo/m_personal.php");         
+require_once("../_modelo/m_personal.php");
+require_once("../_modelo/m_centro_costo.php");
 
 $id_pedido = isset($_REQUEST['id']) ? intval($_REQUEST['id']) : 0;
 $id_compra_editar = isset($_REQUEST['id_compra']) ? intval($_REQUEST['id_compra']) : 0;
@@ -606,9 +607,14 @@ if (isset($_REQUEST['crear_salida'])) {
     try {
         // Capturar datos del formulario
         $id_pedido = intval($_REQUEST['id_pedido']);
-        $id_personal = $_SESSION['id_personal'] ?? 0;
-        $ndoc_salida = mysqli_real_escape_string($con, trim($_REQUEST['ndoc_salida']));
-        $fec_salida = mysqli_real_escape_string($con, $_REQUEST['fecha_salida']);
+        $id_personal_registrador = $_SESSION['id_personal'] ?? 0;
+        
+        // ndoc_salida se envía VACÍO (se guardará NULL en BD)
+        $ndoc_salida = isset($_REQUEST['ndoc_salida']) 
+        ? mysqli_real_escape_string($con, trim($_REQUEST['ndoc_salida'])) 
+        : '';
+        
+        $fec_req_salida = mysqli_real_escape_string($con, $_REQUEST['fecha_salida']);
         $id_almacen_origen = intval($_REQUEST['almacen_origen_salida']);
         $id_ubicacion_origen = intval($_REQUEST['ubicacion_origen_salida']);
         $id_almacen_destino = intval($_REQUEST['almacen_destino_salida']);
@@ -624,16 +630,7 @@ if (isset($_REQUEST['crear_salida'])) {
                             : 0;
         
         // VALIDACIONES BÁSICAS
-        if (empty($ndoc_salida)) {
-            echo json_encode([
-                'success' => false,
-                'message' => 'El número de documento es obligatorio'
-            ]);
-            mysqli_close($con);
-            exit;
-        }
-        
-        if (empty($fec_salida)) {
+        if (empty($fec_req_salida)) {
             echo json_encode([
                 'success' => false,
                 'message' => 'La fecha de salida es obligatoria'
@@ -670,7 +667,7 @@ if (isset($_REQUEST['crear_salida'])) {
             exit;
         }
         
-        error_log("👤 Personal - Encargado: $id_personal_encargado | Receptor: $id_personal_recibe");
+        error_log("👤 Personal - Registrador: $id_personal_registrador | Encargado: $id_personal_encargado | Receptor: $id_personal_recibe");
         
         // DECODIFICAR JSON DE MATERIALES
         $materiales = [];
@@ -747,17 +744,17 @@ if (isset($_REQUEST['crear_salida'])) {
         
         //  LLAMAR A LA FUNCIÓN GRABAR SALIDA 
         $resultado = GrabarSalida(
-            2,
+            2, 
             $id_almacen_origen,
             $id_ubicacion_origen,
             $id_almacen_destino,
             $id_ubicacion_destino,
             $ndoc_salida,
-            $fec_salida,
+            $fec_req_salida,
             $obs_salida,
-            $id_personal_encargado,    
-            $id_personal_recibe,       
-            $id_personal,              
+            $id_personal_encargado,
+            $id_personal_recibe,
+            $id_personal_registrador, 
             $materiales,
             $id_pedido
         );
@@ -775,7 +772,6 @@ if (isset($_REQUEST['crear_salida'])) {
                     $desc = $mat['descripcion'];
                     $cant = $mat['cantidad'];
                     
-                    // Acortar descripción si es muy larga
                     if (strlen($desc) > 40) {
                         $desc = substr($desc, 0, 40) . '...';
                     }
@@ -783,7 +779,7 @@ if (isset($_REQUEST['crear_salida'])) {
                     $detalle_materiales[] = "$desc: $cant";
                 }
 
-                $descripcion = "Salida ID: $id_salida | Pedido ID: $id_pedido | Doc: '$ndoc_salida' | Fecha: '$fec_salida' | Materiales: " . implode(' | ', $detalle_materiales);
+                $descripcion = "Salida ID: $id_salida | Pedido ID: $id_pedido | Estado: PENDIENTE | Fecha: '$fec_req_salida' | Materiales: " . implode(' | ', $detalle_materiales);
                 GrabarAuditoria($id, $usuario_sesion, 'CREAR SALIDA', 'PEDIDOS', $descripcion);
                 
                 // ============================================================================
@@ -824,15 +820,6 @@ if (isset($_REQUEST['crear_salida'])) {
                                 error_log("❌ Error al subir archivo: $nombre_original");
                             }
                         }
-                    }
-                    
-                    // Mensaje adicional sobre archivos
-                    $mensaje_archivos = '';
-                    if ($archivos_subidos > 0) {
-                        $mensaje_archivos = " Se subieron $archivos_subidos archivo(s) correctamente.";
-                    }
-                    if ($archivos_fallidos > 0) {
-                        $mensaje_archivos .= " Advertencia: $archivos_fallidos archivo(s) no pudieron ser subidos.";
                     }
                     
                     error_log("📁 Resultado subida: $archivos_subidos exitosos, $archivos_fallidos fallidos");
@@ -897,93 +884,32 @@ if (isset($_REQUEST['crear_salida'])) {
                 exit;
             }
         } elseif (is_string($resultado)) {
-            if (strpos($resultado, 'OK') === 0 || strpos($resultado, 'SI') === 0) {
-                error_log("✅ Salida creada correctamente");
-                
-                // ============================================================================
-                //  SUBIDA DE ARCHIVOS 
-                // ============================================================================
-                // Intentar extraer ID de salida del mensaje (si viene en formato "OK|123" o similar)
-                $id_salida = 0;
-                if (preg_match('/\|(\d+)/', $resultado, $matches)) {
-                    $id_salida = intval($matches[1]);
-                }
-                
-                //  AUDITORÍA: SALIDA CREADA
-                $detalle_materiales = [];
-                foreach ($materiales as $mat) {
-                    $desc = $mat['descripcion'];
-                    $cant = $mat['cantidad'];
-                    
-                    if (strlen($desc) > 40) {
-                        $desc = substr($desc, 0, 40) . '...';
-                    }
-                    
-                    $detalle_materiales[] = "$desc: $cant";
-                }
-
-                $descripcion = "Salida ID: $id_salida | Pedido ID: $id_pedido | Doc: '$ndoc_salida' | Materiales: " . implode(' | ', $detalle_materiales);
-                GrabarAuditoria($id, $usuario_sesion, 'CREAR SALIDA', 'PEDIDOS', $descripcion);
-                
-                // SUBIDA DE ARCHIVOS
-                if ($id_salida > 0 && isset($_FILES['documentos_salida']) && count($_FILES['documentos_salida']['name']) > 0) {
-                    include_once("../_modelo/m_documentos.php");
-                    
-                    $entidad = "salidas";
-                    $target_dir = __DIR__ . "/../uploads/" . $entidad . "/";
-                    
-                    if (!is_dir($target_dir)) {
-                        mkdir($target_dir, 0777, true);
-                    }
-                    
-                    foreach ($_FILES['documentos_salida']['name'] as $i => $nombre_original) {
-                        if (!empty($nombre_original) && $_FILES['documentos_salida']['error'][$i] === UPLOAD_ERR_OK) {
-                            $nombre_limpio = preg_replace('/[^A-Za-z0-9._-]/', '_', $nombre_original);
-                            $nombre_archivo = $entidad . "_" . $id_salida . "_" . time() . "_" . $i . "_" . basename($nombre_limpio);
-                            $target_file = $target_dir . $nombre_archivo;
-                            
-                            if (move_uploaded_file($_FILES["documentos_salida"]["tmp_name"][$i], $target_file)) {
-                                GuardarDocumento($entidad, $id_salida, $nombre_archivo, $_SESSION['id_personal']);
-                            }
-                        }
-                    }
-                }
-                
-                // ENVIAR CORREO
-                if ($id_salida > 0) {
-                    EnviarCorreoSalidaCreada($id_salida);
-                }
-                
-                mysqli_close($con);
-                echo json_encode(['success' => true]);
-                exit;
-            } else {
-                $mensaje_error = str_replace(['ERROR: ', 'ERROR DE VALIDACIÓN: ', 'ERROR DE STOCK: '], '', $resultado);
-                error_log("❌ Error al crear salida: $mensaje_error");
-                
+            // Manejo de respuestas string antiguas (por compatibilidad)
+            $mensaje_error = str_replace(['ERROR: ', 'ERROR DE VALIDACIÓN: ', 'ERROR DE STOCK: '], '', $resultado);
+            error_log("❌ Error al crear salida: $mensaje_error");
+            
                 // AUDITORÍA: ERROR AL CREAR
-                GrabarAuditoria($id, $usuario_sesion, 'ERROR AL CREAR SALIDA', 'PEDIDOS', "Pedido ID: $id_pedido | Error: $mensaje_error");
-                
-                if (strpos($resultado, 'ERROR DE STOCK') !== false || 
+            GrabarAuditoria($id, $usuario_sesion, 'ERROR AL CREAR SALIDA', 'PEDIDOS', "Pedido ID: $id_pedido | Error: $mensaje_error");
+            
+            if (strpos($resultado, 'ERROR DE STOCK') !== false || 
                     strpos($resultado, 'Stock insuficiente') !== false) {
-                    
-                    mysqli_close($con);
-                    echo json_encode([
-                        'success' => false,
-                        'tipo' => 'error_stock_reverificado',
-                        'message' => $mensaje_error,
-                        'accion' => 'recargar_pagina'
-                    ]);
-                    exit;
-                }
                 
                 mysqli_close($con);
                 echo json_encode([
                     'success' => false,
-                    'message' => $mensaje_error
+                    'tipo' => 'error_stock_reverificado',
+                    'message' => $mensaje_error,
+                    'accion' => 'recargar_pagina'
                 ]);
                 exit;
             }
+            
+            mysqli_close($con);
+            echo json_encode([
+                'success' => false,
+                'message' => $mensaje_error
+            ]);
+            exit;
         } else {
             error_log("❌ Error: Respuesta inesperada del sistema");
             mysqli_close($con);
@@ -1015,16 +941,20 @@ if (isset($_REQUEST['actualizar_salida'])) {
     
     $id_salida = intval($_REQUEST['id_salida']);
     $id_pedido = intval($_REQUEST['id_pedido']);
-    $ndoc_salida = mysqli_real_escape_string($con, trim($_REQUEST['ndoc_salida']));
-    $fec_salida = mysqli_real_escape_string($con, $_REQUEST['fecha_salida']);
+    
+    // ✅ CAMBIO: ndoc_salida se envía VACÍO (se guardará NULL en BD)
+    $ndoc_salida = isset($_REQUEST['ndoc_salida']) 
+    ? mysqli_real_escape_string($con, trim($_REQUEST['ndoc_salida'])) 
+    : '';
+    
+    $fec_req_salida = mysqli_real_escape_string($con, $_REQUEST['fecha_salida']);
     $id_almacen_origen = intval($_REQUEST['almacen_origen_salida']);
     $id_ubicacion_origen = intval($_REQUEST['ubicacion_origen_salida']);
     $id_almacen_destino = intval($_REQUEST['almacen_destino_salida']);
     $id_ubicacion_destino = intval($_REQUEST['ubicacion_destino_salida']);
     $obs_salida = mysqli_real_escape_string($con, trim($_REQUEST['observaciones_salida']));
     
-    $id_personal = $_SESSION['id_personal'] ?? 0; // Quien edita (sesión actual)
-    
+    // ✅ CAPTURAR PERSONAL ENCARGADO Y RECEPTOR
     $id_personal_encargado = isset($_REQUEST['personal_encargado_salida']) 
                             ? intval($_REQUEST['personal_encargado_salida']) 
                             : 0;
@@ -1033,8 +963,8 @@ if (isset($_REQUEST['actualizar_salida'])) {
                         ? intval($_REQUEST['personal_recibe_salida']) 
                         : 0;
     
-    // VALIDACIONES BÁSICAS
-    if (empty($ndoc_salida) || empty($fec_salida)) {
+    // ✅ VALIDACIONES BÁSICAS
+    if (empty($fec_req_salida)) {
         echo json_encode([
             'success' => false,
             'message' => 'Complete todos los campos obligatorios'
@@ -1043,7 +973,7 @@ if (isset($_REQUEST['actualizar_salida'])) {
         exit;
     }
     
-    //  VALIDAR PERSONAL ENCARGADO (OBLIGATORIO)
+    // ✅ VALIDAR PERSONAL ENCARGADO (OBLIGATORIO)
     if ($id_personal_encargado <= 0) {
         echo json_encode([
             'success' => false,
@@ -1063,7 +993,7 @@ if (isset($_REQUEST['actualizar_salida'])) {
         exit;
     }
     
-    error_log("👤 ACTUALIZAR - Personal sesión: $id_personal | Encargado: $id_personal_encargado | Receptor: $id_personal_recibe");
+    error_log("👤 ACTUALIZAR - Encargado: $id_personal_encargado | Receptor: $id_personal_recibe");
     
     // ========================================================================
     //  OBTENER DATOS ANTES DE EDITAR
@@ -1105,7 +1035,7 @@ if (isset($_REQUEST['actualizar_salida'])) {
                                     ? intval($item['id_pedido_detalle']) 
                                     : 0;
                 
-                // 🔹 CRÍTICO: Obtener id_salida_detalle desde el item
+                // ✅ CRÍTICO: Obtener id_salida_detalle desde el item
                 $id_salida_detalle = isset($item['id_salida_detalle']) && $item['id_salida_detalle'] > 0
                                 ? intval($item['id_salida_detalle'])
                                 : 0;
@@ -1141,11 +1071,11 @@ if (isset($_REQUEST['actualizar_salida'])) {
         $id_ubicacion_origen,
         $id_almacen_destino,
         $id_ubicacion_destino,
-        $ndoc_salida,
-        $fec_salida,
+        $ndoc_salida, 
+        $fec_req_salida,
         $obs_salida,
-        $id_personal_encargado,    
-        $id_personal_recibe,       
+        $id_personal_encargado,
+        $id_personal_recibe,
         $materiales
     );
     
@@ -1504,7 +1434,9 @@ if ($id_pedido > 0) {
         $almacenes = MostrarAlmacenesActivosConArceBase();
         $ubicaciones = MostrarUbicacionesActivas();
         $tiene_salida_activa = TieneSalidaActivaPedido($id_pedido);
-        $personal_lista = MostrarPersonal();
+        $personal_lista = MostrarPersonalActivo();
+        $centros_costo_personal = ObtenerCentrosCostoTodoPersonal();
+        $centro_costo_usuario = ObtenerCentroCostoPersonal($id_personal);
 
         // Cargar datos de orden si está en modo edición
         $orden_data = null;

@@ -34,7 +34,7 @@
                             
                             <!-- Información básica -->
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Almacén:</label>
+                                <label class="control-label col-md-3 col-sm-3">Almacén Origen:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <input type="text" class="form-control" 
                                         value="<?php echo $devolucion_datos[0]['nom_almacen']; ?>" readonly>
@@ -44,7 +44,7 @@
                             </div>
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Ubicación:</label>
+                                <label class="control-label col-md-3 col-sm-3">Ubicación Origen:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <input type="text" class="form-control" 
                                         value="<?php echo $devolucion_datos[0]['nom_ubicacion']; ?>" readonly>
@@ -112,7 +112,7 @@
                                             <div class="input-group">
                                                 <input type="text" name="descripcion[]" class="form-control" 
                                                        placeholder="Material" 
-                                                       value="<?php echo htmlspecialchars($detalle['det_devolucion_detalle']); ?>" required>
+                                                       value="<?php echo htmlspecialchars($detalle['det_devolucion_detalle']); ?>" readonly required>
                                                 <input type="hidden" name="id_producto[]" value="<?php echo $detalle['id_producto']; ?>">
                                                 <input type="hidden" name="id_devolucion_detalle[]" value="<?php echo $detalle['id_devolucion_detalle']; ?>">
                                                 <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">

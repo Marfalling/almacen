@@ -1625,7 +1625,7 @@ $monedas = MostrarMoneda();
                                                         </select>
                                                     </div>
                                                     <div class="col-md-6">
-                                                        <label style="font-size: 11px; font-weight: bold;">Plazo de Entrega (días):</label>
+                                                        <label style="font-size: 11px; font-weight: bold;">Condición de Pago (días):</label>
                                                         <input type="number" 
                                                             class="form-control form-control-sm" 
                                                             id="plazo_entrega" 
@@ -1636,7 +1636,7 @@ $monedas = MostrarMoneda();
                                                             step="1"
                                                             style="font-size: 12px;">
                                                         <small class="form-text text-muted">
-                                                            Si no ingresa plazo, se considera pago al contado (sin alertas)
+                                                            Si no ingresa Condición de Pago, se considera pago al contado (sin alertas)
                                                         </small>
                                                     </div>
                                                 </div>
@@ -1973,30 +1973,30 @@ $monedas = MostrarMoneda();
                                     </form>
                                 </div>
 
-                                <!-- FORMULARIO PARA CREAR/EDITAR SALIDA -->
-                                <div id="contenedor-nueva-salida" <?php echo $modo_editar_salida ? 'style="display: block;"' : 'style="display: none;"'; ?>>
-                                    <form id="form-nueva-salida" method="POST" action="" enctype="multipart/form-data">
-                                        <?php if ($modo_editar_salida): ?>
-                                        <input type="hidden" name="actualizar_salida" value="1">
-                                        <input type="hidden" name="id_salida" value="<?php echo $id_salida_editar; ?>">
-                                        <?php else: ?>
-                                        <input type="hidden" name="crear_salida" value="1">
-                                        <?php endif; ?>
-                                        <input type="hidden" name="id_pedido" value="<?php echo $id_pedido; ?>">
-                                        
-                                        <div class="card">
-                                            <div class="card-header" style="padding: 8px 12px; background-color: <?php echo $modo_editar_salida ? '#fff3cd' : '#d4edda'; ?>;">
-                                                <h6 class="mb-0">
-                                                    <i class="fa <?php echo $modo_editar_salida ? 'fa-edit text-warning' : 'fa-truck text-success'; ?>"></i>
-                                                    <?php echo $modo_editar_salida ? 'Editar Salida S00' . $id_salida_editar : 'Nueva Salida'; ?>
-                                                </h6>
-                                            </div>
-                                            <div class="card-body" style="padding: 12px;">
-                                                <!-- Fecha de la salida -->
-                                                <div class="row mb-2">
-                                                    <div class="col-md-6">
-                                                        <label style="font-size: 11px; font-weight: bold;">Fecha Requerida de Salida: <span class="text-danger">*</span></label>
-                                                        <input type="date" class="form-control form-control-sm" id="fecha_salida" name="fecha_salida" 
+                        <!-- FORMULARIO PARA CREAR/EDITAR SALIDA -->
+                        <div id="contenedor-nueva-salida" <?php echo $modo_editar_salida ? 'style="display: block;"' : 'style="display: none;"'; ?>>
+                            <form id="form-nueva-salida" method="POST" action="" enctype="multipart/form-data">
+                                <?php if ($modo_editar_salida): ?>
+                                <input type="hidden" name="actualizar_salida" value="1">
+                                <input type="hidden" name="id_salida" value="<?php echo $id_salida_editar; ?>">
+                                <?php else: ?>
+                                <input type="hidden" name="crear_salida" value="1">
+                                <?php endif; ?>
+                                <input type="hidden" name="id_pedido" value="<?php echo $id_pedido; ?>">
+                                
+                                <div class="card">
+                                    <div class="card-header" style="padding: 8px 12px; background-color: <?php echo $modo_editar_salida ? '#fff3cd' : '#d4edda'; ?>;">
+                                        <h6 class="mb-0">
+                                            <i class="fa <?php echo $modo_editar_salida ? 'fa-edit text-warning' : 'fa-truck text-success'; ?>"></i>
+                                            <?php echo $modo_editar_salida ? 'Editar Salida S00' . $id_salida_editar : 'Nueva Salida'; ?>
+                                        </h6>
+                                    </div>
+                                    <div class="card-body" style="padding: 12px;">
+                                        <!-- Fecha de la salida -->
+                                        <div class="row mb-2">
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">Fecha Requerida de Salida: <span class="text-danger">*</span></label>
+                                                <input type="date" class="form-control form-control-sm" id="fecha_salida" name="fecha_salida" 
                                                             value="<?php 
                                                                 if ($modo_editar_salida && isset($salida_data)) {
                                                                     echo date('Y-m-d', strtotime($salida_data['fec_req_salida']));
@@ -2005,342 +2005,379 @@ $monedas = MostrarMoneda();
                                                                     echo date('Y-m-d');
                                                                 }
                                                             ?>" 
-                                                            style="font-size: 12px;" required>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label style="font-size: 11px; font-weight: bold;">N° Documento de Salida:</label>
-                                                        <input type="text" class="form-control form-control-sm" name="ndoc_salida" 
-                                                            value="<?php echo ($modo_editar_salida && isset($salida_data)) ? htmlspecialchars($salida_data['ndoc_salida']) : ''; ?>"
-                                                            placeholder="" style="font-size: 12px;">
-                                                    </div>
-                                                </div>
+                                                    style="font-size: 12px;" required>
+                                            </div>
+                                            
+                                            <!--  Centro de Costo del Solicitante -->
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">Centro de Costo: <span class="text-danger">*</span></label>
+                                                <?php if ($centro_costo_usuario): ?>
+                                                    <input type="text" class="form-control form-control-sm" 
+                                                        value="<?php echo htmlspecialchars($centro_costo_usuario['nom_centro_costo']); ?>" 
+                                                        readonly 
+                                                        style="font-size: 12px; background-color: #e9ecef; font-weight: 500;">
+                                                    <input type="hidden" name="id_centro_costo" 
+                                                        value="<?php echo $centro_costo_usuario['id_centro_costo']; ?>">
+                                                <?php else: ?>
+                                                    <input type="text" class="form-control form-control-sm" 
+                                                        value="Sin centro de costo asignado" 
+                                                        readonly 
+                                                        style="font-size: 12px; background-color: #f8d7da; color: #721c24;">
+                                                    <input type="hidden" name="id_centro_costo" value="">
+                                                    <small class="text-danger" style="font-size: 10px;">No tienes un área asignada. Contacta con el administrador.</small>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
 
-                                                <!-- ALMACÉN Y UBICACIÓN ORIGEN -->
-                                                <div class="row mb-2">
-                                                    <!-- Almacén Origen -->
-                                                    <div class="col-md-6">
-                                                        <label style="font-size: 11px; font-weight: bold;">Almacén Origen: <span class="text-danger">*</span></label>
-                                                        <select class="form-control form-control-sm" 
-                                                            id="almacen_origen_salida" 
-                                                            name="almacen_origen_salida" 
-                                                            style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
-                                                            required>
-                                                            <option value="">Seleccionar almacén...</option>
-                                                            <?php foreach ($almacenes as $alm) { 
-                                                                $selected_origen = '';
-                                                                if ($modo_editar_salida && isset($salida_data) && $salida_data['id_almacen_origen'] == $alm['id_almacen']) {
-                                                                    $selected_origen = 'selected';
-                                                                } elseif (!$modo_editar_salida && $alm['id_almacen'] == $pedido['id_almacen']) {
-                                                                    $selected_origen = 'selected';
-                                                                }
-                                                            ?>
-                                                                <option value="<?php echo $alm['id_almacen']; ?>" <?php echo $selected_origen; ?>>
-                                                                    <?php echo htmlspecialchars($alm['nom_almacen']); ?>
-                                                                </option>
-                                                            <?php } ?>
-                                                        </select>
-                                                    </div>
+                                        <!-- ALMACÉN Y UBICACIÓN ORIGEN -->
+                                        <div class="row mb-2">
+                                            <!-- Almacén Origen -->
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">Almacén Origen: <span class="text-danger">*</span></label>
+                                                <select class="form-control form-control-sm" 
+                                                    id="almacen_origen_salida" 
+                                                    name="almacen_origen_salida" 
+                                                    style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
+                                                    required>
+                                                    <option value="">Seleccionar almacén...</option>
+                                                    <?php foreach ($almacenes as $alm) { 
+                                                        $selected_origen = '';
+                                                        if ($modo_editar_salida && isset($salida_data) && $salida_data['id_almacen_origen'] == $alm['id_almacen']) {
+                                                            $selected_origen = 'selected';
+                                                        } elseif (!$modo_editar_salida && $alm['id_almacen'] == $pedido['id_almacen']) {
+                                                            $selected_origen = 'selected';
+                                                        }
+                                                    ?>
+                                                        <option value="<?php echo $alm['id_almacen']; ?>" <?php echo $selected_origen; ?>>
+                                                            <?php echo htmlspecialchars($alm['nom_almacen']); ?>
+                                                        </option>
+                                                    <?php } ?>
+                                                </select>
+                                            </div>
 
-                                                    <!-- Ubicación Origen -->
-                                                    <div class="col-md-6">
-                                                        <label style="font-size: 11px; font-weight: bold;">Ubicación Origen: <span class="text-danger">*</span></label>
-                                                        <select class="form-control form-control-sm" 
-                                                                id="ubicacion_origen_salida" 
-                                                                name="ubicacion_origen_salida" 
-                                                                style="font-size: 12px;" 
-                                                                required>
-                                                            <option value="">Seleccionar ubicación...</option>
-                                                            <?php 
-                                                            if (!empty($pedido_detalle)) {
-                                                                $primer_detalle = $pedido_detalle[0];
-                                                                
-                                                                // Obtener ubicaciones bloqueadas
-                                                                $ubicaciones_bloqueadas_form = ObtenerUbicacionesBloqueadasPorDenegacion(
-                                                                    $primer_detalle['id_producto'],
-                                                                    $primer_detalle['id_pedido_detalle']
-                                                                );
-                                                                
-                                                                // Crear array de keys bloqueadas para búsqueda rápida
-                                                                $bloqueadas_keys = [];
-                                                                foreach ($ubicaciones_bloqueadas_form as $key => $info) {
-                                                                    $bloqueadas_keys[$key] = true;
-                                                                }
-                                                                
-                                                                // Obtener todas las ubicaciones con stock
-                                                                $ubicaciones_disponibles = ObtenerOtrasUbicacionesConStock(
-                                                                    $primer_detalle['id_producto'],
-                                                                    $pedido['id_almacen'],
-                                                                    $pedido['id_ubicacion']
-                                                                );
-                                                                
-                                                                //  VALIDAR QUE SEA UN ARRAY
-                                                                if (!is_array($ubicaciones_disponibles)) {
-                                                                    $ubicaciones_disponibles = [];
-                                                                }
-                                                                
-                                                                //  ORDENAR POR STOCK DESCENDENTE (MAYOR A MENOR) ANTES DE PRESELECCIONAR
-                                                                if (!empty($ubicaciones_disponibles)) {
-                                                                    usort($ubicaciones_disponibles, function($a, $b) {
-                                                                        return floatval($b['stock']) <=> floatval($a['stock']);
-                                                                    });
-                                                                }
-                                                                
-                                                                
-                                                                $id_ubicacion_origen_preseleccionada = null;
-                                                                if ($modo_editar_salida && isset($salida_data)) {
-                                                                    $id_ubicacion_origen_preseleccionada = $salida_data['id_ubicacion_origen'];
-                                                                } elseif (!empty($ubicaciones_disponibles)) {
-                                                                    // AHORA PRESELECCIONAR LA PRIMERA UBICACIÓN NO BLOQUEADA (YA ESTÁ ORDENADA POR MAYOR STOCK)
-                                                                    foreach ($ubicaciones_disponibles as $ub) {
-                                                                        $key_ub = $ub['id_almacen'] . '_' . $ub['id_ubicacion'];
-                                                                        if (!isset($bloqueadas_keys[$key_ub])) {
-                                                                            $id_ubicacion_origen_preseleccionada = $ub['id_ubicacion'];
-                                                                            break; // Esta será la de MAYOR STOCK porque ya ordenamos
-                                                                        }
-                                                                    }
-                                                                }
-                                                                
-                                                                foreach ($ubicaciones_disponibles as $ub) {
-                                                                    // Verificar si está bloqueada
-                                                                    $key_ub = $ub['id_almacen'] . '_' . $ub['id_ubicacion'];
-                                                                    $estaBloqueada = isset($bloqueadas_keys[$key_ub]);
-                                                                    
-                                                                    $selected = '';
-                                                                    if ($id_ubicacion_origen_preseleccionada && $id_ubicacion_origen_preseleccionada == $ub['id_ubicacion']) {
-                                                                        $selected = 'selected';
-                                                                    }
-                                                                    
-                                                                    // Solo mostrar nombre de ubicación
-                                                                    $icono = $estaBloqueada ? '🚫 ' : '';
-                                                                    $texto_opcion = sprintf(
-                                                                        "%s%s",  
-                                                                        $icono,
-                                                                        $ub['nom_ubicacion']
-                                                                    );
-                                                                    
-                                                                    // Si está bloqueada, deshabilitar la opción
-                                                                    $disabled = $estaBloqueada ? 'disabled' : '';
-                                                                    $estilo = $estaBloqueada ? 'style="color: #dc3545; font-style: italic;"' : '';
-                                                                    
-                                                                    echo sprintf(
-                                                                        '<option value="%d" data-id-almacen="%d" data-stock="%s" %s %s %s>%s</option>',
-                                                                        $ub['id_ubicacion'],
-                                                                        $ub['id_almacen'],
-                                                                        number_format($ub['stock'], 2, '.', ''),  
-                                                                        $selected,
-                                                                        $disabled,
-                                                                        $estilo,
-                                                                        htmlspecialchars($texto_opcion)
-                                                                    );
-                                                                }
-                                                            }
-                                                            ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-
-                                                <!-- ALMACÉN Y UBICACIÓN DESTINO -->
-                                                <div class="row mb-2">
-                                                    <!-- Almacén Destino -->
-                                                    <div class="col-md-6">
-                                                        <label style="font-size: 11px; font-weight: bold;">Almacén Destino: <span class="text-danger">*</span></label>
-                                                        <select class="form-control form-control-sm" 
-                                                                id="almacen_destino_salida" 
-                                                                name="almacen_destino_salida" 
-                                                                style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
-                                                                required>
-                                                            <option value="">Seleccionar almacén...</option>
-                                                            <?php foreach ($almacenes as $alm) { 
-                                                                $selected_destino = '';
-                                                                if ($modo_editar_salida && isset($salida_data) && $salida_data['id_almacen_destino'] == $alm['id_almacen']) {
-                                                                    $selected_destino = 'selected';
-                                                                } elseif (!$modo_editar_salida && $alm['id_almacen'] == $pedido['id_almacen']) {
-                                                                    $selected_destino = 'selected';
-                                                                }
-                                                            ?>
-                                                                <option value="<?php echo $alm['id_almacen']; ?>" <?php echo $selected_destino; ?>>
-                                                                    <?php echo htmlspecialchars($alm['nom_almacen']); ?>
-                                                                </option>
-                                                            <?php } ?>
-                                                        </select>
-                                                    </div>
-
-                                                    <!-- Ubicación Destino -->
-                                                    <div class="col-md-6">
-                                                        <label style="font-size: 11px; font-weight: bold;">Ubicación Destino: <span class="text-danger">*</span></label>
-                                                        <select class="form-control form-control-sm" 
-                                                                id="ubicacion_destino_salida" 
-                                                                name="ubicacion_destino_salida" 
-                                                                style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
-                                                                required>
-                                                            <option value="">Seleccionar ubicación...</option>
-                                                            <?php foreach ($ubicaciones as $ubi) { 
-                                                                $selected_ubi_destino = '';
-                                                                if ($modo_editar_salida && isset($salida_data) && $salida_data['id_ubicacion_destino'] == $ubi['id_ubicacion']) {
-                                                                    $selected_ubi_destino = 'selected';
-                                                                } elseif (!$modo_editar_salida && $ubi['id_ubicacion'] == $pedido['id_ubicacion']) {
-                                                                    $selected_ubi_destino = 'selected';
-                                                                }
-                                                            ?>
-                                                                <option value="<?php echo $ubi['id_ubicacion']; ?>" <?php echo $selected_ubi_destino; ?>>
-                                                                    <?php echo htmlspecialchars($ubi['nom_ubicacion']); ?>
-                                                                </option>
-                                                            <?php } ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-
-                                                <!-- PERSONAL ENCARGADO Y RECEPTOR -->
-                                                <div class="row mb-2">
-                                                    <!-- Personal Encargado (Quien aprueba) -->
-                                                    <div class="col-md-6">
-                                                        <label style="font-size: 11px; font-weight: bold;">
-                                                            Personal Encargado: <span class="text-danger">*</span>
-                                                        </label>
-                                                        <select class="form-control form-control-sm" 
-                                                                id="personal_encargado_salida" 
-                                                                name="personal_encargado_salida" 
-                                                                style="font-size: 12px;" 
-                                                                required>
-                                                            <option value="">Seleccionar personal...</option>
-                                                            <?php 
-                                                            if (isset($personal_lista) && !empty($personal_lista)) {
-                                                                foreach ($personal_lista as $pers) {
-                                                                    $selected = '';
-                                                                    
-                                                                    if ($modo_editar_salida && isset($salida_data)) {
-                                                                        // MODO EDICIÓN: Respetar el valor guardado en BD
-                                                                        if ($salida_data['id_personal_encargado'] == $pers['id_personal']) {
-                                                                            $selected = 'selected';
-                                                                        }
-                                                                    } else {
-                                                                        // MODO CREACIÓN: Preseleccionar usuario de la sesión
-                                                                        if ($pers['id_personal'] == $id_personal) {
-                                                                            $selected = 'selected';
-                                                                        }
-                                                                    }
-                                                                    ?>
-                                                                    <option value="<?php echo $pers['id_personal']; ?>" 
-                                                                            data-email="<?php echo htmlspecialchars($pers['email_personal']); ?>" 
-                                                                            <?php echo $selected; ?>>
-                                                                        <?php echo htmlspecialchars($pers['nom_personal']); ?>
-                                                                    </option>
-                                                                    <?php
-                                                                }
-                                                            }
-                                                            ?>
-                                                        </select>
-                                                    </div>
-
-                                                    <!-- Personal que Recibe - AHORA OBLIGATORIO -->
-                                                    <div class="col-md-6">
-                                                        <label style="font-size: 11px; font-weight: bold;">
-                                                            Personal que Recibe: <span class="text-danger">*</span>
-                                                        </label>
-                                                        <select class="form-control form-control-sm" 
-                                                                id="personal_recibe_salida" 
-                                                                name="personal_recibe_salida" 
-                                                                style="font-size: 12px;"
-                                                                required>
-                                                            <option value="">Seleccionar personal...</option>
-                                                            <?php 
-                                                            if (isset($personal_lista) && !empty($personal_lista)) {
-                                                                foreach ($personal_lista as $pers) {
-                                                                    $selected = '';
-                                                                    
-                                                                    if ($modo_editar_salida && isset($salida_data)) {
-                                                                        if ($salida_data['id_personal_recibe'] == $pers['id_personal']) {
-                                                                            $selected = 'selected';
-                                                                        }
-                                                                    }
-                                                                    ?>
-                                                                    <option value="<?php echo $pers['id_personal']; ?>" <?php echo $selected; ?>>
-                                                                        <?php echo htmlspecialchars($pers['nom_personal']); ?>
-                                                                    </option>
-                                                                    <?php
-                                                                }
-                                                            }
-                                                            ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Observaciones -->
-                                                <div class="row mb-2">
-                                                    <div class="col-md-12">
-                                                        <label style="font-size: 11px; font-weight: bold;">Observaciones:</label>
-                                                        <textarea class="form-control form-control-sm" id="observaciones_salida" name="observaciones_salida"
-                                                                rows="2" placeholder="Observaciones adicionales..." 
-                                                                style="font-size: 12px; resize: none;"><?php echo ($modo_editar_salida && isset($salida_data)) ? htmlspecialchars($salida_data['obs_salida']) : ''; ?></textarea>
-                                                    </div>
-                                                </div>
-
-                                                <!--  Subir Documentos -->
-                                                <div class="row mb-2">
-                                                    <div class="col-md-12">
-                                                        <label style="font-size: 11px; font-weight: bold;">
-                                                            Subir Documentos: <span class="text-danger">*</span>
-                                                        </label>
-                                                        <input type="file" name="documentos_salida[]" id="documentos_salida" 
-                                                            class="form-control form-control-sm" 
-                                                            multiple 
-                                                            <?php echo !$modo_editar_salida ? 'required' : ''; ?>
-                                                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                                                            style="font-size: 12px;">
-                                                        <small class="text-muted" style="font-size: 10px;">
-                                                            <i class="fa fa-info-circle"></i> 
-                                                            <strong><?php echo $modo_editar_salida ? 'Opcional en modo edición.' : 'Obligatorio.'; ?></strong> 
-                                                            Formatos permitidos: PDF, JPG, PNG, DOC, DOCX. Máximo 5MB por archivo.
-                                                        </small>
+                                            <!-- Ubicación Origen -->
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">Ubicación Origen: <span class="text-danger">*</span></label>
+                                                <select class="form-control form-control-sm" 
+                                                        id="ubicacion_origen_salida" 
+                                                        name="ubicacion_origen_salida" 
+                                                        style="font-size: 12px;" 
+                                                        required>
+                                                    <option value="">Seleccionar ubicación...</option>
+                                                    <?php 
+                                                    if (!empty($pedido_detalle)) {
+                                                        $primer_detalle = $pedido_detalle[0];
                                                         
-                                                        <?php if ($modo_editar_salida && isset($documentos_salida) && !empty($documentos_salida)): ?>
-                                                        <!-- MOSTRAR DOCUMENTOS EXISTENTES -->
-                                                        <div class="mt-2">
-                                                            <?php foreach ($documentos_salida as $doc): 
-                                                                $ruta_archivo = "../uploads/salidas/" . $doc['documento'];
-                                                                $extension = strtolower(pathinfo($doc['documento'], PATHINFO_EXTENSION));
-                                                                
-                                                                // Determinar icono según extensión
-                                                                $icono = 'fa-file';
-                                                                
-                                                                if ($extension == 'pdf') {
-                                                                    $icono = 'fa-file-pdf-o';
-                                                                } elseif (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
-                                                                    $icono = 'fa-file-image-o';
-                                                                } elseif (in_array($extension, ['doc', 'docx'])) {
-                                                                    $icono = 'fa-file-word-o';
-                                                                } elseif (in_array($extension, ['xls', 'xlsx'])) {
-                                                                    $icono = 'fa-file-excel-o';
+                                                        // Obtener ubicaciones bloqueadas
+                                                        $ubicaciones_bloqueadas_form = ObtenerUbicacionesBloqueadasPorDenegacion(
+                                                            $primer_detalle['id_producto'],
+                                                            $primer_detalle['id_pedido_detalle']
+                                                        );
+                                                        
+                                                        // Crear array de keys bloqueadas para búsqueda rápida
+                                                        $bloqueadas_keys = [];
+                                                        foreach ($ubicaciones_bloqueadas_form as $key => $info) {
+                                                            $bloqueadas_keys[$key] = true;
+                                                        }
+                                                        
+                                                        // Obtener todas las ubicaciones con stock
+                                                        $ubicaciones_disponibles = ObtenerOtrasUbicacionesConStock(
+                                                            $primer_detalle['id_producto'],
+                                                            $pedido['id_almacen'],
+                                                            $pedido['id_ubicacion']
+                                                        );
+                                                        
+                                                        // Validar que sea un array
+                                                        if (!is_array($ubicaciones_disponibles)) {
+                                                            $ubicaciones_disponibles = [];
+                                                        }
+                                                        
+                                                        // Ordenar por stock descendente (mayor a menor)
+                                                        if (!empty($ubicaciones_disponibles)) {
+                                                            usort($ubicaciones_disponibles, function($a, $b) {
+                                                                return floatval($b['stock']) <=> floatval($a['stock']);
+                                                            });
+                                                        }
+                                                        
+                                                        $id_ubicacion_origen_preseleccionada = null;
+                                                        if ($modo_editar_salida && isset($salida_data)) {
+                                                            $id_ubicacion_origen_preseleccionada = $salida_data['id_ubicacion_origen'];
+                                                        } elseif (!empty($ubicaciones_disponibles)) {
+                                                            // Preseleccionar la primera ubicación no bloqueada (ya está ordenada por mayor stock)
+                                                            foreach ($ubicaciones_disponibles as $ub) {
+                                                                $key_ub = $ub['id_almacen'] . '_' . $ub['id_ubicacion'];
+                                                                if (!isset($bloqueadas_keys[$key_ub])) {
+                                                                    $id_ubicacion_origen_preseleccionada = $ub['id_ubicacion'];
+                                                                    break;
                                                                 }
-                                                                
-                                                                // Nombre amigable (sin prefijo de timestamp)
-                                                                $nombre_mostrar = preg_replace('/^salidas_\d+_\d+_\d+_/', '', $doc['documento']);
+                                                            }
+                                                        }
+                                                        
+                                                        foreach ($ubicaciones_disponibles as $ub) {
+                                                            // Verificar si está bloqueada
+                                                            $key_ub = $ub['id_almacen'] . '_' . $ub['id_ubicacion'];
+                                                            $estaBloqueada = isset($bloqueadas_keys[$key_ub]);
+                                                            
+                                                            $selected = '';
+                                                            if ($id_ubicacion_origen_preseleccionada && $id_ubicacion_origen_preseleccionada == $ub['id_ubicacion']) {
+                                                                $selected = 'selected';
+                                                            }
+                                                            
+                                                            // Solo mostrar nombre de ubicación
+                                                            $icono = $estaBloqueada ? '🚫 ' : '';
+                                                            $texto_opcion = sprintf(
+                                                                "%s%s",  
+                                                                $icono,
+                                                                $ub['nom_ubicacion']
+                                                            );
+                                                            
+                                                            // Si está bloqueada, deshabilitar la opción
+                                                            $disabled = $estaBloqueada ? 'disabled' : '';
+                                                            $estilo = $estaBloqueada ? 'style="color: #dc3545; font-style: italic;"' : '';
+                                                            
+                                                            echo sprintf(
+                                                                '<option value="%d" data-id-almacen="%d" data-stock="%s" %s %s %s>%s</option>',
+                                                                $ub['id_ubicacion'],
+                                                                $ub['id_almacen'],
+                                                                number_format($ub['stock'], 2, '.', ''),  
+                                                                $selected,
+                                                                $disabled,
+                                                                $estilo,
+                                                                htmlspecialchars($texto_opcion)
+                                                            );
+                                                        }
+                                                    }
+                                                    ?>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- ALMACÉN Y UBICACIÓN DESTINO -->
+                                        <div class="row mb-2">
+                                            <!-- Almacén Destino -->
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">Almacén Destino: <span class="text-danger">*</span></label>
+                                                <select class="form-control form-control-sm" 
+                                                        id="almacen_destino_salida" 
+                                                        name="almacen_destino_salida" 
+                                                        style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
+                                                        required>
+                                                    <option value="">Seleccionar almacén...</option>
+                                                    <?php foreach ($almacenes as $alm) { 
+                                                        $selected_destino = '';
+                                                        if ($modo_editar_salida && isset($salida_data) && $salida_data['id_almacen_destino'] == $alm['id_almacen']) {
+                                                            $selected_destino = 'selected';
+                                                        } elseif (!$modo_editar_salida && $alm['id_almacen'] == $pedido['id_almacen']) {
+                                                            $selected_destino = 'selected';
+                                                        }
+                                                    ?>
+                                                        <option value="<?php echo $alm['id_almacen']; ?>" <?php echo $selected_destino; ?>>
+                                                            <?php echo htmlspecialchars($alm['nom_almacen']); ?>
+                                                        </option>
+                                                    <?php } ?>
+                                                </select>
+                                            </div>
+
+                                            <!-- Ubicación Destino -->
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">Ubicación Destino: <span class="text-danger">*</span></label>
+                                                <select class="form-control form-control-sm" 
+                                                        id="ubicacion_destino_salida" 
+                                                        name="ubicacion_destino_salida" 
+                                                        style="font-size: 12px; background-color: #e9ecef; pointer-events: none;" 
+                                                        required>
+                                                    <option value="">Seleccionar ubicación...</option>
+                                                    <?php foreach ($ubicaciones as $ubi) { 
+                                                        $selected_ubi_destino = '';
+                                                        if ($modo_editar_salida && isset($salida_data) && $salida_data['id_ubicacion_destino'] == $ubi['id_ubicacion']) {
+                                                            $selected_ubi_destino = 'selected';
+                                                        } elseif (!$modo_editar_salida && $ubi['id_ubicacion'] == $pedido['id_ubicacion']) {
+                                                            $selected_ubi_destino = 'selected';
+                                                        }
+                                                    ?>
+                                                        <option value="<?php echo $ubi['id_ubicacion']; ?>" <?php echo $selected_ubi_destino; ?>>
+                                                            <?php echo htmlspecialchars($ubi['nom_ubicacion']); ?>
+                                                        </option>
+                                                    <?php } ?>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- PERSONAL ENCARGADO Y RECEPTOR CON CENTRO DE COSTO -->
+                                        <div class="row mb-2">
+                                            <!-- ✅ Personal Encargado CON Centro de Costo -->
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">
+                                                    Personal Encargado: <span class="text-danger">*</span>
+                                                </label>
+                                                <select class="form-control form-control-sm" 
+                                                        id="personal_encargado_salida" 
+                                                        name="personal_encargado_salida" 
+                                                        style="font-size: 12px;" 
+                                                        required>
+                                                    <option value="">Seleccionar personal...</option>
+                                                    <?php 
+                                                    if (isset($personal_lista) && !empty($personal_lista)) {
+                                                        foreach ($personal_lista as $pers) {
+                                                            $selected = '';
+                                                            
+                                                            // Preseleccionar usuario de la sesión en modo creación
+                                                            if (!$modo_editar_salida && $pers['id_personal'] == $id_personal) {
+                                                                $selected = 'selected';
+                                                            }
+                                                            
+                                                            // En modo edición, respetar valor guardado
+                                                            if ($modo_editar_salida && isset($salida_data)) {
+                                                                if ($salida_data['id_personal_encargado'] == $pers['id_personal']) {
+                                                                    $selected = 'selected';
+                                                                }
+                                                            }
                                                             ?>
-                                                            <div style="margin-bottom: 5px; padding: 5px; background-color: #d4edda; border-radius: 4px; border: 1px solid #c3e6cb;">
-                                                                <a href="<?php echo $ruta_archivo; ?>" 
-                                                                target="_blank" 
-                                                                class="text-success" 
-                                                                style="font-size: 11px; display: block; text-decoration: none;">
-                                                                    <i class="fa <?php echo $icono; ?>"></i> 
-                                                                    <strong>Archivo actual:</strong>
-                                                                    <br>
-                                                                    <small class="text-muted"><?php echo htmlspecialchars($nombre_mostrar); ?></small>
-                                                                </a>
-                                                            </div>
-                                                            <?php endforeach; ?>
-                                                            <small class="text-info d-block mb-2" style="font-size: 10px;">
-                                                                <i class="fa fa-info-circle"></i> Subir nuevos archivos para agregar más documentos
-                                                            </small>
-                                                        </div>
-                                                        <?php elseif ($modo_editar_salida): ?>
-                                                        <div class="alert alert-warning mt-2" style="padding: 8px; font-size: 11px; margin-bottom: 0;">
-                                                            <i class="fa fa-exclamation-triangle"></i> 
-                                                            <strong>Sin documentos:</strong> Esta salida no tiene archivos adjuntos. Puedes agregar nuevos arriba.
-                                                        </div>
-                                                        <?php endif; ?>
+                                                            <option value="<?php echo $pers['id_personal']; ?>" 
+                                                                    data-centro-costo="<?php 
+                                                                        if (isset($centros_costo_personal[$pers['id_personal']])) {
+                                                                            echo htmlspecialchars($centros_costo_personal[$pers['id_personal']]['nom_centro_costo']);
+                                                                        } else {
+                                                                            echo '';
+                                                                        }
+                                                                    ?>"
+                                                                    data-email="<?php echo htmlspecialchars($pers['email_personal']); ?>" 
+                                                                    <?php echo $selected; ?>>
+                                                                <?php echo htmlspecialchars($pers['nom_personal']); ?>
+                                                            </option>
+                                                            <?php
+                                                        }
+                                                    }
+                                                    ?>
+                                                </select>
+                                                
+                                                <!-- ✅ Info de centro de costo del encargado -->
+                                                <small class="form-text text-muted" id="info-centro-costo-encargado" style="display: none; font-size: 10px;">
+                                                    <strong>Centro de Costo:</strong> <span id="texto-centro-costo-encargado"></span>
+                                                </small>
+                                            </div>
+
+                                            <!-- ✅ Personal que Recibe CON Centro de Costo -->
+                                            <div class="col-md-6">
+                                                <label style="font-size: 11px; font-weight: bold;">
+                                                    Personal que Recibe: <span class="text-danger">*</span>
+                                                </label>
+                                                <select class="form-control form-control-sm" 
+                                                        id="personal_recibe_salida" 
+                                                        name="personal_recibe_salida" 
+                                                        style="font-size: 12px;"
+                                                        required>
+                                                    <option value="">Seleccionar personal...</option>
+                                                    <?php 
+                                                    if (isset($personal_lista) && !empty($personal_lista)) {
+                                                        foreach ($personal_lista as $pers) {
+                                                            $selected = '';
+                                                            
+                                                            // En modo edición, respetar valor guardado
+                                                            if ($modo_editar_salida && isset($salida_data)) {
+                                                                if ($salida_data['id_personal_recibe'] == $pers['id_personal']) {
+                                                                    $selected = 'selected';
+                                                                }
+                                                            }
+                                                            ?>
+                                                            <option value="<?php echo $pers['id_personal']; ?>" 
+                                                                    data-centro-costo="<?php 
+                                                                        if (isset($centros_costo_personal[$pers['id_personal']])) {
+                                                                            echo htmlspecialchars($centros_costo_personal[$pers['id_personal']]['nom_centro_costo']);
+                                                                        } else {
+                                                                            echo '';
+                                                                        }
+                                                                    ?>"
+                                                                    <?php echo $selected; ?>>
+                                                                <?php echo htmlspecialchars($pers['nom_personal']); ?>
+                                                            </option>
+                                                            <?php
+                                                        }
+                                                    }
+                                                    ?>
+                                                </select>
+                                                
+                                                <!-- ✅ Info de centro de costo del receptor -->
+                                                <small class="form-text text-muted" id="info-centro-costo-recibe" style="display: none; font-size: 10px;">
+                                                    <strong>Centro de Costo:</strong> <span id="texto-centro-costo-recibe"></span>
+                                                </small>
+                                            </div>
+                                        </div>
+
+                                        <!-- Observaciones -->
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <label style="font-size: 11px; font-weight: bold;">Observaciones:</label>
+                                                <textarea class="form-control form-control-sm" id="observaciones_salida" name="observaciones_salida"
+                                                        rows="2" placeholder="Observaciones adicionales..." 
+                                                        style="font-size: 12px; resize: none;"><?php echo ($modo_editar_salida && isset($salida_data)) ? htmlspecialchars($salida_data['obs_salida']) : ''; ?></textarea>
+                                            </div>
+                                        </div>
+
+                                        <!-- Subir Documentos -->
+                                        <div class="row mb-2">
+                                            <div class="col-md-12">
+                                                <label style="font-size: 11px; font-weight: bold;">
+                                                    Subir Documentos:
+                                                </label>
+                                                <input type="file" name="documentos_salida[]" id="documentos_salida" 
+                                                    class="form-control form-control-sm" 
+                                                    multiple 
+                                                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                                                    style="font-size: 12px;">
+                                                <small class="text-muted" style="font-size: 10px;">
+                                                    <i class="fa fa-info-circle"></i> 
+                                                    <strong>Opcional.</strong> 
+                                                    Formatos permitidos: PDF, JPG, PNG, DOC, DOCX. Máximo 5MB por archivo.
+                                                </small>
+                                                
+                                                <?php if ($modo_editar_salida && isset($documentos_salida) && !empty($documentos_salida)): ?>
+                                                <!-- MOSTRAR DOCUMENTOS EXISTENTES -->
+                                                <div class="mt-2">
+                                                    <?php foreach ($documentos_salida as $doc): 
+                                                        $ruta_archivo = "../uploads/salidas/" . $doc['documento'];
+                                                        $extension = strtolower(pathinfo($doc['documento'], PATHINFO_EXTENSION));
+                                                        
+                                                        // Determinar icono según extensión
+                                                        $icono = 'fa-file';
+                                                        if ($extension == 'pdf') {
+                                                            $icono = 'fa-file-pdf-o';
+                                                        } elseif (in_array($extension, ['jpg', 'jpeg', 'png', 'gif'])) {
+                                                            $icono = 'fa-file-image-o';
+                                                        } elseif (in_array($extension, ['doc', 'docx'])) {
+                                                            $icono = 'fa-file-word-o';
+                                                        } elseif (in_array($extension, ['xls', 'xlsx'])) {
+                                                            $icono = 'fa-file-excel-o';
+                                                        }
+                                                        
+                                                        // Nombre amigable (sin prefijo de timestamp)
+                                                        $nombre_mostrar = preg_replace('/^salidas_\d+_\d+_\d+_/', '', $doc['documento']);
+                                                    ?>
+                                                    <div style="margin-bottom: 5px; padding: 5px; background-color: #d4edda; border-radius: 4px; border: 1px solid #c3e6cb;">
+                                                        <a href="<?php echo $ruta_archivo; ?>" 
+                                                        target="_blank" 
+                                                        class="text-success" 
+                                                        style="font-size: 11px; display: block; text-decoration: none;">
+                                                            <i class="fa <?php echo $icono; ?>"></i> 
+                                                            <strong>Archivo actual:</strong>
+                                                            <br>
+                                                            <small class="text-muted"><?php echo htmlspecialchars($nombre_mostrar); ?></small>
+                                                        </a>
                                                     </div>
+                                                    <?php endforeach; ?>
+                                                    <small class="text-info d-block mb-2" style="font-size: 10px;">
+                                                        <i class="fa fa-info-circle"></i> Subir nuevos archivos para agregar más documentos
+                                                    </small>
                                                 </div>
-                                        
+                                                <?php elseif ($modo_editar_salida): ?>
+                                                <div class="alert alert-warning mt-2" style="padding: 8px; font-size: 11px; margin-bottom: 0;">
+                                                    <i class="fa fa-exclamation-triangle"></i> 
+                                                    <strong>Sin documentos:</strong> Esta salida no tiene archivos adjuntos. Puedes agregar nuevos arriba.
+                                                </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                                
                                         <!-- Contenedor de items de salida -->
                                         <div id="contenedor-items-salida" class="mb-3">
                                             <?php if ($modo_editar_salida && !empty($salida_detalle)): ?>
@@ -2348,7 +2385,7 @@ $monedas = MostrarMoneda();
                                                     $cantidad_maxima = isset($item['cantidad_maxima']) ? floatval($item['cantidad_maxima']) : 0;
                                                     $cant_actual_en_salida = floatval($item['cant_salida_detalle']);
                                                     
-                                                    // OBTENER CANTIDAD OS ORIGINAL (sin límite de stock)
+                                                    // Obtener cantidad OS original (sin límite de stock)
                                                     $cant_os_original = 0;
                                                     foreach ($pedido_detalle as $det) {
                                                         if ($det['id_pedido_detalle'] == $item['id_pedido_detalle']) {
@@ -3434,9 +3471,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <p style="margin: 5px 0; font-size: 13px;">
                                 <strong>Fecha:</strong> ${fechaFormateada}
                             </p>
-                            <p style="margin: 5px 0; font-size: 13px;">
-                                <strong>Documento:</strong> ${salida.ndoc_salida || 'Sin documento'}
-                            </p>
+                            
                             <p style="margin: 5px 0; font-size: 13px;">
                                 <strong>Estado:</strong> 
                                 <span class="badge badge-${estadoClase}">${salida.estado_texto}</span>
@@ -4314,7 +4349,8 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('📋 Modo:', modoEditarSalida ? 'EDICIÓN' : 'CREACIÓN');
     
     // Validar campos obligatorios
-    const ndoc = document.querySelector('input[name="ndoc_salida"]').value.trim();
+    const ndocInput = document.querySelector('input[name="ndoc_salida"]');
+    const ndoc = ndocInput ? ndocInput.value.trim() : '';
     const fec = document.getElementById('fecha_salida').value;
     const almOrigen = document.getElementById('almacen_origen_salida').value;
     const ubicOrigen = document.getElementById('ubicacion_origen_salida').value;
@@ -4327,6 +4363,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Validaciones básicas (igual que antes)
+    /*
     if (!ndoc) {
         Swal.fire({
             icon: 'warning',
@@ -4336,6 +4373,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         return;
     }
+    */
     
     if (!fec) {
         Swal.fire({
@@ -4387,6 +4425,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+     /*
     if (!modoEditarSalida) {
         if (!inputArchivos || !inputArchivos.files || inputArchivos.files.length === 0) {
             Swal.fire({
@@ -4398,6 +4437,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
     }
+    */
 
     if (inputArchivos && inputArchivos.files && inputArchivos.files.length > 0) {
         const maxSize = 5 * 1024 * 1024;
@@ -6233,7 +6273,7 @@ function agregarItemAOrden(item) {
                             <p style="margin: 5px 0; font-size: 13px;"><strong>Fecha:</strong> ${fechaFormateada}</p>
                             <p style="margin: 5px 0; font-size: 13px;"><strong>Estado:</strong> <span class="badge badge-${estadoClase}">${estadoTexto}</span></p>
                             <p style="margin: 5px 0; font-size: 13px;"><strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'}</p>
-                            <p style="margin: 5px 0; font-size: 13px;"><strong>Plazo Entrega:</strong> ${compra.plaz_compra || 'No especificado'}</p>
+                            <p style="margin: 5px 0; font-size: 13px;"><strong>Condición de Pago:</strong> ${compra.plaz_compra || 'No especificado'}</p>
                         </div>
                     </div>`;
         

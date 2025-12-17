@@ -215,3 +215,38 @@ function ObtenerCentrosCostoDetalle($id_pedido_detalle)
     mysqli_close($con);
     return $centros;
 }
+
+function ObtenerCentrosCostoTodoPersonal()
+{
+    include("../_conexion/conexion.php");
+    
+    $centros = array();
+    
+    // ✅ JOIN para obtener todo en una sola consulta
+    $sql = "SELECT 
+                p.id_personal,
+                a.id_area as id_centro_costo,
+                a.nom_area as nom_centro_costo
+            FROM {$bd_complemento}.personal p
+            LEFT JOIN {$bd_complemento}.area a ON p.id_area = a.id_area
+            WHERE p.act_personal = 1
+            AND a.act_area = 1
+            ORDER BY p.nom_personal ASC";
+    
+    $resultado = mysqli_query($con, $sql);
+    
+    if ($resultado) {
+        while ($row = mysqli_fetch_assoc($resultado)) {
+            // Solo agregar si tiene centro de costo asignado
+            if (!empty($row['id_centro_costo'])) {
+                $centros[$row['id_personal']] = array(
+                    'id_centro_costo' => $row['id_centro_costo'],
+                    'nom_centro_costo' => $row['nom_centro_costo']
+                );
+            }
+        }
+    }
+    
+    mysqli_close($con);
+    return $centros;
+}

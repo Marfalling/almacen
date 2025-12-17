@@ -37,12 +37,18 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
             require_once("../_modelo/m_ubicacion.php");
             require_once("../_modelo/m_personal.php");
             require_once("../_modelo/m_tipo_material.php");
+            require_once("../_modelo/m_centro_costo.php"); 
 
+            $id_cliente_arce = 9; // ID del cliente ARCE
+            $id_almacen_base_arce = 1; // ID del almacén BASE ARCE
+            
             // Cargar datos para el formulario
             $almacenes = MostrarAlmacenesActivosConArceBase();
             $ubicaciones = MostrarUbicacionesActivas();
-            $personal = MostrarPersonal();
+            $personal = MostrarPersonalActivo();
             $material_tipos = MostrarMaterialTipoActivos();
+            $centros_costo_personal = ObtenerCentrosCostoTodoPersonal();
+            $centro_costo_usuario = ObtenerCentroCostoPersonal($id_personal);
 
             $desde_pedido = isset($_GET['desde_pedido']) ? intval($_GET['desde_pedido']) : 0;
             $items_pedido = array();
@@ -83,7 +89,9 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                 $id_almacen_destino = intval($_REQUEST['id_almacen_destino']);
                 $id_ubicacion_destino = intval($_REQUEST['id_ubicacion_destino']);
                 
-                $ndoc_salida = $_REQUEST['ndoc_salida'];
+                // ✅ CAMBIO: ndoc_salida siempre vacío (se guardará NULL en la BD)
+                $ndoc_salida = '';
+                
                 $fec_req_salida = $_REQUEST['fec_req_salida'];
                 $obs_salida = $_REQUEST['obs_salida'];
                 
@@ -94,7 +102,7 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                 
                 // VALIDACIÓN 1: No permitir material tipo "NA" (id = 1)
                 if ($id_material_tipo == 1) {
-                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'SALIDAS', "Tipo material inválido (NA) - Doc: $ndoc_salida");
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'SALIDAS', "Tipo material inválido (NA)");
                     
                     $mostrar_alerta = true;
                     $tipo_alerta = 'error';
@@ -120,7 +128,7 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                     }
                     
                     GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'SALIDAS', 
-                        "Ubicación origen = destino: $almacen_nombre - $ubicacion_nombre | Doc: $ndoc_salida");
+                        "Ubicación origen = destino: $almacen_nombre - $ubicacion_nombre");
                     
                     $mostrar_alerta = true;
                     $tipo_alerta = 'warning';
@@ -141,7 +149,7 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                                 
                                 if ($stock_disponible <= 0) {
                                     GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'SALIDAS', 
-                                        "Stock insuficiente: {$_REQUEST['descripcion'][$index]} | Doc: $ndoc_salida");
+                                        "Stock insuficiente: {$_REQUEST['descripcion'][$index]}");
                                     
                                     $mostrar_alerta = true;
                                     $tipo_alerta = 'error';
@@ -150,7 +158,7 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                                     break;
                                 } elseif ($cantidad > $stock_disponible) {
                                     GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'SALIDAS', 
-                                        "Cantidad excede stock: {$_REQUEST['descripcion'][$index]} (Sol: $cantidad, Disp: $stock_disponible) | Doc: $ndoc_salida");
+                                        "Cantidad excede stock: {$_REQUEST['descripcion'][$index]} (Sol: $cantidad, Disp: $stock_disponible)");
                                     
                                     $mostrar_alerta = true;
                                     $tipo_alerta = 'warning';
@@ -170,8 +178,7 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                     
                     // VALIDACIÓN 4: Verificar que haya al menos un material
                     if (!$mostrar_alerta && count($materiales) == 0) {
-                        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'SALIDAS', 
-                            "Sin materiales | Doc: $ndoc_salida");
+                        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'SALIDAS', "Sin materiales");
                         
                         $mostrar_alerta = true;
                         $tipo_alerta = 'warning';
@@ -214,7 +221,7 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                             }
                             $desc_productos = implode(' | ', $productos_detalle);
 
-                            $descripcion = "ID: $id_salida | Doc: $ndoc_salida | Origen: $almacen_origen_nombre | Destino: $almacen_destino_nombre | Productos: $desc_productos";
+                            $descripcion = "ID: $id_salida | Origen: $almacen_origen_nombre | Destino: $almacen_destino_nombre | Productos: $desc_productos";
                             if ($id_pedido_para_salida > 0) {
                                 $descripcion .= " | Pedido: #$id_pedido_para_salida";
                             }
@@ -222,7 +229,7 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                             GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'SALIDAS', $descripcion);
                             
                             // Subir documentos si hay
-                            if ($id_salida > 0 && isset($_FILES['documento']) && count($_FILES['documento']['name']) > 0) {
+                            if ($id_salida > 0 && isset($_FILES['documento']) && !empty($_FILES['documento']['name'][0])) {
                                 include_once("../_modelo/m_documentos.php");
 
                                 $entidad = "salidas";
@@ -256,14 +263,11 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                                 EnviarCorreoSalidaCreada($id_salida);
                             }
                             
-                            // ======================================
-
+                            // Finalizar pedido si viene de uno
                             $id_pedido_origen = isset($_REQUEST['id_pedido_origen']) ? intval($_REQUEST['id_pedido_origen']) : 0;
                             
                             if ($id_pedido_origen > 0) {
                                 require_once("../_modelo/m_pedidos.php");
-                                
-                                // Finalizar el pedido 
                                 $resultado_pedido = FinalizarPedido($id_pedido_origen);
                                 
                                 if ($resultado_pedido['success']) {
@@ -295,9 +299,7 @@ if (!verificarPermisoEspecifico('crear_salidas')) {
                                 $redirigir_a = 'salidas_mostrar.php?registrado=true';
                             }
                         } else {
-                            //  AUDITORÍA: ERROR AL REGISTRAR
-                            GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'SALIDAS', 
-                                "Doc: $ndoc_salida | Error del sistema");
+                            GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'SALIDAS', "Error del sistema");
                             
                             $mostrar_alerta = true;
                             $tipo_alerta = 'error';

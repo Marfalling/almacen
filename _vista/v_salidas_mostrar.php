@@ -183,10 +183,20 @@ function RecepcionarSalida(id_salida) {
         showCancelButton: true,
         confirmButtonColor: '#007bff',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: ' Sí, recepcionar',
+        confirmButtonText: '<i class="fa fa-check"></i> Sí, recepcionar',
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
+            //  MOSTRAR LOADING INMEDIATAMENTE (igual que aprobar)
+            Swal.fire({
+                title: 'Procesando...',
+                html: 'Registrando recepción de la salida',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
             $.ajax({
                 url: '../_controlador/salidas_recepcionar.php',
                 type: 'POST',
@@ -194,14 +204,30 @@ function RecepcionarSalida(id_salida) {
                 dataType: 'json',
                 success: function(response) {
                     if (response.success) {
-                        Swal.fire('Recepcionada!', response.message, 'success')
-                        .then(() => { location.reload(); });
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Recepcionada!',
+                            text: response.message,
+                            confirmButtonColor: '#28a745'
+                        }).then(() => { 
+                            location.reload(); 
+                        });
                     } else {
-                        Swal.fire('Error', response.message, 'error');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.message,
+                            confirmButtonColor: '#dc3545'
+                        });
                     }
                 },
                 error: function() {
-                    Swal.fire('Error', 'No se pudo conectar con el servidor.', 'error');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error de Conexión',
+                        text: 'No se pudo conectar con el servidor.',
+                        confirmButtonColor: '#dc3545'
+                    });
                 }
             });
         }
@@ -311,7 +337,7 @@ function AnularSalida(id_salida) {
                                             <tr>
                                                 <th>#</th>
                                                 <th>Código Salida</th>
-                                                <th>Nº Documento</th>
+                                                <!--<th>Nº Documento</th>-->
                                                 <th>Tipo Material</th>
                                                 <th>Almacén Origen</th>
                                                 <th>Ubicación Origen</th>
@@ -335,7 +361,7 @@ function AnularSalida(id_salida) {
                                             <tr>
                                                 <td><?php echo $contador; ?></td>
                                                 <td><strong><?php echo 'S00' . $salida['id_salida']; ?></strong></td>
-                                                <td><?php echo $salida['ndoc_salida']; ?></td>
+                                                <!-- <td><?php echo $salida['ndoc_salida']; ?></td>-->
                                                 <td><?php echo $salida['nom_material_tipo']; ?></td>
                                                 <td><?php echo $salida['nom_almacen_origen']; ?></td>
                                                 <td><?php echo $salida['nom_ubicacion_origen']; ?></td>
@@ -652,8 +678,9 @@ foreach($salidas as $salida) {
                         <h5><strong>Información General</strong></h5>
                         <table class="table table-bordered">
                             <tr>
-                                <td><strong>Nº Documento:</strong></td>
+                                <!-- <td><strong>Nº Documento:</strong></td>
                                 <td><?php echo $salida_info['ndoc_salida']; ?></td>
+                                -->
                                 <td><strong>Fecha de Traslado:</strong></td>
                                 <td><?php echo date('d/m/Y H:i', strtotime($salida_info['fec_salida'])); ?></td>
                             </tr>
@@ -733,7 +760,17 @@ foreach($salidas as $salida) {
                                     ?>
                                         <tr>
                                             <td><?php echo $contador_detalle; ?></td>
-                                            <td><?php echo $detalle['prod_salida_detalle']; ?></td>
+                                            <td>
+                                                <?php 
+                                                // Priorizar nom_producto, luego prod_salida_detalle, sino ID
+                                                $nombre_producto = !empty($detalle['nom_producto']) 
+                                                                ? $detalle['nom_producto'] 
+                                                                : (!empty($detalle['prod_salida_detalle']) 
+                                                                    ? $detalle['prod_salida_detalle'] 
+                                                                    : 'Producto ID ' . $detalle['id_producto']);
+                                                echo htmlspecialchars($nombre_producto);
+                                                ?>
+                                            </td>
                                             <td><?php echo $detalle['cant_salida_detalle']; ?></td>
                                             <td><?php echo $detalle['nom_unidad_medida']; ?></td>
                                         </tr>
