@@ -57,7 +57,17 @@ if (empty($compra_data)) {
 $compra = $compra_data[0];
 
 // Preparar datos para el PDF
-$numero_orden = $compra['id_compra'] ?? 'NO ESPECIFICADO';
+$id_producto_tipo = $compra['id_producto_tipo'] ?? 1;
+
+if ($id_producto_tipo == 1) {
+    $codigo_orden = 'OC' . str_pad($id_compra, 4, '0', STR_PAD_LEFT);
+    $tipo_orden = 'COMPRA';
+} else {
+    $codigo_orden = 'OS' . str_pad($id_compra, 4, '0', STR_PAD_LEFT);
+    $tipo_orden = 'SERVICIO';
+}
+
+$numero_orden = $id_compra;
 $codigo_pedido = $compra['cod_pedido'] ?? '';
 $nombre_obra = $compra['nom_obra'] ?? 'NO ESPECIFICADO';
 $fecha_compra = date('d/m/Y', strtotime($compra['fec_compra']));
@@ -191,6 +201,7 @@ foreach ($compra_detalle as $detalle) {
     <tr>
         <td class="text-center">' . $item . '</td>
         <td class="text-center">' . $cantidad . '</td>
+        <td class="text-center">' . $unidad . '</td>
         <td class="text-left">' . $descripcion . '</td>
         <td class="text-right">' . $precio_unitario . '</td>
         <td class="text-right">' . $total_formateado . '</td>
@@ -204,6 +215,7 @@ if (empty($detalles_html)) {
     <tr>
         <td class="text-center">1</td>
         <td class="text-center">0.00</td>
+        <td class="text-center">UND</td>
         <td class="text-left">No hay productos en esta compra</td>
         <td class="text-right">0.00</td>
         <td class="text-right">0.00</td>
@@ -240,7 +252,7 @@ $igv_formateado = number_format($igv, 2);
 $total_con_igv_formateado = number_format($total_con_igv, 2);
 $total_formateado = number_format($total_final, 2);
 
-$nombre_archivo = "ORDEN_COMPRA_" . $numero_orden . "_" . date('Ymd') . ".pdf";
+$nombre_archivo = $codigo_orden . "_" . date('Ymd') . ".pdf";
 
 require '../_vista/v_compras_pdf.php';
 

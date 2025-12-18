@@ -8,36 +8,8 @@ $html = '
     <title>Orden de Compra</title>
     <style>
         @page {
-            margin: 12mm 10mm 12mm 10mm; /* Reducido de 15mm a 12mm */
+            margin: 12mm 8mm 12mm 8mm;
             size: A4;
-        }
-
-        /* INFORMACIÓN GENERAL */
-        .info-general {
-            border: 1px solid #000;
-            padding: 8px; /* Reducido de 10px a 8px */
-            margin-bottom: 10px; /* Reducido de 15px a 10px */
-        }
-
-        /* TABLA DE PRODUCTOS */
-        .detalles-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 10px; /* Reducido de 15px a 10px */
-            font-size: 8pt;
-        }
-
-        /* TOTALES */
-        .totales-section {
-            float: right;
-            width: 300px;
-            margin-bottom: 10px; /* Reducido de 15px a 10px */
-        }
-
-        /* MENSAJE FORMAL */
-        .mensaje-formal {
-            margin-bottom: 10px; /* Reducido de 15px a 10px */
-            line-height: 1.4;
         }
         
         body {
@@ -45,7 +17,8 @@ $html = '
             font-size: 8pt;
             line-height: 1.2;
             color: #000;
-            padding: 5px;
+            padding: 0;
+            margin: 0;
         }
         
         .container {
@@ -57,58 +30,57 @@ $html = '
         .header {
             border: 2px solid #000;
             padding: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             position: relative;
-            height: 90px;
+            height: 75px;
         }
         
         .header-left {
             position: absolute;
-            left: 15px;
-            top: 15px;
-            font-size: 8pt;
+            left: 10px;
+            top: 10px;
+            font-size: 7pt;
             line-height: 1.1;
         }
         
         .logo {
-            width: 80px;
-            margin-right: 15px;
-            margin-bottom: 5px;
+            width: 70px;
+            margin-right: 10px;
+            margin-bottom: 3px;
         }
 
         .logo img {
             max-width: 100%;
-            max-height: 60px;
+            max-height: 50px;
             object-fit: contain;
         }
         
         .logo-placeholder {
             width: 100%;
-            height: 60px;
+            height: 50px;
             border: 1px solid #000;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 8pt;
+            font-size: 7pt;
             font-weight: bold;
             background-color: #f9f9f9;
         }
 
         .header-right {
             position: absolute;
-            right: 15px;
-            top: 15px;
+            right: 10px;
+            top: 10px;
             text-align: right;
-            font-size: 8pt;
-            line-height: 1.3;
+            font-size: 7pt;
+            line-height: 1.2;
         }
 
-        /* CUADROS */
-
+        /* CUADROS DE ESTADO Y TÍTULO */
         .cuadros-container {
             position: relative;
-            margin-bottom: 20px;
-            min-height: 70px;
+            margin-bottom: 15px;
+            min-height: 60px;
         }
 
         .estado-section {
@@ -119,12 +91,12 @@ $html = '
         
         .estado-box {
             border: 2px solid #000;
-            padding: 8px 15px;
+            padding: 6px 12px;
             text-align: center;
-            font-size: 12pt;
+            font-size: 10pt;
             font-weight: bold;
             background-color: #f0f0f0;
-            min-width: 150px;
+            min-width: 120px;
         }
 
         .titulo-section {
@@ -135,113 +107,64 @@ $html = '
 
         .titulo-compra {
             border: 2px solid #000;
-            padding: 8px 15px;
+            padding: 6px 12px;
             text-align: center;
-            font-size: 12pt;
-            font-weight: bold;
-            background-color: #f0f0f0;
-            min-width: 180px;
-        }
-
-
-        /* TÍTULO Y NÚMERO DE ORDEN - ESTILO DEL PRIMER CÓDIGO */
-        .titulo-orden {
-            position: absolute;
-            right: 15px;
-            top: 15px;
-            border: 2px solid #000;
-            padding: 8px 15px;
-            font-weight: bold;
-            font-size: 12pt;
-            text-align: center;
-            background-color: #f0f0f0;
-        }
-
-        .titulo-left {
-            flex: 1;
-        }
-
-        .orden-box {
-            border: 2px solid #000;
-            padding: 8px 15px;
-            text-align: center;
-            font-size: 12pt;
+            font-size: 10pt;
             font-weight: bold;
             background-color: #f0f0f0;
             min-width: 150px;
-            position: absolute;
-            right: 0;
         }
 
-        /* INFORMACIÓN DEL PROVEEDOR */
-        .proveedor-section {
-            margin-bottom: 15px;
+        /* INFORMACIÓN GENERAL */
+        .info-general {
+            border: 1px solid #000;
+            padding: 8px;
+            margin-bottom: 10px;
+            font-size: 7.5pt;
         }
 
-        .proveedor-row {
+        .info-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
-        .proveedor-left, .proveedor-right {
+        .info-left, .info-right {
             width: 48%;
         }
 
-
-        /* INFORMACIÓN DE LA OBRA Y FECHA */
-        .obra-info {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            align-items: flex-start;
+        .info-general div {
+            margin-bottom: 2px;
+            line-height: 1.3;
         }
 
-        .obra-left {
-            width: 60%;
-        }
-
-        .obra-right {
-            width: 35%;
-            text-align: right;
-            align-self: flex-start;
+        /* MENSAJE FORMAL */
+        .mensaje-formal {
+            margin-bottom: 10px;
+            line-height: 1.4;
+            font-size: 7.5pt;
         }
 
         /* TABLA DE PRODUCTOS */
-        .tabla-productos {
+        .detalles-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
-            font-size: 7pt;
+            margin-bottom: 10px;
+            font-size: 7.5pt;
         }
-
-        .tabla-productos th {
-            background-color: #e0e0e0;
-            border: 1px solid #000;
-            padding: 4px 2px;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        .tabla-productos td {
-            border: 1px solid #000;
-            padding: 3px 2px;
-            vertical-align: top;
-        }
-            
         
         .detalles-table th {
             background-color: #d0d0d0;
             border: 1px solid #000;
-            padding: 6px 4px;
+            padding: 5px 3px;
             text-align: center;
             font-weight: bold;
-            font-size: 8pt;
+            line-height: 1.1;
         }
         
         .detalles-table td {
             border: 1px solid #000;
-            padding: 4px 6px;
+            padding: 4px 5px;
             vertical-align: top;
         }
         
@@ -250,16 +173,23 @@ $html = '
         .text-right { text-align: right; }
         
         .col-item { width: 8%; }
-        .col-cantidad { width: 12%; }
-        .col-descripcion { width: 50%; }
+        .col-cantidad { width: 10%; }
+        .col-unidad { width: 10%; }
+        .col-descripcion { width: 42%; }
         .col-precio { width: 15%; }
         .col-total { width: 15%; }
 
+        /* TOTALES */
+        .totales-section {
+            float: right;
+            width: 300px;
+            margin-bottom: 10px;
+        }
         
         .totales-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 9pt;
+            font-size: 7.5pt;
         }
         
         .totales-table td {
@@ -280,81 +210,27 @@ $html = '
             width: 40%;
         }
 
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-
-        .info-left, .info-right {
-            width: 48%;
-        }
-
-        /* INFORMACIÓN ADICIONAL DE LA COMPRA */
-        .info-compra {
-            border: 1px solid #000;
-            padding: 10px;
-            margin-bottom: 25px;
-        }
-
-        .info-compra-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-        }
-
-        .info-compra-left, .info-compra-right {
-            width: 48%;
-        }
-
         /* SECCIÓN DE FIRMAS */
         .firmas-section {
-            margin-top: 30px;
-            margin-bottom: 20px;
+            margin-top: 20px;
+            margin-bottom: 15px;
             overflow: hidden;
         }
 
         .firma-box {
             float: left;
             width: 33.3%;
-            padding: 10px;
+            padding: 8px;
             text-align: center;
-            height: 80px;
+            height: 70px;
             border-top: 1px solid #000;
         }
 
         .firma-label {
-            font-size: 8pt;
+            font-size: 7.5pt;
             font-weight: bold;
-            margin-top: 50px;
+            margin-top: 45px;
             display: block;
-        }
-
-        .columnA {
-            float: left;
-            width: 33.3%;
-            padding: 10px;
-            text-align: center;
-            height: 80px;
-            border-top: 1px solid #000;
-        }
-
-        .columnB {
-            float: left;
-            width: 33.3%;
-            padding: 10px;
-            text-align: center;
-            height: 80px;
-            border-top: 1px solid #000;
-        }
-
-        .columnC {
-            float: left;
-            width: 33.3%;
-            padding: 10px;
-            text-align: center;
-            height: 80px;
-            border-top: 1px solid #000;
         }
 
         /* FOOTER */
@@ -362,26 +238,24 @@ $html = '
             text-align: center;
             font-size: 7pt;
             color: #666;
-            margin-top: 20px;
+            margin-top: 15px;
+            border-top: 1px solid #ddd;
+            padding-top: 6px;
         }
-
-        /* UTILIDADES */
-        .field-label {
-            font-weight: bold;
-            display: inline-block;
-            min-width: 100px;
-        }
-
-        .mb-5 { margin-bottom: 5px; }
-        .mb-10 { margin-bottom: 10px; }
-        .mb-15 { margin-bottom: 15px; }
-        .mb-20 { margin-bottom: 20px; }
 
         .clearfix::after {
             content: "";
             display: table;
             clear: both;
         }
+
+        .field-label {
+            font-weight: bold;
+            display: inline-block;
+            min-width: 100px;
+        }
+
+        .mb-10 { margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -395,40 +269,38 @@ $html = '
                 <div>MONTAJES E INGENIERÍA ARCE PERÚ S.A.C.</div>
             </div>
             <div class="header-right">
-                Calle 3, N° 177- Urb la Grimanesa - CALLAO - CALLAO<br>
+                Calle 3, N° 177- Urb la Grimanesa - CALLAO<br>
                 Teléf: 572-3220 ANEXO 11 - 12<br>
                 RUC: 20550259321
             </div>
         </div>
 
-        <!-- TÍTULO DE ORDEN - ESTILO DEL PRIMER CÓDIGO -->
-
+        <!-- ESTADO Y TÍTULO -->
         <div class="cuadros-container">
-            <!-- ESTADO DE COMPRA -->
             <div class="estado-section">
                 <div class="estado-box">
                     ESTADO:<br>
-                    <span class="' . ($estado_texto == 'ACTIVO' ? 'estado-activo' : 'estado-anulado') . '">' . $estado_texto . '</span>
+                    <span>' . $estado_texto . '</span>
                 </div>
             </div>
 
-            <!-- TÍTULO DE COMPRA -->
             <div class="titulo-section">
                 <div class="titulo-compra">
-                    ORDEN COMPRA<br>
-                    C00' . $numero_orden . '
+                    ORDEN DE ' . $tipo_orden . '<br>
+                    ' . $codigo_orden . '
                 </div>
             </div>
         </div>
 
         <!-- INFORMACIÓN DEL PROVEEDOR -->
-
         <div class="info-general">
             <div class="info-row">
                 <div class="info-left">
                     <div><strong>PROVEEDOR:</strong> ' . $nom_proveedor . '</div>
                     <div><strong>RUC:</strong> ' . $ruc_proveedor . '</div>
                     <div><strong>CONTACTO:</strong> ' . $cont_proveedor . '</div>
+                </div>
+                <div class="info-right">
                     <div><strong>TELÉFONO:</strong> ' . $tel_proveedor . '</div>
                     <div><strong>EMAIL:</strong> ' . $email_proveedor . '</div>
                     <div><strong>DIRECCIÓN:</strong> ' . $dir_proveedor . '</div>
@@ -442,24 +314,27 @@ $html = '
             <div>Sírvanse suministrarnos los materiales contenidos en la orden de compra, la misma que pasamos a detallar:</div>
         </div>
 
-        <!-- INFORMACIÓN DE LA OBRA Y FECHA -->
-
+        <!-- INFORMACIÓN DE LA OBRA -->
         <div class="info-general">
             <div class="info-row">
                 <div class="info-left">
-                    <div><strong>REFERENCIA DE LA OBRA:</strong> ' . $nombre_obra . '</div>
-                    <div><strong>OBSERVACIONES:</strong> ' .$observaciones. '</div>
-                    <div><strong>FECHA:</strong> ' .$fecha_compra. '</div>
+                    <div><strong>REFERENCIA OBRA:</strong> ' . $nombre_obra . '</div>
+                    <div><strong>OBSERVACIONES:</strong> ' . $observaciones . '</div>
+                </div>
+                <div class="info-right">
+                    <div><strong>FECHA:</strong> ' . $fecha_compra . '</div>
+                    <div><strong>FECHA REQ.:</strong> ' . $fecha_requerida . '</div>
                 </div>
             </div>
         </div>
 
-        <!-- TABLA DE PRODUCTOS - ESTILO DEL PRIMER CÓDIGO -->
+        <!-- TABLA DE PRODUCTOS -->
         <table class="detalles-table">
             <thead>
                 <tr>
                     <th class="col-item">POS</th>
                     <th class="col-cantidad">CANT.</th>
+                    <th class="col-unidad">UND.</th>
                     <th class="col-descripcion">ESPECIFICACIÓN</th>
                     <th class="col-precio">PRECIO U.</th>
                     <th class="col-total">IMPORTE</th>
@@ -470,21 +345,20 @@ $html = '
             </tbody>
         </table>
 
-        <!-- TOTALES - ESTILO DEL PRIMER CÓDIGO -->
-        <!-- TOTALES - ESTILO DEL PRIMER CÓDIGO -->
+        <!-- TOTALES -->
         <div class="totales-section">
             <table class="totales-table">
                 <tr>
                     <td class="label">SUB TOTAL</td>
-                    <td class="value">' . $subtotal_formateado . '</td>
+                    <td class="value">' . $simbolo_moneda . ' ' . $subtotal_formateado . '</td>
                 </tr>
                 <tr>
                     <td class="label">IGV TOTAL</td>
-                    <td class="value">' . $igv_formateado . '</td>
+                    <td class="value">' . $simbolo_moneda . ' ' . $igv_formateado . '</td>
                 </tr>
                 <tr>
                     <td class="label"><strong>TOTAL CON IGV</strong></td>
-                    <td class="value"><strong>' . $total_con_igv_formateado . '</strong></td>
+                    <td class="value"><strong>' . $simbolo_moneda . ' ' . $total_con_igv_formateado . '</strong></td>
                 </tr>';
                 
         // Mostrar DETRACCIÓN si existe
@@ -492,7 +366,7 @@ $html = '
             $html .= '
                 <tr style="background-color: #fff3cd;">
                     <td class="label">' . $nombre_detraccion . ' (' . $porcentaje_detraccion . '%)</td>
-                    <td class="value"> ' . number_format($monto_detraccion, 2) . '</td>
+                    <td class="value">-' . $simbolo_moneda . ' ' . number_format($monto_detraccion, 2) . '</td>
                 </tr>';
         }
 
@@ -501,7 +375,7 @@ $html = '
             $html .= '
                 <tr style="background-color: #d1ecf1;">
                     <td class="label">' . $nombre_retencion . ' (' . $porcentaje_retencion . '%)</td>
-                    <td class="value"> ' . number_format($monto_retencion, 2) . '</td>
+                    <td class="value">-' . $simbolo_moneda . ' ' . number_format($monto_retencion, 2) . '</td>
                 </tr>';
         }
 
@@ -510,40 +384,37 @@ $html = '
             $html .= '
                 <tr style="background-color: #d4edda;">
                     <td class="label">' . $nombre_percepcion . ' (' . $porcentaje_percepcion . '%)</td>
-                    <td class="value"> ' . number_format($monto_percepcion, 2) . '</td>
+                    <td class="value">+' . $simbolo_moneda . ' ' . number_format($monto_percepcion, 2) . '</td>
                 </tr>';
         }
 
         $html .= '
                 <tr>
                     <td class="label"><strong>TOTAL A PAGAR</strong></td>
-                    <td class="value"><strong>' . $total_formateado . '</strong></td>
+                    <td class="value"><strong>' . $simbolo_moneda . ' ' . $total_formateado . '</strong></td>
                 </tr>
             </table>
         </div>
 
         <div class="clearfix"></div>
 
-        <!-- INFORMACIÓN ADICIONAL DE LA COMPRA -->
-
+        <!-- INFORMACIÓN ADICIONAL -->
         <div class="info-general">
             <div class="info-row">
                 <div class="info-left">
-                    <div><strong>DIRECCIÓN DE ENVÍO:</strong> ' . $lugar_entrega . '</div>
-                    <div><strong>REFERENCIA:</strong> ' .$aclaraciones. '</div>
-                    <div><strong>Condición de Pago:</strong> ' . $condicion_pago. '</div> 
-                    <div><strong>SOLICITADO POR:</strong> ' .$nom_personal. '</div>
+                    <div><strong>DIRECCIÓN ENVÍO:</strong> ' . $lugar_entrega . '</div>
+                    <div><strong>REFERENCIA:</strong> ' . $aclaraciones . '</div>
+                    <div><strong>SOLICITADO POR:</strong> ' . $nom_personal . '</div>
                 </div>
                 <div class="info-right">
-                    <div><strong>MONEDA:</strong> ' .$moneda. '</div>
-                    <div><strong>FECHA REQ.:</strong> ' .$fecha_requerida. '</div>
-                    <!-- <div><strong>CONDICIONES DE PAGO:</strong> ' .$portes. '</div> -->
-                    <div><strong>TELÉFONO:</strong> ' .$telefono. '</div>
+                    <div><strong>MONEDA:</strong> ' . $moneda . '</div>
+                    <div><strong>CONDICIÓN PAGO:</strong> ' . $condicion_pago . '</div>
+                    <div><strong>TELÉFONO:</strong> ' . $telefono . '</div>
                 </div>
             </div>
         </div>
 
-        <!-- SECCIÓN DE FIRMAS - 3 COLUMNAS -->
+        <!-- SECCIÓN DE FIRMAS -->
         <div class="footer">
             <div class="firmas-section clearfix">
                 <div class="firma-box">
@@ -557,7 +428,7 @@ $html = '
                 </div>
             </div>
 
-            <div style="margin-top:20px; font-size:7pt; color:#666;">
+            <div style="margin-top:15px; font-size:7pt; color:#666;">
                 Fecha ' . $fecha_formateada . '
             </div>
         </div>

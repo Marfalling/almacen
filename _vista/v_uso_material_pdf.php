@@ -8,7 +8,7 @@ $html = '
     <title>Uso de Material</title>
     <style>
         @page {
-            margin: 15mm 10mm 15mm 10mm;
+            margin: 12mm 8mm 12mm 8mm;
             size: A4;
         }
 
@@ -17,7 +17,8 @@ $html = '
             font-size: 8pt;
             line-height: 1.2;
             color: #000;
-            padding: 5px;
+            padding: 0;
+            margin: 0;
         }
 
         .container {
@@ -29,45 +30,45 @@ $html = '
         .header {
             border: 2px solid #000;
             padding: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             position: relative;
-            height: 90px;
+            height: 75px;
         }
 
         .header-left {
             position: absolute;
-            left: 15px;
-            top: 15px;
-            font-size: 8pt;
+            left: 10px;
+            top: 10px;
+            font-size: 7pt;
             line-height: 1.1;
         }
 
         .logo {
-            width: 80px;
-            margin-right: 15px;
-            margin-bottom: 5px;
+            width: 70px;
+            margin-right: 10px;
+            margin-bottom: 3px;
         }
 
         .logo img {
             max-width: 100%;
-            max-height: 60px;
+            max-height: 50px;
             object-fit: contain;
         }
 
         .header-right {
             position: absolute;
-            right: 15px;
-            top: 15px;
+            right: 10px;
+            top: 10px;
             text-align: right;
-            font-size: 8pt;
-            line-height: 1.3;
+            font-size: 7pt;
+            line-height: 1.2;
         }
 
         /* ESTADO Y TÍTULO */
         .cuadros-container {
             position: relative;
-            margin-bottom: 20px;
-            min-height: 70px;
+            margin-bottom: 15px;
+            min-height: 60px;
         }
 
         .estado-section {
@@ -78,12 +79,12 @@ $html = '
 
         .estado-box {
             border: 2px solid #000;
-            padding: 8px 15px;
+            padding: 6px 12px;
             text-align: center;
-            font-size: 12pt;
+            font-size: 10pt;
             font-weight: bold;
             background-color: #f0f0f0;
-            min-width: 150px;
+            min-width: 120px;
         }
 
         .titulo-section {
@@ -94,67 +95,108 @@ $html = '
 
         .titulo-salida {
             border: 2px solid #000;
-            padding: 8px 15px;
+            padding: 6px 12px;
             text-align: center;
-            font-size: 12pt;
+            font-size: 10pt;
             font-weight: bold;
             background-color: #f0f0f0;
-            min-width: 180px;
+            min-width: 150px;
         }
 
         /* INFORMACIÓN GENERAL */
         .info-general {
             border: 1px solid #000;
-            padding: 10px;
-            margin-bottom: 15px;
+            padding: 8px;
+            margin-bottom: 12px;
+            font-size: 7.5pt;
+            line-height: 1.4;
         }
 
         .info-general div {
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
 
         /* TABLA DE DETALLES */
         .detalles-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
-            font-size: 8pt;
+            margin-bottom: 12px;
+            font-size: 7.5pt;
         }
 
         .detalles-table th {
             background-color: #d0d0d0;
             border: 1px solid #000;
-            padding: 6px 4px;
+            padding: 5px 3px;
             text-align: center;
             font-weight: bold;
+            line-height: 1.1;
         }
 
         .detalles-table td {
             border: 1px solid #000;
-            padding: 4px 6px;
+            padding: 4px 5px;
+            vertical-align: top;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .text-left {
+            text-align: left;
+        }
+
+        .col-item {
+            width: 8%;
+        }
+
+        .col-cantidad {
+            width: 10%;
+        }
+
+        .col-unidad {
+            width: 10%;
+        }
+
+        .col-descripcion {
+            width: 50%;
+        }
+
+        .col-observaciones {
+            width: 22%;
         }
 
         .observaciones-section {
             border: 1px solid #000;
-            padding: 10px;
-            margin-bottom: 15px;
-            min-height: 60px;
+            padding: 8px;
+            margin-bottom: 12px;
+            min-height: 50px;
+            font-size: 7.5pt;
         }
 
         .observaciones-header {
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 4px;
             border-bottom: 1px solid #ccc;
-            padding-bottom: 3px;
+            padding-bottom: 2px;
         }
 
         .footer {
             text-align: center;
             font-size: 7pt;
             color: #666;
-            margin-top: 15px;
+            margin-top: 10px;
             border-top: 1px solid #ddd;
-            padding-top: 8px;
+            padding-top: 6px;
+        }
+
+        .estado-activo {
+            color: #006600;
+        }
+
+        .estado-anulado {
+            color: #cc0000;
         }
 
     </style>
@@ -166,12 +208,12 @@ $html = '
         <div class="header">
             <div class="header-left">
                 <div class="logo">
-                    ' . ($imagenLogoBase64 ? '<img src="' . $imagenLogoBase64 . '" alt="Logo">' : '<div class="logo-placeholder">LOGO</div>') . '
+                    ' . ($imagenLogoBase64 ? '<img src="' . $imagenLogoBase64 . '" alt="Logo">' : '<div style="border:1px solid #000;text-align:center;line-height:50px;font-size:8pt;font-weight:bold;">LOGO</div>') . '
                 </div>
                 <div>MONTAJES E INGENIERÍA ARCE PERÚ S.A.C.</div>
             </div>
             <div class="header-right">
-                Calle 3, N° 177- Urb la Grimanesa - CALLAO - CALLAO<br>
+                Calle 3, N° 177- Urb la Grimanesa - CALLAO<br>
                 Teléf: 572-3220 ANEXO 11 - 12<br>
                 RUC: 20550259321
             </div>
@@ -182,7 +224,7 @@ $html = '
             <div class="estado-section">
                 <div class="estado-box">
                     ESTADO:<br>
-                    <span>' . strtoupper($estado_texto) . '</span>
+                    <span class="' . ($estado_texto == 'ANULADO' ? 'estado-anulado' : 'estado-activo') . '">' . strtoupper($estado_texto) . '</span>
                 </div>
             </div>
 
@@ -209,11 +251,11 @@ $html = '
         <table class="detalles-table">
             <thead>
                 <tr>
-                    <th>ÍTEM</th>
-                    <th>CANTIDAD</th>
-                    <th>UNIDAD</th>
-                    <th>DESCRIPCIÓN DEL MATERIAL</th>
-                    <th>OBSERVACIONES</th>
+                    <th class="col-item">ÍTEM</th>
+                    <th class="col-cantidad">CANTIDAD</th>
+                    <th class="col-unidad">UNIDAD</th>
+                    <th class="col-descripcion">DESCRIPCIÓN DEL MATERIAL</th>
+                    <th class="col-observaciones">OBSERVACIONES</th>
                 </tr>
             </thead>
             <tbody>
@@ -225,8 +267,7 @@ $html = '
         <div class="observaciones-section">
             <div class="observaciones-header">OBSERVACIONES GENERALES:</div>
             <div>
-                Este documento certifica el uso de los materiales detallados anteriormente, los cuales han sido 
-                extraídos del almacén ' . $nombre_almacen . ' para ser utilizados en la obra ' . $nombre_obra . '.
+                Este documento certifica el uso de los materiales detallados, extraídos del almacén ' . $nombre_almacen . ' para su uso en la obra ' . $nombre_obra . '.
             </div>
         </div>
 

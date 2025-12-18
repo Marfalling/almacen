@@ -54,15 +54,26 @@ function MostrarComprasFecha($fecha_inicio = null, $fecha_fin = null, $id_person
     $sql = "SELECT 
                 c.*,
                 pe.cod_pedido,
+                pe.id_producto_tipo,  --  PARA SABER SI ES OC o OS
                 p.nom_proveedor,
                 per1.nom_personal AS nom_registrado,
-                /*COALESCE(per2.nom_personal, '-') AS nom_aprobado_tecnica,*/
-                COALESCE(per3.nom_personal, '-') AS nom_aprobado_financiera
+                COALESCE(per3.nom_personal, '-') AS nom_aprobado_financiera,
+                --  CALCULAR TOTAL DE LA COMPRA
+                COALESCE(
+                    (SELECT SUM(
+                        cd.cant_compra_detalle * 
+                        cd.prec_compra_detalle * 
+                        (1 + (cd.igv_compra_detalle / 100))
+                    )
+                    FROM compra_detalle cd
+                    WHERE cd.id_compra = c.id_compra
+                    AND cd.est_compra_detalle = 1
+                    ), 0
+                ) as total_compra
             FROM compra c
             LEFT JOIN pedido pe ON c.id_pedido = pe.id_pedido
             LEFT JOIN proveedor p ON c.id_proveedor = p.id_proveedor 
             LEFT JOIN {$bd_complemento}.personal per1 ON c.id_personal = per1.id_personal
-            /*LEFT JOIN {$bd_complemento}.personal per2 ON c.id_personal_aprueba_tecnica = per2.id_personal*/
             LEFT JOIN {$bd_complemento}.personal per3 ON c.id_personal_aprueba_financiera = per3.id_personal
             $where
             ORDER BY c.id_compra DESC";
@@ -275,6 +286,7 @@ function ConsultarCompraPorId($id_compra)
                 COALESCE(obp.nom_subestacion, oba.nom_subestacion, 'N/A') AS nom_obra,
                 COALESCE(cli.nom_cliente, 'N/A') AS nom_cliente,
                 ped.cod_pedido,
+                ped.id_producto_tipo,  
                 ped.fec_req_pedido,
                 ped.ot_pedido,
                 ped.lug_pedido,

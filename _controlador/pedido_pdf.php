@@ -12,14 +12,14 @@ $fecha_completa = new DateTime();
 //$fecha_formateada = date('l d \d\e F \d\e Y, H:i:s', $fecha_completa->getTimestamp());
 
 $fecha_formateada = $fecha_completa->format('l d \d\e F \d\e Y, H:i:s');
- $dias_esp = ['Monday' => 'lunes', 'Tuesday' => 'martes', 'Wednesday' => 'miércoles', 
+$dias_esp = ['Monday' => 'lunes', 'Tuesday' => 'martes', 'Wednesday' => 'miércoles', 
              'Thursday' => 'jueves', 'Friday' => 'viernes', 'Saturday' => 'sábado', 'Sunday' => 'domingo'];
- $meses_esp = ['January' => 'enero', 'February' => 'febrero', 'March' => 'marzo', 
-               'April' => 'abril', 'May' => 'mayo', 'June' => 'junio',
-               'July' => 'julio', 'August' => 'agosto', 'September' => 'septiembre',
-               'October' => 'octubre', 'November' => 'noviembre', 'December' => 'diciembre'];
- $fecha_formateada = str_replace(array_keys($dias_esp), array_values($dias_esp), $fecha_formateada);
- $fecha_formateada = str_replace(array_keys($meses_esp), array_values($meses_esp), $fecha_formateada);
+$meses_esp = ['January' => 'enero', 'February' => 'febrero', 'March' => 'marzo', 
+              'April' => 'abril', 'May' => 'mayo', 'June' => 'junio',
+              'July' => 'julio', 'August' => 'agosto', 'September' => 'septiembre',
+              'October' => 'octubre', 'November' => 'noviembre', 'December' => 'diciembre'];
+$fecha_formateada = str_replace(array_keys($dias_esp), array_values($dias_esp), $fecha_formateada);
+$fecha_formateada = str_replace(array_keys($meses_esp), array_values($meses_esp), $fecha_formateada);
 
 // Verificar si se recibió el ID del pedido
 if (!isset($_GET['id']) || $_GET['id'] == "") {
@@ -130,11 +130,23 @@ foreach ($pedido_detalle as $detalle) {
     if (!empty($detalle['com_pedido_detalle'])) {
         $comentario_limpio = $detalle['com_pedido_detalle'];
         
-        // Solo remover la parte de Unidad ID
-        $comentario_limpio = preg_replace('/\s*\|\s*Unidad ID:\s*\d+\s*/i', '', $comentario_limpio);
+        // ========================================
+        // LIMPIEZA: Remover solo "Unidad:" y "Unidad ID:", MANTENER "Obs:"
+        // ========================================
+        
+        // 1. Remover "Unidad: XXXX |" (puede tener cualquier texto hasta el pipe)
+        $comentario_limpio = preg_replace('/Unidad:\s*[^|]*\|\s*/i', '', $comentario_limpio);
+        
+        // 2. Remover "Unidad ID: 123 |" (solo números)
+        $comentario_limpio = preg_replace('/Unidad ID:\s*\d+\s*\|\s*/i', '', $comentario_limpio);
+        
+        // 3. Limpiar pipes sobrantes y espacios
         $comentario_limpio = trim($comentario_limpio, ' |');
+        $comentario_limpio = preg_replace('/\|\s*\|/', '|', $comentario_limpio); // Pipes dobles
+        $comentario_limpio = trim($comentario_limpio, ' |'); // Limpiar nuevamente
         
         if (!empty($comentario_limpio)) {
+            // Agregar el texto limpio (que puede incluir "Obs:" si existe)
             $comentarios_array[] = htmlspecialchars($comentario_limpio, ENT_QUOTES, 'UTF-8');
         }
     }
@@ -160,61 +172,78 @@ foreach ($pedido_detalle as $detalle) {
     
     $comentarios = implode("<br><br>", $comentarios_array); // Doble salto de línea para mejor separación
     
-    // Preparar cantidad con unidad
-    $cantidad_text = number_format($detalle['cant_pedido_detalle'], 0);
+    // Preparar cantidad
+    $cantidad_text = number_format($detalle['cant_pedido_detalle'], 2);
     
-
+    // EXTRAER LA UNIDAD del comentario y consultar en BD
+    $unidad = 'UND'; // Valor por defecto
     
-// Preparar archivos de imagen
-$imagenes_html = '';
-if (!empty($detalle['archivos'])) {
-    $archivos = explode(',', $detalle['archivos']);
-    $imagenes_validas = [];
-    
-    // Primero, filtrar solo las imágenes válidas
-    foreach ($archivos as $archivo) {
-        $archivo = trim($archivo);
-        if (!empty($archivo) && esImagen($archivo)) {
-            $ruta_archivo = "../_archivos/pedidos/" . $archivo;
-            $imagen_base64 = imagenABase64($ruta_archivo);
-            
-            if ($imagen_base64) {
-                $imagenes_validas[] = $imagen_base64;
-            }
-        }
-    }
-    
-    // Generar HTML según el número de imágenes
-    if (!empty($imagenes_validas)) {
-        $total_imagenes = count($imagenes_validas);
-        $contador_imagen = 1;
+    if (preg_match('/Unidad ID:\s*(\d+)/i', $detalle['com_pedido_detalle'], $matches)) {
+        $id_unidad = intval($matches[1]);
         
-        foreach ($imagenes_validas as $imagen_base64) {
-            // Determinar la clase según el número de imágenes
-            $clase_imagen = '';
-            if ($total_imagenes == 1) {
-                $clase_imagen = ''; // Una sola imagen, tamaño completo
-            } elseif ($total_imagenes == 2) {
-                $clase_imagen = 'inline'; // Dos imágenes en línea
-            } else {
-                $clase_imagen = 'small'; // Tres o más imágenes, más pequeñas
+        // Consultar la unidad de medida en la base de datos
+        include("../_conexion/conexion.php");
+        $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
+        $res_unidad = mysqli_query($con, $sql_unidad);
+        
+        if ($res_unidad && $row_unidad = mysqli_fetch_assoc($res_unidad)) {
+            $unidad = htmlspecialchars($row_unidad['nom_unidad_medida'], ENT_QUOTES, 'UTF-8');
+        }
+        
+        mysqli_close($con);
+    }
+    
+    // Preparar archivos de imagen
+    $imagenes_html = '';
+    if (!empty($detalle['archivos'])) {
+        $archivos = explode(',', $detalle['archivos']);
+        $imagenes_validas = [];
+        
+    // Primero, filtrar solo las imágenes válidas
+        foreach ($archivos as $archivo) {
+            $archivo = trim($archivo);
+            if (!empty($archivo) && esImagen($archivo)) {
+                $ruta_archivo = "../_archivos/pedidos/" . $archivo;
+                $imagen_base64 = imagenABase64($ruta_archivo);
+                
+                if ($imagen_base64) {
+                    $imagenes_validas[] = $imagen_base64;
+                }
             }
+        }
+        
+    // Generar HTML según el número de imágenes
+        if (!empty($imagenes_validas)) {
+            $total_imagenes = count($imagenes_validas);
+            $contador_imagen = 1;
             
-            $imagenes_html .= '<div class="imagen-item ' . $clase_imagen . '">';
-            $imagenes_html .= '<img src="' . $imagen_base64 . '" alt="Imagen ' . $contador_imagen . '">';
-            $imagenes_html .= '</div>';
-            $contador_imagen++;
+            foreach ($imagenes_validas as $imagen_base64) {
+            // Determinar la clase según el número de imágenes
+                $clase_imagen = '';
+                if ($total_imagenes == 1) {
+                $clase_imagen = ''; // Una sola imagen, tamaño completo
+                } elseif ($total_imagenes == 2) {
+                $clase_imagen = 'inline'; // Dos imágenes en línea
+                } else {
+                $clase_imagen = 'small'; // Tres o más imágenes, más pequeñas
+                }
+                
+                $imagenes_html .= '<div class="imagen-item ' . $clase_imagen . '">';
+                $imagenes_html .= '<img src="' . $imagen_base64 . '" alt="Imagen ' . $contador_imagen . '">';
+                $imagenes_html .= '</div>';
+                $contador_imagen++;
+            }
         }
     }
-}
     
     // CORREGIDO: Generar HTML con las clases correctas que coinciden con la vista
     $detalles_html .= '
     <tr>
         <td class="item-col text-center">' . $item . '</td>
         <td class="cantidad-col text-center">' . $cantidad_text . '</td>
+        <td class="unidad-col text-center">' . $unidad . '</td>
         <td class="descripcion-col">' . $descripcion . '</td>
-        <td class="ot-col">' . (!empty($ot_material) ? $ot_material : '-') . '</td> 
+        <td class="ot-col text-center">' . (!empty($ot_material) ? $ot_material : '-') . '</td>
         <td class="comentarios-col">
             <div class="comentarios-texto">' . $comentarios . '</div>
             ' . ($imagenes_html ? '<div class="imagenes-container">' . $imagenes_html . '</div>' : '') . '

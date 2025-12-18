@@ -364,6 +364,7 @@ function EliminarDocumento(id_doc) {
                                                 <th>Proveedor</th>
                                                 <th>Fecha Registro</th>
                                                 <th>Tipo Pago</th>
+                                                <th>Total</th>
                                                 <th>Registrado Por</th>
                                                 <th>Aprob. Financiera Por</th>
                                                 <th>Estado</th>
@@ -376,6 +377,25 @@ function EliminarDocumento(id_doc) {
                                             <?php 
                                             $contador = 1;
                                             foreach($compras as $compra) { 
+                                                // 🔹 GENERAR CÓDIGO DINÁMICAMENTE
+                                                if ($compra['id_producto_tipo'] == 1) {
+                                                    $cod_orden = 'OC' . str_pad($compra['id_compra'], 4, '0', STR_PAD_LEFT);
+                                                } else {
+                                                    $cod_orden = 'OS' . str_pad($compra['id_compra'], 4, '0', STR_PAD_LEFT);
+                                                }
+                                                
+                                                // 🔹 DETERMINAR SÍMBOLO DE MONEDA (igual que en v_comprobante_registrar)
+                                                if ($compra['id_moneda'] == 1) {
+                                                    $simbolo_moneda = 'S/.';
+                                                } else if ($compra['id_moneda'] == 2) {
+                                                    $simbolo_moneda = 'US$';
+                                                } else {
+                                                    $simbolo_moneda = ''; // Por si hay otras monedas
+                                                }
+                                                
+                                                // 🔹 FORMATEAR TOTAL
+                                                $total_formateado = number_format($compra['total_compra'], 2);
+                                                
                                                 $tiene_tecnica = !empty($compra['id_personal_aprueba_tecnica']);
                                                 $tiene_financiera = !empty($compra['id_personal_aprueba_financiera']);
                                                 
@@ -397,7 +417,7 @@ function EliminarDocumento(id_doc) {
                                             ?>
                                                 <tr class="<?php echo $clase_fila; ?>">
                                                     <td><?php echo $contador; ?></td>
-                                                    <td><?php echo 'C00' . $compra['id_compra']; ?></td>
+                                                    <td><?php echo $cod_orden; ?></td>
                                                     <td>
                                                         <a class="btn btn-sm btn-outline-secondary" target="_blank" 
                                                         href="pedido_pdf.php?id=<?php echo $compra['id_pedido']; ?>">
@@ -431,6 +451,11 @@ function EliminarDocumento(id_doc) {
                                                             }
                                                             ?>
                                                         <?php } ?>
+                                                    </td>
+                                                    
+                                                    <!-- 🔹 NUEVA COLUMNA TOTAL -->
+                                                    <td class="text-right" style="white-space: nowrap;">
+                                                        <strong><?php echo $simbolo_moneda . ' ' . $total_formateado; ?></strong>
                                                     </td>
                                                     
                                                     <td><?php echo $compra['nom_registrado']; ?></td>

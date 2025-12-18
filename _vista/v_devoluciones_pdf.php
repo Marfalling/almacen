@@ -5,10 +5,10 @@ $html = '
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documento de Salida/Traslado</title>
+    <title>Documento de Devolución</title>
     <style>
         @page {
-            margin: 15mm 10mm 15mm 10mm;
+            margin: 12mm 8mm 12mm 8mm;
             size: A4;
         }
         
@@ -17,7 +17,8 @@ $html = '
             font-size: 8pt;
             line-height: 1.2;
             color: #000;
-            padding: 5px;
+            padding: 0;
+            margin: 0;
         }
         
         .container {
@@ -29,60 +30,60 @@ $html = '
         .header {
             border: 2px solid #000;
             padding: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             position: relative;
-            height: 90px;
+            height: 75px;
         }
         
         .header-left {
             position: absolute;
-            left: 15px;
-            top: 15px;
-            font-size: 8pt;
+            left: 10px;
+            top: 10px;
+            font-size: 7pt;
             line-height: 1.1;
         }
         
         .logo {
-            width: 80px;
-            margin-right: 15px;
-            margin-bottom: 5px;
+            width: 70px;
+            margin-right: 10px;
+            margin-bottom: 3px;
         }
 
         .logo img {
             max-width: 100%;
-            max-height: 60px;
+            max-height: 50px;
             object-fit: contain;
         }
         
         .logo-placeholder {
             width: 100%;
-            height: 60px;
+            height: 50px;
             border: 1px solid #000;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 8pt;
+            font-size: 7pt;
             font-weight: bold;
             background-color: #f9f9f9;
         }
 
         .header-right {
             position: absolute;
-            right: 15px;
-            top: 15px;
+            right: 10px;
+            top: 10px;
             text-align: right;
-            font-size: 8pt;
-            line-height: 1.3;
+            font-size: 7pt;
+            line-height: 1.2;
         }
 
         /* CONTENEDOR PARA ALINEAR CUADROS */
         .cuadros-container {
             position: relative;
-            margin-bottom: 20px;
-            min-height: 70px;
+            margin-bottom: 15px;
+            min-height: 60px;
         }
 
-        /* ESTADO DE LA SALIDA */
+        /* ESTADO DE LA DEVOLUCIÓN */
         .estado-section {
             position: absolute;
             top: 0;
@@ -92,15 +93,15 @@ $html = '
         
         .estado-box {
             border: 2px solid #000;
-            padding: 8px 15px;
+            padding: 6px 12px;
             text-align: center;
-            font-size: 12pt;
+            font-size: 10pt;
             font-weight: bold;
             background-color: #f0f0f0;
-            min-width: 150px;
+            min-width: 120px;
         }
 
-        /* TÍTULO Y NÚMERO DE SALIDA */
+        /* TÍTULO Y NÚMERO DE DEVOLUCIÓN */
         .titulo-section {
             position: absolute;
             top: 0;
@@ -110,133 +111,104 @@ $html = '
 
         .titulo-devolucion {
             border: 2px solid #000;
-            padding: 8px 15px;
+            padding: 6px 12px;
             text-align: center;
-            font-size: 12pt;
+            font-size: 10pt;
             font-weight: bold;
             background-color: #f0f0f0;
-            min-width: 180px;
+            min-width: 150px;
         }
 
-        /* INFORMACIÓN GENERAL - REORGANIZADA EN DOS FILAS */
+        /* INFORMACIÓN GENERAL */
         .info-general {
             border: 1px solid #000;
-            padding: 10px;
-            margin-bottom: 15px;
+            padding: 8px;
+            margin-bottom: 12px;
+            font-size: 7.5pt;
         }
 
         .info-row {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .info-left, .info-right {
             width: 48%;
         }
 
-        /* SECCIÓN ORIGEN Y DESTINO */
-        .origen-destino-section {
-            margin-bottom: 15px;
-        }
-
-        .origen-destino-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-        }
-
-        .origen-box, .destino-box {
-            width: 48%;
-            border: 1px solid #000;
-            padding: 10px;
-            min-height: 120px;
-        }
-
-        .origen-header, .destino-header {
-            background-color: #e8f4f8;
-            padding: 5px;
-            margin: -10px -10px 10px -10px;
-            border-bottom: 1px solid #000;
-            font-weight: bold;
-            text-align: center;
-        }
-
-        .origen-header {
-            background-color: #fff2e8;
-        }
-
-        .destino-header {
-            background-color: #e8f8e8;
+        .info-general div {
+            margin-bottom: 2px;
+            line-height: 1.3;
         }
 
         /* TABLA DE MATERIALES */
         .detalles-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 15px;
-            font-size: 8pt;
+            margin-bottom: 12px;
+            font-size: 7.5pt;
         }
         
         .detalles-table th {
             background-color: #d0d0d0;
             border: 1px solid #000;
-            padding: 6px 4px;
+            padding: 5px 3px;
             text-align: center;
             font-weight: bold;
-            font-size: 8pt;
+            line-height: 1.1;
         }
         
         .detalles-table td {
             border: 1px solid #000;
-            padding: 4px 6px;
+            padding: 4px 5px;
             vertical-align: top;
         }
         
         .text-center { text-align: center; }
         .text-left { text-align: left; }
-        .text-right { text-align: right; }
         
-        .col-item { width: 10%; }
+        .col-item { width: 8%; }
         .col-descripcion { width: 60%; }
-        .col-cantidad { width: 15%; }
-        .col-unidad { width: 15%; }
+        .col-cantidad { width: 12%; }
+        .col-unidad { width: 12%; }
 
         /* OBSERVACIONES */
         .observaciones-section {
             border: 1px solid #000;
-            padding: 10px;
-            margin-bottom: 20px;
-            min-height: 60px;
+            padding: 8px;
+            margin-bottom: 15px;
+            min-height: 50px;
+            font-size: 7.5pt;
         }
 
         .observaciones-header {
             font-weight: bold;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             border-bottom: 1px solid #ccc;
-            padding-bottom: 3px;
+            padding-bottom: 2px;
         }
 
         /* SECCIÓN DE FIRMAS */
         .firmas-section {
-            margin-top: 30px;
-            margin-bottom: 20px;
+            margin-top: 20px;
+            margin-bottom: 15px;
             overflow: hidden;
         }
 
         .firma-box {
             float: left;
             width: 33.3%;
-            padding: 10px;
+            padding: 8px;
             text-align: center;
-            height: 80px;
+            height: 70px;
             border-top: 1px solid #000;
         }
 
         .firma-label {
-            font-size: 8pt;
+            font-size: 7.5pt;
             font-weight: bold;
-            margin-top: 50px;
+            margin-top: 45px;
             display: block;
         }
 
@@ -245,26 +217,10 @@ $html = '
             text-align: center;
             font-size: 7pt;
             color: #666;
-            margin-top: 20px;
+            margin-top: 15px;
             border-top: 1px solid #ddd;
-            padding-top: 10px;
+            padding-top: 6px;
         }
-
-        /* UTILIDADES */
-        .field-label {
-            font-weight: bold;
-            display: inline-block;
-            min-width: 120px;
-        }
-
-        .field-value {
-            display: inline-block;
-        }
-
-        .mb-5 { margin-bottom: 5px; }
-        .mb-10 { margin-bottom: 10px; }
-        .mb-15 { margin-bottom: 15px; }
-        .mb-20 { margin-bottom: 20px; }
 
         .clearfix::after {
             content: "";
@@ -301,7 +257,7 @@ $html = '
                 <div>MONTAJES E INGENIERÍA ARCE PERÚ S.A.C.</div>
             </div>
             <div class="header-right">
-                Calle 3, N° 177- Urb la Grimanesa - CALLAO - CALLAO<br>
+                Calle 3, N° 177- Urb la Grimanesa - CALLAO<br>
                 Teléf: 572-3220 ANEXO 11 - 12<br>
                 RUC: 20550259321
             </div>
@@ -309,7 +265,7 @@ $html = '
 
         <!-- CONTENEDOR PARA CUADROS ALINEADOS -->
         <div class="cuadros-container">
-            <!-- ESTADO DE DEVOLUCION -->
+            <!-- ESTADO DE DEVOLUCIÓN -->
             <div class="estado-section">
                 <div class="estado-box">
                     ESTADO:<br>
@@ -318,7 +274,7 @@ $html = '
                 </div>
             </div>
 
-            <!-- TÍTULO DE DEVOLUCION -->
+            <!-- TÍTULO DE DEVOLUCIÓN -->
             <div class="titulo-section">
                 <div class="titulo-devolucion">
                     DEVOLUCIÓN<br>
@@ -327,17 +283,17 @@ $html = '
             </div>
         </div>
 
-        <!-- INFORMACIÓN GENERAL - REORGANIZADA -->
+        <!-- INFORMACIÓN GENERAL -->
         <div class="info-general">
             <div class="info-row">
                 <div class="info-left">
-                    <div><strong>FECHA DE DEVOLUCIÓN:</strong> ' . $fecha_devolucion . '</div>
-                    <div><strong>REGISTRADO POR:</strong> ' .$nom_personal. '</div>
+                    <div><strong>FECHA DEVOLUCIÓN:</strong> ' . $fecha_devolucion . '</div>
+                    <div><strong>REGISTRADO POR:</strong> ' . $nom_personal . '</div>
                 </div>
                 <div class="info-right">
-                    <div><strong>ALMACÉN:</strong> ' .$almacen. '</div>
-                    <div><strong>UBICACIÓN:</strong> ' .$ubicacion. '</div>
-                    <div><strong>CLIENTE DESTINO:</strong> ' .$cliente_destino. '</div>
+                    <div><strong>ALMACÉN:</strong> ' . $almacen . '</div>
+                    <div><strong>UBICACIÓN:</strong> ' . $ubicacion . '</div>
+                    <div><strong>CLIENTE DESTINO:</strong> ' . $cliente_destino . '</div>
                 </div>
             </div>
         </div>
@@ -363,8 +319,6 @@ $html = '
             <div>' . $observaciones . '</div>
         </div>
 
-
-        
         <div class="clearfix"></div>
 
         <!-- FOOTER CON FIRMAS -->
@@ -381,7 +335,7 @@ $html = '
                 </div>
             </div>
 
-            <div style="margin-top:20px; font-size:7pt; color:#666;">
+            <div style="margin-top:15px; font-size:7pt; color:#666;">
                 Fecha ' . $fecha_formateada . '
             </div>
         </div>
