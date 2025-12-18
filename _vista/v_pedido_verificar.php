@@ -62,8 +62,8 @@ $monedas = MostrarMoneda();
                                     <td style="width: 30%;"><?php echo $pedido['nom_producto_tipo']; ?></td>
                                 </tr>
                                 <tr>
-                                    <td style="background-color: #f8f9fa;"><strong>Nombre del Pedido:</strong></td>
-                                    <td><?php echo $pedido['nom_pedido']; ?></td>
+                                    <!--<td style="background-color: #f8f9fa;"><strong>Nombre del Pedido:</strong></td>
+                                    <td><?php echo $pedido['nom_pedido']; ?></td>-->
                                     <td style="background-color: #f8f9fa;"><strong>Fecha del Pedido:</strong></td>
                                     <td><?php echo date('d/m/Y H:i', strtotime($pedido['fec_pedido'])); ?></td>
                                 </tr>

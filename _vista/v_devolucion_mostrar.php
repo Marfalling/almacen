@@ -117,14 +117,6 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_devoluciones');
                                                     <td>
                                                         <div class="d-flex flex-wrap gap-2">
                                                             <!-- Botón Ver Detalle -->
-                                                            <!--<button type="button" 
-                                                                    class="btn btn-info btn-sm" 
-                                                                    data-toggle="modal" 
-                                                                    data-target="#modalDetalleDevolucion<?php echo $devolucion['id_devolucion']; ?>" 
-                                                                    title="Ver Detalle">
-                                                                <i class="fa fa-eye"></i>
-                                                            </button>-->
-
                                                             <span data-toggle="tooltip" title="Ver Detalle">
                                                                 <button type="button" 
                                                                     class="btn btn-info btn-sm" 
@@ -370,13 +362,49 @@ foreach($devoluciones as $devolucion) {
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
-                <form method="get" action="devoluciones_editar.php" style="display:inline;">
-                    <input type="hidden" name="id" value="<?php echo $devolucion['id_devolucion']; ?>">
-                    <button type="submit" class="btn btn-warning text-white"
-                        <?php echo ($devolucion['est_devolucion'] != 1) ? 'disabled' : ''; ?>>
-                            <i class="fa fa-edit"></i> Editar Devolución
-                     </button>
-                </form>
+                
+                <?php 
+                // ============================================
+                // BOTÓN EDITAR EN MODAL - CON VALIDACIÓN DE PERMISOS
+                // ============================================
+                $puede_editar_modal = ($devolucion['est_devolucion'] == 1);
+                $titulo_editar_modal = '';
+                
+                if (!$tiene_permiso_editar) {
+                    $titulo_editar_modal = "No tienes permiso para editar devoluciones";
+                } elseif (!$puede_editar_modal) {
+                    $titulo_editar_modal = "No se puede editar - Devolución ya procesada";
+                } else {
+                    $titulo_editar_modal = "Editar Devolución";
+                }
+                ?>
+                
+                <?php if (!$tiene_permiso_editar) { ?>
+                    <!-- SIN PERMISO -->
+                    <button type="button" 
+                            class="btn btn-outline-secondary disabled"
+                            title="<?php echo $titulo_editar_modal; ?>"
+                            tabindex="-1"
+                            aria-disabled="true">
+                        <i class="fa fa-edit"></i> Editar Devolución
+                    </button>
+                <?php } elseif (!$puede_editar_modal) { ?>
+                    <!-- SIN PERMISO POR ESTADO -->
+                    <button type="button" 
+                            class="btn btn-outline-secondary disabled"
+                            title="<?php echo $titulo_editar_modal; ?>"
+                            tabindex="-1"
+                            aria-disabled="true">
+                        <i class="fa fa-edit"></i> Editar Devolución
+                    </button>
+                <?php } else { ?>
+                    <!-- CON PERMISO Y PUEDE EDITAR -->
+                    <a href="devoluciones_editar.php?id=<?php echo $devolucion['id_devolucion']; ?>" 
+                       class="btn btn-warning text-white"
+                       title="<?php echo $titulo_editar_modal; ?>">
+                        <i class="fa fa-edit"></i> Editar Devolución
+                    </a>
+                <?php } ?>
             </div>
         </div>
     </div>

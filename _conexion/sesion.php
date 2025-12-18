@@ -87,12 +87,14 @@ function verificarAccesoControlador($nombre_controlador) {
         
         // ==================== USO DE MATERIAL ====================
         'uso_material_mostrar' => 'ver_uso de material',
+        'uso_material_ver_todo' => 'ver todo_uso de material',
         'uso_material_nuevo' => 'crear_uso de material',
         'uso_material_editar' => 'editar_uso de material',
         'uso_material_anular' => 'anular_uso de material', 
         
         // ==================== PEDIDOS ====================
         'pedidos_mostrar' => 'ver_pedidos',
+        'pedidos_ver_todo' => 'ver todo_pedidos',
         'pedidos_nuevo' => 'crear_pedidos',
         'pedidos_editar' => 'editar_pedidos',
         'pedidos_anular' => 'anular_pedidos',
@@ -101,19 +103,22 @@ function verificarAccesoControlador($nombre_controlador) {
         
         // ==================== COMPRAS ====================
         'compras_mostrar' => 'ver_compras',
+        'compras_ver_todo' => 'ver todo_compras',
         'compras_nuevo' => 'crear_compras',
         'compras_editar' => 'editar_compras',
         'compras_anular' => 'anular_compras',
         'compras_aprobar' => 'aprobar_compras',
         
-        // ==================== INGRESOS ====================
+        // ==================== INGRESOS  ====================
         'ingresos_mostrar' => 'ver_ingresos',
         'ingresos_nuevo' => 'crear_ingresos',
         'ingresos_editar' => 'editar_ingresos',
-        'ingresos_anular' => 'anular_ingresos',  
+        'ingresos_anular' => 'anular_ingresos',
+        'ingresos_verificar' => 'verificar_ingresos', 
         
         // ==================== SALIDAS ====================
         'salidas_mostrar' => 'ver_salidas',
+        'salidas_ver_todo' => 'ver todo_salidas',
         'salidas_nuevo' => 'crear_salidas',
         'salidas_editar' => 'editar_salidas',
         'salidas_anular' => 'anular_salidas',
@@ -128,6 +133,7 @@ function verificarAccesoControlador($nombre_controlador) {
         
         // ==================== MOVIMIENTOS ====================
         'movimientos_mostrar' => 'ver_movimientos',
+        'movimientos_ver_todo' => 'ver todo_movimientos',
         
         // ==================== ALMACÉN ARCE ====================
         'almacen_arce_mostrar' => 'ver_almacen arce',
@@ -286,7 +292,8 @@ function verificarPermiso($modulo, $accion) {
         'anular_' . $modulo,
         'aprobar_' . $modulo,
         'verificar_' . $modulo,
-        'recepcionar_' . $modulo
+        'recepcionar_' . $modulo,
+        'ver todo_' . $modulo
     ];
     
     foreach ($formatos as $formato) {
@@ -328,53 +335,56 @@ function verificarPermisoConEspacios($permiso_buscado) {
 }
 
 /**
- * Función para verificar si un usuario es Administrador (por ROL, no por ID)
+ * Función CORREGIDA para verificar si un usuario es Administrador (POR ID DE ROL)
  * @param int $id_usuario ID del usuario a verificar
- * @return bool True si es Super Administrador o Administrador
+ * @return bool True si es Super Administrador (id_rol = 1) o Administrador (id_rol = 2)
  */
 function esAdministrador($id_usuario) {
     include("../_conexion/conexion.php");
     
-    $sql = "SELECT r.nom_rol 
+    // CAMBIO CRÍTICO: Ahora verificamos por ID de rol, no por nombre
+    $sql = "SELECT r.id_rol 
             FROM usuario_rol ur
             INNER JOIN rol r ON ur.id_rol = r.id_rol
             WHERE ur.id_usuario = ? 
             AND ur.est_usuario_rol = 1 
-            AND r.est_rol = 1";
+            AND r.est_rol = 1
+            AND r.id_rol IN (1, 2)";  // 1 = Super Admin, 2 = Admin
     
     $stmt = mysqli_prepare($con, $sql);
     mysqli_stmt_bind_param($stmt, "i", $id_usuario);
     mysqli_stmt_execute($stmt);
     $resultado = mysqli_stmt_get_result($stmt);
     
-    $es_admin = false;
-    while ($row = mysqli_fetch_array($resultado)) {
-        $rol = strtolower(trim($row['nom_rol']));
-        // Considerar como administrador: Super Administrador o Administrador
-        if ($rol === 'super administrador' || $rol === 'administrador') {
-            $es_admin = true;
-            break;
-        }
-    }
+    $es_admin = mysqli_num_rows($resultado) > 0;
     
     mysqli_close($con);
     return $es_admin;
 }
 
-// Verificar si el usuario actual es SUPERADMIN
+/**
+ * Función CORREGIDA para verificar si el usuario actual es SUPER ADMINISTRADOR (POR ID)
+ * @param int $id_usuario ID del usuario
+ * @return bool True si el usuario es Super Administrador (id_rol = 1)
+ */
 function esSuperAdmin($id_usuario) {
     include("../_conexion/conexion.php");
     
+    // CAMBIO CRÍTICO: Verificamos por ID de rol = 1
     $sql = "SELECT COUNT(*) as total 
             FROM usuario_rol ur
             INNER JOIN rol r ON ur.id_rol = r.id_rol
-            WHERE ur.id_usuario = $id_usuario 
+            WHERE ur.id_usuario = ? 
             AND ur.est_usuario_rol = 1 
             AND r.est_rol = 1
-            AND r.nom_rol = 'SUPER ADMINISTRADOR'";
+            AND r.id_rol = 1";  // Solo Super Administrador
     
-    $result = mysqli_query($con, $sql);
-    $row = mysqli_fetch_assoc($result);
+    $stmt = mysqli_prepare($con, $sql);
+    mysqli_stmt_bind_param($stmt, "i", $id_usuario);
+    mysqli_stmt_execute($stmt);
+    $resultado = mysqli_stmt_get_result($stmt);
+    $row = mysqli_fetch_assoc($resultado);
+    
     mysqli_close($con);
     
     return $row['total'] > 0;

@@ -1,4 +1,7 @@
 <?php
+//=======================================================================
+// PEDIDOS_MOSTRAR.PHP - CON VER TODO
+//=======================================================================
 require_once("../_conexion/sesion.php");
 
 if (!verificarPermisoEspecifico('ver_pedidos')) {
@@ -27,34 +30,28 @@ require_once("../_modelo/m_centro_costo.php");
 // Filtro de fechas con valores por defecto dinámicos
 // ========================================================================
 if (isset($_GET['fecha_inicio']) && isset($_GET['fecha_fin'])) {
-    // Si el usuario envió fechas, se usan esas
     $fecha_inicio = $_GET['fecha_inicio'];
     $fecha_fin    = $_GET['fecha_fin'];
 } else {
-    // Si no se envían fechas, se calcula automáticamente el rango del mes actual
     $fecha_inicio = date('Y-m-01'); // Primer día del mes actual
     $fecha_fin    = date('Y-m-d');  // Fecha actual
 }
 
 // ========================================================================
-// Determinar alcance de visualización según rol del usuario
-// Admin: Ve todos los pedidos del sistema
-// Usuario: Solo ve sus propios pedidos
+// LÓGICA DE "VER TODO" vs "VER SOLO PROPIOS"
 // ========================================================================
-// Determinar si el usuario es admin
-if (esAdministrador($id)) {
-    $id_personal_filtro = null; // Ve TODOS los registros
+if (verificarPermisoEspecifico('ver todo_pedidos')) {
+    // Tiene permiso "Ver Todo" - Ve TODOS los pedidos del sistema
+    $id_personal_filtro = null;
 } else {
-    $id_personal_filtro = $id_personal_actual; // Solo sus registros
+    // Solo tiene "Ver" básico - Ve únicamente SUS pedidos
+    $id_personal_filtro = $id_personal_actual;
 }
 
-
-// Obtener pedidos
+// Obtener pedidos según el filtro de personal
 $pedidos = MostrarPedidosFecha($fecha_inicio, $fecha_fin, $id_personal_filtro);
 $pedidos_rechazados = ObtenerPedidosConComprasAnuladas();
 $alerta = null;
-
-
 
 if (isset($_GET['success']) && $_GET['success'] === 'completado_auto') {
     $alerta = [
@@ -90,7 +87,6 @@ if (isset($_GET['error']) && $_GET['error'] === 'completado_auto') {
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-
             require_once("../_vista/v_pedidos_mostrar.php");
             require_once("../_vista/v_footer.php");
             ?>
@@ -105,7 +101,6 @@ if (isset($_GET['error']) && $_GET['error'] === 'completado_auto') {
     <?php if (isset($alerta) && !empty($alerta) && !empty($alerta['text'])): ?>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        //  VALIDACIÓN: Solo mostrar si hay contenido real
         const alerta = <?php echo json_encode($alerta, JSON_UNESCAPED_UNICODE); ?>;
         
         if (alerta && alerta.text && alerta.text.trim() !== '') {

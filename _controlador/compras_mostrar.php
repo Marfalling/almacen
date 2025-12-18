@@ -1,6 +1,6 @@
 <?php
 //=======================================================================
-// COMPRAS - VER (compras_mostrar.php)
+// COMPRAS - VER (compras_mostrar.php) - CON VER TODO
 //=======================================================================
 require_once("../_conexion/sesion.php");
 
@@ -8,6 +8,16 @@ if (!verificarPermisoEspecifico('ver_compras')) {
     require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'COMPRAS', 'VER');
     header("location: bienvenido.php?permisos=true");
+    exit;
+}
+
+// Validar sesión de personal
+$id_personal_actual = isset($_SESSION['id_personal']) && !empty($_SESSION['id_personal']) 
+    ? intval($_SESSION['id_personal']) 
+    : 0;
+
+if ($id_personal_actual === 0) {
+    header("location: cerrar_sesion.php");
     exit;
 }
 
@@ -28,8 +38,19 @@ $fecha_fin = isset($_GET['fecha_fin']) && $_GET['fecha_fin'] !== ''
     ? $_GET['fecha_fin']
     : $fecha_actual;
 
-// Obtener compras con el rango seleccionado
-$compras = MostrarComprasFecha($fecha_inicio, $fecha_fin);
+// ========================================================================
+// LÓGICA DE "VER TODO" vs "VER SOLO PROPIOS"
+// ========================================================================
+if (verificarPermisoEspecifico('ver todo_compras')) {
+    // Tiene permiso "Ver Todo" - Ve TODAS las compras del sistema
+    $id_personal_filtro = null;
+} else {
+    // Solo tiene "Ver" básico - Ve únicamente SUS compras
+    $id_personal_filtro = $id_personal_actual;
+}
+
+// Obtener compras con el rango seleccionado y filtro de personal
+$compras = MostrarComprasFecha($fecha_inicio, $fecha_fin, $id_personal_filtro);
 foreach ($compras as $i => $compra) {
     $compras[$i]['id_producto_tipo'] = ObtenerTipoProductoPorCompra($compra['id_compra']);
 }

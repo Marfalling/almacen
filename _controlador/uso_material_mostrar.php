@@ -1,6 +1,6 @@
 <?php
 //=======================================================================
-// uso_material_mostrar.php 
+// uso_material_mostrar.php - CON VER TODO
 //=======================================================================
 require_once("../_conexion/sesion.php");
 
@@ -9,6 +9,16 @@ if (!verificarPermisoEspecifico('ver_uso de material')) {
     require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'USO DE MATERIAL', 'VER');
     header("location: bienvenido.php?permisos=true");
+    exit;
+}
+
+// Validar sesión de personal
+$id_personal_actual = isset($_SESSION['id_personal']) && !empty($_SESSION['id_personal']) 
+    ? intval($_SESSION['id_personal']) 
+    : 0;
+
+if ($id_personal_actual === 0) {
+    header("location: cerrar_sesion.php");
     exit;
 }
 
@@ -23,8 +33,19 @@ $primer_dia_mes = date('Y-m-01');
 $fecha_inicio = isset($_GET['fecha_inicio']) && !empty($_GET['fecha_inicio']) ? $_GET['fecha_inicio'] : $primer_dia_mes;
 $fecha_fin    = isset($_GET['fecha_fin']) && !empty($_GET['fecha_fin']) ? $_GET['fecha_fin'] : $fecha_hoy;
 
-// Obtener datos con filtro
-$usos_material = MostrarUsoMaterial($fecha_inicio, $fecha_fin);
+// ========================================================================
+// LÓGICA DE "VER TODO" vs "VER SOLO PROPIOS"
+// ========================================================================
+if (verificarPermisoEspecifico('ver todo_uso de material')) {
+    // Tiene permiso "Ver Todo" - Ve TODOS los usos de material del sistema
+    $id_personal_filtro = null;
+} else {
+    // Solo tiene "Ver" básico - Ve únicamente SUS usos de material
+    $id_personal_filtro = $id_personal_actual;
+}
+
+// Obtener datos con filtro de personal
+$usos_material = MostrarUsoMaterial($fecha_inicio, $fecha_fin, $id_personal_filtro);
 ?>
 <!DOCTYPE html>
 <html lang="es">

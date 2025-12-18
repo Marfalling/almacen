@@ -74,7 +74,15 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                 }
                 
                 $id_ubicacion = intval($_REQUEST['id_ubicacion']);                
-                $nom_pedido = strtoupper($_REQUEST['nom_pedido']);
+                
+                // Si nom_pedido está vacío o es solo espacios, guardarlo como cadena vacía
+                $nom_pedido = isset($_REQUEST['nom_pedido']) ? trim($_REQUEST['nom_pedido']) : '';
+                if (empty($nom_pedido)) {
+                    $nom_pedido = '';
+                } else {
+                    $nom_pedido = strtoupper($nom_pedido);
+                }
+                
                 $fecha_necesidad = $_REQUEST['fecha_necesidad'];
                 $num_ot = strtoupper($_REQUEST['num_ot']);
                 $contacto = $_REQUEST['contacto'];
@@ -207,9 +215,6 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                     //  CONSTRUIR DESCRIPCIÓN CON CAMBIOS DEL PEDIDO
                     $cambios = [];
                     
-                    if ($nom_pedido_anterior != $nom_pedido) {
-                        $cambios[] = "Nombre: '$nom_pedido_anterior' → '$nom_pedido'";
-                    }
                     
                     if ($fecha_necesidad_anterior != $fecha_necesidad) {
                         $cambios[] = "Fecha: '$fecha_necesidad_anterior' → '$fecha_necesidad'";

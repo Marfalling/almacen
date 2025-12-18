@@ -783,16 +783,24 @@ function MostrarSalidas()
 
 //-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
-function MostrarSalidasFecha($fecha_inicio = null, $fecha_fin = null)
+function MostrarSalidasFecha($fecha_inicio = null, $fecha_fin = null, $id_personal_filtro = null)
 {
     include("../_conexion/conexion.php");
 
+    // Filtro de fechas
     if ($fecha_inicio && $fecha_fin) {
         $fecha_inicio = mysqli_real_escape_string($con, $fecha_inicio);
         $fecha_fin = mysqli_real_escape_string($con, $fecha_fin);
         $whereFecha = "AND DATE(s.fec_salida) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
     } else {
         $whereFecha = "AND DATE(s.fec_salida) = CURDATE()";
+    }
+
+    // Filtro por personal
+    $where_personal = "";
+    if ($id_personal_filtro !== null && $id_personal_filtro > 0) {
+        $id_personal_filtro = intval($id_personal_filtro);
+        $where_personal = " AND s.id_personal = $id_personal_filtro";
     }
 
     $sqlc = "SELECT s.*, 
@@ -821,6 +829,7 @@ function MostrarSalidasFecha($fecha_inicio = null, $fecha_fin = null)
              LEFT JOIN {$bd_complemento}.personal precep ON s.id_personal_recepciona_salida = precep.id_personal
              WHERE 1=1
              $whereFecha
+             $where_personal
              ORDER BY s.fec_salida DESC";
 
     $resc = mysqli_query($con, $sqlc);
@@ -832,7 +841,6 @@ function MostrarSalidasFecha($fecha_inicio = null, $fecha_fin = null)
     }
     
     $resultado = array();
-
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
         $resultado[] = $rowc;
     }

@@ -4,9 +4,10 @@
 //=======================================================================
 
 // ========================================================================
-// VERIFICAR PERMISOS AL INICIO
+// VERIFICAR PERMISOS AL INICIO - ACTUALIZADO CON DIFERENCIACIÓN
 // ========================================================================
-$tiene_permiso_crear = verificarPermisoEspecifico('crear_ingresos');
+$tiene_permiso_crear = verificarPermisoEspecifico('crear_ingresos');      // SOLO INGRESOS DIRECTOS
+$tiene_permiso_verificar = verificarPermisoEspecifico('verificar_ingresos'); // SOLO VERIFICAR DESDE COMPRAS
 $tiene_permiso_editar = verificarPermisoEspecifico('editar_ingresos');
 $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
 ?>
@@ -20,12 +21,12 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
             <div class="title_right">
                 <div class="pull-right">
                     <!-- ============================================ -->
-                    <!-- BOTÓN NUEVO INGRESO DIRECTO -->
+                    <!-- BOTÓN NUEVO INGRESO DIRECTO - USA PERMISO CREAR -->
                     <!-- ============================================ -->
                     <?php if (!$tiene_permiso_crear) { ?>
                         <a href="#" 
                            class="btn btn-outline-secondary btn-sm btn-block disabled"
-                           title="No tienes permiso para crear ingresos"
+                           title="No tienes permiso para crear ingresos directos"
                            tabindex="-1" 
                            aria-disabled="true">
                             <i class="fa fa-plus"></i> Nuevo Ingreso Directo
@@ -278,7 +279,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                             </td>
                                                              -->
                                                             
-                                                            <!-- COLUMNA: ACCIONES -  LÓGICA CORREGIDA -->
+                                                            <!-- COLUMNA: ACCIONES - ACTUALIZADO CON PERMISO VERIFICAR -->
                                                             <td>
                                                                 <div class="d-flex flex-wrap gap-2">
                                                                     <?php if ($tipo == 'COMPRA') { 
@@ -286,12 +287,12 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                     ?>
                                                                         <?php
                                                                         // ============================================
-                                                                        // BOTÓN VERIFICAR INGRESO
+                                                                        // BOTÓN VERIFICAR INGRESO - USA PERMISO VERIFICAR
                                                                         // ============================================
-                                                                        if (!$tiene_permiso_editar) { ?>
+                                                                        if (!$tiene_permiso_verificar) { ?>
                                                                             <a href="#" 
                                                                                class="btn btn-outline-secondary btn-sm disabled"
-                                                                               title="No tienes permiso para editar ingresos"
+                                                                               title="No tienes permiso para verificar ingresos"
                                                                                tabindex="-1" 
                                                                                aria-disabled="true">
                                                                                 <i class="fa fa-check"></i>
@@ -299,7 +300,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                         <?php } elseif ($est_compra == 0) { ?>
                                                                             <a href="#" 
                                                                                class="btn btn-outline-secondary btn-sm disabled"
-                                                                               title="No se puede editar - Ingreso anulado"
+                                                                               title="No se puede verificar - Ingreso anulado"
                                                                                tabindex="-1" 
                                                                                aria-disabled="true">
                                                                                 <i class="fa fa-check"></i>
@@ -481,12 +482,12 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                 <div class="d-flex flex-wrap gap-2"> 
                                                                     <?php
                                                                     // ============================================
-                                                                    // BOTÓN VERIFICAR INGRESO
+                                                                    // BOTÓN VERIFICAR INGRESO - USA PERMISO VERIFICAR
                                                                     // ============================================
-                                                                    if (!$tiene_permiso_editar) { ?>
+                                                                    if (!$tiene_permiso_verificar) { ?>
                                                                         <a href="#" 
                                                                            class="btn btn-outline-secondary btn-sm disabled"
-                                                                           title="No tienes permiso para editar ingresos"
+                                                                           title="No tienes permiso para verificar ingresos"
                                                                            tabindex="-1" 
                                                                            aria-disabled="true">
                                                                             <i class="fa fa-check"></i>
@@ -494,7 +495,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                     <?php } elseif ($est_compra == 0) { ?>
                                                                         <a href="#" 
                                                                            class="btn btn-outline-secondary btn-sm disabled"
-                                                                           title="No se puede editar - Ingreso anulado"
+                                                                           title="No se puede verificar - Ingreso anulado"
                                                                            tabindex="-1" 
                                                                            aria-disabled="true">
                                                                             <i class="fa fa-check"></i>
@@ -743,12 +744,12 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                     ?>
                                                                         <?php
                                                                         // ============================================
-                                                                        // BOTÓN VERIFICAR INGRESO
+                                                                        // BOTÓN VERIFICAR INGRESO - USA PERMISO VERIFICAR
                                                                         // ============================================
-                                                                        if (!$tiene_permiso_editar) { ?>
+                                                                        if (!$tiene_permiso_verificar) { ?>
                                                                             <a href="#" 
                                                                                class="btn btn-outline-secondary btn-sm disabled"
-                                                                               title="No tienes permiso para editar ingresos"
+                                                                               title="No tienes permiso para verificar ingresos"
                                                                                tabindex="-1" 
                                                                                aria-disabled="true">
                                                                                 <i class="fa fa-check"></i>
@@ -756,7 +757,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_ingresos');
                                                                         <?php } elseif ($est_compra == 0) { ?>
                                                                             <a href="#" 
                                                                                class="btn btn-outline-secondary btn-sm disabled"
-                                                                               title="No se puede editar - Ingreso anulado"
+                                                                               title="No se puede verificar - Ingreso anulado"
                                                                                tabindex="-1" 
                                                                                aria-disabled="true">
                                                                                 <i class="fa fa-check"></i>

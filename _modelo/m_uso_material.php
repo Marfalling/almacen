@@ -1,14 +1,21 @@
 <?php
-function MostrarUsoMaterial($fecha_inicio = null, $fecha_fin = null) 
+function MostrarUsoMaterial($fecha_inicio = null, $fecha_fin = null, $id_personal_filtro = null) 
 {
     include("../_conexion/conexion.php");
 
     $where = "WHERE usm.est_uso_material <> 99";
+    
+    // Filtro de fechas
     if ($fecha_inicio && $fecha_fin) {
         $where .= " AND DATE(usm.fec_uso_material) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
     } else {
-        // por defecto, solo fecha actual
         $where .= " AND DATE(usm.fec_uso_material) = CURDATE()";
+    }
+    
+    // Filtro por personal
+    if ($id_personal_filtro !== null && $id_personal_filtro > 0) {
+        $id_personal_filtro = intval($id_personal_filtro);
+        $where .= " AND usm.id_personal = $id_personal_filtro";
     }
     
     $sql = "SELECT usm.*, 
@@ -28,9 +35,15 @@ function MostrarUsoMaterial($fecha_inicio = null, $fecha_fin = null)
             $where
             ORDER BY usm.fec_uso_material DESC";
     
-    $resc = mysqli_query($con, $sql) or die("Error en consulta: " . mysqli_error($con));
-    $resultado = array();
+    $resc = mysqli_query($con, $sql);
     
+    if (!$resc) {
+        error_log("❌ Error en MostrarUsoMaterial: " . mysqli_error($con));
+        mysqli_close($con);
+        return array();
+    }
+    
+    $resultado = array();
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
         $resultado[] = $rowc;
     }

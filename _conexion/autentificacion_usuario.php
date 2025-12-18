@@ -132,6 +132,9 @@ function obtenerPermisosUsuario($id_usuario) {
                 if($accion == 'ver') {
                     $permisos_formateados[0]['ver_uso de material'] = 1;
                 }
+                if($accion == 'ver todo') {
+                    $permisos_formateados[0]['ver todo_uso de material'] = 1;
+                }
                 if($accion == 'anular') {  
                     $permisos_formateados[0]['anular_uso de material'] = 1;
                 }
@@ -148,6 +151,9 @@ function obtenerPermisosUsuario($id_usuario) {
                 }
                 if($accion == 'ver') {
                     $permisos_formateados[0]['ver_pedidos'] = 1;
+                }
+                if($accion == 'ver todo') {
+                    $permisos_formateados[0]['ver todo_pedidos'] = 1;
                 }
                 if($accion == 'anular') {
                     $permisos_formateados[0]['anular_pedidos'] = 1;
@@ -172,6 +178,9 @@ function obtenerPermisosUsuario($id_usuario) {
                 if($accion == 'ver') {
                     $permisos_formateados[0]['ver_compras'] = 1;
                 }
+                if($accion == 'ver todo') {
+                    $permisos_formateados[0]['ver todo_compras'] = 1;
+                }
                 if($accion == 'anular') {
                     $permisos_formateados[0]['anular_compras'] = 1;
                 }
@@ -180,6 +189,7 @@ function obtenerPermisosUsuario($id_usuario) {
                 }
                 break;
 
+            // ********** INGRESOS - ACTUALIZADO CON VERIFICAR **********
             case 'ingresos':
                 if($accion == 'crear') {
                     $permisos_formateados[0]['crear_ingresos'] = 1;
@@ -195,6 +205,10 @@ function obtenerPermisosUsuario($id_usuario) {
                 if($accion == 'anular') {  
                     $permisos_formateados[0]['anular_ingresos'] = 1;
                 }
+                // *** VERIFICAR INGRESOS ***
+                if($accion == 'verificar') {
+                    $permisos_formateados[0]['verificar_ingresos'] = 1;
+                }
                 break;
 
             case 'salidas':
@@ -208,6 +222,9 @@ function obtenerPermisosUsuario($id_usuario) {
                 }
                 if($accion == 'ver') {
                     $permisos_formateados[0]['ver_salidas'] = 1;
+                }
+                if($accion == 'ver todo') {
+                    $permisos_formateados[0]['ver todo_salidas'] = 1;
                 }
                 if($accion == 'anular') {
                     $permisos_formateados[0]['anular_salidas'] = 1;
@@ -240,6 +257,9 @@ function obtenerPermisosUsuario($id_usuario) {
             case 'movimientos':
                 if($accion == 'ver') {
                     $permisos_formateados[0]['ver_movimientos'] = 1;
+                }
+                if($accion == 'ver todo') {
+                    $permisos_formateados[0]['ver todo_movimientos'] = 1;
                 }
                 if ($accion == 'crear') {
                     $permisos_formateados[0]['crear_movimientos'] = 1;
@@ -578,18 +598,6 @@ function obtenerPermisosUsuario($id_usuario) {
             case 'auditoria':
                 if($accion == 'ver') {
                     $permisos_formateados[0]['ver_auditoria'] = 1;
-                }
-                break;
-            case 'movimientos':
-                if ($accion == 'crear') {
-                    $permisos_formateados[0]['crear_movimientos'] = 1;
-                }
-                if ($accion == 'editar') {
-                    $permisos_formateados[0]['editar_movimientos'] = 1;
-                    $permisos_formateados[0]['edi_movimientos'] = 1; // compatibilidad
-                }
-                if ($accion == 'ver') {
-                    $permisos_formateados[0]['ver_movimientos'] = 1;
                 }
                 break;
         }

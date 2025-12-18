@@ -1,6 +1,6 @@
 <?php
 //=======================================================================
-// SALIDAS - VER (salidas_mostrar.php)
+// SALIDAS - VER (salidas_mostrar.php) - CON VER TODO
 //=======================================================================
 require_once("../_conexion/sesion.php");
 
@@ -8,6 +8,16 @@ if (!verificarPermisoEspecifico('ver_salidas')) {
     require_once("../_modelo/m_auditoria.php");
     GrabarAuditoria($id, $usuario_sesion, 'ERROR DE ACCESO', 'SALIDAS', 'VER');
     header("location: bienvenido.php?permisos=true");
+    exit;
+}
+
+// Validar sesión de personal
+$id_personal_actual = isset($_SESSION['id_personal']) && !empty($_SESSION['id_personal']) 
+    ? intval($_SESSION['id_personal']) 
+    : 0;
+
+if ($id_personal_actual === 0) {
+    header("location: cerrar_sesion.php");
     exit;
 }
 
@@ -21,13 +31,23 @@ if (isset($_GET['fecha_inicio']) && isset($_GET['fecha_fin'])) {
     $fecha_inicio = $_GET['fecha_inicio'];
     $fecha_fin    = $_GET['fecha_fin'];
 } else {
-    // Si no hay filtro, mostrar desde el primer día del mes hasta hoy
     $fecha_inicio = date('Y-m-01');
     $fecha_fin    = date('Y-m-d');
 }
 
-// Obtener salidas según filtro de fechas
-$salidas = MostrarSalidasFecha($fecha_inicio, $fecha_fin);
+// ========================================================================
+// LÓGICA DE "VER TODO" vs "VER SOLO PROPIOS"
+// ========================================================================
+if (verificarPermisoEspecifico('ver todo_salidas')) {
+    // Tiene permiso "Ver Todo" - Ve TODAS las salidas del sistema
+    $id_personal_filtro = null;
+} else {
+    // Solo tiene "Ver" básico - Ve únicamente SUS salidas
+    $id_personal_filtro = $id_personal_actual;
+}
+
+// Obtener salidas según el filtro de personal
+$salidas = MostrarSalidasFecha($fecha_inicio, $fecha_fin, $id_personal_filtro);
 ?>
 
 <!DOCTYPE html>
@@ -48,7 +68,6 @@ $salidas = MostrarSalidasFecha($fecha_inicio, $fecha_fin);
             <?php
             require_once("../_vista/v_menu.php");
             require_once("../_vista/v_menu_user.php");
-
             require_once("../_vista/v_salidas_mostrar.php");
             require_once("../_vista/v_footer.php");
             ?>

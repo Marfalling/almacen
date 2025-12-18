@@ -15,7 +15,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_pedidos');
 <script>
 function AprobarPedidoTecnica(id_pedido) {
     Swal.fire({
-        title: '¿Deseas aprobar técnicamente este pedido?',
+        title: '¿Deseas aprobar este pedido?',
         text: "Esta acción no se puede deshacer.",
         icon: 'question',
         showCancelButton: true,
@@ -124,13 +124,13 @@ function AprobarPedidoTecnica(id_pedido) {
                                                 <th>#</th>
                                                 <th>Código Pedido</th>
                                                 <th>Tipo Pedido</th>
-                                                <th>Nombre Pedido</th>
+                                                <!-- <th>Nombre Pedido</th> -->
                                                 <th>Almacén</th>
                                                 <th>Ubicación</th>
                                                 <th>Solicitante</th>
                                                 <th>Fecha Pedido</th>
                                                 <th>Fecha Necesidad</th>
-                                                <th>Aprob. Técnica Por</th>
+                                                <th>Aprobado Por</th>
                                                 <th>Estado</th>
                                                 <th>Acciones</th>
                                             </tr>
@@ -146,7 +146,7 @@ function AprobarPedidoTecnica(id_pedido) {
                                                     <td><?php echo $contador; ?></td>
                                                     <td><?php echo $pedido['cod_pedido']; ?></td>
                                                     <td><?php echo $pedido['nom_producto_tipo']; ?></td>
-                                                    <td><?php echo $pedido['nom_pedido']; ?></td>
+                                                    <!--<td><?php echo $pedido['nom_pedido']; ?></td> -->
                                                     <td><?php echo $pedido['nom_almacen']; ?></td>
                                                     <td><?php echo $pedido['nom_ubicacion']; ?></td>
                                                     <td><?php echo $pedido['nom_personal']; ?></td>
@@ -220,7 +220,7 @@ function AprobarPedidoTecnica(id_pedido) {
                                                                 // SIN PERMISO - Botón rojo outline danger
                                                                 ?>
                                                                 <span data-toggle="tooltip" data-placement="top"
-                                                                    title="No tienes permiso para aprobar técnicamente pedidos">
+                                                                    title="No tienes permiso para aprobar pedidos">
                                                                     <a href="#"
                                                                     class="btn btn-outline-secondary btn-sm disabled"
                                                                     tabindex="-1" aria-disabled="true">
@@ -230,7 +230,7 @@ function AprobarPedidoTecnica(id_pedido) {
                                                             <?php } elseif ($tiene_tecnica) { ?>
                                                                 <!-- YA APROBADO - Gris por proceso -->
                                                                 <span data-toggle="tooltip" data-placement="top"
-                                                                    title="Ya aprobado técnicamente">
+                                                                    title="Ya aprobado">
                                                                     <a href="#"
                                                                     class="btn btn-outline-secondary btn-sm disabled"
                                                                     tabindex="-1" aria-disabled="true">
@@ -244,7 +244,7 @@ function AprobarPedidoTecnica(id_pedido) {
                                                                 class="btn btn-success btn-sm"
                                                                 data-toggle="tooltip"
                                                                 data-placement="top"
-                                                                title="Aprobar Técnicamente">
+                                                                title="Aprobar">
                                                                     <i class="fa fa-check"></i>
                                                                 </a>
                                                             <?php } ?>
@@ -274,7 +274,7 @@ function AprobarPedidoTecnica(id_pedido) {
                                                             } elseif ($pedido['est_pedido'] == 2) {
                                                                 $titulo_editar = "No se puede editar - Pedido completado (órdenes en proceso)";
                                                             } elseif ($tiene_tecnica) {
-                                                                $titulo_editar = "No se puede editar - Pedido aprobado técnicamente";
+                                                                $titulo_editar = "No se puede editar - Pedido aprobado ";
                                                             } else {
                                                                 $puede_editar_proceso = true;
                                                             }
@@ -340,7 +340,7 @@ function AprobarPedidoTecnica(id_pedido) {
                                                                         <i class="fa fa-check"></i>
                                                                     </a>
                                                                 <?php } else { ?>
-                                                                    <span data-toggle="tooltip" title="Requiere aprobación técnica">
+                                                                    <span data-toggle="tooltip" title="Requiere aprobación">
                                                                         <a href="#" 
                                                                         class="btn btn-outline-secondary btn-sm disabled"
                                                                         tabindex="-1" aria-disabled="true">
@@ -530,8 +530,8 @@ foreach($pedidos as $pedido) {
                                 <td><?php echo $pedido_info['nom_producto_tipo']; ?></td>
                             </tr>
                             <tr>
-                                <td><strong>Nombre del Pedido:</strong></td>
-                                <td><?php echo $pedido_info['nom_pedido']; ?></td>
+                                <!--<td><strong>Nombre del Pedido:</strong></td>
+                                <td><?php echo $pedido_info['nom_pedido']; ?></td>-->
                                 <td><strong>Fecha del Pedido:</strong></td>
                                 <td><?php echo date('d/m/Y H:i', strtotime($pedido_info['fec_pedido'])); ?></td>
                             </tr>
@@ -779,7 +779,7 @@ foreach($pedidos as $pedido) {
                     $titulo_editar_modal = "No se puede editar - Pedido completado (órdenes en proceso)";
                 } elseif ($tiene_tecnica) {
                     $puede_editar_modal = false;
-                    $titulo_editar_modal = "No se puede editar - Pedido aprobado técnicamente";
+                    $titulo_editar_modal = "No se puede editar - Pedido aprobado";
                 }
                 
                 if (!$tiene_permiso_editar) { ?>

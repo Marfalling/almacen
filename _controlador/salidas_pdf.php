@@ -93,31 +93,31 @@ $estado_bg = '';
 switch($salida['est_salida']) {
     case 0:
         $estado_texto = 'ANULADA';
-        $estado_color = '#dc3545'; // Rojo
+        $estado_color = '#dc3545';
         $estado_bg = '#f8d7da';
         break;
     
     case 1:
         $estado_texto = 'PENDIENTE';
-        $estado_color = '#ffc107'; // Amarillo
+        $estado_color = '#ffc107';
         $estado_bg = '#fff3cd';
         break;
     
     case 2:
         $estado_texto = 'RECEPCIONADA';
-        $estado_color = '#17a2b8'; // Azul
+        $estado_color = '#17a2b8';
         $estado_bg = '#d1ecf1';
         break;
     
     case 3:
         $estado_texto = 'APROBADA';
-        $estado_color = '#28a745'; // Verde
+        $estado_color = '#28a745';
         $estado_bg = '#d4edda';
         break;
     
     case 4:
         $estado_texto = 'DENEGADA';
-        $estado_color = '#6c757d'; // Gris oscuro
+        $estado_color = '#6c757d';
         $estado_bg = '#d6d8db';
         break;
     
@@ -127,17 +127,31 @@ switch($salida['est_salida']) {
         $estado_bg = '#e2e3e5';
 }
 
-
-// Preparar detalles de la salida
+// 🔹 PREPARAR DETALLES DE LA SALIDA CON NOMBRE DE PRODUCTO Y UNIDAD
 $detalles_html = '';
 $item = 1;
 
 foreach ($salida_detalle as $detalle) {
-    $descripcion = htmlspecialchars($detalle['prod_salida_detalle'], ENT_QUOTES, 'UTF-8');
+    //  LÓGICA PARA OBTENER EL NOMBRE DEL PRODUCTO (igual que en v_salidas_editar.php)
+    $nombre_producto = '';
+    if (!empty($detalle['nom_producto'])) {
+        $nombre_producto = $detalle['nom_producto'];
+    } elseif (!empty($detalle['prod_salida_detalle'])) {
+        $nombre_producto = $detalle['prod_salida_detalle'];
+    } else {
+        $nombre_producto = 'Producto ID ' . ($detalle['id_producto'] ?? 'N/A');
+    }
+    
+    $descripcion = htmlspecialchars($nombre_producto, ENT_QUOTES, 'UTF-8');
     $cantidad = number_format($detalle['cant_salida_detalle'], 2);
     
-    // Unidad de medida
-    $unidad = isset($detalle['nom_unidad_medida']) ? htmlspecialchars($detalle['nom_unidad_medida'], ENT_QUOTES, 'UTF-8') : 'UND';
+    //  UNIDAD DE MEDIDA con mejor manejo de datos
+    $unidad = 'UND'; // Valor por defecto
+    if (!empty($detalle['nom_unidad_medida'])) {
+        $unidad = htmlspecialchars($detalle['nom_unidad_medida'], ENT_QUOTES, 'UTF-8');
+    } elseif (!empty($detalle['abr_unidad_medida'])) {
+        $unidad = htmlspecialchars($detalle['abr_unidad_medida'], ENT_QUOTES, 'UTF-8');
+    }
     
     $detalles_html .= '
     <tr>
@@ -150,7 +164,7 @@ foreach ($salida_detalle as $detalle) {
     $item++;
 }
 
-// Si no hay detalles, agregar una fila vacía para evitar tabla vacía
+// Si no hay detalles, agregar una fila vacía
 if (empty($detalles_html)) {
     $detalles_html = '
     <tr>

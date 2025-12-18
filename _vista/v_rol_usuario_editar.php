@@ -15,24 +15,34 @@ foreach ($modulos_acciones as $ma) {
     }
 }
 
-// Ordenar las acciones según el ID
-$orden_acciones = array();
+// ORDEN ESPECÍFICO DE ACCIONES (Ver y Ver Todo juntos)
+$orden_deseado = [
+    'Ver' => 1,
+    'Ver Todo' => 9,
+    'Crear' => 2,
+    'Editar' => 3,
+    'Importar' => 4,
+    'Anular' => 5,
+    'Aprobar' => 6,
+    'Verificar' => 7,
+    'Recepcionar' => 8
+];
 
-// Obtener las acciones con sus IDs para ordenarlas correctamente
+// Obtener todas las acciones disponibles
+$acciones_temp = array();
 foreach ($modulos_acciones as $ma) {
-    if (!isset($orden_acciones[$ma['nom_accion']])) {
-        $orden_acciones[$ma['nom_accion']] = $ma['id_accion'];
+    if (!in_array($ma['nom_accion'], $acciones_temp)) {
+        $acciones_temp[] = $ma['nom_accion'];
     }
 }
 
-// Ordenar por ID de acción
-uasort($orden_acciones, function($a, $b) {
-    return $a - $b;
-});
-
-// Crear array ordenado de acciones
-$acciones_disponibles = array_keys($orden_acciones);
-
+// Ordenar según el orden deseado
+$acciones_disponibles = array();
+foreach ($orden_deseado as $accion => $id) {
+    if (in_array($accion, $acciones_temp)) {
+        $acciones_disponibles[] = $accion;
+    }
+}
 // Mostrar mensaje de error si viene sin permisos
 if (isset($_GET['sin_permisos'])) {
     echo '<script>alert("Debe seleccionar al menos un permiso para el rol");</script>';

@@ -1,7 +1,13 @@
 <?php
 //=======================================================================
-// VISTA: v_ingresos_detalle.php - CORREGIDO
+// VISTA: v_ingresos_detalle.php - CORREGIDO CON VALIDACIÓN DE PERMISOS
 //=======================================================================
+
+// ========================================================================
+// VERIFICAR PERMISOS AL INICIO
+// ========================================================================
+$tiene_permiso_verificar = verificarPermisoEspecifico('verificar_ingresos');
+
 // Detectar si es servicio
 $esServicio = isset($detalle_ingreso['compra']['id_producto_tipo']) && $detalle_ingreso['compra']['id_producto_tipo'] == 2;
 
@@ -128,12 +134,6 @@ $TIT_INGRESADA = $esServicio ? "Validada"     : "Ingresada";
                                                 <td><strong>Registrado Por:</strong></td>
                                                 <td><?php echo $detalle_ingreso['compra']['registrado_por'] ?? 'No especificado'; ?></td>
                                             </tr>
-                                            <!--<tr>
-                                                <td><strong>Aprobación Técnica Por:</strong></td>
-                                                <td>
-                                                    <?php echo $detalle_ingreso['compra']['aprobado_tecnica_por'] ?? 'Pendiente'; ?>
-                                                </td>
-                                            </tr> -->
                                             <tr>
                                                 <td><strong>Aprobación Financiera Por:</strong></td>
                                                 <td>
@@ -324,19 +324,6 @@ $TIT_INGRESADA = $esServicio ? "Validada"     : "Ingresada";
                                                                 title="Ver documento">
                                                                     <i class="fa fa-eye"></i> Ver
                                                                 </a>
-                                                                <!--a href="../uploads/ingresos/<?php echo $doc['documento']; ?>" 
-                                                                download 
-                                                                class="btn btn-success btn-sm" 
-                                                                title="Descargar">
-                                                                    <i class="fa fa-download"></i> Descargar
-                                                                </a>
-                                                                <?php if ($detalle_ingreso['compra']['est_compra'] != 0) { ?>
-                                                                    <button class="btn btn-danger btn-sm" 
-                                                                            onclick="EliminarDocumentoIngreso(<?php echo $doc['id_doc']; ?>)"
-                                                                            title="Eliminar documento">
-                                                                        <i class="fa fa-trash"></i-->
-                                                                    </button>
-                                                                <?php } ?>
                                                             </td>
                                                         </tr>
                                                         <?php } ?>
@@ -373,19 +360,60 @@ $TIT_INGRESADA = $esServicio ? "Validada"     : "Ingresada";
                                         }
                                     }
                                     
-                                    //  Mostrar botón solo si la orden NO está anulada Y hay productos pendientes
-                                    if ($detalle_ingreso['compra']['est_compra'] != 0 && $hay_pendientes) { 
-                                    ?>
-                                        <a href="ingresos_verificar.php?id_compra=<?php echo $detalle_ingreso['compra']['id_compra']; ?>" 
-                                        class="btn btn-info">
-                                            <i class="fa fa-eye"></i> Verificar Orden
-                                        </a>
-                                    <?php } elseif (!$hay_pendientes && $detalle_ingreso['compra']['est_compra'] != 0) { ?>
+                                    // ============================================
+                                    // VALIDACIÓN COMPLETA: PERMISO + ESTADO + PENDIENTES
+                                    // ============================================
+                                    $puede_verificar = false;
+                                    $titulo_verificar = '';
+                                    
+                                    if (!$tiene_permiso_verificar) {
+                                        $titulo_verificar = "No tienes permiso para verificar ingresos";
+                                    } elseif ($detalle_ingreso['compra']['est_compra'] == 0) {
+                                        $titulo_verificar = "No se puede verificar - Ingreso anulado";
+                                    } elseif (!$hay_pendientes) {
+                                        $titulo_verificar = "Sin productos pendientes por ingresar";
+                                    } else {
+                                        $puede_verificar = true;
+                                        $titulo_verificar = "Verificar ingreso";
+                                    }
+                                    
+                                    // Mostrar botón según validación
+                                    if (!$tiene_permiso_verificar) { ?>
+                                        <!-- SIN PERMISO -->
+                                        <span data-toggle="tooltip" title="<?php echo $titulo_verificar; ?>" data-placement="top">
+                                            <a href="#"
+                                               class="btn btn-outline-secondary disabled"
+                                               tabindex="-1" 
+                                               aria-disabled="true">
+                                                <i class="fa fa-eye"></i> Verificar Orden
+                                            </a>
+                                        </span>
+                                    <?php } elseif ($detalle_ingreso['compra']['est_compra'] == 0) { ?>
+                                        <!-- ORDEN ANULADA -->
+                                        <span data-toggle="tooltip" title="<?php echo $titulo_verificar; ?>" data-placement="top">
+                                            <a href="#"
+                                               class="btn btn-outline-secondary disabled"
+                                               tabindex="-1" 
+                                               aria-disabled="true">
+                                                <i class="fa fa-eye"></i> Verificar Orden
+                                            </a>
+                                        </span>
+                                    <?php } elseif (!$hay_pendientes) { ?>
+                                        <!-- INGRESO COMPLETO -->
                                         <span class="btn btn-success disabled">
                                             <i class="fa fa-check-circle"></i> 
                                             <?= $esServicio ? 'Validación Completa' : 'Ingreso Completo' ?>
                                         </span>
+                                    <?php } else { ?>
+                                        <!-- PUEDE VERIFICAR -->
+                                        <a href="ingresos_verificar.php?id_compra=<?php echo $detalle_ingreso['compra']['id_compra']; ?>" 
+                                           class="btn btn-info"
+                                           data-toggle="tooltip"
+                                           title="<?php echo $titulo_verificar; ?>">
+                                            <i class="fa fa-eye"></i> Verificar Orden
+                                        </a>
                                     <?php } ?>
+                                    
                                     <button type="button" class="btn btn-primary" onclick="window.print()">
                                         <i class="fa fa-print"></i> Imprimir Detalle
                                     </button>

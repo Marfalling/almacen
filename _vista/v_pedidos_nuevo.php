@@ -105,10 +105,10 @@
                                 </div>
                             </div>
 
-                            <div class="form-group row">
+                            <div class="form-group row" style="display: none;">
                                 <label class="control-label col-md-3 col-sm-3">Nombre del Pedido:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="nom_pedido" class="form-control" placeholder="Nombre del Pedido">
+                                    <input type="text" name="nom_pedido" class="form-control" placeholder="Nombre del Pedido" value="">
                                 </div>
                             </div>
 
@@ -551,6 +551,9 @@
         </div>
     </div>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
 // ============================================

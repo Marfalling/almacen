@@ -64,7 +64,15 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                 $id_almacen = intval($_REQUEST['id_obra']);
                 $id_ubicacion = intval($_REQUEST['id_ubicacion']);
                 $id_centro_costo = intval($_REQUEST['id_centro_costo']);
-                $nom_pedido = strtoupper($_REQUEST['nom_pedido']);
+                
+                // CAMBIO: Si nom_pedido está vacío o es solo espacios, guardarlo como cadena vacía
+                $nom_pedido = isset($_REQUEST['nom_pedido']) ? trim($_REQUEST['nom_pedido']) : '';
+                if (empty($nom_pedido)) {
+                    $nom_pedido = '';
+                } else {
+                    $nom_pedido = strtoupper($nom_pedido);
+                }
+                
                 $solicitante = strtoupper($_REQUEST['solicitante']);
                 $fecha_necesidad = $_REQUEST['fecha_necesidad'];
                 $num_ot = strtoupper($_REQUEST['num_ot']);
@@ -198,7 +206,8 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
 
                 if ($rpta == "SI") {
                     //  AUDITORÍA: REGISTRO EXITOSO
-                    $descripcion = "Nombre: '$nom_pedido' | Solicitante: '$solicitante' | OT: '$num_ot' | Fecha: '$fecha_necesidad' | " . count($materiales) . " materiales";
+                    // Ya no usamos nom_pedido en auditoría
+                    $descripcion = "Solicitante: '$solicitante' | OT: '$num_ot' | Fecha: '$fecha_necesidad' | " . count($materiales) . " materiales";
                     GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'PEDIDOS', $descripcion);
             ?>
                     <script Language="JavaScript">
@@ -208,7 +217,7 @@ if (!verificarPermisoEspecifico('crear_pedidos')) {
                     exit;
                 } else {
                     //  AUDITORÍA: ERROR
-                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'PEDIDOS', "Nombre: '$nom_pedido' - Error: $rpta");
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'PEDIDOS', "Error: $rpta");
                 ?>
                     <script Language="JavaScript">
                         alert('Error al registrar el pedido: <?php echo addslashes($rpta); ?>');

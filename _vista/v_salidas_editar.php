@@ -140,6 +140,66 @@ function eliminarDocumento(idDoc) {
 
                             <div class="ln_solid"></div>
 
+                            <!-- 🔹 SECCIÓN DOCUMENTOS ADJUNTOS - MOVIDA AQUÍ -->
+                            <div class="x_title">
+                                <h4><i class="fa fa-paperclip text-info"></i> Documentos Adjuntos</h4>
+                                <div class="clearfix"></div>
+                            </div>
+
+                            <div class="form-group row">
+                                <div class="col-md-12">
+                                    <?php if (!empty($documentos)) { ?>
+                                        <table class="table table-bordered table-striped">
+                                            <thead class="thead-dark">
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Nombre del Archivo</th>
+                                                    <th>Fecha de Subida</th>
+                                                    <th>Acciones</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php 
+                                                $i = 1;
+                                                foreach ($documentos as $doc) { 
+                                                    $url_archivo = "../uploads/" . $doc['entidad'] . "/" . $doc['documento'];
+                                                ?>
+                                                    <tr id="doc-row-<?php echo $doc['id_doc']; ?>">
+                                                        <td><?php echo $i++; ?></td>
+                                                        <td><?php echo htmlspecialchars($doc['documento']); ?></td>
+                                                        <td><?php echo date('d/m/Y H:i', strtotime($doc['fec_subida'])); ?></td>
+                                                        <td>
+                                                            <a href="<?php echo $url_archivo; ?>" class="btn btn-sm btn-info" target="_blank" title="Ver o Descargar">
+                                                                <i class="fa fa-eye"></i> Ver
+                                                            </a>
+                                                            <button type="button" 
+                                                                    class="btn btn-sm btn-danger" 
+                                                                    title="Eliminar Documento"
+                                                                    onclick="eliminarDocumento(<?php echo $doc['id_doc']; ?>)">
+                                                                <i class="fa fa-trash"></i> Eliminar
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                <?php } ?>
+                                            </tbody>
+                                        </table>
+                                    <?php } else { ?>
+                                        <div class="alert alert-info">
+                                            <i class="fa fa-info-circle"></i> No hay documentos adjuntos para esta salida.
+                                        </div>
+                                    <?php } ?>
+                                </div>
+                            </div>
+
+                            <!-- 🔹 SUBIR NUEVOS DOCUMENTOS (OPCIONAL) -->
+                            <div class="form-group">
+                                <label>Subir Documentos Adicionales (Opcional)</label>
+                                <input type="file" name="documento[]" id="documento" class="form-control" multiple>
+                                <small class="text-muted">Puede adjuntar nuevos documentos si lo desea</small>
+                            </div>
+
+                            <div class="ln_solid"></div>
+
                             <!-- Sección dividida en dos columnas: ORIGEN y DESTINO -->
                             <div class="row">
                                 <!-- COLUMNA IZQUIERDA - ORIGEN -->
@@ -330,76 +390,15 @@ function eliminarDocumento(idDoc) {
 
                             <div class="ln_solid"></div>
 
-                            <!-- 🔹 SECCIÓN DOCUMENTOS ADJUNTOS -->
-                            <div class="x_title">
-                                <h4><i class="fa fa-paperclip text-info"></i> Documentos Adjuntos</h4>
-                                <div class="clearfix"></div>
-                            </div>
-
-                            <div class="form-group row">
-                                <div class="col-md-12">
-                                    <?php 
-
-                                    if (!empty($documentos)) { ?>
-                                        <table class="table table-bordered table-striped">
-                                            <thead class="thead-dark">
-                                                <tr>
-                                                    <th>#</th>
-                                                    <th>Nombre del Archivo</th>
-                                                    <th>Fecha de Subida</th>
-                                                    <th>Acciones</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php 
-                                                $i = 1;
-                                                foreach ($documentos as $doc) { 
-                                                    $url_archivo = "../uploads/" . $doc['entidad'] . "/" . $doc['documento'];
-                                                ?>
-                                                    <tr id="doc-row-<?php echo $doc['id_doc']; ?>">
-                                                        <td><?php echo $i++; ?></td>
-                                                        <td><?php echo htmlspecialchars($doc['documento']); ?></td>
-                                                        <td><?php echo date('d/m/Y H:i', strtotime($doc['fec_subida'])); ?></td>
-                                                        <td>
-                                                            <a href="<?php echo $url_archivo; ?>" class="btn btn-sm btn-info" target="_blank" title="Ver o Descargar">
-                                                                <i class="fa fa-eye"></i> Ver
-                                                            </a>
-                                                            <button type="button" 
-                                                                    class="btn btn-sm btn-danger" 
-                                                                    title="Eliminar Documento"
-                                                                    onclick="eliminarDocumento(<?php echo $doc['id_doc']; ?>)">
-                                                                <i class="fa fa-trash"></i> Eliminar
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                <?php } ?>
-                                            </tbody>
-                                        </table>
-                                    <?php } else { ?>
-                                        <div class="alert alert-info">
-                                            <i class="fa fa-info-circle"></i> No hay documentos adjuntos para esta salida.
-                                        </div>
-                                    <?php } ?>
-                                </div>
-                            </div>
-
-                            <!-- 🔹 SUBIR NUEVOS DOCUMENTOS (OPCIONAL) -->
-                            <div class="form-group">
-                                <label>Subir Documentos Adicionales (Opcional)</label>
-                                <input type="file" name="documento[]" id="documento" class="form-control" multiple>
-                                <small class="text-muted">Puede adjuntar nuevos documentos si lo desea</small>
-                            </div>
-
-                            <div class="ln_solid"></div>
-
+                            <!-- BOTONES -->
                             <div class="form-group row">
                                 <div class="col-md-12">
                                     <div class="row justify-content-center">
                                         <div class="col-md-3">
                                             <a href="salidas_mostrar.php" class="btn btn-outline-secondary btn-block">
                                                 <i class="fa fa-times"></i> Cancelar
-                                    </a>
-                                </div>
+                                            </a>
+                                        </div>
                                         <div class="col-md-3">
                                             <button type="submit" name="actualizar" id="btn_actualizar" class="btn btn-success btn-block">
                                                 <i class="fa fa-save"></i> Actualizar Salida
@@ -423,7 +422,7 @@ function eliminarDocumento(idDoc) {
     </div>
 </div>
 <!-- /page content -->
-
+ 
 <!-- Modal para buscar productos  -->
 <div class="modal fade" id="buscar_producto" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
     <div class="modal-dialog modal-xl" role="document">

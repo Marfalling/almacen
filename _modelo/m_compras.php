@@ -32,15 +32,23 @@ function MostrarCompras()
     return $resultado;
 }
 
-function MostrarComprasFecha($fecha_inicio = null, $fecha_fin = null)
+function MostrarComprasFecha($fecha_inicio = null, $fecha_fin = null, $id_personal_filtro = null)
 {
     include("../_conexion/conexion.php");
 
     $where = "";
+    
+    // Filtro de fechas
     if ($fecha_inicio && $fecha_fin) {
         $where = "WHERE DATE(c.fecha_reg_compra) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
     } else {
         $where = "WHERE DATE(c.fecha_reg_compra) = CURDATE()";
+    }
+    
+    // Filtro por personal
+    if ($id_personal_filtro !== null && $id_personal_filtro > 0) {
+        $id_personal_filtro = intval($id_personal_filtro);
+        $where .= " AND c.id_personal = $id_personal_filtro";
     }
 
     $sql = "SELECT 
@@ -59,7 +67,13 @@ function MostrarComprasFecha($fecha_inicio = null, $fecha_fin = null)
             $where
             ORDER BY c.id_compra DESC";
 
-    $resc = mysqli_query($con, $sql) or die("Error en consulta: " . mysqli_error($con));
+    $resc = mysqli_query($con, $sql);
+    
+    if (!$resc) {
+        error_log("❌ Error en MostrarComprasFecha: " . mysqli_error($con));
+        mysqli_close($con);
+        return array();
+    }
 
     $resultado = [];
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
@@ -446,7 +460,7 @@ function AnularPedido($id_pedido, $id_personal)
     return $res_update;
 }
 
-function ObtenerComprasProximasVencer($dias_anticipacion = 3)
+function ObtenerComprasProximasVencer($dias_anticipacion = 15)
 {
     include("../_conexion/conexion.php");
     
@@ -479,7 +493,11 @@ function ObtenerComprasProximasVencer($dias_anticipacion = 3)
             WHERE c.est_compra IN (1, 2, 3)
             AND c.plaz_compra IS NOT NULL 
             AND c.plaz_compra >= 1
-            AND DATEDIFF(DATE_ADD(c.fec_compra, INTERVAL c.plaz_compra DAY), CURDATE()) BETWEEN 0 AND $dias_anticipacion
+            AND (
+                DATEDIFF(DATE_ADD(c.fec_compra, INTERVAL c.plaz_compra DAY), CURDATE()) < 0
+                OR 
+                DATEDIFF(DATE_ADD(c.fec_compra, INTERVAL c.plaz_compra DAY), CURDATE()) BETWEEN 0 AND $dias_anticipacion
+            )
             HAVING (total_compra - monto_pagado) > 0
             ORDER BY fecha_vencimiento ASC";
     
