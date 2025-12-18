@@ -58,16 +58,18 @@ function MostrarClientes()
 }
 
 //-----------------------------------------------------------------------
+//-----------------------------------------------------------------------
 function MostrarClientesActivos()
 {
     include("../_conexion/conexion.php");
 
     $resultado = array();
 
-    // Clientes activos de la base complementaria
+    // Clientes activos de la base complementaria (excluyendo ARCE)
     $sql_comp = "SELECT id_cliente, nom_cliente, 'Inspecciones' as origen 
                  FROM {$bd_complemento}.cliente 
                  WHERE act_cliente = 1 
+                 AND id_cliente != {$id_cliente_arce}
                  ORDER BY nom_cliente ASC";
     $res_comp = mysqli_query($con, $sql_comp);
     
