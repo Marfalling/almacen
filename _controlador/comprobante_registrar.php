@@ -376,6 +376,98 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
 }
 
 // ====================================================================
+// 4. SUBIR ARCHIVOS FALTANTES (PDF/XML)
+// ====================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'subir_archivos_faltantes') {
+    
+    header('Content-Type: application/json');
+    
+    $id_comprobante = intval($_POST['id_comprobante']);
+    
+    if ($id_comprobante <= 0) {
+        echo json_encode(['success' => false, 'message' => 'ID de comprobante no válido']);
+        exit;
+    }
+    
+    $comprobante_actual = ConsultarComprobante($id_comprobante);
+    
+    if (!$comprobante_actual) {
+        echo json_encode(['success' => false, 'message' => 'Comprobante no encontrado']);
+        exit;
+    }
+    
+    if ($comprobante_actual['est_comprobante'] != 1) {
+        echo json_encode(['success' => false, 'message' => 'Solo se pueden subir archivos a comprobantes en estado PENDIENTE']);
+        exit;
+    }
+    
+    $archivo_pdf = $comprobante_actual['archivo_pdf'];
+    $archivo_xml = $comprobante_actual['archivo_xml'];
+    $archivos_subidos = [];
+    $error_archivo = false;
+    $mensaje_error = '';
+    
+    if (!empty($_FILES['archivo_pdf']['name'])) {
+        $resultado_pdf = procesarArchivo($_FILES['archivo_pdf'], 'pdf');
+        if ($resultado_pdf['error']) {
+            $error_archivo = true;
+            $mensaje_error = 'Error en PDF: ' . $resultado_pdf['mensaje'];
+        } else {
+            if ($archivo_pdf && file_exists("../_upload/comprobantes/" . $archivo_pdf)) {
+                unlink("../_upload/comprobantes/" . $archivo_pdf);
+            }
+            $archivo_pdf = $resultado_pdf['ruta'];
+            $archivos_subidos[] = 'PDF';
+        }
+    }
+    
+    if (!$error_archivo && !empty($_FILES['archivo_xml']['name'])) {
+        $resultado_xml = procesarArchivo($_FILES['archivo_xml'], 'xml');
+        if ($resultado_xml['error']) {
+            $error_archivo = true;
+            $mensaje_error = 'Error en XML: ' . $resultado_xml['mensaje'];
+        } else {
+            if ($archivo_xml && file_exists("../_upload/comprobantes/" . $archivo_xml)) {
+                unlink("../_upload/comprobantes/" . $archivo_xml);
+            }
+            $archivo_xml = $resultado_xml['ruta'];
+            $archivos_subidos[] = 'XML';
+        }
+    }
+    
+    if ($error_archivo) {
+        echo json_encode(['success' => false, 'message' => $mensaje_error]);
+        exit;
+    }
+    
+    if (empty($archivos_subidos)) {
+        echo json_encode(['success' => false, 'message' => 'No se seleccionó ningún archivo']);
+        exit;
+    }
+    
+    $resultado = ActualizarArchivosComprobante($id_comprobante, $archivo_pdf, $archivo_xml);
+    
+    if ($resultado === "SI") {
+        $archivos_texto = implode(', ', $archivos_subidos);
+        GrabarAuditoria($id, $usuario_sesion, 'SUBIR ARCHIVOS', 'COMPROBANTES', 
+            "ID: $id_comprobante | Archivos: $archivos_texto");
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Archivos subidos correctamente: ' . implode(', ', $archivos_subidos)
+        ]);
+    } else {
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL SUBIR ARCHIVOS', 'COMPROBANTES', 
+            "ID: $id_comprobante | Error: $resultado");
+        
+        echo json_encode(['success' => false, 'message' => 'Error al actualizar: ' . $resultado]);
+    }
+    
+    exit;
+}
+
+
+// ====================================================================
 // FUNCIÓN PARA PROCESAR ARCHIVOS
 // ====================================================================
 function procesarArchivo($archivo, $tipo) {

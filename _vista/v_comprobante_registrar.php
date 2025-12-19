@@ -639,17 +639,17 @@ require_once("../_modelo/m_detraccion.php");
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Archivo PDF <span class="text-danger">*</span></label>
-                            <input type="file" name="archivo_pdf" class="form-control" accept=".pdf" required>
-                            <small class="form-text text-muted">Máximo 5MB</small>
+                            <label>Archivo PDF <small class="text-muted">(Opcional)</small></label>
+                            <input type="file" name="archivo_pdf" class="form-control" accept=".pdf">
+                            <small class="form-text text-muted">Máximo 5MB - Puedes subirlo después</small>
                         </div>
                     </div>
-                    
+
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Archivo XML <span class="text-danger">*</span> </label>
-                            <input type="file" name="archivo_xml" class="form-control" accept=".xml" required>
-                            <small class="form-text text-muted">Máximo 5MB</small>
+                            <label>Archivo XML <small class="text-muted">(Opcional)</small></label>
+                            <input type="file" name="archivo_xml" class="form-control" accept=".xml">
+                            <small class="form-text text-muted">Máximo 5MB - Puedes subirlo después</small>
                         </div>
                     </div>
                 </div>
@@ -1553,7 +1553,7 @@ function VerDetalleComprobante(id_comprobante) {
                 }
             }
             
-            //  Mostrar "-" cuando es null o vacío
+            // Mostrar "-" cuando es null o vacío
             let cuentaDeposito = (data.nro_cuenta_proveedor && data.nro_cuenta_proveedor.trim() !== '') 
                 ? data.nro_cuenta_proveedor 
                 : '-';
@@ -1571,6 +1571,26 @@ function VerDetalleComprobante(id_comprobante) {
                     <tr><th>Detracción:</th><td>${data.simbolo_moneda} ${subtotal.toFixed(2)}</td></tr>
                     <tr style="background-color: #d4edda;"><th>TOTAL:</th><td><strong>${data.simbolo_moneda} ${parseFloat(data.total_pagar).toFixed(2)}</strong></td></tr>
                 </table>
+            `;
+            
+            //  NUEVA SECCIÓN: VERIFICAR SI FALTAN ARCHIVOS
+            let faltaPDF = !data.archivo_pdf || data.archivo_pdf === '';
+            let faltaXML = !data.archivo_xml || data.archivo_xml === '';
+            
+            if ((faltaPDF || faltaXML) && data.est_comprobante == 1) {
+                html += `
+                    <div class="alert alert-warning" style="margin-top:15px;">
+                        <strong><i class="fa fa-exclamation-triangle"></i> Archivos pendientes:</strong><br>
+                        ${faltaPDF ? '• PDF no subido<br>' : ''}
+                        ${faltaXML ? '• XML no subido<br>' : ''}
+                        <button class="btn btn-sm btn-primary mt-2" onclick="abrirModalSubirArchivos(${id_comprobante})">
+                            <i class="fa fa-upload"></i> Subir archivos faltantes
+                        </button>
+                    </div>
+                `;
+            }
+            
+            html += `
                 <div style="background-color: #f8f9fa; padding: 12px; border-radius: 5px; margin-top: 15px;">
                     <div style="display: flex; align-items: center;">
                         <strong style="margin: 0; min-width: 35%; flex-shrink: 0;">
@@ -1582,7 +1602,7 @@ function VerDetalleComprobante(id_comprobante) {
                                 '<span class="badge badge-secondary">Sin PDF</span>'}
                             ${data.archivo_xml ? 
                                 '<a href="../_upload/comprobantes/' + data.archivo_xml + '" target="_blank" class="btn btn-sm btn-info" style="margin-right: 8px;"><i class="fa fa-file-code-o"></i> XML</a>' : 
-                                ''}
+                                '<span class="badge badge-secondary">Sin XML</span>'}
                             ${data.voucher_proveedor ? 
                                 '<a href="../_upload/vouchers/' + data.voucher_proveedor + '" target="_blank" class="btn btn-sm btn-success"><i class="fa fa-check-circle"></i> Pago Comprobante</a>' : 
                                 ''}
@@ -2119,7 +2139,89 @@ function mostrarResultadoFinal(exitosos, errores) {
         });
     }
 }
+function abrirModalSubirArchivos(id_comprobante) {
+    Swal.fire({
+        title: 'Subir archivos del comprobante',
+        html: `
+            <div style="text-align:left;">
+                <div class="form-group">
+                    <label>Archivo PDF:</label>
+                    <input type="file" id="archivo_pdf_faltante" class="form-control" accept=".pdf">
+                </div>
+                <div class="form-group">
+                    <label>Archivo XML:</label>
+                    <input type="file" id="archivo_xml_faltante" class="form-control" accept=".xml">
+                </div>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa fa-upload"></i> Subir',
+        cancelButtonText: 'Cancelar',
+        preConfirm: () => {
+            const pdf = document.getElementById('archivo_pdf_faltante').files[0];
+            const xml = document.getElementById('archivo_xml_faltante').files[0];
+            
+            if (!pdf && !xml) {
+                Swal.showValidationMessage('Debes seleccionar al menos un archivo');
+                return false;
+            }
+            
+            return { pdf, xml };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            subirArchivosFaltantes(id_comprobante, result.value);
+        }
+    });
+}
 
+function subirArchivosFaltantes(id_comprobante, archivos) {
+    const formData = new FormData();
+    formData.append('accion', 'subir_archivos_faltantes');
+    formData.append('id_comprobante', id_comprobante);
+    
+    if (archivos.pdf) {
+        formData.append('archivo_pdf', archivos.pdf);
+    }
+    if (archivos.xml) {
+        formData.append('archivo_xml', archivos.xml);
+    }
+    
+    Swal.fire({
+        title: 'Subiendo archivos...',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    $.ajax({
+        url: 'comprobante_registrar.php?id_compra=<?php echo $id_compra; ?>',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        dataType: 'json',
+        success: function(response) {
+            Swal.close();
+            if (response.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Archivos subidos!',
+                    text: response.message
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                Swal.fire('Error', response.message, 'error');
+            }
+        },
+        error: function() {
+            Swal.close();
+            Swal.fire('Error', 'No se pudo subir los archivos', 'error');
+        }
+    });
+}
 // ============================================================
 // 5️⃣ FUNCIONES DE VALIDACIÓN DE VOUCHER INDIVIDUAL
 // ============================================================

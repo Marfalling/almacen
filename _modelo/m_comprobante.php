@@ -1725,4 +1725,31 @@ function ObtenerTotalComprobantesRegistrados($id_compra) {
     return floatval($row['total_registrado']);
 }
 
+function ActualizarArchivosComprobante($id_comprobante, $archivo_pdf, $archivo_xml) {
+    include("../_conexion/conexion.php");
+    
+    $id_comprobante = intval($id_comprobante);
+    
+    $sql = "UPDATE comprobante 
+            SET archivo_pdf = " . ($archivo_pdf ? "'" . mysqli_real_escape_string($con, $archivo_pdf) . "'" : "NULL") . ",
+                archivo_xml = " . ($archivo_xml ? "'" . mysqli_real_escape_string($con, $archivo_xml) . "'" : "NULL") . "
+            WHERE id_comprobante = $id_comprobante
+            AND est_comprobante = 1";
+    
+    $res = mysqli_query($con, $sql);
+    
+    if (!$res) {
+        $error = mysqli_error($con);
+        mysqli_close($con);
+        return "ERROR: $error";
+    }
+    
+    if (mysqli_affected_rows($con) > 0) {
+        mysqli_close($con);
+        return "SI";
+    } else {
+        mysqli_close($con);
+        return "NO - No se actualizó ningún registro. Verifique que el comprobante esté en estado PENDIENTE.";
+    }
+}
 ?>
