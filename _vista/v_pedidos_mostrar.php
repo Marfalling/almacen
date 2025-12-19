@@ -63,29 +63,46 @@ function AprobarPedidoTecnica(id_pedido) {
                 <div class="x_panel">
                     <div class="x_title">
                         <div class="row">
-                            <div class="col-sm-10">
+                            <div class="col-sm-8">
                                 <h2>Listado de Pedidos<small></small></h2>
                                 <div class="clearfix"></div>
                             </div>
-                            <div class="col-sm-2">
-                                <!-- ============================================ -->
-                                <!-- BOTÓN NUEVO PEDIDO -->
-                                <!-- ============================================ -->
-                                <?php if (!$tiene_permiso_crear) { ?>
-                                    <a href="#" 
-                                       class="btn btn-outline-secondary btn-sm btn-block disabled"
-                                       title="No tienes permiso para crear pedidos"
-                                       tabindex="-1" 
-                                       aria-disabled="true">
-                                        <i class="fa fa-plus"></i> Nuevo Pedido
-                                    </a>
-                                <?php } else { ?>
-                                    <a href="pedidos_nuevo.php" 
-                                       class="btn btn-outline-info btn-sm btn-block"
-                                       title="Crear nuevo pedido">
-                                        <i class="fa fa-plus"></i> Nuevo Pedido
-                                    </a>
-                                <?php } ?>
+                            <div class="col-sm-4">
+                                <div class="row">
+                                    <!-- BOTÓN EXCEL REPORTE -->
+                                    <div class="col-sm-6">
+                                        <a href="generar_excel_pedidos.php<?php 
+                                            // Mantener filtros de fecha si existen
+                                            $params = array();
+                                            if (!empty($fecha_inicio)) $params[] = 'fecha_inicio=' . $fecha_inicio;
+                                            if (!empty($fecha_fin)) $params[] = 'fecha_fin=' . $fecha_fin;
+                                            if (!empty($id_personal_filtro)) $params[] = 'id_personal=' . $id_personal_filtro;
+                                            echo !empty($params) ? '?' . implode('&', $params) : '';
+                                        ?>" 
+                                        class="btn btn-success btn-sm btn-block">
+                                            <i class="fa fa-file-excel-o"></i> Excel Reporte
+                                        </a>
+                                    </div>
+                                    
+                                    <!-- BOTÓN NUEVO PEDIDO -->
+                                    <div class="col-sm-6">
+                                        <?php if (!$tiene_permiso_crear) { ?>
+                                            <a href="#" 
+                                            class="btn btn-outline-secondary btn-sm btn-block disabled"
+                                            title="No tienes permiso para crear pedidos"
+                                            tabindex="-1" 
+                                            aria-disabled="true">
+                                            <i class="fa fa-plus"></i> Nuevo Pedido
+                                            </a>
+                                        <?php } else { ?>
+                                            <a href="pedidos_nuevo.php" 
+                                            class="btn btn-outline-info btn-sm btn-block"
+                                            title="Crear nuevo pedido">
+                                            <i class="fa fa-plus"></i> Nuevo Pedido
+                                            </a>
+                                        <?php } ?>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
