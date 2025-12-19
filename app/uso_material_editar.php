@@ -1,7 +1,12 @@
 <?php
 require_once("_modelo/m_uso_material.php");
+require_once("_modelo/m_usuario.php");
 
 header('Content-Type: application/json; charset=utf-8');
+
+error_log("═══════════════════════════════════════════");
+error_log("📝 uso_material_editar.php - Nueva petición");
+error_log("📦 POST data: " . print_r($_POST, true));
 
 try {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -19,6 +24,29 @@ try {
     $id_solicitante = isset($_POST['id_solicitante']) ? intval($_POST['id_solicitante']) : 0;
     $id_personal = isset($_POST['id_personal']) ? intval($_POST['id_personal']) : 0;
     $materiales_json = isset($_POST['materiales']) ? $_POST['materiales'] : '';
+
+    if ($id_personal <= 0) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Usuario no válido'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    // Obtener permisos del usuario
+    $permisos = obtenerPermisosUsuario($id_personal);
+    
+    // SOLO VERIFICAR PERMISO DE EDITAR
+    if (!isset($permisos['editar_uso_de_material']) || !$permisos['editar_uso_de_material']) {
+        // Acceso denegado
+        GrabarAuditoriaApp($id_personal, '', 'ERROR DE ACCESO', 'USO_MATERIAL', 'EDITAR - APP MÓVIL');
+        
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'No tienes permisos para editar uso de material'
+        ], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
 
     // Validar parámetros obligatorios
     if ($id_uso_material <= 0) {
@@ -93,12 +121,20 @@ try {
 
     // Llamar función para editar
     $resultado = ActualizarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id_solicitante, $id_personal, $materiales);
+
+    if (isset($resultado['status']) && $resultado['status'] === 'success') {
+        $descripcion = "APP MÓVIL - ID: $id_uso_material | Almacén: $id_almacen | Ubicación: $id_ubicacion | Materiales: " . count($materiales);
+        GrabarAuditoriaApp($id_personal, '', 'EDITAR', 'USO_MATERIAL', $descripcion);
+    }
     
     // Devolver resultado
     echo json_encode($resultado, JSON_UNESCAPED_UNICODE);
+    error_log("═══════════════════════════════════════════");
 
 } catch (Exception $e) {
-    error_log("❌ Error en uso_material_editar.php: " . $e->getMessage());
+    error_log("❌ Error en uso_material_editar.php: " + $e->getMessage());
+    error_log("═══════════════════════════════════════════");
+    
     echo json_encode([
         'status' => 'error',
         'message' => 'Error interno del servidor'

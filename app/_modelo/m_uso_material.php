@@ -127,7 +127,7 @@ function GrabarUsoMaterialConArchivos($id_almacen, $id_ubicacion, $id_solicitant
     mysqli_autocommit($con, false);
 
     try {
-        // ✅ Validar stocks (igual que antes)
+        // Validar stocks (igual que antes)
         foreach ($materiales as $material) {
             $id_producto = intval($material['id_producto']);
             $cantidad = floatval($material['cantidad']);
@@ -161,13 +161,13 @@ function GrabarUsoMaterialConArchivos($id_almacen, $id_ubicacion, $id_solicitant
             }
         }
         
-        // ✅ Generar ID
+        // Generar ID
         $sql_max_id = "SELECT COALESCE(MAX(id_uso_material), 0) + 1 as next_id FROM uso_material";
         $result_id = mysqli_query($con, $sql_max_id);
         $row_id = mysqli_fetch_assoc($result_id);
         $id_uso_material = $row_id['next_id'];
 
-        // ✅ Insertar uso de material principal
+        // Insertar uso de material principal
         $sql = "INSERT INTO uso_material (
                     id_uso_material, id_almacen, id_ubicacion, id_personal, 
                     id_solicitante, fec_uso_material, est_uso_material
@@ -180,7 +180,7 @@ function GrabarUsoMaterialConArchivos($id_almacen, $id_ubicacion, $id_solicitant
             throw new Exception('Error al insertar uso de material: ' . mysqli_error($con));
         }
 
-        // ✅ Insertar detalles y procesar archivos
+        // Insertar detalles y procesar archivos
         foreach ($materiales as $index => $material) {
             $id_producto = intval($material['id_producto']);
             $cantidad = floatval($material['cantidad']);
@@ -201,7 +201,7 @@ function GrabarUsoMaterialConArchivos($id_almacen, $id_ubicacion, $id_solicitant
             
             $id_detalle = mysqli_insert_id($con);
             
-            // ✅ Procesar archivos para este material
+            // Procesar archivos para este material
             if (isset($archivos_por_material[$index]) && !empty($archivos_por_material[$index])) {
                 $directorio = "../_archivos/uso_material/";
                 
@@ -222,16 +222,16 @@ function GrabarUsoMaterialConArchivos($id_almacen, $id_ubicacion, $id_solicitant
                                         ) VALUES ($id_detalle, '$nuevo_nombre', 1)";
                             
                             if (!mysqli_query($con, $sql_doc)) {
-                                error_log("⚠️ Error al guardar documento: " . mysqli_error($con));
+                                error_log("Error al guardar documento: " . mysqli_error($con));
                             } else {
-                                error_log("✅ Documento guardado: $nuevo_nombre");
+                                error_log("Documento guardado: $nuevo_nombre");
                             }
                         }
                     }
                 }
             }
             
-            // ✅ Registrar movimiento
+            // Registrar movimiento
             $sql_movimiento = "INSERT INTO movimiento (
                                 id_personal, id_orden, id_producto, id_almacen, 
                                 id_ubicacion, tipo_orden, tipo_movimiento, 
@@ -267,14 +267,14 @@ function GrabarUsoMaterialConArchivos($id_almacen, $id_ubicacion, $id_solicitant
     }
 }
 
-function MostrarUsoMaterial($id_usuario, $filtro = null) 
+function MostrarUsoMaterial($id_usuario = null, $filtro = null) 
 {
     include("../_conexion/conexion.php");
 
-    $where = "WHERE usm.est_uso_material <> 99";
+    $where = "WHERE usm.est_uso_material <> 0";
     
-    // Filtro por usuario si es necesario
-    if (!empty($id_usuario)) {
+    // Filtro por usuario (null = ver todos)
+    if ($id_usuario !== null && !empty($id_usuario)) {
         $where .= " AND usm.id_personal = '$id_usuario'";
     }
     
@@ -286,6 +286,7 @@ function MostrarUsoMaterial($id_usuario, $filtro = null)
                     OR per2.nom_personal LIKE '%$filtro%')";
     }
     
+    // SQL
     $sql = "SELECT usm.*, 
                 alm.nom_almacen, 
                 o.nom_subestacion as nom_obra,
@@ -299,8 +300,8 @@ function MostrarUsoMaterial($id_usuario, $filtro = null)
             LEFT JOIN {$bd_complemento}.subestacion o ON alm.id_obra = o.id_subestacion
             LEFT JOIN {$bd_complemento}.cliente c ON alm.id_cliente = c.id_cliente 
             LEFT JOIN ubicacion u ON usm.id_ubicacion = u.id_ubicacion 
-            LEFT JOIN {$bd_complemento}.personal per1 ON usm.id_personal = per1.id_personal     -- quien registra
-            LEFT JOIN {$bd_complemento}.personal per2 ON usm.id_solicitante = per2.id_personal -- solicitante
+            LEFT JOIN {$bd_complemento}.personal per1 ON usm.id_personal = per1.id_personal
+            LEFT JOIN {$bd_complemento}.personal per2 ON usm.id_solicitante = per2.id_personal
             $where
             ORDER BY usm.fec_uso_material DESC";
     
@@ -337,12 +338,10 @@ function ConsultarDocumentosDetalle($id_uso_material_detalle)
     return $documentos;
 }
 
-// ✅ NUEVA FUNCIÓN: Eliminar documento
 function EliminarDocumento($id_documento)
 {
     include("../_conexion/conexion.php");
     
-    // Obtener nombre del archivo antes de eliminar
     $sql_get = "SELECT nom_uso_material_detalle_documento 
                 FROM uso_material_detalle_documento 
                 WHERE id_uso_material_detalle_documento = $id_documento";
@@ -353,7 +352,6 @@ function EliminarDocumento($id_documento)
         $nombre_archivo = $row['nom_uso_material_detalle_documento'];
         $ruta_archivo = "../_archivos/uso_material/" . $nombre_archivo;
         
-        // Eliminar archivo físico
         if (file_exists($ruta_archivo)) {
             unlink($ruta_archivo);
         }
@@ -399,7 +397,6 @@ function ConsultarUsoMaterialDetalle($id_uso_material)
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
         $id_detalle = $rowc['id_uso_material_detalle'];
         
-        // ✅ OBTENER DOCUMENTOS
         $documentos = ConsultarDocumentosDetalle($id_detalle);
         
         $resultado[] = array(
@@ -411,7 +408,7 @@ function ConsultarUsoMaterialDetalle($id_uso_material)
             "obs_uso_material_detalle" => $rowc['obs_uso_material_detalle'] ?: '',
             "nom_unidad_medida" => $rowc['nom_unidad_medida'] ?: 'UND',
             "est_uso_material_detalle" => $rowc['est_uso_material_detalle'],
-            "documentos" => $documentos // ✅ NUEVO
+            "documentos" => $documentos
         );
     }
     
@@ -545,7 +542,7 @@ function ConsultarUsoMaterialCompleto($id_uso_material)
         while ($row_detalle = mysqli_fetch_array($resc_detalle, MYSQLI_ASSOC)) {
             $id_detalle = $row_detalle['id_uso_material_detalle'];
             
-            // ✅ OBTENER DOCUMENTOS
+            // OBTENER DOCUMENTOS
             $documentos = ConsultarDocumentosDetalle($id_detalle);
             
             $materiales[] = array(
@@ -557,7 +554,7 @@ function ConsultarUsoMaterialCompleto($id_uso_material)
                 "obs_uso_material_detalle" => $row_detalle['obs_uso_material_detalle'] ?: '',
                 "nom_unidad_medida" => $row_detalle['nom_unidad_medida'] ?: 'UND',
                 "est_uso_material_detalle" => intval($row_detalle['est_uso_material_detalle']),
-                "documentos" => $documentos // ✅ NUEVO
+                "documentos" => $documentos
             );
         }
         
@@ -580,7 +577,6 @@ function ActualizarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id
     error_log("   - ID Personal: $id_personal");
     error_log("   - Materiales: " . print_r($materiales, true));
     
-    // ✅ Validar que $materiales sea un array
     if (!is_array($materiales)) {
         error_log("❌ ERROR: \$materiales no es un array: " . gettype($materiales));
         return [
@@ -589,7 +585,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id
         ];
     }
     
-    // ✅ Obtener datos actuales del uso de material
+    // Obtener datos actuales del uso de material
     $sql_actual = "SELECT id_almacen, id_personal, id_ubicacion as ubicacion_anterior 
                    FROM uso_material 
                    WHERE id_uso_material = $id_uso_material";
@@ -615,7 +611,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id
         ];
     }
     
-    // ✅ USAR el id_almacen de la base de datos (NO cambiar almacén)
+    // USAR el id_almacen
     $id_almacen_bd = $row_actual['id_almacen'];
     $id_personal_bd = $row_actual['id_personal'];
     $ubicacion_anterior = $row_actual['ubicacion_anterior'];
@@ -624,11 +620,10 @@ function ActualizarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id
     error_log("   - Personal BD: $id_personal_bd");
     error_log("   - Ubicación anterior: $ubicacion_anterior");
 
-    // ✅ Iniciar transacción
     mysqli_autocommit($con, false);
 
     try {
-        // Actualizar uso de material principal (solo ubicación y solicitante)
+        // Actualizar uso de material principal 
         $sql = "UPDATE uso_material SET 
                 id_almacen = $id_almacen,
                 id_ubicacion = $id_ubicacion,
@@ -641,7 +636,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id
             throw new Exception('Error al actualizar uso de material: ' . mysqli_error($con));
         }
         
-        // ✅ Desactivar TODOS los movimientos anteriores
+        // Desactivar TODOS los movimientos anteriores
         $sql_desactivar_movimientos = "UPDATE movimiento SET est_movimiento = 0 
                                       WHERE id_orden = $id_uso_material 
                                       AND tipo_orden = 4 
@@ -653,7 +648,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id
             throw new Exception('Error al desactivar movimientos anteriores: ' . mysqli_error($con));
         }
         
-        // ✅ Obtener todos los detalles existentes
+        // Obtener todos los detalles existentes
         $sql_existentes = "SELECT id_uso_material_detalle, id_producto, cant_uso_material_detalle
                           FROM uso_material_detalle 
                           WHERE id_uso_material = $id_uso_material 
@@ -667,7 +662,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id
         
         error_log("📦 Detalles existentes en BD: " . count($detalles_existentes));
         
-        // ✅ Procesar cada material de la lista final
+        // Procesar cada material de la lista final
         $detalles_procesados = array();
         
         foreach ($materiales as $index => $material) {
@@ -683,7 +678,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id
             error_log("   - Observaciones: $observaciones");
             error_log("   - ID Detalle: $id_detalle");
             
-            // ✅ Verificar stock disponible (usando el almacén de la BD)
+            // Verificar stock disponible (usando el almacén de la BD)
             $sql_stock = "SELECT COALESCE(SUM(CASE
                             WHEN mov.tipo_movimiento = 1 AND mov.est_movimiento != 0 THEN
                                 CASE
@@ -710,7 +705,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id
                 throw new Exception("Stock insuficiente para el producto ID: $id_producto. Stock disponible: " . number_format($stock_actual, 2) . ", Cantidad solicitada: " . number_format($cantidad, 2));
             }
             
-            // ✅ Decidir si ACTUALIZAR o INSERTAR
+            // Decidir si ACTUALIZAR o INSERTAR
             if ($id_detalle > 0 && isset($detalles_existentes[$id_detalle])) {
                 // ACTUALIZAR detalle existente
                 $sql_detalle = "UPDATE uso_material_detalle SET 
@@ -726,7 +721,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id
                 
                 $id_detalle_actual = $id_detalle;
                 $detalles_procesados[] = $id_detalle;
-                error_log("✅ Detalle ACTUALIZADO ID: $id_detalle_actual");
+                error_log("Detalle ACTUALIZADO ID: $id_detalle_actual");
                 
             } else {
                 // INSERTAR nuevo detalle
@@ -748,7 +743,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id
                 error_log("✅ Detalle INSERTADO ID: $id_detalle_actual");
             }
             
-            // ✅ Crear NUEVO movimiento de salida (usando datos de la BD)
+            // Crear NUEVO movimiento de salida (usando datos de la BD)
             $sql_movimiento = "INSERT INTO movimiento (
                                 id_personal, id_orden, id_producto, id_almacen, 
                                 id_ubicacion, tipo_orden, tipo_movimiento, 
@@ -769,7 +764,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_almacen, $id_ubicacion, $id
             error_log("✅ Movimiento creado ID: $id_movimiento");
         }
         
-        // ✅ NO eliminamos detalles que no están en la lista
+        // NO eliminamos detalles que no están en la lista
         // La función solo trabaja con los materiales que vienen en el array
         
         error_log("📊 Resumen:");

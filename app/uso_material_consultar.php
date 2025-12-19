@@ -1,5 +1,6 @@
 <?php
 require_once("_modelo/m_uso_material.php"); // 
+require_once("_modelo/m_usuario.php");
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -18,6 +19,7 @@ try {
     }
 
     $id_uso_material = isset($_POST['id_uso_material']) ? intval($_POST['id_uso_material']) : 0;
+    $id_usuario = isset($_POST['id_usuario']) ? intval($_POST['id_usuario']) : 0;
     
     error_log("🔍 Consultando ID: " . $id_uso_material);
 
@@ -28,6 +30,19 @@ try {
             'message' => 'ID de uso de material inválido: ' . $id_uso_material
         ], JSON_UNESCAPED_UNICODE);
         exit;
+    }
+
+    if ($id_usuario > 0) {
+        $permisos = obtenerPermisosUsuario($id_usuario);
+        
+        // VERIFICAR PERMISO DE EDITAR
+        if (!isset($permisos['editar_uso_de_material']) || !$permisos['editar_uso_de_material']) {
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'No tienes permisos para consultar este registro'
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
     }
 
     // Consultar datos completos
