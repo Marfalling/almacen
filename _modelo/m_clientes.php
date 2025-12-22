@@ -3,6 +3,9 @@
 function GrabarClientes($nom, $est) 
 {
     include("../_conexion/conexion.php");
+
+    date_default_timezone_set("America/Lima");
+    $fecha_peru = date("Y-m-d H:i:s");
     
     // Verificar si ya existe un cliente con el mismo nombre
     $sql_verificar = "SELECT COUNT(*) as total FROM {$bd_complemento}.cliente WHERE nom_cliente = ?";
@@ -18,9 +21,9 @@ function GrabarClientes($nom, $est)
     }
     
     // Insertar nuevo cliente
-    $sql = "INSERT INTO {$bd_complemento}.cliente (nom_cliente, act_cliente) VALUES (?, ?)";
+    $sql = "INSERT INTO {$bd_complemento}.cliente (nom_cliente, act_cliente, updated_at) VALUES (?, ?, ?)";
     $stmt = mysqli_prepare($con, $sql);
-    mysqli_stmt_bind_param($stmt, "si", $nom, $est);
+    mysqli_stmt_bind_param($stmt, "sis", $nom, $est, $fecha_peru);
     
     if (mysqli_stmt_execute($stmt)) {
         ejecutarSyncCliente("https://montajeseingenieriaarceperusac.pe/almacen/api/sync_cliente.php");
@@ -58,7 +61,6 @@ function MostrarClientes()
     return $resultado;
 }
 
-//-----------------------------------------------------------------------
 //-----------------------------------------------------------------------
 function MostrarClientesActivos()
 {
@@ -112,6 +114,9 @@ function ObtenerCliente($id_cliente)
 function EditarCliente($id_cliente, $nom, $est) 
 {
     include("../_conexion/conexion.php");
+
+    date_default_timezone_set("America/Lima");
+    $fecha_peru = date("Y-m-d H:i:s");
     
     // Verificar si ya existe otro cliente con el mismo nombre
     $sql_verificar = "SELECT COUNT(*) as total FROM {$bd_complemento}.cliente WHERE nom_cliente = ? AND id_cliente != ?";
@@ -127,10 +132,10 @@ function EditarCliente($id_cliente, $nom, $est)
     }
     
     // Actualizar cliente
-    $sql = "UPDATE {$bd_complemento}.cliente SET nom_cliente = ?, act_cliente = ? WHERE id_cliente = ?";
+    $sql = "UPDATE {$bd_complemento}.cliente SET nom_cliente = ?, act_cliente = ?, updated_at = ? WHERE id_cliente = ?";
     $stmt = mysqli_prepare($con, $sql);
-    mysqli_stmt_bind_param($stmt, "sii", $nom, $est, $id_cliente);
-    
+    mysqli_stmt_bind_param($stmt, "sisi", $nom, $est, $fecha_peru, $id_cliente);
+
     if (mysqli_stmt_execute($stmt)) {
         ejecutarSyncCliente("https://montajeseingenieriaarceperusac.pe/almacen/api/sync_cliente.php");
         mysqli_close($con);

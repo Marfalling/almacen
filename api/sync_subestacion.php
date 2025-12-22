@@ -48,7 +48,7 @@ foreach ($res["data"] as $r) {
             // Remoto es más nuevo → UPDATE
             $sqlUpd = "UPDATE subestacion SET id_cliente=?, cod_subestacion=?, nom_subestacion=?, act_subestacion=?, updated_at=? WHERE id_subestacion=?";
             $stmtUpd = $con->prepare($sqlUpd);
-            $stmtUpd->bind_param("isssis", $id_cliente, $cod, $nom, $act, $updated_at, $id);
+            $stmtUpd->bind_param("issisi", $id_cliente, $cod, $nom, $act, $updated_at, $id);
             $stmtUpd->execute();
         }
 
