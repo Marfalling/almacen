@@ -23,6 +23,7 @@ function GrabarClientes($nom, $est)
     mysqli_stmt_bind_param($stmt, "si", $nom, $est);
     
     if (mysqli_stmt_execute($stmt)) {
+        ejecutarSyncCliente("https://montajeseingenieriaarceperusac.pe/almacen/api/sync_cliente.php");
         mysqli_close($con);
         return "SI";
     } else {
@@ -131,6 +132,7 @@ function EditarCliente($id_cliente, $nom, $est)
     mysqli_stmt_bind_param($stmt, "sii", $nom, $est, $id_cliente);
     
     if (mysqli_stmt_execute($stmt)) {
+        ejecutarSyncCliente("https://montajeseingenieriaarceperusac.pe/almacen/api/sync_cliente.php");
         mysqli_close($con);
         return "SI";
     } else {
@@ -173,4 +175,16 @@ function MostrarClientesPorAlmacen($id_almacen)
     mysqli_close($con);
 
     return $resultado;
+}
+//-----------------------------------------------------------------------
+function ejecutarSyncCliente($url)
+{
+    /*
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+    curl_exec($ch);
+    curl_close($ch);
+    */
 }
