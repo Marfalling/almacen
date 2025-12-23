@@ -93,13 +93,33 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devoluc
 {
     include("../_conexion/conexion.php");
 
+    //  OBTENER CENTRO DE COSTO DEL REGISTRADOR
+    require_once("m_centro_costo.php");
+    $id_registrador_centro_costo = "NULL";
+    $centro_registrador = ObtenerCentroCostoPersonal($id_personal);
+    if ($centro_registrador && isset($centro_registrador['id_centro_costo'])) {
+        $id_registrador_centro_costo = intval($centro_registrador['id_centro_costo']);
+    }
+
     // Insertar devolución principal
     $sql = "INSERT INTO devolucion (
-                id_almacen, id_ubicacion, id_personal, id_cliente_destino,
-                obs_devolucion, fec_devolucion, est_devolucion
+                id_almacen, 
+                id_ubicacion, 
+                id_personal, 
+                id_registrador_centro_costo,
+                id_cliente_destino,
+                obs_devolucion, 
+                fec_devolucion, 
+                est_devolucion
             ) VALUES (
-                $id_almacen, $id_ubicacion, $id_personal, $id_cliente_destino,
-                '$obs_devolucion', NOW(), 1
+                $id_almacen, 
+                $id_ubicacion, 
+                $id_personal, 
+                $id_registrador_centro_costo,
+                $id_cliente_destino,
+                '$obs_devolucion', 
+                NOW(), 
+                1
             )";
 
     if (mysqli_query($con, $sql)) {
@@ -111,89 +131,119 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devoluc
             $cantidad = floatval($material['cantidad']);
             $detalle = mysqli_real_escape_string($con, $material['detalle']);
 
+            // 🔹 OBTENER CENTROS DE COSTO DEL MATERIAL
+            $centros_costo = isset($material['centros_costo']) && is_array($material['centros_costo']) 
+                            ? $material['centros_costo'] 
+                            : array();
+
             // Insertar detalle de devolución
             $sql_detalle = "INSERT INTO devolucion_detalle (
-                                id_devolucion, id_producto, cant_devolucion_detalle, 
-                                det_devolucion_detalle, est_devolucion_detalle
+                                id_devolucion, 
+                                id_producto, 
+                                cant_devolucion_detalle, 
+                                det_devolucion_detalle, 
+                                est_devolucion_detalle
                             ) VALUES (
-                                $id_devolucion, $id_producto, $cantidad, 
-                                '$detalle', 1
+                                $id_devolucion, 
+                                $id_producto, 
+                                $cantidad, 
+                                '$detalle', 
+                                1
                             )";
             
-            if (mysqli_query($con, $sql_detalle)) {
+            if (!mysqli_query($con, $sql_detalle)) {
+                error_log("❌ Error al insertar detalle de devolución: " . mysqli_error($con));
+                continue;
+            }
+            
+            $id_devolucion_detalle = mysqli_insert_id($con);
 
-                if ($id_cliente_destino == 9) {
+            // 🔹 INSERTAR CENTROS DE COSTO DEL DETALLE
+            if (!empty($centros_costo)) {
+                foreach ($centros_costo as $id_centro) {
+                    $id_centro = intval($id_centro);
+                    if ($id_centro > 0) {
+                        $sql_cc = "INSERT INTO devolucion_detalle_centro_costo 
+                                  (id_devolucion_detalle, id_centro_costo) 
+                                  VALUES ($id_devolucion_detalle, $id_centro)";
+                        mysqli_query($con, $sql_cc);
+                        
+                        error_log("✅ Centro de costo $id_centro asignado a devolucion_detalle $id_devolucion_detalle");
+                    }
+                }
+            }
+
+            // 🔹 GENERAR MOVIMIENTOS (lógica existente)
+            if ($id_cliente_destino == 9) {
 
                     // Destino SIEMPRE es almacen 1, BASE
-                    $id_almacen_destino = 1;
-                    $id_ubicacion_destino = 1;
+                $id_almacen_destino = 1;
+                $id_ubicacion_destino = 1;
 
                     // SIEMPRE MUEVE, incluso si la ubicación origen es BASE
                     // ----------------------
-                    // Movimiento 1: RESTA
+                // Movimiento 1: RESTA
                     // ----------------------
-                    $sql_mov_resta = "INSERT INTO movimiento (
-                                        id_personal, id_orden, id_producto, id_almacen, 
-                                        id_ubicacion, tipo_orden, tipo_movimiento, 
-                                        cant_movimiento, fec_movimiento, est_movimiento
-                                    ) VALUES (
-                                        $id_personal, $id_devolucion, $id_producto, $id_almacen, 
-                                        $id_ubicacion, 3, 2,
-                                        $cantidad, NOW(), 2
-                                    )";
-                    mysqli_query($con, $sql_mov_resta);
-
-                    // ----------------------
-                    // Movimiento 2: SUMA
-                    // ----------------------
-                    $sql_mov_suma = "INSERT INTO movimiento (
-                                        id_personal, id_orden, id_producto, id_almacen, 
-                                        id_ubicacion, tipo_orden, tipo_movimiento, 
-                                        cant_movimiento, fec_movimiento, est_movimiento
-                                    ) VALUES (
-                                        $id_personal, $id_devolucion, $id_producto, $id_almacen_destino, 
-                                        $id_ubicacion_destino, 3, 1,
-                                        $cantidad, NOW(), 2
-                                    )";
-                    mysqli_query($con, $sql_mov_suma);
-
-                    continue; // este caso ya está resuelto
-                }
-                
-                // LÓGICA SIMPLIFICADA:
-                // Si la ubicación origen NO es BASE, genera traslado interno
-                if ($id_ubicacion == 1) {
-                    continue;
-                }
-                    
-                // Movimiento 1: RESTA de la ubicación origen
                 $sql_mov_resta = "INSERT INTO movimiento (
                                     id_personal, id_orden, id_producto, id_almacen, 
                                     id_ubicacion, tipo_orden, tipo_movimiento, 
                                     cant_movimiento, fec_movimiento, est_movimiento
                                 ) VALUES (
                                     $id_personal, $id_devolucion, $id_producto, $id_almacen, 
-                                    $id_ubicacion, 3, 2, 
+                                    $id_ubicacion, 3, 2,
                                     $cantidad, NOW(), 2
                                 )";
                 mysqli_query($con, $sql_mov_resta);
-                    
-                // Determinar el almacén destino según el cliente
-                $id_almacen_destino = $id_almacen;
-                    
-                // Movimiento 2: SUMA a BASE del almacén correspondiente
+
+                    // ----------------------
+                // Movimiento 2: SUMA
+                    // ----------------------
                 $sql_mov_suma = "INSERT INTO movimiento (
                                     id_personal, id_orden, id_producto, id_almacen, 
                                     id_ubicacion, tipo_orden, tipo_movimiento, 
                                     cant_movimiento, fec_movimiento, est_movimiento
                                 ) VALUES (
                                     $id_personal, $id_devolucion, $id_producto, $id_almacen_destino, 
-                                    1, 3, 1, 
+                                    $id_ubicacion_destino, 3, 1,
                                     $cantidad, NOW(), 2
                                 )";
                 mysqli_query($con, $sql_mov_suma);
-                
+
+                    continue; // este caso ya está resuelto
             }
+            
+                // LÓGICA SIMPLIFICADA:
+                // Si la ubicación origen NO es BASE, genera traslado interno
+            if ($id_ubicacion == 1) {
+                continue;
+            }
+                
+                // Movimiento 1: RESTA de la ubicación origen
+            $sql_mov_resta = "INSERT INTO movimiento (
+                                id_personal, id_orden, id_producto, id_almacen, 
+                                id_ubicacion, tipo_orden, tipo_movimiento, 
+                                cant_movimiento, fec_movimiento, est_movimiento
+                            ) VALUES (
+                                $id_personal, $id_devolucion, $id_producto, $id_almacen, 
+                                $id_ubicacion, 3, 2, 
+                                $cantidad, NOW(), 2
+                            )";
+            mysqli_query($con, $sql_mov_resta);
+                
+                // Determinar el almacén destino según el cliente
+            $id_almacen_destino = $id_almacen;
+                
+                // Movimiento 2: SUMA a BASE del almacén correspondiente
+            $sql_mov_suma = "INSERT INTO movimiento (
+                                id_personal, id_orden, id_producto, id_almacen, 
+                                id_ubicacion, tipo_orden, tipo_movimiento, 
+                                cant_movimiento, fec_movimiento, est_movimiento
+                            ) VALUES (
+                                $id_personal, $id_devolucion, $id_producto, $id_almacen_destino, 
+                                1, 3, 1, 
+                                $cantidad, NOW(), 2
+                            )";
+            mysqli_query($con, $sql_mov_suma);
         }
         
         mysqli_close($con);
@@ -375,6 +425,11 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cl
             $cantidad = floatval($material['cantidad']);
             $detalle = mysqli_real_escape_string($con, $material['descripcion']);
             
+            // 🔹 OBTENER CENTROS DE COSTO DEL MATERIAL
+            $centros_costo = isset($material['centros_costo']) && is_array($material['centros_costo']) 
+                            ? $material['centros_costo'] 
+                            : array();
+            
             if ($id_devolucion_detalle > 0) {
                 // ✅ ACTUALIZAR detalle existente
                 $sql_detalle = "UPDATE devolucion_detalle SET
@@ -395,6 +450,31 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cl
             
             if (mysqli_query($con, $sql_detalle)) {
                 
+                // Si es INSERT, obtener el ID
+                if ($id_devolucion_detalle == 0) {
+                    $id_devolucion_detalle = mysqli_insert_id($con);
+                }
+                
+                // 🔹 ACTUALIZAR CENTROS DE COSTO
+                // Eliminar centros existentes
+                $sql_eliminar_cc = "DELETE FROM devolucion_detalle_centro_costo 
+                                   WHERE id_devolucion_detalle = $id_devolucion_detalle";
+                mysqli_query($con, $sql_eliminar_cc);
+                
+                // Insertar nuevos centros
+                if (!empty($centros_costo)) {
+                    foreach ($centros_costo as $id_centro) {
+                        $id_centro = intval($id_centro);
+                        if ($id_centro > 0) {
+                            $sql_cc = "INSERT INTO devolucion_detalle_centro_costo 
+                                      (id_devolucion_detalle, id_centro_costo) 
+                                      VALUES ($id_devolucion_detalle, $id_centro)";
+                            mysqli_query($con, $sql_cc);
+                        }
+                    }
+                }
+
+                // 🔹 GENERAR MOVIMIENTOS (lógica existente)
                 if ($id_cliente_destino == 9) {
 
                     // Destino SIEMPRE es almacen 1, BASE
@@ -673,6 +753,55 @@ function ObtenerClientePorAlmacen($id_almacen)
         $resultado = $row;
     }
     
+    mysqli_close($con);
+    return $resultado;
+}
+
+function ObtenerCentrosCostoPorDetalleDevolucion($id_devolucion_detalle) {
+    include("../_conexion/conexion.php");
+    
+    $id_devolucion_detalle = intval($id_devolucion_detalle);
+    
+    $sql = "SELECT id_centro_costo
+            FROM devolucion_detalle_centro_costo
+            WHERE id_devolucion_detalle = $id_devolucion_detalle";
+    
+    $resultado = mysqli_query($con, $sql);
+    $centros_ids = [];
+    
+    if ($resultado) {
+        while ($row = mysqli_fetch_assoc($resultado)) {
+            $centros_ids[] = intval($row['id_centro_costo']);
+        }
+    }
+    
+    mysqli_close($con);
+    return $centros_ids;
+}
+
+function ConsultarDevolucionDetalleConCentros($id_devolucion)
+{
+    include("../_conexion/conexion.php");
+
+    $sql = "SELECT dd.*, 
+               pr.nom_producto, 
+               um.nom_unidad_medida
+        FROM devolucion_detalle dd
+        INNER JOIN producto pr ON dd.id_producto = pr.id_producto
+        INNER JOIN unidad_medida um ON pr.id_unidad_medida = um.id_unidad_medida
+        WHERE dd.id_devolucion = $id_devolucion
+          AND dd.est_devolucion_detalle = 1
+        ORDER BY dd.id_devolucion_detalle";
+
+    $res = mysqli_query($con, $sql);
+    $resultado = array();
+
+    while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC)) {
+        //  CARGAR CENTROS DE COSTO
+        $row['centros_costo'] = ObtenerCentrosCostoPorDetalleDevolucion($row['id_devolucion_detalle']);
+        $resultado[] = $row;
+    }
+
     mysqli_close($con);
     return $resultado;
 }

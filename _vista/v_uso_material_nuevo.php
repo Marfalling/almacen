@@ -82,6 +82,24 @@
                                 </div>
                             </div>
 
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Centro de Costos (Registrador):</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <?php if ($centro_costo_usuario) { ?>
+                                        <input type="text" class="form-control" 
+                                            value="<?php echo htmlspecialchars($centro_costo_usuario['nom_centro_costo']); ?>" 
+                                            readonly style="background-color: #f9f9f9;">
+                                        <input type="hidden" name="id_registrador_centro_costo" 
+                                            value="<?php echo $centro_costo_usuario['id_centro_costo']; ?>">
+                                    <?php } else { ?>
+                                        <input type="text" class="form-control" 
+                                            value="Sin centro de costo asignado" 
+                                            readonly style="background-color: #f9f9f9;">
+                                        <small class="text-danger">No tienes un área asignada. Contacta con el administrador.</small>
+                                    <?php } ?>
+                                </div>
+                            </div>
+
                             <div class="ln_solid"></div>
 
                             <!-- Sección de materiales -->
@@ -120,6 +138,19 @@
                                         <div class="col-md-6">
                                             <label>Observaciones:</label>
                                             <input type="text" name="observaciones[]" class="form-control" placeholder="Observaciones del uso">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label>Centros de Costo <span class="text-danger">*</span>:</label>
+                                            <select name="centros_costo[0][]" class="form-control select2-centros-costo-detalle" multiple required>
+                                                <?php foreach ($centros_costo as $centro) { ?>
+                                                    <option value="<?php echo $centro['id_centro_costo']; ?>">
+                                                        <?php echo $centro['nom_centro_costo']; ?>
+                                                    </option>
+                                                <?php } ?>
+                                            </select>
+                                            <small class="form-text text-muted">
+                                                <i class="fa fa-info-circle"></i> Seleccione uno o más centros de costo para este material.
+                                            </small>
                                         </div>
                                         <div class="col-md-6">
                                             <label>Adjuntar Evidencias <span class="text-danger">*</span>:</label>
@@ -562,34 +593,122 @@ document.addEventListener('DOMContentLoaded', function() {
     // Agregar nuevo material
     const btnAgregarMaterial = document.getElementById('agregar-material');
     if (btnAgregarMaterial) {
-        btnAgregarMaterial.addEventListener('click', function() {
+        btnAgregarMaterial.addEventListener('click', function(e) {
+            e.preventDefault();
+            
             const contenedor = document.getElementById('contenedor-materiales');
-            const nuevoMaterial = document.querySelector('.material-item').cloneNode(true);
+            const materialOriginal = contenedor.querySelector('.material-item');
             
-            const inputs = nuevoMaterial.querySelectorAll('input, textarea');
-            inputs.forEach(input => {
-                if (input.type !== 'hidden') {
-                    input.value = '';
-                } else {
-                    input.value = '';
+            if (materialOriginal) {
+                // 1. GUARDAR valores de Select2 antes de destruir
+                const valoresOriginalesSelect2 = {};
+                const selectsOriginales = materialOriginal.querySelectorAll(
+                    'select.select2-centros-costo-uso-material'
+                );
+                
+                selectsOriginales.forEach((select, index) => {
+                    if ($(select).data('select2')) {
+                        valoresOriginalesSelect2[index] = $(select).val();
+                    }
+                });
+                
+                // 2. DESTRUIR Select2 en el original
+                selectsOriginales.forEach(select => {
+                    if ($(select).data('select2')) {
+                        $(select).select2('destroy');
+                    }
+                });
+                
+                // 3. CLONAR el elemento
+                const nuevoMaterial = materialOriginal.cloneNode(true);
+                
+                // 4. RESTAURAR Select2 en el ORIGINAL con sus valores
+                selectsOriginales.forEach((select, index) => {
+                    $(select).select2({
+                        placeholder: 'Seleccionar uno o más centros de costo...',
+                        allowClear: true,
+                        width: '100%',
+                        multiple: true,
+                        language: {
+                            noResults: function () { return 'No se encontraron resultados'; }
+                        }
+                    });
+                    if (valoresOriginalesSelect2[index]) {
+                        $(select).val(valoresOriginalesSelect2[index]).trigger('change');
+                    }
+                });
+                
+                // 5. LIMPIAR campos del nuevo material
+                const inputs = nuevoMaterial.querySelectorAll('input, textarea');
+                inputs.forEach(input => {
+                    if (input.type === 'file') {
+                        input.value = '';
+                        input.name = `archivos_${contadorMateriales}[]`;
+                    } else if (input.type === 'hidden') {
+                        input.value = '';
+                    } else {
+                        input.value = '';
+                    }
+                });
+                
+                // 6. PREPARAR los selects del NUEVO material
+                const selectsClonados = nuevoMaterial.querySelectorAll('select');
+                selectsClonados.forEach(select => {
+                    // Actualizar name con índice correcto
+                    if ($(select).hasClass('select2-centros-costo-uso-material')) {
+                        select.name = `centros_costo[${contadorMateriales}][]`;
+                    }
+                    
+                    // Remover clases de Select2 previo
+                    $(select).removeClass('select2-hidden-accessible');
+                    const select2Container = select.nextElementSibling;
+                    if (select2Container && select2Container.classList.contains('select2')) {
+                        select2Container.remove();
+                    }
+                    
+                    // Limpiar selección
+                    Array.from(select.options).forEach(option => {
+                        option.selected = false;
+                    });
+                    select.selectedIndex = -1;
+                });
+                
+                // 7. MOSTRAR botón eliminar
+                const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
+                if (btnEliminar) {
+                    btnEliminar.style.display = 'block';
                 }
-            });
-
-            const fileInput = nuevoMaterial.querySelector('input[type="file"]');
-            if (fileInput) {
-                fileInput.name = `archivos_${contadorMateriales}[]`;
+                
+                // 8. AGREGAR al contenedor
+                contenedor.appendChild(nuevoMaterial);
+                
+                // 9. INICIALIZAR Select2 en el NUEVO material
+                const selectsNuevos = nuevoMaterial.querySelectorAll('select');
+                selectsNuevos.forEach(select => {
+                    if ($(select).hasClass('select2-centros-costo-uso-material')) {
+                        $(select).select2({
+                            placeholder: 'Seleccionar uno o más centros de costo...',
+                            allowClear: true,
+                            width: '100%',
+                            multiple: true,
+                            language: {
+                                noResults: function () { return 'No se encontraron resultados'; }
+                            }
+                        });
+                    }
+                });
+                
+                // 10. INCREMENTAR contador y actualizar eventos
+                contadorMateriales++;
+                actualizarEventosEliminar();
+                actualizarEventosCampos();
+                formularioModificado = true;
+                
+                // 11. SCROLL al nuevo elemento
+                nuevoMaterial.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                
+                console.log('✅ Nuevo material agregado, contador:', contadorMateriales);
             }
-
-            const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
-            if (btnEliminar) {
-                btnEliminar.style.display = 'block';
-            }
-            
-            contenedor.appendChild(nuevoMaterial);
-            contadorMateriales++;
-            
-            actualizarEventosEliminar();
-            actualizarEventosCampos();
         });
     }
     

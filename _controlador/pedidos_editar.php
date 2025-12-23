@@ -209,7 +209,8 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
 
                 $rpta = ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedido, $fecha_necesidad, 
                         $num_ot, $contacto, $lugar_entrega, 
-                        $aclaraciones, $materiales, $archivos_subidos);
+                        $aclaraciones, $materiales, $archivos_subidos, 
+                        $id_personal);
 
                 if ($rpta == "SI") {
                     //  CONSTRUIR DESCRIPCIÓN CON CAMBIOS DEL PEDIDO

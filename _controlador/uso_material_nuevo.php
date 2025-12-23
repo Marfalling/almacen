@@ -36,11 +36,14 @@ if (!verificarPermisoEspecifico('crear_uso de material')) {
             require_once("../_modelo/m_almacen.php");
             require_once("../_modelo/m_ubicacion.php");
             require_once("../_modelo/m_personal.php");
+            require_once("../_modelo/m_centro_costo.php");
 
             // Cargar datos para el formulario
             $almacenes = MostrarAlmacenesActivos();
             $ubicaciones = MostrarUbicacionesActivas();
-            $personal = MostrarPersonal();
+            $personal = MostrarPersonalActivo();
+            $centros_costo = MostrarCentrosCostoActivos();
+            $centro_costo_usuario = ObtenerCentroCostoPersonal($id_personal);
             
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/uso_material/")) {
@@ -67,10 +70,30 @@ if (!verificarPermisoEspecifico('crear_uso de material')) {
                 if (isset($_REQUEST['id_producto']) && is_array($_REQUEST['id_producto'])) {
                     for ($i = 0; $i < count($_REQUEST['id_producto']); $i++) {
                         if (!empty($_REQUEST['id_producto'][$i])) {
+                            //  PROCESAR CENTROS DE COSTO
+                            $centros_costo_material = array();
+                            if (isset($_REQUEST['centros_costo']) && is_array($_REQUEST['centros_costo'])) {
+                                if (isset($_REQUEST['centros_costo'][$i])) {
+                                    $centros_value = $_REQUEST['centros_costo'][$i];
+                                    if (is_array($centros_value)) {
+                                        $centros_costo_material = $centros_value;
+                                    } else if (is_string($centros_value) && !empty($centros_value)) {
+                                        $centros_costo_material = explode(',', $centros_value);
+                                    }
+                                }
+                            }
+                            
+                            $centros_costo_material = array_map('intval', $centros_costo_material);
+                            $centros_costo_material = array_filter($centros_costo_material, function($id) {
+                                return $id > 0;
+                            });
+                            $centros_costo_material = array_unique($centros_costo_material);
+                            
                             $materiales[] = array(
                                 'id_producto' => $_REQUEST['id_producto'][$i],
                                 'cantidad' => $_REQUEST['cantidad'][$i],
-                                'observaciones' => $_REQUEST['observaciones'][$i]
+                                'observaciones' => $_REQUEST['observaciones'][$i],
+                                'centros_costo' => $centros_costo_material // 🔹 NUEVO
                             );
                         }
                     }

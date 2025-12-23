@@ -1876,11 +1876,10 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
             </div>`;
     }
     
-    if (compra.denv_compra || compra.obs_compra || compra.port_compra) {
+    if (compra.denv_compra || compra.obs_compra) {
         html += `<div class="row mt-3"><div class="col-md-12"><div class="border-top pt-2">`;
         if (compra.denv_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Dirección de Envío:</strong> ${compra.denv_compra}</p>`;
         if (compra.obs_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Observaciones:</strong> ${compra.obs_compra}</p>`;
-        //if (compra.port_compra) html += `<p style="margin: 5px 0; font-size: 13px;"><strong>Tipo de Porte:</strong> ${compra.port_compra}</p>`;
         html += `</div></div></div>`;
     }
     
@@ -1896,13 +1895,14 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
                     <table class="table table-striped table-sm" style="font-size: 12px;">
                         <thead style="background-color: #f8f9fa;">
                             <tr>
-                                <th style="width: 8%;">#</th>
-                                <th style="width: 15%;">Código</th>
-                                <th style="width: 35%;">Descripción</th>
-                                <th style="width: 10%;">Cantidad</th>
-                                <th style="width: 12%;">Precio Unit.</th>
-                                <th style="width: 10%;">IGV (%)</th>
+                                <th style="width: 5%;">#</th>
+                                <th style="width: 10%;">Código</th>
+                                <th style="width: 25%;">Descripción</th>
+                                <th style="width: 8%;">Cantidad</th>
+                                <th style="width: 10%;">Precio Unit.</th>
+                                <th style="width: 8%;">IGV (%)</th>
                                 <th style="width: 10%;">Subtotal</th>
+                                <th style="width: 24%;">Centro(s) de Costo</th>
                             </tr>
                         </thead>
                         <tbody>`;
@@ -1922,6 +1922,72 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
         subtotalGeneral += subtotal;
         totalIgv += montoIgv;
         
+        // 🔹 CONSTRUIR HTML DE CENTROS DE COSTO CON MODAL
+        let centrosCostoHtml = '<small class="text-muted">Sin asignar</small>';
+        
+        if (detalle.centros_costo && Array.isArray(detalle.centros_costo) && detalle.centros_costo.length > 0) {
+            const totalCentros = detalle.centros_costo.length;
+            const modalId = `modalCentrosCosto${index}`;
+            
+            if (totalCentros === 1) {
+                // Si solo hay 1 centro, mostrarlo directamente
+                centrosCostoHtml = `
+                    <span class="badge badge-info badge_size" style="font-size: 11px;">
+                        ${detalle.centros_costo[0].nom_centro_costo}
+                    </span>`;
+            } else {
+                // Si hay múltiples centros, usar modal
+                const listaCentros = detalle.centros_costo.map((cc, idx) => 
+                    `<div style="padding: 8px; margin-bottom: 6px; background-color: #f8f9fa; border-left: 3px solid #17a2b8; border-radius: 4px;">
+                        <strong style="color: #17a2b8;">${idx + 1}.</strong> ${cc.nom_centro_costo}
+                    </div>`
+                ).join('');
+                
+                centrosCostoHtml = `
+                    <button class="btn btn-sm btn-info btn-ver-centros-costo" 
+                            type="button" 
+                            data-modal-id="${modalId}"
+                            style="font-size: 11px; padding: 3px 10px;">
+                        <i class="fa fa-eye"></i> Ver ${totalCentros} centros
+                    </button>
+                    
+                    <!-- Modal para centros de costo -->
+                    <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+                        <div class="modal-dialog modal-dialog-centered" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header" style="background-color: #17a2b8; color: white; padding: 12px 20px;">
+                                    <h6 class="modal-title mb-0">
+                                        <i class="fa fa-building"></i> 
+                                        Centros de Costo Asignados
+                                    </h6>
+                                    <button type="button" class="close close-centros-modal" data-modal-id="${modalId}" aria-label="Close" style="color: white; opacity: 0.8;">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body" style="padding: 20px;">
+                                    <div style="margin-bottom: 15px; padding: 10px; background-color: #e7f3ff; border-radius: 4px; border-left: 4px solid #17a2b8;">
+                                        <strong>Producto:</strong> ${detalle.nom_producto}
+                                    </div>
+                                    <div style="max-height: 400px; overflow-y: auto;">
+                                        ${listaCentros}
+                                    </div>
+                                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6; text-align: center;">
+                                        <span class="badge badge-info" style="font-size: 12px; padding: 6px 12px;">
+                                            Total: ${totalCentros} centro(s) de costo
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="modal-footer" style="padding: 10px 20px;">
+                                    <button type="button" class="btn btn-secondary btn-sm close-centros-modal" data-modal-id="${modalId}">
+                                        <i class="fa fa-times"></i> Cerrar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+        }
+        
         html += `<tr>
                     <td style="font-weight: bold;">${index + 1}</td>
                     <td>${detalle.cod_material || 'N/A'}</td>
@@ -1930,6 +1996,7 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
                     <td class="text-right">${simboloMoneda} ${precioUnit.toFixed(2)}</td>
                     <td class="text-center">${igvPorcentaje}%</td>
                     <td class="text-right" style="font-weight: bold;">${simboloMoneda} ${subtotal.toFixed(2)}</td>
+                    <td>${centrosCostoHtml}</td>
                 </tr>`;
     });
     
@@ -2008,18 +2075,17 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
     contenido.innerHTML = html;
     contenido.style.display = 'block';
     
-    // ============================================================================
-    // CONFIGURAR BOTÓN DE PAGAR EN EL PIE DEL MODAL
-    // ============================================================================
+    // 🔹 CONFIGURAR EVENTOS PARA ABRIR/CERRAR MODALES DE CENTROS DE COSTO
+    configurarEventosCentrosCosto();
+    
+    // Configurar botón de pagar
     const btnPagarCompra = document.getElementById('btn-pagar-compra');
     const tiene_financiera = compra.id_personal_aprueba_financiera && compra.id_personal_aprueba_financiera != '';
     
     if (btnPagarCompra) {
-        // Limpiar eventos previos
         const nuevoBtn = btnPagarCompra.cloneNode(true);
         btnPagarCompra.parentNode.replaceChild(nuevoBtn, btnPagarCompra);
         
-        // Estado 1 (PENDIENTE)
         if (estadoCompra == 1) {
             if (tiene_financiera) {
                 nuevoBtn.href = 'comprobante_registrar.php?id_compra=' + compra.id_compra;
@@ -2037,27 +2103,21 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
                 nuevoBtn.style.cursor = 'not-allowed';
                 nuevoBtn.addEventListener('click', (e) => e.preventDefault());
             }
-        }
-        // Estado 2 (APROBADO) o 3 (CERRADO)
-        else if (estadoCompra == 2 || estadoCompra == 3) {
+        } else if (estadoCompra == 2 || estadoCompra == 3) {
             nuevoBtn.href = 'comprobante_registrar.php?id_compra=' + compra.id_compra;
             nuevoBtn.className = 'btn btn-warning';
             nuevoBtn.title = 'Registrar/Ver Pagos';
             nuevoBtn.removeAttribute('disabled');
             nuevoBtn.style.opacity = '1';
             nuevoBtn.style.cursor = 'pointer';
-        }
-        // Estado 4 (PAGADO)
-        else if (estadoCompra == 4) {
+        } else if (estadoCompra == 4) {
             nuevoBtn.href = 'comprobante_registrar.php?id_compra=' + compra.id_compra;
             nuevoBtn.className = 'btn btn-warning';
             nuevoBtn.title = 'Ver pagos (Compra pagada)';
             nuevoBtn.removeAttribute('disabled');
             nuevoBtn.style.opacity = '1';
             nuevoBtn.style.cursor = 'pointer';
-        }
-        // Estado 0 (ANULADO) u otro
-        else {
+        } else {
             nuevoBtn.href = '#';
             nuevoBtn.className = 'btn btn-outline-secondary disabled';
             nuevoBtn.title = 'No disponible';
@@ -2067,6 +2127,58 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
             nuevoBtn.addEventListener('click', (e) => e.preventDefault());
         }
     }
+}
+
+// 🔹 NUEVA FUNCIÓN PARA MANEJAR MODALES DE CENTROS DE COSTO
+function configurarEventosCentrosCosto() {
+    // Abrir modal de centros de costo
+    document.querySelectorAll('.btn-ver-centros-costo').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const modalId = this.getAttribute('data-modal-id');
+            const modalElement = document.getElementById(modalId);
+            
+            if (modalElement) {
+                // Agregar backdrop-static para evitar que se cierre al hacer clic fuera
+                $(modalElement).modal({
+                    backdrop: 'static',
+                    keyboard: false
+                });
+                $(modalElement).modal('show');
+            }
+        });
+    });
+    
+    // Cerrar modal de centros de costo
+    document.querySelectorAll('.close-centros-modal').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const modalId = this.getAttribute('data-modal-id');
+            const modalElement = document.getElementById(modalId);
+            
+            if (modalElement) {
+                $(modalElement).modal('hide');
+                
+                // Asegurar que el modal padre siga abierto
+                setTimeout(() => {
+                    if (!$('#modalDetalleOrdenCompra').hasClass('show')) {
+                        $('#modalDetalleOrdenCompra').modal('show');
+                    }
+                }, 300);
+            }
+        });
+    });
+    
+    // Prevenir que el cierre de modal hijo cierre el padre
+    $('[id^="modalCentrosCosto"]').on('hidden.bs.modal', function (e) {
+        e.stopPropagation();
+        // Reabrir el modal padre si se cerró accidentalmente
+        if (!$('#modalDetalleOrdenCompra').hasClass('show')) {
+            $('#modalDetalleOrdenCompra').modal('show');
+        }
+    });
 }
 
 function mostrarErrorDetalleCompra(mensaje) {
@@ -2112,7 +2224,7 @@ function abrirModalEditarOrden(id_compra) {
         if (data.success) {
             esOrdenServicioGlobal = (data.orden.id_producto_tipo == 2);
             
-            cargarDatosOrdenModal(data.orden, data.detalles, data.proveedores, data.detracciones);
+            cargarDatosOrdenModal(data.orden, data.detalles, data.proveedores, data.detracciones, data.centros_costo);
             document.getElementById('contenido-editar-orden').style.display = 'block';
         } else {
             document.getElementById('error-editar-orden').style.display = 'block';
@@ -2125,7 +2237,7 @@ function abrirModalEditarOrden(id_compra) {
     });
 }
 
-function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
+function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones, centros_costo) {
     const tipoOrden = esOrdenServicioGlobal ? 'Servicio' : 'Compra';
     const badgeTipo = esOrdenServicioGlobal 
         ? '<span class="badge badge-primary ml-2">SERVICIO</span>'
@@ -2436,6 +2548,25 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones) {
                             style="font-size: 11px; padding-top: 4px;">
                         <small class="text-muted" style="font-size: 10px;">PDF, JPG, PNG</small>
                     </div>
+                    <!-- 
+                    <div class="col-md-3">
+                        <label style="font-size: 11px; font-weight: bold;">
+                            Centros de Costo: <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-control form-control-sm select2-centros-editar" 
+                                name="items_orden[${item.id_compra_detalle}][centros_costo][]"
+                                multiple="multiple"
+                                required
+                                style="width: 100%;">
+                            ${centros_costo.map(centro => `  
+                                <option value="${centro.id_centro_costo}"
+                                        ${item.centros_costo.includes(parseInt(centro.id_centro_costo)) ? 'selected' : ''}>
+                                    ${centro.nom_centro_costo}
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+                    -->
                     
                     <div class="col-md-3 text-right">
                         <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block; visibility: hidden;">-</label>

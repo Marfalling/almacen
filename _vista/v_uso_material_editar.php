@@ -68,6 +68,27 @@
                             </div>
 
                             <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Centro de Costos (Registrador):</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <?php 
+                                    // Buscar el nombre del centro de costo del registrador
+                                    $nombre_centro_costo_registrador = 'Sin asignar';
+                                    if (isset($uso['id_registrador_centro_costo'])) {
+                                        foreach ($centros_costo as $centro) {
+                                            if ($centro['id_centro_costo'] == $uso['id_registrador_centro_costo']) {
+                                                $nombre_centro_costo_registrador = $centro['nom_centro_costo'];
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    ?>
+                                    <input type="text" class="form-control" 
+                                        value="<?php echo htmlspecialchars($nombre_centro_costo_registrador); ?>" 
+                                        readonly style="background-color: #f9f9f9;">
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Fecha de Registro:</label>
                                 <div class="col-md-9 col-sm-9">
                                     <input type="text" class="form-control" value="<?php echo date('d/m/Y H:i', strtotime($uso['fec_uso_material'])); ?>" readonly>
@@ -88,15 +109,16 @@
                                 foreach ($uso_material_detalle as $detalle) { 
                                 ?>
                                 <div class="material-item border p-3 mb-3">
+                                    <!-- FILA 1: Material, Unidad, Cantidad -->
                                     <div class="row">
                                         <div class="col-md-6">
                                             <label>Material <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
                                                 <input type="text" name="descripcion[]" class="form-control" 
-                                                       value="<?php echo $detalle['nom_producto']; ?>" readonly required>
+                                                    value="<?php echo $detalle['nom_producto']; ?>" readonly required>
                                                 <input type="hidden" name="id_producto[]" value="<?php echo $detalle['id_producto']; ?>">
                                                 <input type="hidden" name="id_detalle[]" value="<?php echo $detalle['id_uso_material_detalle']; ?>">
-                                                <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
+                                                <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button" data-toggle="tooltip" title="Buscar Material">
                                                     <i class="fa fa-search"></i>
                                                 </button>
                                             </div>
@@ -105,48 +127,101 @@
                                         <div class="col-md-3">
                                             <label>Unidad:</label>
                                             <input type="text" name="unidad[]" class="form-control" 
-                                                   value="<?php echo $detalle['nom_unidad_medida']; ?>" readonly>
+                                                value="<?php echo $detalle['nom_unidad_medida']; ?>" readonly>
                                         </div>
 
                                         <div class="col-md-3">
                                             <label>Cantidad <span class="text-danger">*</span>:</label>
-                                            <input type="number" name="cantidad[]" class="form-control cantidad-material" step="0.01" min="0.01"
-                                                    value="<?php echo $detalle['cant_uso_material_detalle']; ?>" 
-                                                    data-stock="<?php echo $detalle['cantidad_disponible_almacen']; ?>" 
-                                                    required>
+                                            <input type="number" name="cantidad[]" class="form-control cantidad-material" 
+                                                step="0.01" min="0.01"
+                                                value="<?php echo $detalle['cant_uso_material_detalle']; ?>" 
+                                                data-stock="<?php echo $detalle['cantidad_disponible_almacen']; ?>" 
+                                                required>
+                                            <small class="form-text text-muted">
+                                                Stock disponible: <?php echo $detalle['cantidad_disponible_almacen']; ?>
+                                            </small>
                                         </div>
                                     </div>
+
+                                    <!-- FILA 2: Observaciones y Centros de Costo -->
                                     <div class="row mt-2">
                                         <div class="col-md-6">
                                             <label>Observaciones:</label>
-                                            <input type="text" name="observaciones[]" class="form-control" placeholder="Observaciones del uso"
-                                                   value="<?php echo $detalle['obs_uso_material_detalle']; ?>">
+                                            <input type="text" name="observaciones[]" class="form-control" 
+                                                placeholder="Observaciones del uso"
+                                                value="<?php echo $detalle['obs_uso_material_detalle']; ?>">
                                         </div>
+
                                         <div class="col-md-6">
+                                            <label>Centros de Costo <span class="text-danger">*</span>:</label>
+                                            <select name="centros_costo[<?php echo $contador; ?>][]" 
+                                                    class="form-control select2-centros-costo-uso-material" 
+                                                    multiple required>
+                                                <?php 
+                                                // Los centros ya vienen en $detalle['centros_costo_ids'] desde el controlador
+                                                $centros_seleccionados = isset($detalle['centros_costo_ids']) ? $detalle['centros_costo_ids'] : array();
+                                                
+                                                foreach ($centros_costo as $centro) { 
+                                                    $selected = in_array($centro['id_centro_costo'], $centros_seleccionados) ? 'selected' : '';
+                                                ?>
+                                                    <option value="<?php echo $centro['id_centro_costo']; ?>" <?php echo $selected; ?>>
+                                                        <?php echo $centro['nom_centro_costo']; ?>
+                                                    </option>
+                                                <?php } ?>
+                                            </select>
+                                            <small class="form-text text-muted">
+                                                <i class="fa fa-info-circle"></i> Seleccione uno o más centros de costo para este material.
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    <!-- FILA 3: Adjuntar Evidencias (NUEVA FILA SEPARADA) -->
+                                    <div class="row mt-2">
+                                        <div class="col-md-12">
                                             <label>Adjuntar Evidencias:</label>
-                                            <input type="file" name="archivos_<?php echo $contador; ?>[]" class="form-control" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
-                                            <small class="form-text text-muted">Formatos permitidos: PDF, JPG, PNG, DOC, XLS. Máximo 5MB por archivo.</small>
+                                            <input type="file" name="archivos_<?php echo $contador; ?>[]" 
+                                                class="form-control" multiple 
+                                                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
+                                            <small class="form-text text-muted">
+                                                Formatos permitidos: PDF, JPG, PNG, DOC, XLS. Máximo 5MB por archivo.
+                                            </small>
                                             
                                             <?php if (!empty($detalle['archivos'])) { 
                                                 $archivos = explode(',', $detalle['archivos']);
-                                                echo '<div class="mt-2"><strong>Archivos existentes:</strong><br>';
-                                                foreach ($archivos as $archivo) {
-                                                    if (!empty($archivo)) {
-                                                        echo '<div class="d-flex align-items-center mb-1">';
-                                                        echo '<a href="../_archivos/uso_material/' . $archivo . '" target="_blank" class="btn btn-link btn-sm p-0 me-2">' . $archivo . '</a>';
-                                                        echo '<button type="button" class="btn btn-danger btn-xs ms-2" onclick="eliminarArchivo(\'' . $archivo . '\', ' . $detalle['id_uso_material_detalle'] . ', this)" title="Eliminar archivo">';
-                                                        echo '<i class="fa fa-trash"></i>';
-                                                        echo '</button>';
-                                                        echo '</div>';
-                                                    }
-                                                }
-                                                echo '</div>';
-                                            } ?>
+                                            ?>
+                                                <div class="mt-2">
+                                                    <strong>Archivos existentes:</strong><br>
+                                                    <?php foreach ($archivos as $archivo) {
+                                                        if (!empty($archivo)) {
+                                                            $archivo = trim($archivo);
+                                                    ?>
+                                                        <div class="d-flex align-items-center mb-1">
+                                                            <a href="../_archivos/uso_material/<?php echo $archivo; ?>" 
+                                                            target="_blank" 
+                                                            class="btn btn-link btn-sm p-0 me-2">
+                                                                <i class="fa fa-file"></i> <?php echo $archivo; ?>
+                                                            </a>
+                                                            <button type="button" 
+                                                                    class="btn btn-danger btn-xs ms-2" 
+                                                                    onclick="eliminarArchivo('<?php echo $archivo; ?>', <?php echo $detalle['id_uso_material_detalle']; ?>, this)" 
+                                                                    title="Eliminar archivo">
+                                                                <i class="fa fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    <?php 
+                                                        }
+                                                    } 
+                                                    ?>
+                                                </div>
+                                            <?php } ?>
                                         </div>
                                     </div>
+
+                                    <!-- FILA 4: Botón Eliminar -->
                                     <div class="row mt-2">
-                                        <div class="col-md-12 d-flex align-items-end">
-                                            <button type="button" class="btn btn-danger btn-sm eliminar-material" 
+                                        <div class="col-md-12 d-flex align-items-end justify-content-end">
+                                            <button type="button" 
+                                                    class="btn btn-danger btn-sm eliminar-material" 
                                                     <?php echo ($contador == 0) ? 'style="display: none;"' : ''; ?>>
                                                 <i class="fa fa-trash"></i> Eliminar
                                             </button>
@@ -235,7 +310,7 @@
 </div>
 
 <!-- Agregar Select2 -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
 <script>
@@ -250,6 +325,10 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <script>
+// ============================================
+// JAVASCRIPT COMPLETO PARA v_uso_material_editar.php
+// ============================================
+
 // Variables globales
 let currentSearchButton = null;
 let ubicacionActual = '<?php echo $uso['id_ubicacion']; ?>';
@@ -303,7 +382,6 @@ function eliminarArchivo(nombreArchivo, idDetalle, botonEliminar) {
             reverseButtons: true
         }).then((result) => {
             if (result.isConfirmed) {
-                // Realizar petición AJAX para eliminar el archivo
                 fetch('eliminar_archivo_uso_material.php', {
                     method: 'POST',
                     headers: {
@@ -315,7 +393,6 @@ function eliminarArchivo(nombreArchivo, idDetalle, botonEliminar) {
                 .then(response => response.text())
                 .then(data => {
                     if (data.trim() === 'OK') {
-                        // Eliminar la fila del archivo del DOM
                         botonEliminar.parentElement.remove();
                         
                         Swal.fire({
@@ -345,7 +422,6 @@ function eliminarArchivo(nombreArchivo, idDetalle, botonEliminar) {
         });
     } else {
         if (confirm('¿Está seguro de eliminar el archivo "' + nombreArchivo + '"?')) {
-            // Realizar petición AJAX para eliminar el archivo
             fetch('eliminar_archivo_uso_material.php', {
                 method: 'POST',
                 headers: {
@@ -357,7 +433,6 @@ function eliminarArchivo(nombreArchivo, idDetalle, botonEliminar) {
             .then(response => response.text())
             .then(data => {
                 if (data.trim() === 'OK') {
-                    // Eliminar la fila del archivo del DOM
                     botonEliminar.parentElement.remove();
                     alert('Archivo eliminado correctamente.');
                 } else {
@@ -429,9 +504,9 @@ function cargarProductos(idAlmacen, idUbicacion) {
             { "title": "Material" },
             { "title": "Tipo" },
             { "title": "Unidad" },
-            { "title": "Stock Físico" },       // 👈 NUEVO
-            { "title": "Stock Reservado" },    // 👈 NUEVO
-            { "title": "Stock Disponible" },   // 👈 NUEVO
+            { "title": "Stock Físico" },
+            { "title": "Stock Reservado" },
+            { "title": "Stock Disponible" },
             { "title": "Acción" }
         ],
         "order": [[1, 'asc']],
@@ -457,7 +532,7 @@ function cargarProductos(idAlmacen, idUbicacion) {
 
 // Función para seleccionar producto
 function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisponible) {
-    // Buscar si el producto ya está en la lista
+    // Validación anti-duplicados
     const materialItems = document.querySelectorAll('.material-item');
     let productoExistente = null;
 
@@ -469,16 +544,21 @@ function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisp
     });
 
     if (productoExistente) {
-        // Producto ya existe → resaltarlo visualmente
         productoExistente.classList.add('duplicado-resaltado');
         productoExistente.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-        // Quitar resaltado después de unos segundos
         setTimeout(() => productoExistente.classList.remove('duplicado-resaltado'), 2000);
-
-        // Cerrar modal y mostrar aviso visual (sin alert)
         $('#buscar_producto').modal('hide');
-        return; // Detiene aquí, no lo agrega de nuevo
+        
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Producto duplicado',
+                text: 'Este material ya está agregado en el uso',
+                showConfirmButton: false,
+                timer: 2000
+            });
+        }
+        return;
     }
     
     if (currentSearchButton) {
@@ -488,10 +568,12 @@ function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisp
             let inputDescripcion = materialItem.querySelector('input[name="descripcion[]"]');
             let inputIdProducto = materialItem.querySelector('input[name="id_producto[]"]');
             let inputUnidad = materialItem.querySelector('input[name="unidad[]"]');
+            let inputCantidad = materialItem.querySelector('input[name="cantidad[]"]');
             
             if (inputDescripcion) inputDescripcion.value = nombreProducto;
             if (inputIdProducto) inputIdProducto.value = idProducto;
             if (inputUnidad) inputUnidad.value = unidadMedida;
+            if (inputCantidad) inputCantidad.setAttribute('data-stock', stockDisponible);
         }
     }
     
@@ -509,7 +591,7 @@ function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisp
     }
 }
 
-// Verificar si hay productos nuevos (no originales del registro)
+// Verificar si hay productos nuevos
 function hayProductosNuevos() {
     const materialesItems = document.querySelectorAll('.material-item');
     for (let item of materialesItems) {
@@ -528,6 +610,26 @@ function hayProductosNuevos() {
 document.addEventListener('DOMContentLoaded', function() {
     let contadorMateriales = <?php echo count($uso_material_detalle); ?>;
     
+    // Inicializar Select2 para solicitante
+    $('#id_solicitante').select2({
+        placeholder: "Seleccione un solicitante",
+        allowClear: true,
+        width: '100%'
+    });
+    
+    // Inicializar Select2 para centros de costo existentes
+    $('.select2-centros-costo-uso-material').each(function() {
+        $(this).select2({
+            placeholder: 'Seleccionar uno o más centros de costo...',
+            allowClear: true,
+            width: '100%',
+            multiple: true,
+            language: {
+                noResults: function () { return 'No se encontraron resultados'; }
+            }
+        });
+    });
+    
     // Detectar cambios en campos del formulario
     const todosLosCampos = document.querySelectorAll('input, textarea, select');
     todosLosCampos.forEach(campo => {
@@ -538,50 +640,181 @@ document.addEventListener('DOMContentLoaded', function() {
     // Agregar nuevo material
     const btnAgregarMaterial = document.getElementById('agregar-material');
     if (btnAgregarMaterial) {
-        btnAgregarMaterial.addEventListener('click', function() {
+        btnAgregarMaterial.addEventListener('click', function(e) {
+            e.preventDefault();
+            
             const contenedor = document.getElementById('contenedor-materiales');
-            const nuevoMaterial = document.querySelector('.material-item').cloneNode(true);
+            const materialOriginal = contenedor.querySelector('.material-item');
             
-            const inputs = nuevoMaterial.querySelectorAll('input, textarea');
-            inputs.forEach(input => {
-                if (input.type !== 'hidden') {
-                    input.value = '';
-                } else if (input.name === 'id_detalle[]') {
-                    input.value = '0';
-                } else {
-                    input.value = '';
+            if (materialOriginal) {
+                // 1. GUARDAR valores de Select2 ANTES de destruir
+                const valoresOriginalesSelect2 = {};
+                const selectsOriginales = materialOriginal.querySelectorAll(
+                    'select.select2-centros-costo-uso-material'
+                );
+                
+                selectsOriginales.forEach((select, index) => {
+                    if ($(select).data('select2')) {
+                        valoresOriginalesSelect2[index] = $(select).val();
+                    }
+                });
+                
+                // 2. DESTRUIR Select2 en el original
+                selectsOriginales.forEach(select => {
+                    if ($(select).data('select2')) {
+                        $(select).select2('destroy');
+                    }
+                });
+                
+                // 3. CLONAR el elemento COMPLETO
+                const nuevoMaterial = materialOriginal.cloneNode(true);
+                
+                // 4. RESTAURAR Select2 en el ORIGINAL con sus valores
+                selectsOriginales.forEach((select, index) => {
+                    $(select).select2({
+                        placeholder: 'Seleccionar uno o más centros de costo...',
+                        allowClear: true,
+                        width: '100%',
+                        multiple: true,
+                        language: {
+                            noResults: function () { return 'No se encontraron resultados'; }
+                        }
+                    });
+                    if (valoresOriginalesSelect2[index]) {
+                        $(select).val(valoresOriginalesSelect2[index]).trigger('change');
+                    }
+                });
+                
+                // 5. LIMPIAR TODOS los campos del NUEVO material
+                const inputs = nuevoMaterial.querySelectorAll('input, textarea');
+                inputs.forEach(input => {
+                    if (input.type === 'file') {
+                        input.value = '';
+                        input.name = `archivos_${contadorMateriales}[]`;
+                    } else if (input.name === 'id_detalle[]') {
+                        input.value = '0';
+                    } else if (input.name === 'id_producto[]') {
+                        input.value = '';
+                    } else if (input.name === 'descripcion[]') {
+                        input.value = '';
+                    } else if (input.name === 'unidad[]') {
+                        input.value = '';
+                    } else if (input.name === 'cantidad[]') {
+                        input.value = '';
+                        input.removeAttribute('data-stock');
+                    } else if (input.name === 'observaciones[]') {
+                        input.value = '';
+                    } else {
+                        input.value = '';
+                    }
+                });
+
+                // 6. REMOVER SOLO la sección de "Archivos existentes" (NO el input file)
+                // Buscamos el div que contiene SOLO los archivos existentes
+                const filasArchivos = nuevoMaterial.querySelectorAll('.row.mt-2');
+                filasArchivos.forEach(fila => {
+                    // Dentro de cada fila, buscar divs con mt-2 que contengan "Archivos existentes"
+                    const divsInternos = fila.querySelectorAll('div.mt-2');
+                    divsInternos.forEach(div => {
+                        const strong = div.querySelector('strong');
+                        if (strong && strong.textContent.trim() === 'Archivos existentes:') {
+                            // SOLO eliminar este div interno, NO toda la fila
+                            div.remove();
+                        }
+                    });
+                });
+                
+                // Limpiar el texto del small de stock disponible
+                const smallsStock = nuevoMaterial.querySelectorAll('small.form-text.text-muted');
+                smallsStock.forEach(small => {
+                    if (small.textContent.includes('Stock disponible:')) {
+                        small.textContent = 'Stock disponible: ';
+                    }
+                });
+
+                // 7. LIMPIAR y PREPARAR los selects del NUEVO material
+                const selectsClonados = nuevoMaterial.querySelectorAll('select');
+                selectsClonados.forEach(select => {
+                    if (select.name && select.name.includes('centros_costo')) {
+                        select.name = `centros_costo[${contadorMateriales}][]`;
+                    }
+                    
+                    $(select).removeClass('select2-hidden-accessible');
+                    const select2Container = select.nextElementSibling;
+                    if (select2Container && select2Container.classList.contains('select2')) {
+                        select2Container.remove();
+                    }
+                    
+                    Array.from(select.options).forEach(option => {
+                        option.selected = false;
+                    });
+                    select.selectedIndex = -1;
+                });
+
+                // 8. MOSTRAR botón eliminar
+                const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
+                if (btnEliminar) {
+                    btnEliminar.style.display = 'block';
                 }
-            });
-
-            const fileInput = nuevoMaterial.querySelector('input[type="file"]');
-            if (fileInput) {
-                fileInput.name = `archivos_${contadorMateriales}[]`;
+                
+                // 9. AGREGAR al contenedor
+                contenedor.appendChild(nuevoMaterial);
+                
+                // 10. INICIALIZAR Select2 en el NUEVO material
+                const selectsNuevos = nuevoMaterial.querySelectorAll('select');
+                selectsNuevos.forEach(select => {
+                    if (select.name && select.name.includes('centros_costo')) {
+                        $(select).select2({
+                            placeholder: 'Seleccionar uno o más centros de costo...',
+                            allowClear: true,
+                            width: '100%',
+                            multiple: true,
+                            language: {
+                                noResults: function () { return 'No se encontraron resultados'; }
+                            }
+                        });
+                    }
+                });
+                
+                // 11. INCREMENTAR contador y actualizar eventos
+                contadorMateriales++;
+                actualizarEventosEliminar();
+                actualizarEventosCampos();
+                formularioModificado = true;
+                
+                // 12. SCROLL al nuevo elemento
+                nuevoMaterial.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                
+                console.log('✅ Nuevo material agregado, contador:', contadorMateriales);
             }
-
-            // Remover archivos existentes del nuevo elemento
-            const archivosExistentes = nuevoMaterial.querySelector('.mt-2');
-            if (archivosExistentes && archivosExistentes.innerHTML.includes('Archivos existentes:')) {
-                archivosExistentes.remove();
-            }
-
-            const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
-            if (btnEliminar) {
-                btnEliminar.style.display = 'block';
-            }
-            
-            contenedor.appendChild(nuevoMaterial);
-            contadorMateriales++;
-            
-            actualizarEventosEliminar();
-            actualizarEventosCampos();
         });
     }
     
     function actualizarEventosEliminar() {
         document.querySelectorAll('.eliminar-material').forEach(btn => {
-            btn.onclick = function() {
+            btn.onclick = function(e) {
+                e.preventDefault();
                 if (document.querySelectorAll('.material-item').length > 1) {
-                    this.closest('.material-item').remove();
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: '¿Eliminar material?',
+                            text: 'Se eliminará este material del registro',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#d33',
+                            cancelButtonColor: '#3085d6',
+                            confirmButtonText: 'Sí, eliminar',
+                            cancelButtonText: 'Cancelar'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                this.closest('.material-item').remove();
+                            }
+                        });
+                    } else {
+                        if (confirm('¿Eliminar este material?')) {
+                            this.closest('.material-item').remove();
+                        }
+                    }
                 }
             };
         });
@@ -601,7 +834,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Validación antes del envío
     document.querySelector('form').addEventListener('submit', function(e) {
-        // Validaciones básicas - se puede extender según necesidades
         const materialesConDatos = document.querySelectorAll('.material-item input[name="descripcion[]"]');
         let hayMaterialesValidos = false;
         
@@ -622,8 +854,10 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 alert('Debe seleccionar al menos un material.');
             }
+            return;
         }
-        // ===== VALIDACIÓN DE STOCK =====
+        
+        // Validación de stock
         let excedeStock = false;
         let mensajeStock = '';
 
@@ -632,7 +866,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const stock = parseFloat(input.dataset.stock) || 0;
             const valor = parseFloat(input.value) || 0;
 
-            if (valor > stock) {
+            if (valor > stock && stock > 0) {
                 excedeStock = true;
                 mensajeStock = `La cantidad del material #${index + 1} excede el stock disponible (${stock.toFixed(2)}).`;
             }
@@ -651,6 +885,33 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+    
+    // Validación en tiempo real de cantidad vs stock
+    document.addEventListener('input', function(e) {
+        if (e.target && e.target.name === 'cantidad[]' && e.target.classList.contains('cantidad-material')) {
+            const stock = parseFloat(e.target.dataset.stock) || 0;
+            const valor = parseFloat(e.target.value) || 0;
+
+            if (valor > stock && stock > 0) {
+                e.target.classList.add('border', 'border-danger');
+                
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Cantidad excede stock disponible',
+                        text: `Stock disponible: ${stock.toFixed(2)}, cantidad ingresada: ${valor.toFixed(2)}`,
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                }
+            } else {
+                e.target.classList.remove('border', 'border-danger');
+            }
+        }
+    });
+    
+    // Inicializar tooltips
+    $('[data-toggle="tooltip"]').tooltip();
 });
 
 // Limpiar referencia al cerrar modal

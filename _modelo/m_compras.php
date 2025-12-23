@@ -598,3 +598,152 @@ function ObtenerTipoProductoPorCompra($id_compra) {
 
     return $data ? intval($data['id_producto_tipo']) : 0;
 }
+// =====================================================
+// FUNCIONES PARA CENTROS DE COSTO
+// =====================================================
+
+function ConsultarCompraDetalleConCentros($id_compra)
+{
+    include("../_conexion/conexion.php");
+    
+    $id_compra = intval($id_compra);
+    
+    $sql = "SELECT 
+                cd.id_compra_detalle,
+                cd.id_compra,
+                cd.id_producto,
+                cd.id_pedido_detalle,
+                cd.cant_compra_detalle,
+                cd.prec_compra_detalle,
+                cd.igv_compra_detalle,
+                cd.hom_compra_detalle,
+                cd.est_compra_detalle,
+                pd.prod_pedido_detalle,
+                pd.com_pedido_detalle,
+                pd.req_pedido,
+                pr.nom_producto,
+                pr.cod_material,
+                um.nom_unidad_medida
+            FROM compra_detalle cd
+            LEFT JOIN pedido_detalle pd ON cd.id_pedido_detalle = pd.id_pedido_detalle
+            LEFT JOIN producto pr ON cd.id_producto = pr.id_producto
+            LEFT JOIN unidad_medida um ON pr.id_unidad_medida = um.id_unidad_medida
+            WHERE cd.id_compra = $id_compra
+            AND cd.est_compra_detalle = 1
+            ORDER BY cd.id_compra_detalle ASC";
+    
+    $resc = mysqli_query($con, $sql);
+    
+    if (!$resc) {
+        error_log("Error en ConsultarCompraDetalleConCentros SQL: " . mysqli_error($con));
+        mysqli_close($con);
+        return array();
+    }
+    
+    $resultado = array();
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        // 🔹 CARGAR CENTROS DE COSTO CON NOMBRES
+        $rowc['centros_costo'] = ObtenerCentrosCostoPorDetalleCompraCompleto($rowc['id_pedido_detalle']);
+        $resultado[] = $rowc;
+    }
+    
+    mysqli_close($con);
+    return $resultado;
+}
+
+function ObtenerCentrosCostoPorDetalleCompraCompleto($id_pedido_detalle) {
+    include("../_conexion/conexion.php");
+    
+    $id_pedido_detalle = intval($id_pedido_detalle);
+    
+    // 🔹 Obtener centros con sus nombres desde pedido_detalle
+    $sql = "SELECT cc.id_centro_costo, a.nom_area as nom_centro_costo
+            FROM pedido_detalle_centro_costo cc
+            INNER JOIN {$bd_complemento}.area a ON cc.id_centro_costo = a.id_area
+            WHERE cc.id_pedido_detalle = $id_pedido_detalle";
+    
+    $resultado = mysqli_query($con, $sql);
+    $centros = [];
+    
+    if ($resultado) {
+        while ($row = mysqli_fetch_assoc($resultado)) {
+            $centros[] = $row;
+        }
+    }
+    
+    mysqli_close($con);
+    return $centros;
+}
+
+function ObtenerCentrosCostoPorDetalleCompra($id_pedido_detalle) {
+    include("../_conexion/conexion.php");
+    
+    $id_pedido_detalle = intval($id_pedido_detalle);
+    
+    //  Obtener desde pedido_detalle_centro_costo (NO desde compra_detalle_centro_costo)
+    $sql = "SELECT id_centro_costo
+            FROM pedido_detalle_centro_costo
+            WHERE id_pedido_detalle = $id_pedido_detalle";
+    
+    $resultado = mysqli_query($con, $sql);
+    $centros_ids = [];
+    
+    if ($resultado) {
+        while ($row = mysqli_fetch_assoc($resultado)) {
+            $centros_ids[] = intval($row['id_centro_costo']);
+        }
+    }
+    
+    mysqli_close($con);
+    return $centros_ids;
+}
+
+function GuardarCentrosCostoCompraDetalle($con, $id_compra_detalle, $centros_costo) 
+{
+    $id_compra_detalle = intval($id_compra_detalle);
+    
+    if ($id_compra_detalle <= 0) {
+        error_log("❌ ID compra_detalle inválido: $id_compra_detalle");
+        return false;
+    }
+    
+    //  PASO 1: Eliminar centros existentes
+    $sql_eliminar = "DELETE FROM compra_detalle_centro_costo 
+                    WHERE id_compra_detalle = ?";
+    
+    $stmt_del = $con->prepare($sql_eliminar);
+    $stmt_del->bind_param("i", $id_compra_detalle);
+    $stmt_del->execute();
+    $stmt_del->close();
+    
+    //  PASO 2: Insertar nuevos centros
+    if (!empty($centros_costo) && is_array($centros_costo)) {
+        
+        $sql_insert = "INSERT INTO compra_detalle_centro_costo 
+                      (id_compra_detalle, id_centro_costo) 
+                      VALUES (?, ?)";
+        
+        $stmt_ins = $con->prepare($sql_insert);
+        
+        $centros_insertados = 0;
+        
+        foreach ($centros_costo as $id_centro) {
+            $id_centro = intval($id_centro);
+            
+            if ($id_centro > 0) {
+                $stmt_ins->bind_param("ii", $id_compra_detalle, $id_centro);
+                $stmt_ins->execute();
+                $centros_insertados++;
+            }
+        }
+        
+        $stmt_ins->close();
+        
+        error_log("✅ Guardados $centros_insertados centros para compra_detalle $id_compra_detalle");
+        
+        return true;
+    }
+    
+    error_log("⚠️ Sin centros para guardar en compra_detalle $id_compra_detalle");
+    return true;
+}

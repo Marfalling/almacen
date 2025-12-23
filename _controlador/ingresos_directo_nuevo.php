@@ -33,6 +33,7 @@ if (!verificarPermisoEspecifico('crear_ingresos')) {
             require_once("../_vista/v_menu_user.php");
             require_once("../_modelo/m_producto.php"); 
             require_once("../_modelo/m_ingreso.php");
+            require_once("../_modelo/m_centro_costo.php");
             require_once("../_modelo/m_almacen.php");
             require_once("../_modelo/m_ubicacion.php");
 
@@ -40,6 +41,8 @@ if (!verificarPermisoEspecifico('crear_ingresos')) {
             //$almacenes = MostrarAlmacenesActivos();
             $almacenes = MostrarAlmacenesActivosConArceBase();
             $ubicaciones = MostrarUbicacionesActivas();
+            $centros_costo = MostrarCentrosCostoActivos();
+            $centro_costo_usuario = ObtenerCentroCostoPersonal($id);
 
             // Variables para alertas
             $mostrar_alerta = false;
@@ -82,9 +85,30 @@ if (!verificarPermisoEspecifico('crear_ingresos')) {
                                 continue;
                             }
                             
+                            //  PROCESAR CENTROS DE COSTO
+                            $centros_costo_material = array();
+                            if (isset($_REQUEST['centros_costo']) && is_array($_REQUEST['centros_costo'])) {
+                                if (isset($_REQUEST['centros_costo'][$i])) {
+                                    $centros_value = $_REQUEST['centros_costo'][$i];
+                                    if (is_array($centros_value)) {
+                                        $centros_costo_material = $centros_value;
+                                    } else if (is_string($centros_value) && !empty($centros_value)) {
+                                        $centros_costo_material = explode(',', $centros_value);
+                                    }
+                                }
+                            }
+                            
+                            // Validar y filtrar centros de costo
+                            $centros_costo_material = array_map('intval', $centros_costo_material);
+                            $centros_costo_material = array_filter($centros_costo_material, function($id) {
+                                return $id > 0;
+                            });
+                            $centros_costo_material = array_unique($centros_costo_material);
+                            
                             $productos[] = array(
                                 'id_producto' => $id_producto,
-                                'cantidad' => $cantidad
+                                'cantidad' => $cantidad,
+                                'centros_costo' => $centros_costo_material // 🔹 NUEVO
                             );
                         }
                     }

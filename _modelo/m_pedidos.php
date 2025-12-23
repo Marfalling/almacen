@@ -16,19 +16,30 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
 {
     include("../_conexion/conexion.php");
     require_once("../_modelo/m_stock.php");
+    require_once("../_modelo/m_centro_costo.php");
+
+    //  OBTENER CENTRO DE COSTO DEL PERSONAL QUE REGISTRA
+    $centro_costo_registrador = ObtenerCentroCostoPersonal($id_personal);
+    $id_registrador_centro_costo = $centro_costo_registrador ? intval($centro_costo_registrador['id_centro_costo']) : 'NULL';
 
     $id_obra_sql = ($id_obra && $id_obra > 0) ? intval($id_obra) : "NULL";
 
-    //estado inicial debe ser 1 (Pendiente)
+    // Estado inicial debe ser 1 (Pendiente)
     $sql = "INSERT INTO pedido (
-                id_producto_tipo, id_almacen, id_ubicacion, id_centro_costo, id_personal, id_obra,
+                id_producto_tipo, id_almacen, id_ubicacion, id_centro_costo, id_personal, 
+                id_registrador_centro_costo, id_obra,
                 cod_pedido, nom_pedido, ot_pedido, cel_pedido, lug_pedido, 
                 acl_pedido, fec_req_pedido, fec_pedido, est_pedido
             ) VALUES (
-                $id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo, $id_personal, $id_obra_sql,
-                'TEMP', '" . mysqli_real_escape_string($con, $nom_pedido) . "', '" . mysqli_real_escape_string($con, $num_ot) . "',
-                '" . mysqli_real_escape_string($con, $contacto) . "', '" . mysqli_real_escape_string($con, $lugar_entrega) . "',
-                '" . mysqli_real_escape_string($con, $aclaraciones) . "', '" . mysqli_real_escape_string($con, $fecha_necesidad) . "', NOW(), 1
+                $id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_costo, $id_personal,
+                $id_registrador_centro_costo, $id_obra_sql,
+                'TEMP', '" . mysqli_real_escape_string($con, $nom_pedido) . "', 
+                '" . mysqli_real_escape_string($con, $num_ot) . "',
+                '" . mysqli_real_escape_string($con, $contacto) . "', 
+                '" . mysqli_real_escape_string($con, $lugar_entrega) . "',
+                '" . mysqli_real_escape_string($con, $aclaraciones) . "', 
+                '" . mysqli_real_escape_string($con, $fecha_necesidad) . "', 
+                NOW(), 1
             )";
 
     if (mysqli_query($con, $sql)) {
@@ -47,8 +58,8 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
             $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
             $sst_descripcion = mysqli_real_escape_string($con, $material['sst_descripcion']); 
             $ot_detalle = mysqli_real_escape_string($con, $material['ot_detalle']);
-            $centros_costo = isset($material['centros_costo']) ? $material['centros_costo'] : array(); // 🔴 NUEVO
-            $personal_ids = isset($material['personal_ids']) ? $material['personal_ids'] : array(); // 🔴 NUEVO
+            $centros_costo = isset($material['centros_costo']) ? $material['centros_costo'] : array();
+            $personal_ids = isset($material['personal_ids']) ? $material['personal_ids'] : array();
 
             // Obtener el nombre de la unidad por su ID
             $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
@@ -65,14 +76,14 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
                                 com_pedido_detalle, req_pedido, est_pedido_detalle
                             ) VALUES (
                                 $id_pedido, $id_producto, '$descripcion',
-                                 '$ot_detalle', $cantidad, NULL, 
+                                '$ot_detalle', $cantidad, NULL, 
                                 '$comentario_detalle', '$requisitos', 1
                             )";
             
             if (mysqli_query($con, $sql_detalle)) {
                 $id_detalle = mysqli_insert_id($con);
 
-                //  Guardar centros de costo para este detalle
+                // Guardar centros de costo para este detalle
                 if (!empty($centros_costo) && is_array($centros_costo)) {
                     foreach ($centros_costo as $id_centro) {
                         $id_centro = intval($id_centro);
@@ -617,16 +628,23 @@ function ConsultarPedidoDetalle($id_pedido)
 //-----------------------------------------------------------------------
 // Actualizar Pedido con centros de costo múltiples - FUNCIÓN ACTUALIZADA
 function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedido, $fecha_necesidad, $num_ot, 
-                         $contacto, $lugar_entrega, $aclaraciones, $materiales, $archivos_subidos, $id_obra = null) 
+                         $contacto, $lugar_entrega, $aclaraciones, $materiales, $archivos_subidos, 
+                         $id_personal_editor, $id_obra = null) // 🔹 NUEVO PARÁMETRO
 {
     include("../_conexion/conexion.php");
+    require_once("../_modelo/m_centro_costo.php");
+
+    // 🔹 OBTENER CENTRO DE COSTO DEL EDITOR
+    $centro_costo_editor = ObtenerCentroCostoPersonal($id_personal_editor);
+    $id_registrador_centro_costo = $centro_costo_editor ? intval($centro_costo_editor['id_centro_costo']) : 'NULL';
 
     $id_obra_sql = ($id_obra && $id_obra > 0) ? intval($id_obra) : "NULL";
 
-    // Actualizar pedido principal
+    // 🔹 ACTUALIZAR PEDIDO PRINCIPAL (CON CENTRO DE COSTO DEL EDITOR)
     $sql = "UPDATE pedido SET 
             id_ubicacion = $id_ubicacion,
             id_centro_costo = $id_centro_costo,
+            id_registrador_centro_costo = $id_registrador_centro_costo,
             id_obra = $id_obra_sql,
             nom_pedido = '" . mysqli_real_escape_string($con, $nom_pedido) . "',
             fec_req_pedido = '" . mysqli_real_escape_string($con, $fecha_necesidad) . "',
@@ -661,7 +679,7 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
             $id_detalle = isset($material['id_detalle']) ? intval($material['id_detalle']) : 0;
             $ot_detalle = mysqli_real_escape_string($con, $material['ot_detalle']);
             $centros_costo = isset($material['centros_costo']) ? $material['centros_costo'] : array(); 
-            $personal_ids = isset($material['personal_ids']) ? $material['personal_ids'] : array(); // NUEVO
+            $personal_ids = isset($material['personal_ids']) ? $material['personal_ids'] : array();
 
             // OBTENER EL NOMBRE DE LA UNIDAD
             $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
@@ -704,7 +722,7 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
                             }
                         }
                     }
-                if (!empty($personal_ids) && is_array($personal_ids)) {
+                    if (!empty($personal_ids) && is_array($personal_ids)) {
                         // Eliminar personal existente
                         $sql_eliminar_personal = "DELETE FROM pedido_detalle_personal 
                                                 WHERE id_pedido_detalle = $id_detalle_actual";
@@ -765,7 +783,7 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
                         }
                     }
                     
-                if (!empty($personal_ids) && is_array($personal_ids)) {
+                    if (!empty($personal_ids) && is_array($personal_ids)) {
                         foreach ($personal_ids as $id_personal_item) {
                             $id_personal_item = intval($id_personal_item);
                             if ($id_personal_item > 0) {
@@ -1439,6 +1457,7 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal,
                 $id_detraccion_sql, $id_retencion_sql, $id_percepcion_sql,
                 '$fecha_orden', 1, NOW()
             )";
+            
     if (mysqli_query($con, $sql)) {
         $id_compra = mysqli_insert_id($con);
         
@@ -1472,15 +1491,43 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal,
             $hom_sql = $nombre_archivo_hom ? "'" . mysqli_real_escape_string($con, $nombre_archivo_hom) . "'" : "NULL";
             
             $sql_detalle = "INSERT INTO compra_detalle (
-                            id_compra, id_pedido_detalle, id_producto, 
-                            cant_compra_detalle, prec_compra_detalle, 
-                            igv_compra_detalle, hom_compra_detalle, est_compra_detalle
-                        ) VALUES (
-                            $id_compra, $id_detalle, $id_producto, 
-                            $cantidad, $precio_unitario, $igv, $hom_sql, 1
-                        )";
+                                id_compra, id_pedido_detalle, id_producto, 
+                                cant_compra_detalle, prec_compra_detalle, 
+                                igv_compra_detalle, hom_compra_detalle, est_compra_detalle
+                            ) VALUES (
+                                $id_compra, $id_detalle, $id_producto, 
+                                $cantidad, $precio_unitario, $igv, $hom_sql, 1
+                            )";
             
-            if (!mysqli_query($con, $sql_detalle)) {
+            if (mysqli_query($con, $sql_detalle)) {
+                $id_compra_detalle = mysqli_insert_id($con);
+                
+                //  HEREDAR CENTROS DE COSTO AUTOMÁTICAMENTE
+                if ($id_detalle > 0 && $id_compra_detalle > 0) {
+                    error_log("🔄 Heredando centros para compra_detalle $id_compra_detalle desde pedido_detalle $id_detalle");
+                    
+                    // Obtener centros del pedido_detalle
+                    $sql_centros = "SELECT id_centro_costo 
+                                   FROM pedido_detalle_centro_costo 
+                                   WHERE id_pedido_detalle = $id_detalle";
+                    
+                    $result_centros = mysqli_query($con, $sql_centros);
+                    $centros_heredados = array();
+                    
+                    while ($row = mysqli_fetch_assoc($result_centros)) {
+                        $centros_heredados[] = intval($row['id_centro_costo']);
+                    }
+                    
+                    // Guardar centros en compra_detalle
+                    if (!empty($centros_heredados)) {
+                        require_once("m_compras.php");
+                        GuardarCentrosCostoCompraDetalle($con, $id_compra_detalle, $centros_heredados);
+                        error_log("✅ Heredados " . count($centros_heredados) . " centros de costo");
+                    } else {
+                        error_log("⚠️ Pedido_detalle $id_detalle no tiene centros de costo asignados");
+                    }
+                }
+            } else {
                 error_log("ERROR al insertar detalle: " . mysqli_error($con));
             }
         }
@@ -2656,7 +2703,7 @@ function CrearOrdenServicio($id_pedido, $proveedor, $moneda, $id_personal,
             
             $nombre_archivo_hom = null;
             if (isset($archivos_homologacion[$id_pedido_detalle]) && !empty($archivos_homologacion[$id_pedido_detalle]['name'])) {
-                $archivo = $archivos_homologacion[$id_detalle];
+                $archivo = $archivos_homologacion[$id_pedido_detalle];
                 $extension = pathinfo($archivo['name'], PATHINFO_EXTENSION);
                 $nombre_archivo_hom = "hom_compra_" . $id_compra . "_prod_" . $id_producto . "_" . uniqid() . "." . $extension;
                 $ruta_destino = "../_archivos/homologaciones/" . $nombre_archivo_hom;
@@ -2679,27 +2726,55 @@ function CrearOrdenServicio($id_pedido, $proveedor, $moneda, $id_personal,
                                 $cantidad, $precio_unitario, $igv, $hom_sql, 1
                             )";
             
-            if (!mysqli_query($con, $sql_detalle)) {
+            if (mysqli_query($con, $sql_detalle)) {
+                $id_compra_detalle = mysqli_insert_id($con);
+                
+                // HEREDAR CENTROS DE COSTO AUTOMÁTICAMENTE
+                if ($id_pedido_detalle > 0 && $id_compra_detalle > 0) {
+                    error_log("🔄 Heredando centros para compra_detalle $id_compra_detalle desde pedido_detalle $id_pedido_detalle");
+                    
+                    // Obtener centros del pedido_detalle
+                    $sql_centros = "SELECT id_centro_costo 
+                                   FROM pedido_detalle_centro_costo 
+                                   WHERE id_pedido_detalle = $id_pedido_detalle";
+                    
+                    $result_centros = mysqli_query($con, $sql_centros);
+                    $centros_heredados = array();
+                    
+                    while ($row = mysqli_fetch_assoc($result_centros)) {
+                        $centros_heredados[] = intval($row['id_centro_costo']);
+                    }
+                    
+                    // Guardar centros en compra_detalle
+                    if (!empty($centros_heredados)) {
+                        require_once("m_compras.php");
+                        GuardarCentrosCostoCompraDetalle($con, $id_compra_detalle, $centros_heredados);
+                        error_log("✅ Heredados " . count($centros_heredados) . " centros de costo para servicio");
+                    } else {
+                        error_log("⚠️ Pedido_detalle $id_pedido_detalle no tiene centros de costo asignados");
+                    }
+                }
+                
+                // 🔹 CORRECCIÓN: Verificar cierre basado en el detalle específico
+                $cant_ordenada_para_este_detalle = ObtenerCantidadYaOrdenadaServicioPorDetalle($id_pedido_detalle);
+                
+                // Para servicios usamos cant_pedido_detalle (cantidad original)
+                $sql_get_original = "SELECT cant_pedido_detalle 
+                                    FROM pedido_detalle 
+                                    WHERE id_pedido_detalle = $id_pedido_detalle";
+                $res_original = mysqli_query($con, $sql_get_original);
+                $row_original = mysqli_fetch_assoc($res_original);
+                $cant_original = $row_original ? floatval($row_original['cant_pedido_detalle']) : 0;
+                
+                // Solo cerrar este detalle específico si se completó
+                if ($cant_ordenada_para_este_detalle >= $cant_original) {
+                    $sql_cerrar = "UPDATE pedido_detalle 
+                                SET est_pedido_detalle = 2 
+                                WHERE id_pedido_detalle = $id_pedido_detalle";
+                    mysqli_query($con, $sql_cerrar);
+                }
+            } else {
                 error_log("ERROR al insertar detalle de servicio: " . mysqli_error($con));
-            }
-
-            // 🔹 CORRECCIÓN: Verificar cierre basado en el detalle específico
-            $cant_ordenada_para_este_detalle = ObtenerCantidadYaOrdenadaServicioPorDetalle($id_detalle);
-            
-            // Para servicios usamos cant_pedido_detalle (cantidad original)
-            $sql_get_original = "SELECT cant_pedido_detalle 
-                                FROM pedido_detalle 
-                                WHERE id_pedido_detalle = $id_detalle";
-            $res_original = mysqli_query($con, $sql_get_original);
-            $row_original = mysqli_fetch_assoc($res_original);
-            $cant_original = $row_original ? floatval($row_original['cant_pedido_detalle']) : 0;
-            
-            // Solo cerrar este detalle específico si se completó
-            if ($cant_ordenada_para_este_detalle >= $cant_original) {
-                $sql_cerrar = "UPDATE pedido_detalle 
-                            SET est_pedido_detalle = 2 
-                            WHERE id_pedido_detalle = $id_detalle";
-                mysqli_query($con, $sql_cerrar);
             }
         }
         

@@ -20,6 +20,21 @@ function GrabarSalida(
     $materiales, 
     $id_pedido = null
 ) {
+    // 🔹 DETECTAR SI VIENE DE PEDIDO
+    $viene_de_pedido = ($id_pedido !== null && $id_pedido > 0);
+    
+    // Si NO viene de pedido, verificar que TODOS los materiales tengan centros de costo
+    if (!$viene_de_pedido) {
+        foreach ($materiales as $material) {
+            $centros_costo = isset($material['centros_costo']) ? $material['centros_costo'] : array();
+            
+            if (empty($centros_costo) || !is_array($centros_costo)) {
+                $descripcion = isset($material['descripcion']) ? $material['descripcion'] : 'Material';
+                return "ERROR: El material '{$descripcion}' debe tener al menos un centro de costo asignado.";
+            }
+        }
+    }
+    
     //  VALIDACIÓN 1: Lógica de cantidades verificadas
     $errores_validacion = ValidarSalidaAntesDeProcesar(
         $id_material_tipo, $id_almacen_origen, $id_ubicacion_origen, 
@@ -181,8 +196,12 @@ function GrabarSalida(
                                 ? intval($material['id_pedido_detalle']) 
                                 : null;
             $id_pedido_detalle_sql = ($id_pedido_detalle !== null) ? $id_pedido_detalle : "NULL";
+            
+            // 🔹 OBTENER CENTROS DE COSTO DEL MATERIAL
+            $centros_costo_material = isset($material['centros_costo']) && is_array($material['centros_costo']) 
+                                    ? $material['centros_costo'] 
+                                    : array();
                
-            //  VALIDACIÓN FINAL DE SEGURIDAD
             $stock_actual = ObtenerStockDisponible($id_producto, $id_almacen_origen, $id_ubicacion_origen, $id_pedido);          
             if ($cantidad > $stock_actual) {
                 if ($id_pedido && $id_pedido_detalle !== null) {
@@ -218,11 +237,52 @@ function GrabarSalida(
                 mysqli_close($con);
                 return "ERROR: No se pudo insertar el detalle";
             }
+            
+            $id_salida_detalle = mysqli_insert_id($con);
+            
+            // 🔹 INSERTAR CENTROS DE COSTO
+            if ($viene_de_pedido && $id_pedido_detalle !== null) {
+                
+                // ✅ HEREDAR CENTROS DEL PEDIDO
+                $sql_centros_pedido = "SELECT id_centro_costo 
+                                    FROM pedido_detalle_centro_costo 
+                                    WHERE id_pedido_detalle = $id_pedido_detalle";
+                
+                $res_centros = mysqli_query($con, $sql_centros_pedido);
+                
+                if ($res_centros) {
+                    while ($row_centro = mysqli_fetch_assoc($res_centros)) {
+                        $id_centro = intval($row_centro['id_centro_costo']);
+                        
+                        // ✅ INSERTAR EN SALIDA
+                        $sql_insert_cc = "INSERT INTO salida_detalle_centro_costo 
+                                        (id_salida_detalle, id_centro_costo) 
+                                        VALUES ($id_salida_detalle, $id_centro)";
+                        
+                        mysqli_query($con, $sql_insert_cc);
+                        
+                        error_log("✅ Centro $id_centro copiado de pedido_detalle $id_pedido_detalle a salida_detalle $id_salida_detalle");
+                    }
+                }
+                
+            } elseif (!$viene_de_pedido && !empty($centros_costo_material)) {
+                
+                // 🔹 USAR CENTROS DEL FORMULARIO (salidas sin pedido)
+                foreach ($centros_costo_material as $id_centro) {
+                    $id_centro = intval($id_centro);
+                    if ($id_centro > 0) {
+                        $sql_cc = "INSERT INTO salida_detalle_centro_costo 
+                                (id_salida_detalle, id_centro_costo) 
+                                VALUES ($id_salida_detalle, $id_centro)";
+                        mysqli_query($con, $sql_cc);
+                    }
+                }
+            }
         }
 
         mysqli_close($con);
         
-        error_log(" Salida creada en estado PENDIENTE (ID: $id_salida)");
+        error_log("✅ Salida creada en estado PENDIENTE (ID: $id_salida)");
         
         return array('success' => true, 'id_salida' => intval($id_salida));
     } else {
@@ -231,7 +291,6 @@ function GrabarSalida(
         return "ERROR: " . $error;
     }
 }
-
 function AprobarSalidaConMovimientos($id_salida, $id_personal_aprueba)
 {
     include("../_conexion/conexion.php");
@@ -864,6 +923,12 @@ function ConsultarSalida($id_salida)
                 pr.nom_personal, 
                 pe.nom_personal as nom_encargado,
                 prec.nom_personal as nom_recibe,
+                
+                /*  AGREGAR CENTROS DE COSTO */
+                area_reg.nom_area as nom_centro_costo_registrador,
+                area_enc.nom_area as nom_centro_costo_encargado,
+                area_rec.nom_area as nom_centro_costo_recibe,
+                
                 COALESCE(papr.nom_personal, '-') AS nom_aprueba,
                 COALESCE(precep.nom_personal, '-') AS nom_recepciona
              FROM salida s 
@@ -873,6 +938,12 @@ function ConsultarSalida($id_salida)
              INNER JOIN ubicacion uo ON s.id_ubicacion_origen = uo.id_ubicacion
              INNER JOIN ubicacion ud ON s.id_ubicacion_destino = ud.id_ubicacion
              INNER JOIN {$bd_complemento}.personal pr ON s.id_personal = pr.id_personal
+             
+             /*  JOIN CENTROS DE COSTO */
+             LEFT JOIN {$bd_complemento}.area area_reg ON s.id_registrador_centro_costo = area_reg.id_area
+             LEFT JOIN {$bd_complemento}.area area_enc ON s.id_encargado_centro_costo = area_enc.id_area
+             LEFT JOIN {$bd_complemento}.area area_rec ON s.id_recibe_centro_costo = area_rec.id_area
+             
              LEFT JOIN {$bd_complemento}.personal pe ON s.id_personal_encargado = pe.id_personal
              LEFT JOIN {$bd_complemento}.personal prec ON s.id_personal_recibe = prec.id_personal
              LEFT JOIN {$bd_complemento}.personal papr ON s.id_personal_aprueba_salida = papr.id_personal
@@ -909,14 +980,14 @@ function ConsultarSalidaDetalle($id_salida)
                 pd.cant_pedido_detalle,
                 pd.cant_os_pedido_detalle,
                 
-                -- 🔥 CÁLCULO CORRECTO: Cantidad máxima = cant OS verificada - otras salidas activas
+                /*  CÁLCULO CORRECTO DE CANTIDAD MÁXIMA */
                 COALESCE(pd.cant_os_pedido_detalle, 0) - COALESCE(
                     (SELECT SUM(sd2.cant_salida_detalle)
                      FROM salida_detalle sd2
                      INNER JOIN salida s2 ON sd2.id_salida = s2.id_salida
                      WHERE sd2.id_pedido_detalle = pd.id_pedido_detalle
-                     AND s2.est_salida = 1  -- Solo salidas activas
-                     AND s2.id_salida != $id_salida  -- Excluir esta salida
+                     AND s2.est_salida = 1
+                     AND s2.id_salida != $id_salida
                      AND sd2.est_salida_detalle = 1
                     ), 0
                 ) + sd.cant_salida_detalle AS cantidad_maxima
@@ -931,7 +1002,9 @@ function ConsultarSalidaDetalle($id_salida)
     $resc = mysqli_query($con, $sqlc);
     $resultado = array();
 
+    /*  CARGAR CENTROS DE COSTO POR MATERIAL */
     while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $rowc['centros_costo'] = ObtenerCentrosCostoPorDetalleSalidaCompleto($rowc['id_salida_detalle']);
         $resultado[] = $rowc;
     }
 
@@ -967,7 +1040,7 @@ function ActualizarSalida(
     error_log("🔧 ActualizarSalida - ID Salida: $id_salida");
     
     // ============================================================
-    // 🔍 PASO 1: VERIFICAR ESTADO DE LA SALIDA
+    // VERIFICAR ESTADO Y SI VIENE DE PEDIDO
     // ============================================================
     $sql_estado = "SELECT est_salida, id_pedido FROM salida WHERE id_salida = $id_salida";
     $res_estado = mysqli_query($con, $sql_estado);
@@ -980,11 +1053,10 @@ function ActualizarSalida(
     
     $estado_actual = intval($row_estado['est_salida']);
     $id_pedido = intval($row_estado['id_pedido']);
-    $tiene_pedido = ($id_pedido > 0);
+    $viene_de_pedido = ($id_pedido > 0);
     
-    error_log("📊 Estado actual: $estado_actual (0=ANULADA, 1=PENDIENTE, 2=RECEPCIONADA, 3=APROBADA)");
+    error_log("📊 Estado actual: $estado_actual | Viene de pedido: " . ($viene_de_pedido ? 'SÍ' : 'NO'));
     
-    // ❌ NO PERMITIR EDITAR SI NO ESTÁ PENDIENTE
     if ($estado_actual != 1) {
         mysqli_close($con);
         $estados = [
@@ -997,11 +1069,26 @@ function ActualizarSalida(
     }
     
     // ============================================================
-    // ✅ VALIDACIÓN DE STOCK (SOLO SI HAY PEDIDO)
+    // ✅ VALIDACIÓN DE CENTROS DE COSTO (SOLO SI NO VIENE DE PEDIDO)
+    // ============================================================
+    if (!$viene_de_pedido) {
+        foreach ($materiales as $material) {
+            $centros_costo = isset($material['centros_costo']) ? $material['centros_costo'] : array();
+            
+            if (empty($centros_costo) || !is_array($centros_costo)) {
+                $descripcion = isset($material['descripcion']) ? $material['descripcion'] : 'Material';
+                mysqli_close($con);
+                return "ERROR: El material '{$descripcion}' debe tener al menos un centro de costo asignado.";
+            }
+        }
+    }
+    
+    // ============================================================
+    // VALIDACIÓN DE STOCK (igual que antes)
     // ============================================================
     $errores = [];
 
-    if ($tiene_pedido) {
+    if ($viene_de_pedido) {
         foreach ($materiales as $material) {
             $id_producto = intval($material['id_producto']);
             $id_pedido_detalle = isset($material['id_pedido_detalle']) ? intval($material['id_pedido_detalle']) : 0;
@@ -1009,7 +1096,6 @@ function ActualizarSalida(
             
             if ($id_pedido_detalle <= 0) continue;
             
-            // Obtener cantidad actual en esta salida
             $sql_cantidad_actual = "SELECT COALESCE(cant_salida_detalle, 0) as cantidad_actual
                                     FROM salida_detalle 
                                     WHERE id_salida = $id_salida 
@@ -1136,8 +1222,60 @@ function ActualizarSalida(
     // ✅ ACTUALIZAR DETALLES
     // ============================================================
     
+    // Obtener IDs de detalles actuales en la base de datos
+    $sql_detalles_actuales = "SELECT id_salida_detalle 
+                            FROM salida_detalle 
+                            WHERE id_salida = $id_salida 
+                            AND est_salida_detalle = 1";
+    $res_actuales = mysqli_query($con, $sql_detalles_actuales);
+
+    $detalles_actuales_bd = [];
+    while ($row_act = mysqli_fetch_assoc($res_actuales)) {
+        $detalles_actuales_bd[] = intval($row_act['id_salida_detalle']);
+    }
+
+    // Obtener IDs de detalles que vienen del formulario
+    $detalles_formulario = [];
+    foreach ($materiales as $material) {
+        if (isset($material['id_salida_detalle']) && $material['id_salida_detalle'] > 0) {
+            $detalles_formulario[] = intval($material['id_salida_detalle']);
+        }
+    }
+
+    // Identificar detalles que deben eliminarse
+    $detalles_a_eliminar = array_diff($detalles_actuales_bd, $detalles_formulario);
+
+    // Eliminar detalles que ya no están en el formulario
+    if (!empty($detalles_a_eliminar)) {
+        foreach ($detalles_a_eliminar as $id_detalle_eliminar) {
+            error_log("🗑️ Eliminando detalle ID: $id_detalle_eliminar");
+            
+            // 1. Eliminar centros de costo asociados
+            $sql_del_cc = "DELETE FROM salida_detalle_centro_costo 
+                        WHERE id_salida_detalle = $id_detalle_eliminar";
+            mysqli_query($con, $sql_del_cc);
+            
+            // 2. Marcar el detalle como inactivo
+            $sql_del_detalle = "UPDATE salida_detalle 
+                            SET est_salida_detalle = 0 
+                            WHERE id_salida_detalle = $id_detalle_eliminar 
+                            AND id_salida = $id_salida";
+            mysqli_query($con, $sql_del_detalle);
+            
+            error_log("✅ Detalle eliminado correctamente");
+        }
+    }
+
+    error_log("📊 Detalles actuales en BD: " . count($detalles_actuales_bd));
+    error_log("📋 Detalles en formulario: " . count($detalles_formulario));
+    error_log("🗑️ Detalles eliminados: " . count($detalles_a_eliminar));
+
+    // ============================================================
+    // ✅ ACTUALIZAR/INSERTAR DETALLES
+    // ============================================================
+
     $detalles_para_reverificar = array();
-    
+
     foreach ($materiales as $key => $material) {
         
         $es_nuevo = isset($material['es_nuevo']) && $material['es_nuevo'] == '1';
@@ -1153,8 +1291,13 @@ function ActualizarSalida(
         
         $id_pedido_detalle_sql = ($id_pedido_detalle !== null) ? $id_pedido_detalle : "NULL";
         
+        // 🔹 OBTENER CENTROS DE COSTO
+        $centros_costo = isset($material['centros_costo']) && is_array($material['centros_costo']) 
+                        ? $material['centros_costo'] 
+                        : array();
+        
         if ($es_nuevo) {
-            // INSERTAR NUEVO DETALLE
+            //  INSERTAR NUEVO DETALLE
             $sql_detalle = "INSERT INTO salida_detalle (
                         id_salida, id_pedido_detalle, id_producto, prod_salida_detalle, 
                         cant_salida_detalle, est_salida_detalle
@@ -1163,9 +1306,48 @@ function ActualizarSalida(
                         $cantidad, 1
                     )";
             
-            if (!mysqli_query($con, $sql_detalle)) {
-                error_log("❌ Error al insertar detalle: " . mysqli_error($con));
-            } else {
+            if (mysqli_query($con, $sql_detalle)) {
+                $id_salida_detalle = mysqli_insert_id($con);
+                
+                // 🔹 ACTUALIZAR CENTROS DE COSTO PARA ITEM NUEVO
+                if ($viene_de_pedido && $id_pedido_detalle !== null && $id_pedido_detalle > 0) {
+                    
+                    // SINCRONIZAR CENTROS DEL PEDIDO
+                    $sql_centros_pedido = "SELECT id_centro_costo 
+                                        FROM pedido_detalle_centro_costo 
+                                        WHERE id_pedido_detalle = $id_pedido_detalle";
+                    
+                    $res_centros = mysqli_query($con, $sql_centros_pedido);
+                    
+                    if ($res_centros) {
+                        while ($row_centro = mysqli_fetch_assoc($res_centros)) {
+                            $id_centro = intval($row_centro['id_centro_costo']);
+                            
+                            $sql_insert_cc = "INSERT INTO salida_detalle_centro_costo 
+                                            (id_salida_detalle, id_centro_costo) 
+                                            VALUES ($id_salida_detalle, $id_centro)";
+                            
+                            mysqli_query($con, $sql_insert_cc);
+                            
+                            error_log("✅ Centro $id_centro sincronizado de pedido_detalle $id_pedido_detalle a salida_detalle $id_salida_detalle (NUEVO)");
+                        }
+                    }
+                    
+                } elseif (!$viene_de_pedido && !empty($centros_costo)) {
+                    
+                    //  USAR CENTROS DEL FORMULARIO
+                    foreach ($centros_costo as $id_centro) {
+                        $id_centro = intval($id_centro);
+                        if ($id_centro > 0) {
+                            $sql_cc = "INSERT INTO salida_detalle_centro_costo 
+                                    (id_salida_detalle, id_centro_costo) 
+                                    VALUES ($id_salida_detalle, $id_centro)";
+                            mysqli_query($con, $sql_cc);
+                        }
+                    }
+                }
+                
+                // Agregar a re-verificación si viene de pedido
                 if ($id_pedido_detalle !== null && !in_array($id_pedido_detalle, $detalles_para_reverificar)) {
                     $detalles_para_reverificar[] = $id_pedido_detalle;
                 }
@@ -1180,6 +1362,7 @@ function ActualizarSalida(
             
             $id_salida_detalle = intval($material['id_salida_detalle']);
             
+            // Validar que el detalle pertenece a esta salida
             $sql_detalle_info = "SELECT id_producto FROM salida_detalle 
                                 WHERE id_salida_detalle = $id_salida_detalle 
                                 AND id_salida = $id_salida";
@@ -1189,6 +1372,7 @@ function ActualizarSalida(
                 continue;
             }
             
+            // Actualizar el detalle
             $sql_detalle = "UPDATE salida_detalle SET 
                                 id_pedido_detalle = $id_pedido_detalle_sql,
                                 id_producto = $id_producto,
@@ -1198,6 +1382,61 @@ function ActualizarSalida(
                             AND id_salida = $id_salida";
             
             if (mysqli_query($con, $sql_detalle)) {
+                
+                //  ACTUALIZAR CENTROS DE COSTO PARA ITEM EXISTENTE
+                if ($viene_de_pedido && $id_pedido_detalle !== null && $id_pedido_detalle > 0) {
+                    
+                    //  SINCRONIZAR CENTROS DEL PEDIDO
+                    // Paso 1: Eliminar centros actuales
+                    $sql_eliminar_cc = "DELETE FROM salida_detalle_centro_costo 
+                                    WHERE id_salida_detalle = $id_salida_detalle";
+                    mysqli_query($con, $sql_eliminar_cc);
+                    
+                    // Paso 2: Obtener centros actuales del pedido
+                    $sql_centros_pedido = "SELECT id_centro_costo 
+                                        FROM pedido_detalle_centro_costo 
+                                        WHERE id_pedido_detalle = $id_pedido_detalle";
+                    
+                    $res_centros = mysqli_query($con, $sql_centros_pedido);
+                    
+                    // Paso 3: Insertar centros del pedido
+                    if ($res_centros) {
+                        while ($row_centro = mysqli_fetch_assoc($res_centros)) {
+                            $id_centro = intval($row_centro['id_centro_costo']);
+                            
+                            $sql_insert_cc = "INSERT INTO salida_detalle_centro_costo 
+                                            (id_salida_detalle, id_centro_costo) 
+                                            VALUES ($id_salida_detalle, $id_centro)";
+                            
+                            mysqli_query($con, $sql_insert_cc);
+                            
+                            error_log("✅ Centro $id_centro sincronizado de pedido_detalle $id_pedido_detalle a salida_detalle $id_salida_detalle (ACTUALIZADO)");
+                        }
+                    }
+                    
+                } elseif (!$viene_de_pedido) {
+                    
+                    // 🔹 ACTUALIZAR CENTROS DEL FORMULARIO
+                    // Eliminar centros existentes
+                    $sql_eliminar_cc = "DELETE FROM salida_detalle_centro_costo 
+                                    WHERE id_salida_detalle = $id_salida_detalle";
+                    mysqli_query($con, $sql_eliminar_cc);
+                    
+                    // Insertar nuevos centros
+                    if (!empty($centros_costo)) {
+                        foreach ($centros_costo as $id_centro) {
+                            $id_centro = intval($id_centro);
+                            if ($id_centro > 0) {
+                                $sql_cc = "INSERT INTO salida_detalle_centro_costo 
+                                        (id_salida_detalle, id_centro_costo) 
+                                        VALUES ($id_salida_detalle, $id_centro)";
+                                mysqli_query($con, $sql_cc);
+                            }
+                        }
+                    }
+                }
+                
+                // Agregar a re-verificación si viene de pedido
                 if ($id_pedido_detalle !== null && !in_array($id_pedido_detalle, $detalles_para_reverificar)) {
                     $detalles_para_reverificar[] = $id_pedido_detalle;
                 }
@@ -1251,20 +1490,20 @@ function ActualizarSalida(
                                 id_ubicacion, tipo_orden, tipo_movimiento, 
                                 cant_movimiento, fec_movimiento, est_movimiento
                             ) VALUES (
-                                $id_personal, $id_salida, $id_producto, $id_almacen_destino, 
+                                $id_personal, $id_salida, $id_producto, $id_almacen_destino,
                                 $id_ubicacion_destino, 2, 1, 
-                                $cantidad, NOW(), 1
-                            )";
-            mysqli_query($con, $sql_mov_ingreso);
-        }
-    } else {
-        error_log("⏸️ Salida en estado PENDIENTE - NO se generan movimientos");
+                            $cantidad, NOW(), 1
+                        )";
+        mysqli_query($con, $sql_mov_ingreso);
     }
+} else {
+    error_log("⏸️ Salida en estado PENDIENTE - NO se generan movimientos");
+}
 
     // ============================================================
     // ✅ RE-VERIFICAR ITEMS DEL PEDIDO
     // ============================================================
-    if ($tiene_pedido && !empty($detalles_para_reverificar)) {
+    if ($viene_de_pedido  && !empty($detalles_para_reverificar)) {
         error_log("🔄 Re-verificando " . count($detalles_para_reverificar) . " detalles únicos");
         
         require_once("../_modelo/m_pedidos.php");
@@ -1273,15 +1512,15 @@ function ActualizarSalida(
             error_log("   🔍 Re-verificando detalle: $id_detalle");
             ReverificarItemAutomaticamente($id_detalle);
         }
-        
+    
         // Actualizar estado del pedido
         error_log("📋 Actualizando estado del pedido: $id_pedido");
         ActualizarEstadoPedido($id_pedido);
     }
 
-    mysqli_close($con);
-    error_log("✅ ActualizarSalida completado exitosamente");
-    return "SI";
+mysqli_close($con);
+error_log("✅ ActualizarSalida completado exitosamente");
+return "SI";
 }
 
 //-----------------------------------------------------------------------
@@ -3696,4 +3935,50 @@ function EnviarCorreoSalidaRecepcionada($id_salida)
     }
     
     return ($enviado_encargado || $enviado_receptor);
+}
+/**
+ * ✅ NUEVA FUNCIÓN: Obtener centros de costo de un detalle de salida
+ */
+function ObtenerCentrosCostoPorDetalleSalidaCompleto($id_salida_detalle) {
+    include("../_conexion/conexion.php");
+    
+    $id_salida_detalle = intval($id_salida_detalle);
+    
+    $sql = "SELECT cc.id_centro_costo, a.nom_area as nom_centro_costo
+            FROM salida_detalle_centro_costo cc
+            INNER JOIN {$bd_complemento}.area a ON cc.id_centro_costo = a.id_area
+            WHERE cc.id_salida_detalle = $id_salida_detalle";
+    
+    $resultado = mysqli_query($con, $sql);
+    $centros = [];
+    
+    if ($resultado) {
+        while ($row = mysqli_fetch_assoc($resultado)) {
+            $centros[] = $row;
+        }
+    }
+    
+    mysqli_close($con);
+    return $centros;
+}
+function ObtenerCentrosCostoPorDetalleSalida($id_salida_detalle) {
+    include("../_conexion/conexion.php");
+    
+    $id_salida_detalle = intval($id_salida_detalle);
+    
+    $sql = "SELECT id_centro_costo
+            FROM salida_detalle_centro_costo
+            WHERE id_salida_detalle = $id_salida_detalle";
+    
+    $resultado = mysqli_query($con, $sql);
+    $centros_ids = [];
+    
+    if ($resultado) {
+        while ($row = mysqli_fetch_assoc($resultado)) {
+            $centros_ids[] = intval($row['id_centro_costo']);
+        }
+    }
+    
+    mysqli_close($con);
+    return $centros_ids;
 }

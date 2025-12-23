@@ -81,6 +81,12 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
             // Cargar detalles de la salida
             $salida_detalles = ConsultarSalidaDetalle($id_salida);
             
+            //  Cargar centros de costo para cada detalle
+            foreach ($salida_detalles as &$detalle) {
+                $detalle['centros_costo_ids'] = ObtenerCentrosCostoPorDetalleSalida($detalle['id_salida_detalle']);
+            }
+            unset($detalle); // Romper la referencia
+            
             // Calcular cantidad_disponible_origen para cada detalle
             foreach ($salida_detalles as &$detalle) {
                 $id_producto = intval($detalle['id_producto']);
@@ -99,9 +105,9 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
             $ubicaciones = MostrarUbicacionesActivas();
             $personal = MostrarPersonalActivo();
             $material_tipos = MostrarMaterialTipoActivos();
+            $centros_costo = MostrarCentrosCostoActivos(); 
             $centros_costo_personal = ObtenerCentrosCostoTodoPersonal();
             $centro_costo_usuario = ObtenerCentroCostoPersonal($id_personal);
-
 
             // Cargar documentos asociados a la salida
             $documentos = MostrarDocumentos('salidas', $id_salida);
@@ -141,7 +147,7 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
             }
 
             //=======================================================================
-            // CONTROLADOR CON AUDITORÍA
+            // CONTROLADOR CON AUDITORÍA Y CENTROS DE COSTO
             //=======================================================================
             if (isset($_REQUEST['actualizar'])) {
                 
@@ -154,14 +160,14 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                 $id_ubicacion_origen = intval($_REQUEST['id_ubicacion_origen']);
                 $id_almacen_destino = intval($_REQUEST['id_almacen_destino']);
                 $id_ubicacion_destino = intval($_REQUEST['id_ubicacion_destino']);
-                $ndoc_salida = $_REQUEST['ndoc_salida'];
+                $ndoc_salida = isset($_REQUEST['ndoc_salida']) ? $_REQUEST['ndoc_salida'] : '';
                 $fec_req_salida = $_REQUEST['fec_req_salida'];
                 $obs_salida = $_REQUEST['obs_salida'];
                 $id_personal_encargado = intval($_REQUEST['id_personal_encargado']);
                 $id_personal_recibe = intval($_REQUEST['id_personal_recibe']);
                 
                 // ============================================================
-                // 🔥 CONSTRUCCIÓN CORRECTA DEL ARRAY DE MATERIALES
+                //  CONSTRUCCIÓN DEL ARRAY DE MATERIALES CON CENTROS DE COSTO
                 // ============================================================
                 $materiales = array();
                 
@@ -185,13 +191,33 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                             
                             $es_nuevo = ($id_salida_detalle <= 0) ? '1' : '0';
                             
+                            //  PROCESAR CENTROS DE COSTO (IGUAL QUE USO_MATERIAL)
+                            $centros_costo_material = array();
+                            if (isset($_REQUEST['centros_costo']) && is_array($_REQUEST['centros_costo'])) {
+                                if (isset($_REQUEST['centros_costo'][$index])) {
+                                    $centros_value = $_REQUEST['centros_costo'][$index];
+                                    if (is_array($centros_value)) {
+                                        $centros_costo_material = $centros_value;
+                                    } else if (is_string($centros_value) && !empty($centros_value)) {
+                                        $centros_costo_material = explode(',', $centros_value);
+                                    }
+                                }
+                            }
+                            
+                            $centros_costo_material = array_map('intval', $centros_costo_material);
+                            $centros_costo_material = array_filter($centros_costo_material, function($id) {
+                                return $id > 0;
+                            });
+                            $centros_costo_material = array_unique($centros_costo_material);
+                            
                             $materiales[] = array(
                                 'id_salida_detalle' => $id_salida_detalle,
                                 'id_producto' => intval($id_producto),
                                 'id_pedido_detalle' => $id_pedido_detalle,
                                 'descripcion' => $descripcion,
                                 'cantidad' => $cantidad,
-                                'es_nuevo' => $es_nuevo
+                                'es_nuevo' => $es_nuevo,
+                                'centros_costo' => $centros_costo_material 
                             );
                         }
                     }
@@ -343,40 +369,41 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                                 $id_prod = intval($det['id_producto']);
                                 $materiales_antes_index[$id_prod] = [
                                     'descripcion' => $det['prod_salida_detalle'],
-                                    'cantidad' => floatval($det['cant_salida_detalle'])
+                                    'cantidad' => floatval($det['cant_salida_detalle']),
+                                    'centros' => isset($det['centros_costo_ids']) ? $det['centros_costo_ids'] : []
                                 ];
                             }
 
-                            // Crear índice de materiales nuevos por id_producto
-                            $materiales_nuevos_index = [];
+                            // Comparar con materiales nuevos
                             foreach ($materiales as $mat) {
                                 $id_prod = intval($mat['id_producto']);
-                                $materiales_nuevos_index[$id_prod] = [
-                                    'descripcion' => $mat['descripcion'],
-                                    'cantidad' => floatval($mat['cantidad'])
-                                ];
-                            }
-
-                            // Comparar cantidades
-                            foreach ($materiales_nuevos_index as $id_prod => $datos_nuevos) {
-                                $desc_corta = (strlen($datos_nuevos['descripcion']) > 30) 
-                                    ? substr($datos_nuevos['descripcion'], 0, 30) . '...' 
-                                    : $datos_nuevos['descripcion'];
+                                $desc_corta = (strlen($mat['descripcion']) > 30) 
+                                    ? substr($mat['descripcion'], 0, 30) . '...' 
+                                    : $mat['descripcion'];
                                 
                                 if (isset($materiales_antes_index[$id_prod])) {
-                                    // Producto existente
+                                    // Producto existente - comparar cantidad y centros
                                     $cantidad_anterior = $materiales_antes_index[$id_prod]['cantidad'];
-                                    $cantidad_nueva = $datos_nuevos['cantidad'];
+                                    $cantidad_nueva = floatval($mat['cantidad']);
+                                    
+                                    $centros_anteriores = $materiales_antes_index[$id_prod]['centros'];
+                                    $centros_nuevos = isset($mat['centros_costo']) ? $mat['centros_costo'] : [];
+                                    
+                                    sort($centros_anteriores);
+                                    sort($centros_nuevos);
                                     
                                     if ($cantidad_anterior != $cantidad_nueva) {
                                         $cambios_materiales[] = "$desc_corta: $cantidad_anterior → $cantidad_nueva";
                                     }
                                     
-                                    // Remover para detectar eliminados
+                                    if ($centros_anteriores != $centros_nuevos) {
+                                        $cambios_materiales[] = "$desc_corta: Centros modificados";
+                                    }
+                                    
                                     unset($materiales_antes_index[$id_prod]);
                                 } else {
                                     // Producto nuevo
-                                    $cambios_materiales[] = "NUEVO: $desc_corta (Cant: {$datos_nuevos['cantidad']})";
+                                    $cambios_materiales[] = "NUEVO: $desc_corta (Cant: {$mat['cantidad']})";
                                 }
                             }
 
@@ -393,11 +420,9 @@ if (!verificarPermisoEspecifico('editar_salidas')) {
                                 $cambios[] = "Materiales: " . implode(' | ', $cambios_materiales);
                             }
 
-                            if (count($cambios) == 0) {
-                                $descripcion = "ID: $id_salida | Doc: $ndoc_salida | Sin cambios";
-                            } else {
-                                $descripcion = "ID: $id_salida | Doc: $ndoc_salida | " . implode(' | ', $cambios);
-                            }
+                            $descripcion = empty($cambios) 
+                                ? "ID: $id_salida | Doc: $ndoc_salida | Sin cambios"
+                                : "ID: $id_salida | Doc: $ndoc_salida | " . implode(' | ', $cambios);
 
                             GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'SALIDAS', $descripcion);
                             

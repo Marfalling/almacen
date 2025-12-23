@@ -3,6 +3,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once("../_conexion/conexion.php");
 require_once("../_conexion/sesion.php");
 require_once("../_modelo/m_pedidos.php");
+require_once("../_modelo/m_compras.php");
 
 if (!isset($_POST['actualizar_orden_modal'])) {
     echo json_encode(['success' => false, 'message' => 'Solicitud inválida']);
@@ -81,8 +82,11 @@ try {
 
     $id_pedido = $compra_check['id_pedido'];
     
-    // 🔹 DETECTAR TIPO DE ORDEN
+    //  DETECTAR TIPO DE ORDEN Y SI VIENE DE PEDIDO
     $es_orden_servicio = ($compra_check['id_producto_tipo'] == 2);
+    $viene_de_pedido = ($id_pedido > 0);
+    
+    error_log("📋 Actualizando compra ID: $id_compra | Pedido: $id_pedido | Viene de pedido: " . ($viene_de_pedido ? 'SÍ' : 'NO'));
 
     // PASO 2: Procesar items eliminados
     $productos_afectados = [];
@@ -111,6 +115,17 @@ try {
                     $id_producto_eliminado = intval($row_producto['id_producto']);
                     $productos_afectados[] = $id_producto_eliminado;
 
+                    //  ELIMINAR CENTROS DE COSTO DEL DETALLE (IGUAL QUE SALIDAS)
+                    $sql_eliminar_cc = "DELETE FROM compra_detalle_centro_costo 
+                                       WHERE id_compra_detalle = ?";
+                    $stmt_eliminar_cc = $con->prepare($sql_eliminar_cc);
+                    if ($stmt_eliminar_cc) {
+                        $stmt_eliminar_cc->bind_param("i", $id_detalle);
+                        $stmt_eliminar_cc->execute();
+                        $stmt_eliminar_cc->close();
+                        error_log("   🗑️ Centros de costo eliminados para detalle $id_detalle");
+                    }
+
                     // Eliminar el detalle
                     $sql_eliminar = "DELETE FROM compra_detalle WHERE id_compra_detalle = ? AND id_compra = ?";
                     $stmt_eliminar = $con->prepare($sql_eliminar);
@@ -130,6 +145,48 @@ try {
     // PASO 3: Validar que queden items
     if (empty($items)) {
         throw new Exception("Debe mantener al menos un item en la orden");
+    }
+
+    //  PASO 3.5: VALIDAR CENTROS DE COSTO (SOLO SI NO VIENE DE PEDIDO - IGUAL QUE SALIDAS)
+    if (!$viene_de_pedido) {
+        error_log("⚠️ Compra NO viene de pedido - Validando centros de costo");
+        
+        $errores_centros = [];
+        foreach ($items as $key => $item) {
+            $centros = isset($item['centros_costo']) && is_array($item['centros_costo']) 
+                       ? $item['centros_costo'] 
+                       : [];
+            
+            if (empty($centros)) {
+                $id_compra_detalle = isset($item['id_compra_detalle']) ? intval($item['id_compra_detalle']) : 0;
+                if ($id_compra_detalle > 0) {
+                    $sql_producto = "SELECT pr.nom_producto 
+                                    FROM compra_detalle cd
+                                    INNER JOIN producto pr ON cd.id_producto = pr.id_producto
+                                    WHERE cd.id_compra_detalle = ?";
+                    $stmt_prod = $con->prepare($sql_producto);
+                    $stmt_prod->bind_param("i", $id_compra_detalle);
+                    $stmt_prod->execute();
+                    $result_prod = $stmt_prod->get_result();
+                    $row_prod = $result_prod->fetch_assoc();
+                    $stmt_prod->close();
+                    
+                    $nombre = $row_prod ? $row_prod['nom_producto'] : "Item #$key";
+                    $errores_centros[] = "$nombre: Debe tener al menos un centro de costo";
+                }
+            }
+        }
+        
+        if (!empty($errores_centros)) {
+            echo json_encode([
+                'success' => false,
+                'message' => implode('<br>', $errores_centros),
+                'tipo' => 'validacion'
+            ]);
+            exit;
+        }
+    } else {
+        error_log("✅ Compra viene de pedido - No valida centros (se heredan automáticamente)");
     }
 
     // PASO 4: Preparar arrays para actualización
@@ -215,6 +272,111 @@ try {
             ]);
         }
         exit;
+    }
+
+    //  PASO 5.5: SINCRONIZAR CENTROS DE COSTO (IGUAL QUE SALIDAS)
+    error_log(" Sincronizando centros de costo para " . count($items_actualizar) . " items");
+    
+    foreach ($items_actualizar as $key => $item) {
+        $id_compra_detalle = isset($item['id_compra_detalle']) ? intval($item['id_compra_detalle']) : 0;
+        
+        if ($id_compra_detalle <= 0) {
+            error_log("   ⚠️ Item sin id_compra_detalle, saltando");
+            continue;
+        }
+        
+        // 🔹 OBTENER id_pedido_detalle
+        $sql_pedido_detalle = "SELECT id_pedido_detalle 
+                              FROM compra_detalle 
+                              WHERE id_compra_detalle = ?";
+        $stmt_pd = $con->prepare($sql_pedido_detalle);
+        $stmt_pd->bind_param("i", $id_compra_detalle);
+        $stmt_pd->execute();
+        $result_pd = $stmt_pd->get_result();
+        $row_pd = $result_pd->fetch_assoc();
+        $stmt_pd->close();
+        
+        $id_pedido_detalle = $row_pd ? intval($row_pd['id_pedido_detalle']) : 0;
+        
+        error_log("   📝 Procesando detalle $id_compra_detalle | Pedido detalle: $id_pedido_detalle");
+        
+        if ($viene_de_pedido && $id_pedido_detalle > 0) {
+            //  HEREDAR CENTROS DEL PEDIDO (IGUAL QUE SALIDAS)
+            error_log("      🔄 Sincronizando centros desde pedido_detalle $id_pedido_detalle");
+            
+            // Paso 1: Eliminar centros actuales
+            $sql_eliminar_cc = "DELETE FROM compra_detalle_centro_costo 
+                              WHERE id_compra_detalle = ?";
+            $stmt_del = $con->prepare($sql_eliminar_cc);
+            $stmt_del->bind_param("i", $id_compra_detalle);
+            $stmt_del->execute();
+            $stmt_del->close();
+            
+            // Paso 2: Obtener centros del pedido
+            $sql_centros_pedido = "SELECT id_centro_costo 
+                                  FROM pedido_detalle_centro_costo 
+                                  WHERE id_pedido_detalle = ?";
+            
+            $stmt_centros = $con->prepare($sql_centros_pedido);
+            $stmt_centros->bind_param("i", $id_pedido_detalle);
+            $stmt_centros->execute();
+            $result_centros = $stmt_centros->get_result();
+            
+            $centros_sincronizados = 0;
+            
+            // Paso 3: Insertar centros del pedido
+            while ($row_centro = $result_centros->fetch_assoc()) {
+                $id_centro = intval($row_centro['id_centro_costo']);
+                
+                $sql_insert_cc = "INSERT INTO compra_detalle_centro_costo 
+                                (id_compra_detalle, id_centro_costo) 
+                                VALUES (?, ?)";
+                
+                $stmt_ins = $con->prepare($sql_insert_cc);
+                $stmt_ins->bind_param("ii", $id_compra_detalle, $id_centro);
+                $stmt_ins->execute();
+                $stmt_ins->close();
+                
+                $centros_sincronizados++;
+                error_log("         ✅ Centro $id_centro sincronizado");
+            }
+            
+            $stmt_centros->close();
+            
+            error_log("      ✅ $centros_sincronizados centros sincronizados desde pedido");
+            
+        } else {
+            // 🔹 USAR CENTROS DEL FORMULARIO (COMPRAS SIN PEDIDO)
+            $centros_costo = isset($item['centros_costo']) && is_array($item['centros_costo']) 
+                            ? $item['centros_costo'] 
+                            : [];
+            
+            error_log("      🔄 Guardando centros del formulario: " . count($centros_costo) . " centros");
+            
+            // Eliminar centros existentes
+            $sql_eliminar_cc = "DELETE FROM compra_detalle_centro_costo 
+                              WHERE id_compra_detalle = ?";
+            $stmt_del = $con->prepare($sql_eliminar_cc);
+            $stmt_del->bind_param("i", $id_compra_detalle);
+            $stmt_del->execute();
+            $stmt_del->close();
+            
+            // Insertar nuevos centros
+            foreach ($centros_costo as $id_centro) {
+                $id_centro = intval($id_centro);
+                if ($id_centro > 0) {
+                    $sql_cc = "INSERT INTO compra_detalle_centro_costo 
+                             (id_compra_detalle, id_centro_costo) 
+                             VALUES (?, ?)";
+                    $stmt_ins = $con->prepare($sql_cc);
+                    $stmt_ins->bind_param("ii", $id_compra_detalle, $id_centro);
+                    $stmt_ins->execute();
+                    $stmt_ins->close();
+                    
+                    error_log("         ✅ Centro $id_centro guardado");
+                }
+            }
+        }
     }
 
     // PASO 6: Verificar reapertura de items afectados

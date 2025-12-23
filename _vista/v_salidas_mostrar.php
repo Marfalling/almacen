@@ -722,6 +722,34 @@ foreach($salidas as $salida) {
                                     ?>
                                 </td>
                             </tr>
+                            <tr>
+                                <td><strong>Centro de Costo (Registrador):</strong></td>
+                                <td>
+                                    <span class="badge badge-primary badge_size">
+                                        <?php echo !empty($salida_info['nom_centro_costo_registrador']) 
+                                                ? $salida_info['nom_centro_costo_registrador'] 
+                                                : 'Sin asignar'; ?>
+                                    </span>
+                                </td>
+                                <td><strong>Centro de Costo (Encargado):</strong></td>
+                                <td>
+                                    <span class="badge badge-info badge_size">
+                                        <?php echo !empty($salida_info['nom_centro_costo_encargado']) 
+                                                ? $salida_info['nom_centro_costo_encargado'] 
+                                                : 'Sin asignar'; ?>
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Centro de Costo (Receptor):</strong></td>
+                                <td colspan="3">
+                                    <span class="badge badge-success badge_size">
+                                        <?php echo !empty($salida_info['nom_centro_costo_recibe']) 
+                                                ? $salida_info['nom_centro_costo_recibe'] 
+                                                : 'Sin asignar'; ?>
+                                    </span>
+                                </td>
+                            </tr>
                             <?php if (!empty($salida_info['obs_salida'])) { ?>
                             <tr>
                                 <td><strong>Observaciones:</strong></td>
@@ -747,32 +775,105 @@ foreach($salidas as $salida) {
                             <table class="table table-striped table-bordered">
                                 <thead class="thead-dark">
                                     <tr>
-                                        <th>#</th>
-                                        <th>Producto/Material</th>
-                                        <th>Cantidad</th>
-                                        <th>Unidad</th>
+                                        <th style="width: 5%;">#</th>
+                                        <th style="width: 10%;">Código</th>
+                                        <th style="width: 30%;">Producto/Material</th>
+                                        <th style="width: 10%;">Cantidad</th>
+                                        <th style="width: 10%;">Unidad</th>
+                                        <th style="width: 35%;">Centro(s) de Costo</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php 
                                     $contador_detalle = 1;
                                     foreach ($salida_detalle as $detalle) { 
+                                        // 🔹 CONSTRUIR HTML DE CENTROS DE COSTO CON MODAL
+                                        $centrosCostoHtml = '<small class="text-muted">Sin asignar</small>';
+                                        
+                                        if (!empty($detalle['centros_costo']) && is_array($detalle['centros_costo'])) {
+                                            $totalCentros = count($detalle['centros_costo']);
+                                            $modalId = "modalCentrosCostoSalida{$salida['id_salida']}_{$contador_detalle}";
+                                            
+                                            if ($totalCentros === 1) {
+                                                // Si solo hay 1 centro, mostrarlo directamente
+                                                $centrosCostoHtml = '<span class="badge badge-info badge_size" style="font-size: 11px;">' 
+                                                    . htmlspecialchars($detalle['centros_costo'][0]['nom_centro_costo']) 
+                                                    . '</span>';
+                                            } else {
+                                                // Si hay múltiples centros, usar modal
+                                                $listaCentros = '';
+                                                foreach ($detalle['centros_costo'] as $idx => $cc) {
+                                                    $listaCentros .= '<div style="padding: 8px; margin-bottom: 6px; background-color: #f8f9fa; border-left: 3px solid #17a2b8; border-radius: 4px;">';
+                                                    $listaCentros .= '<strong style="color: #17a2b8;">' . ($idx + 1) . '.</strong> ';
+                                                    $listaCentros .= htmlspecialchars($cc['nom_centro_costo']);
+                                                    $listaCentros .= '</div>';
+                                                }
+                                                
+                                                $nombre_producto = !empty($detalle['nom_producto']) 
+                                                    ? $detalle['nom_producto'] 
+                                                    : (!empty($detalle['prod_salida_detalle']) 
+                                                        ? $detalle['prod_salida_detalle'] 
+                                                        : 'Producto ID ' . $detalle['id_producto']);
+                                                
+                                                $centrosCostoHtml = '
+                                                    <button class="btn btn-sm btn-info" 
+                                                            type="button" 
+                                                            data-toggle="modal"
+                                                            data-target="#' . $modalId . '"
+                                                            style="font-size: 11px; padding: 3px 10px;">
+                                                        <i class="fa fa-eye"></i> Ver ' . $totalCentros . ' centros
+                                                    </button>
+                                                    
+                                                    <!-- Modal para centros de costo -->
+                                                    <div class="modal fade" id="' . $modalId . '" tabindex="-1" role="dialog" data-backdrop="static">
+                                                        <div class="modal-dialog modal-dialog-centered">
+                                                            <div class="modal-content">
+                                                                <div class="modal-header" style="background-color: #17a2b8; color: white; padding: 12px 20px;">
+                                                                    <h6 class="modal-title mb-0">
+                                                                        <i class="fa fa-building"></i> 
+                                                                        Centros de Costo Asignados
+                                                                    </h6>
+                                                                    <button type="button" class="close" data-dismiss="modal" style="color: white; opacity: 0.8;">
+                                                                        <span>&times;</span>
+                                                                    </button>
+                                                                </div>
+                                                                <div class="modal-body" style="padding: 20px;">
+                                                                    <div style="margin-bottom: 15px; padding: 10px; background-color: #e7f3ff; border-radius: 4px; border-left: 4px solid #17a2b8;">
+                                                                        <strong>Producto:</strong> ' . htmlspecialchars($nombre_producto) . '
+                                                                    </div>
+                                                                    <div style="max-height: 400px; overflow-y: auto;">
+                                                                        ' . $listaCentros . '
+                                                                    </div>
+                                                                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6; text-align: center;">
+                                                                        <span class="badge badge-info" style="font-size: 12px; padding: 6px 12px;">
+                                                                            Total: ' . $totalCentros . ' centro(s) de costo
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer" style="padding: 10px 20px;">
+                                                                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">
+                                                                        <i class="fa fa-times"></i> Cerrar
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>';
+                                            }
+                                        }
+                                        
+                                        $nombre_producto = !empty($detalle['nom_producto']) 
+                                            ? $detalle['nom_producto'] 
+                                            : (!empty($detalle['prod_salida_detalle']) 
+                                                ? $detalle['prod_salida_detalle'] 
+                                                : 'Producto ID ' . $detalle['id_producto']);
                                     ?>
                                         <tr>
                                             <td><?php echo $contador_detalle; ?></td>
-                                            <td>
-                                                <?php 
-                                                // Priorizar nom_producto, luego prod_salida_detalle, sino ID
-                                                $nombre_producto = !empty($detalle['nom_producto']) 
-                                                                ? $detalle['nom_producto'] 
-                                                                : (!empty($detalle['prod_salida_detalle']) 
-                                                                    ? $detalle['prod_salida_detalle'] 
-                                                                    : 'Producto ID ' . $detalle['id_producto']);
-                                                echo htmlspecialchars($nombre_producto);
-                                                ?>
-                                            </td>
-                                            <td><?php echo $detalle['cant_salida_detalle']; ?></td>
-                                            <td><?php echo $detalle['nom_unidad_medida']; ?></td>
+                                            <td><?php echo htmlspecialchars($detalle['cod_material'] ?? 'N/A'); ?></td>
+                                            <td><?php echo htmlspecialchars($nombre_producto); ?></td>
+                                            <td class="text-center"><?php echo number_format($detalle['cant_salida_detalle'], 2); ?></td>
+                                            <td><?php echo htmlspecialchars($detalle['nom_unidad_medida']); ?></td>
+                                            <td><?php echo $centrosCostoHtml; ?></td>
                                         </tr>
                                     <?php 
                                         $contador_detalle++;

@@ -35,6 +35,7 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
             require_once("../_modelo/m_personal.php");
             require_once("../_modelo/m_tipo_material.php");
             require_once("../_modelo/m_clientes.php"); // <-- agregado para clientes
+            require_once("../_modelo/m_centro_costo.php");
 
             // Variables para mostrar alertas
             $mostrar_alerta = false;
@@ -75,13 +76,15 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
             }
 
             // Cargar detalles de la devolucion
-            $devolucion_detalles = ConsultarDevolucionDetalle($id_devolucion);
+            $devolucion_detalles = ConsultarDevolucionDetalleConCentros($id_devolucion);
 
             // Cargar datos para el formulario
             $almacenes = MostrarAlmacenesActivos();
             $ubicaciones = MostrarUbicacionesActivas();
-            $personal = MostrarPersonal();
+            $personal = MostrarPersonalActivo();
             $material_tipos = MostrarMaterialTipoActivos();
+            $centro_costo_usuario = ObtenerCentroCostoPersonal($id);
+            $centros_costo = MostrarCentrosCostoActivos();
             $id_almacen_actual = $devolucion_datos[0]['id_almacen'];
             $id_cliente_actual = $devolucion_datos[0]['id_cliente_destino'] ?? null;
             $nom_cliente_actual = $devolucion_datos[0]['nom_cliente_destino'] ?? null;
@@ -133,13 +136,29 @@ if (!verificarPermisoEspecifico('editar_devoluciones')) {
                 if (isset($_REQUEST['id_producto']) && is_array($_REQUEST['id_producto'])) {
                     foreach ($_REQUEST['id_producto'] as $index => $id_producto) {
                         if (!empty($id_producto) && !empty($_REQUEST['cantidad'][$index])) {
+                            
+                            // 🔹 OBTENER CENTROS DE COSTO
+                            $centros_costo_material = isset($_REQUEST['centros_costo'][$index]) && is_array($_REQUEST['centros_costo'][$index]) 
+                                                    ? $_REQUEST['centros_costo'][$index] 
+                                                    : array();
+                            
+                            // 🔹 VALIDAR
+                            if (empty($centros_costo_material)) {
+                                $mostrar_alerta = true;
+                                $tipo_alerta = 'warning';
+                                $titulo_alerta = 'Centros de costo requeridos';
+                                $mensaje_alerta = "Debe asignar al menos un centro de costo al material: " . $_REQUEST['descripcion'][$index];
+                                break;
+                            }
+                            
                             $materiales[] = array(
                                 'id_devolucion_detalle' => isset($_REQUEST['id_devolucion_detalle'][$index]) 
                                     ? intval($_REQUEST['id_devolucion_detalle'][$index]) 
                                 : 0, // ✅ Si es 0, indica que es un registro NUEVO
                                 'id_producto' => intval($id_producto),
                                 'descripcion' => mysqli_real_escape_string($con, $_REQUEST['descripcion'][$index]),
-                                'cantidad' => floatval($_REQUEST['cantidad'][$index])
+                                'cantidad' => floatval($_REQUEST['cantidad'][$index]),
+                                'centros_costo' => $centros_costo_material // ✅ AGREGAR ESTO
                             );
                         }
                     }

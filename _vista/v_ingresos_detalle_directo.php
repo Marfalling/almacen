@@ -70,6 +70,23 @@
                                                 <td><strong>Fecha de Registro:</strong></td>
                                                 <td><?php echo date('d/m/Y H:i', strtotime($detalle_ingreso_directo['ingreso']['fec_ingreso'])); ?></td>
                                             </tr>
+                                            
+                                            <!--  CENTRO DE COSTO -->
+                                            <tr>
+                                                <td><strong>Centro de Costo:</strong></td>
+                                                <td>
+                                                    <?php 
+                                                    if (!empty($detalle_ingreso_directo['ingreso']['nom_centro_costo'])) {
+                                                        echo '<span class="badge badge-primary badge_size">' . 
+                                                            htmlspecialchars($detalle_ingreso_directo['ingreso']['nom_centro_costo']) . 
+                                                            '</span>';
+                                                    } else {
+                                                        echo '<span class="badge badge-secondary badge_size">No asignado</span>';
+                                                    }
+                                                    ?>
+                                                </td>
+                                            </tr>
+                                            
                                             <tr>
                                                 <td><strong>Estado:</strong></td>
                                                 <td>
@@ -176,14 +193,15 @@
                                             <table class="table table-striped table-bordered print-table">
                                                 <thead class="thead-dark">
                                                     <tr>
-                                                        <th style="width: 5%;">#</th>
-                                                        <th style="width: 15%;">Código</th>
-                                                        <th style="width: 35%;">Producto</th>
-                                                        <th style="width: 15%;">Tipo de Material</th>
-                                                        <th style="width: 10%;">Marca</th>
-                                                        <th style="width: 10%;">Modelo</th>
-                                                        <th style="width: 8%;">Unidad</th>
-                                                        <th style="width: 12%;">Cantidad Ingresada</th>
+                                                        <th style="width: 4%;">#</th>
+                                                        <th style="width: 12%;">Código</th>
+                                                        <th style="width: 25%;">Producto</th>
+                                                        <th style="width: 12%;">Tipo</th>
+                                                        <th style="width: 8%;">Marca</th>
+                                                        <th style="width: 8%;">Modelo</th>
+                                                        <th style="width: 7%;">Unidad</th>
+                                                        <th style="width: 10%;">Cantidad</th>
+                                                        <th style="width: 14%;">Centro(s) de Costo</th> <!-- 🔹 NUEVA COLUMNA -->
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -208,6 +226,19 @@
                                                                         <?php echo number_format($cantidad_ingresada, 2); ?>
                                                                     </span>
                                                                 <?php endif; ?>
+                                                            </td>
+                                                            <!-- CENTROS DE COSTO -->
+                                                            <td>
+                                                                <?php 
+                                                                if (!empty($producto['centros_costo'])) { 
+                                                                    foreach ($producto['centros_costo'] as $centro) { ?>
+                                                                        <span class="badge badge-info badge_size mb-1 d-block">
+                                                                            <?php echo htmlspecialchars($centro['nom_centro_costo']); ?>
+                                                                        </span>
+                                                                    <?php } 
+                                                                } else { ?>
+                                                                    <small class="text-muted">Sin asignar</small>
+                                                                <?php } ?>
                                                             </td>
                                                         </tr>
                                                     <?php 

@@ -37,11 +37,13 @@ if (!verificarPermisoEspecifico('editar_uso de material')) {
             require_once("../_modelo/m_almacen.php");
             require_once("../_modelo/m_ubicacion.php");
             require_once("../_modelo/m_personal.php");
+            require_once("../_modelo/m_centro_costo.php");
             
             // Cargar datos necesarios para el formulario
             $ubicaciones = MostrarUbicacionesActivas();
-            $personal = MostrarPersonal();
-            
+            $personal = MostrarPersonalActivo();
+            $centros_costo = MostrarCentrosCostoActivos();
+            $centro_costo_usuario = ObtenerCentroCostoPersonal($id_personal);
             // Crear directorio de archivos si no existe
             if (!file_exists("../_archivos/uso_material/")) {
                 mkdir("../_archivos/uso_material/", 0777, true);
@@ -68,11 +70,31 @@ if (!verificarPermisoEspecifico('editar_uso de material')) {
                 if (isset($_REQUEST['id_producto']) && is_array($_REQUEST['id_producto'])) {
                     for ($i = 0; $i < count($_REQUEST['id_producto']); $i++) {
                         if (!empty($_REQUEST['id_producto'][$i])) {
+                            // 🔹 PROCESAR CENTROS DE COSTO
+                            $centros_costo_material = array();
+                            if (isset($_REQUEST['centros_costo']) && is_array($_REQUEST['centros_costo'])) {
+                                if (isset($_REQUEST['centros_costo'][$i])) {
+                                    $centros_value = $_REQUEST['centros_costo'][$i];
+                                    if (is_array($centros_value)) {
+                                        $centros_costo_material = $centros_value;
+                                    } else if (is_string($centros_value) && !empty($centros_value)) {
+                                        $centros_costo_material = explode(',', $centros_value);
+                                    }
+                                }
+                            }
+                            
+                            $centros_costo_material = array_map('intval', $centros_costo_material);
+                            $centros_costo_material = array_filter($centros_costo_material, function($id) {
+                                return $id > 0;
+                            });
+                            $centros_costo_material = array_unique($centros_costo_material);
+                            
                             $materiales[] = array(
                                 'id_producto' => $_REQUEST['id_producto'][$i],
                                 'cantidad' => $_REQUEST['cantidad'][$i],
                                 'observaciones' => $_REQUEST['observaciones'][$i],
-                                'id_detalle' => isset($_REQUEST['id_detalle'][$i]) ? $_REQUEST['id_detalle'][$i] : 0
+                                'id_detalle' => isset($_REQUEST['id_detalle'][$i]) ? $_REQUEST['id_detalle'][$i] : 0,
+                                'centros_costo' => $centros_costo_material // 🔹 NUEVO
                             );
                         }
                     }
@@ -99,7 +121,8 @@ if (!verificarPermisoEspecifico('editar_uso de material')) {
                 } else {
                     //  EJECUTAR ACTUALIZACIÓN
                     $rpta = ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante, 
-                                                $materiales, $archivos_subidos);
+                                                $materiales, $archivos_subidos, 
+                                                $id_personal);
 
                     if ($rpta == "SI") {
                         //  COMPARAR Y CONSTRUIR DESCRIPCIÓN
@@ -208,6 +231,12 @@ if (!verificarPermisoEspecifico('editar_uso de material')) {
                 $uso_material_detalle = ConsultarUsoMaterialDetalle($id_uso_material);
                 
                 if (!empty($uso_material_data)) {
+                    //  Cargar centros de costo para cada detalle
+                    foreach ($uso_material_detalle as &$detalle) {
+                        $detalle['centros_costo_ids'] = ObtenerCentrosCostoPorDetalleUsoMaterial($detalle['id_uso_material_detalle']);
+                    }
+                    unset($detalle); // Romper la referencia
+                    
                     require_once("../_vista/v_uso_material_editar.php");
                 } else {
                     //  AUDITORÍA: USO DE MATERIAL NO ENCONTRADO

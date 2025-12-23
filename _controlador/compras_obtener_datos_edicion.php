@@ -4,6 +4,7 @@ require_once("../_conexion/sesion.php");
 require_once("../_modelo/m_compras.php");
 require_once("../_modelo/m_proveedor.php");
 require_once("../_modelo/m_detraccion.php");
+require_once("../_modelo/m_centro_costo.php"); 
 
 $id_compra = isset($_POST['id_compra']) ? intval($_POST['id_compra']) : 0;
 
@@ -56,15 +57,32 @@ $result_tipo = $stmt_tipo->get_result();
 $row_tipo = $result_tipo->fetch_assoc();
 $stmt_tipo->close();
 
-//  AGREGAR EL TIPO DE PRODUCTO AL ARRAY DE ORDEN
 if ($row_tipo) {
     $orden_data[0]['id_producto_tipo'] = $row_tipo['id_producto_tipo'];
 } else {
-    $orden_data[0]['id_producto_tipo'] = 1; // Por defecto: material
+    $orden_data[0]['id_producto_tipo'] = 1;
 }
 
-// Obtener detalles y otros datos
-$orden_detalle = ConsultarCompraDetalle($id_compra);
+//  OBTENER DETALLES CON CENTROS DE COSTO (USA LA FUNCIÓN CORRECTA)
+$orden_detalle = ConsultarCompraDetalleConCentros($id_compra);
+
+error_log(" Cargando datos de compra ID: $id_compra");
+error_log("   📋 Detalles cargados: " . count($orden_detalle));
+
+//  LOG DE CENTROS CARGADOS
+foreach ($orden_detalle as $detalle) {
+    $num_centros = is_array($detalle['centros_costo']) ? count($detalle['centros_costo']) : 0;
+    error_log("   📝 Detalle {$detalle['id_compra_detalle']}: {$num_centros} centros | Pedido detalle: {$detalle['id_pedido_detalle']}");
+    if ($num_centros > 0) {
+        error_log("      Centros: " . implode(', ', $detalle['centros_costo']));
+    }
+}
+
+//  CARGAR CENTROS DE COSTO ACTIVOS PARA EL SELECT2
+$centros_costo = MostrarCentrosCostoActivos();
+
+error_log("    Centros de costo disponibles: " . count($centros_costo));
+
 $proveedores = MostrarProveedores();
 $detracciones = ObtenerDetracciones();
 
@@ -73,7 +91,10 @@ echo json_encode([
     'orden' => $orden_data[0],
     'detalles' => $orden_detalle,
     'proveedores' => $proveedores,
-    'detracciones' => $detracciones
+    'detracciones' => $detracciones,
+    'centros_costo' => $centros_costo 
 ]);
+
+mysqli_close($con);
 exit;
 ?>

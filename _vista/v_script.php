@@ -298,6 +298,178 @@ $(document).ready(function () {
   });
 });
 </script>
+<script>
+$(document).ready(function () {
+  console.log('🎯 Inicializando Select2 para Uso de Material');
+  
+  // Función para inicializar Select2 múltiple en centros de costo del detalle de uso de material
+  function initCentrosCostoUsoMaterial($scope) {
+    $scope.find('select.select2-centros-costo-uso-material').each(function () {
+      // Solo inicializar si NO está ya inicializado
+      if (!$(this).data('select2')) {
+        console.log('✅ Inicializando Select2 en:', this.name);
+        $(this).select2({
+          placeholder: 'Seleccionar uno o más centros de costo...',
+          allowClear: true,   
+          width: '100%',
+          multiple: true,
+          minimumInputLength: 0,
+          language: {
+            noResults: function () { return 'No se encontraron resultados'; },
+            searching: function () { return 'Buscando...'; }
+          }
+        });
+      } else {
+        console.log('⚠️ Select2 ya inicializado en:', this.name);
+      }
+    });
+  }
+
+  // Inicializar centros de costo en los materiales existentes al cargar la página
+  initCentrosCostoUsoMaterial($(document));
+
+  // Al agregar nuevo material en uso_material_nuevo.php y uso_material_editar.php
+  $(document).on('click', '#agregar-material', function () {
+    console.log('🔄 Agregando nuevo material...');
+    
+    setTimeout(function () {
+      const $nuevoItem = $('#contenedor-materiales .material-item').last();
+      console.log('📦 Nuevo material agregado, inicializando Select2...');
+      
+      // Inicializar Select2 solo en el nuevo item
+      initCentrosCostoUsoMaterial($nuevoItem);
+    }, 200); // Aumentado a 200ms para dar tiempo al DOM
+  });
+  
+  console.log('✅ Sistema de centros de costo para Uso de Material listo');
+});
+</script>
+<script>
+$(document).ready(function () {
+  function initCentrosCostoIngreso($scope) {
+    $scope.find('select.select2-centros-costo-ingreso').each(function () {
+      if (!$(this).data('select2')) {
+        $(this).select2({
+          placeholder: 'Seleccionar uno o más centros de costo...',
+          allowClear: true,   
+          width: '100%',
+          multiple: true,
+          language: {
+            noResults: function () { return 'No se encontraron resultados'; },
+            searching: function () { return 'Buscando...'; }
+          }
+        });
+      }
+    });
+  }
+
+  initCentrosCostoIngreso($(document));
+
+  $(document).on('click', '#agregar-producto', function () {
+    setTimeout(function () {
+      const $nuevoItem = $('#contenedor-productos .producto-item').last();
+      initCentrosCostoIngreso($nuevoItem);
+    }, 100);
+  });
+});
+</script>
+<!-- Centros de Costo en SALIDAS (v_salidas_nuevo.php y v_salidas_editar.php) -->
+<script>
+$(document).ready(function () {
+  console.log('🎯 Inicializando Select2 para Salidas - Centros de Costo');
+  
+  // Función para inicializar Select2 múltiple en centros de costo de salidas
+  function initCentrosCostoSalida($scope) {
+    $scope.find('select.select2-centros-costo-salida').each(function () {
+      // Solo inicializar si NO está ya inicializado
+      if (!$(this).data('select2')) {
+        console.log('✅ Inicializando Select2 en:', this.name);
+        $(this).select2({
+          placeholder: 'Seleccionar uno o más centros de costo...',
+          allowClear: true,   
+          width: '100%',
+          multiple: true,
+          minimumInputLength: 0,
+          language: {
+            noResults: function () { return 'No se encontraron resultados'; },
+            searching: function () { return 'Buscando...'; }
+          }
+        });
+      }
+    });
+  }
+
+  // Inicializar centros de costo existentes al cargar la página
+  initCentrosCostoSalida($(document));
+
+  // Al agregar nuevo material en salidas_nuevo.php y salidas_editar.php
+  $(document).on('click', '#agregar-material', function () {
+    console.log('🔄 Agregando nuevo material en salida...');
+    
+    setTimeout(function () {
+      const $nuevoItem = $('#contenedor-materiales .material-item').last();
+      console.log('📦 Nuevo material agregado, inicializando Select2...');
+      
+      // Inicializar Select2 solo en el nuevo item
+      initCentrosCostoSalida($nuevoItem);
+    }, 200);
+  });
+  
+  console.log('✅ Sistema de centros de costo para SALIDAS listo');
+});
+</script>
+<!-- Centros de Costo Múltiples en Modal de Edición de Compras -->
+<script>
+$(document).ready(function () {
+  console.log('🎯 Inicializando Select2 para Centros de Costo - Modal Edición Compras');
+  
+  // Función para inicializar Select2 múltiple en centros de costo del modal de edición
+  function initCentrosCostoModalEditar() {
+    $('.select2-centros-editar').each(function () {
+      // Solo inicializar si NO está ya inicializado
+      if (!$(this).data('select2')) {
+        console.log('✅ Inicializando Select2 en:', this.name);
+        $(this).select2({
+          placeholder: 'Seleccione centros...',
+          allowClear: false,
+          width: '100%',
+          multiple: true,
+          dropdownParent: $('#modalEditarOrden'), // ✅ Crítico para modales
+          language: {
+            noResults: function () { return 'No se encontraron resultados'; },
+            searching: function () { return 'Buscando...'; }
+          }
+        });
+      } else {
+        console.log('⚠️ Select2 ya inicializado en:', this.name);
+      }
+    });
+  }
+
+  // Evento: cuando se abre el modal de edición
+  $('#modalEditarOrden').on('shown.bs.modal', function () {
+    console.log('🔄 Modal de edición abierto, esperando elementos...');
+    
+    // Esperar a que los elementos se carguen en el DOM
+    setTimeout(function() {
+      console.log('📦 Inicializando Select2 para centros de costo...');
+      initCentrosCostoModalEditar();
+    }, 500); // Tiempo suficiente para que cargarDatosOrdenModal() termine
+  });
+  
+  // Evento: limpiar Select2 cuando se cierra el modal
+  $('#modalEditarOrden').on('hidden.bs.modal', function () {
+    console.log('🧹 Limpiando Select2 al cerrar modal');
+    $('.select2-centros-editar').each(function() {
+      if ($(this).data('select2')) {
+        $(this).select2('destroy');
+      }
+    });
+  });
+  
+  console.log('✅ Sistema de Select2 para centros de costo en modal de edición listo');
+});
+</script>
 <!-- Personal Múltiple en Detalle de Pedidos -->
 <script>
 $(document).ready(function () {

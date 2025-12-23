@@ -740,10 +740,16 @@ function ObtenerStockActual($id_producto, $id_almacen, $id_ubicacion)
 function ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal, $productos)
 {
     include("../_conexion/conexion.php");
+    require_once("../_modelo/m_centro_costo.php"); // 🔹 AGREGAR
     
     if (!$con) {
         return array('success' => false, 'message' => 'Error de conexión a la base de datos');
     }
+    
+    //  OBTENER CENTRO DE COSTO DEL REGISTRADOR
+    $centro_costo_registrador = ObtenerCentroCostoPersonal($id_personal);
+    $id_registrador_centro_costo = $centro_costo_registrador ? 
+        intval($centro_costo_registrador['id_centro_costo']) : 'NULL';
     
     mysqli_begin_transaction($con);
     
@@ -751,12 +757,13 @@ function ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal, $produ
         // Crear nuevo ingreso SIN orden de compra (id_compra = NULL)
         $fecha_ingreso = date('Y-m-d H:i:s');
         
+        //  INCLUIR CENTRO DE COSTO DEL REGISTRADOR
         $sql_ingreso = "INSERT INTO ingreso (
                             id_compra, id_almacen, id_ubicacion, id_personal, 
-                            fec_ingreso, est_ingreso
+                            id_registrador_centro_costo, fec_ingreso, est_ingreso
                         ) VALUES (
                             NULL, '$id_almacen', '$id_ubicacion', '$id_personal', 
-                            '$fecha_ingreso', 1
+                            $id_registrador_centro_costo, '$fecha_ingreso', 1
                         )";
         
         if (!mysqli_query($con, $sql_ingreso)) {
@@ -769,6 +776,7 @@ function ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal, $produ
         foreach ($productos as $producto) {
             $id_producto = intval($producto['id_producto']);
             $cantidad = floatval($producto['cantidad']);
+            $centros_costo = isset($producto['centros_costo']) ? $producto['centros_costo'] : array(); // 🔹 NUEVO
             
             if ($cantidad <= 0) {
                 throw new Exception("La cantidad debe ser mayor a 0 para todos los productos");
@@ -783,6 +791,23 @@ function ProcesarIngresoDirecto($id_almacen, $id_ubicacion, $id_personal, $produ
             
             if (!mysqli_query($con, $sql_detalle)) {
                 throw new Exception("Error al crear el detalle del ingreso: " . mysqli_error($con));
+            }
+            
+            $id_ingreso_detalle = mysqli_insert_id($con);
+            
+            //  INSERTAR CENTROS DE COSTO DEL MATERIAL
+            if (!empty($centros_costo) && is_array($centros_costo)) {
+                foreach ($centros_costo as $id_centro) {
+                    $id_centro = intval($id_centro);
+                    if ($id_centro > 0) {
+                        $sql_cc = "INSERT INTO ingreso_detalle_centro_costo 
+                                  (id_ingreso_detalle, id_centro_costo) 
+                                  VALUES ($id_ingreso_detalle, $id_centro)";
+                        if (!mysqli_query($con, $sql_cc)) {
+                            error_log("Advertencia: Error al insertar centro de costo: " . mysqli_error($con));
+                        }
+                    }
+                }
             }
             
             // Registrar movimiento de stock
@@ -920,20 +945,23 @@ function ObtenerDetalleIngresoDirecto($id_ingreso)
                         u.nom_ubicacion,
                         p.nom_personal,
                         c.nom_cliente,
-                        o.nom_subestacion as nom_obra
+                        o.nom_subestacion as nom_obra,
+                        area.nom_area as nom_centro_costo
                     FROM ingreso i
                     INNER JOIN almacen a ON i.id_almacen = a.id_almacen
                     INNER JOIN ubicacion u ON i.id_ubicacion = u.id_ubicacion
                     LEFT JOIN {$bd_complemento}.subestacion o ON a.id_obra = o.id_subestacion
                     INNER JOIN {$bd_complemento}.cliente c ON a.id_cliente = c.id_cliente
                     LEFT JOIN {$bd_complemento}.personal p ON i.id_personal = p.id_personal
+                    LEFT JOIN {$bd_complemento}.area area ON i.id_registrador_centro_costo = area.id_area
                     WHERE i.id_ingreso = '$id_ingreso' 
-                    AND i.id_compra IS NULL";  
+                    AND i.id_compra IS NULL";
     // ELIMINAR: AND i.est_ingreso = 1  -- No filtrar por estado aquí
     
     $resultado_ingreso = mysqli_query($con, $sql_ingreso);
     
     if (!$resultado_ingreso) {
+        error_log("Error en ObtenerDetalleIngresoDirecto: " . mysqli_error($con));
         mysqli_close($con);
         return false;
     }
@@ -968,7 +996,10 @@ function ObtenerDetalleIngresoDirecto($id_ingreso)
     $resultado_productos = mysqli_query($con, $sql_productos);
     $productos = array();
     
+    // 🔹 CORRECCIÓN: Cargar centros de costo DENTRO del bucle
     while ($row = mysqli_fetch_array($resultado_productos, MYSQLI_ASSOC)) {
+        // Obtener centros de costo del detalle
+        $row['centros_costo'] = ObtenerCentrosCostoPorDetalleIngresoCompleto($row['id_ingreso_detalle']);
         $productos[] = $row;
     }
     
@@ -979,6 +1010,33 @@ function ObtenerDetalleIngresoDirecto($id_ingreso)
     
     mysqli_close($con);
     return $resultado;
+}
+function ObtenerCentrosCostoPorDetalleIngresoCompleto($id_ingreso_detalle) 
+{
+    include("../_conexion/conexion.php");
+    
+    $id_ingreso_detalle = intval($id_ingreso_detalle);
+    
+    $sql = "SELECT 
+                cc.id_centro_costo,
+                a.nom_area as nom_centro_costo
+            FROM ingreso_detalle_centro_costo cc
+            INNER JOIN {$bd_complemento}.area a ON cc.id_centro_costo = a.id_area
+            WHERE cc.id_ingreso_detalle = $id_ingreso_detalle
+            ORDER BY a.nom_area ASC";
+    
+    $result = mysqli_query($con, $sql);
+    
+    $centros = array();
+    while ($row = mysqli_fetch_assoc($result)) {
+        $centros[] = array(
+            'id_centro_costo' => $row['id_centro_costo'],
+            'nom_centro_costo' => $row['nom_centro_costo']
+        );
+    }
+    
+    mysqli_close($con);
+    return $centros;
 }
 
 //-----------------------------------------------------------------------
@@ -1324,4 +1382,24 @@ function ObtenerTipoProductoPedidoPorCompra($id_compra)
         'nom_producto_tipo' => 'Material',
         'es_servicio' => false
     );
+}
+function ObtenerCentrosCostoPorDetalleIngreso($id_ingreso_detalle) 
+{
+    include("../_conexion/conexion.php");
+    
+    $id_ingreso_detalle = intval($id_ingreso_detalle);
+    
+    $sql = "SELECT id_centro_costo 
+            FROM ingreso_detalle_centro_costo 
+            WHERE id_ingreso_detalle = $id_ingreso_detalle";
+    
+    $result = mysqli_query($con, $sql);
+    
+    $centros = array();
+    while ($row = mysqli_fetch_assoc($result)) {
+        $centros[] = intval($row['id_centro_costo']);
+    }
+    
+    mysqli_close($con);
+    return $centros;
 }

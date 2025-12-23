@@ -50,7 +50,7 @@ if ($accion === 'obtener_detalle') {
         }
         
         // Obtener detalles de la compra
-        $detalles = ConsultarCompraDetalle($id_compra);
+        $detalles = ConsultarCompraDetalleConCentros($id_compra);
         
         echo json_encode([
             'success' => true,

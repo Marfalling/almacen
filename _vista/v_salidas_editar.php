@@ -338,6 +338,7 @@ function eliminarDocumento(idDoc) {
                                     $detalle['stock_disponible_total'] = $detalle['cant_salida_detalle'] + $detalle['cantidad_disponible_origen']; 
                                 ?>
                                 <div class="material-item border p-3 mb-3">
+                                    <!-- FILA 1: Producto y Cantidad -->
                                     <div class="row">
                                         <div class="col-md-8">
                                             <label>Material <span class="text-danger">*</span>:</label>
@@ -345,7 +346,6 @@ function eliminarDocumento(idDoc) {
                                                 <input type="text" name="descripcion[]" class="form-control" 
                                                     placeholder="Material" 
                                                     value="<?php 
-                                                        // Priorizar nom_producto, luego prod_salida_detalle, sino ID
                                                         $nombre_producto = !empty($detalle['nom_producto']) 
                                                                             ? $detalle['nom_producto'] 
                                                                             : (!empty($detalle['prod_salida_detalle']) 
@@ -367,6 +367,32 @@ function eliminarDocumento(idDoc) {
                                                    required>
                                         </div>
                                     </div>
+
+                                    <!-- 🔹 FILA 2: CENTROS DE COSTO (NUEVO) -->
+                                    <div class="row mt-2">
+                                        <div class="col-md-12">
+                                            <label>Centros de Costo <span class="text-danger">*</span>:</label>
+                                            <select name="centros_costo[<?php echo $contador; ?>][]" 
+                                                    class="form-control select2-centros-costo-salida" 
+                                                    multiple required>
+                                                <?php 
+                                                $centros_seleccionados = isset($detalle['centros_costo_ids']) ? $detalle['centros_costo_ids'] : array();
+                                                
+                                                foreach ($centros_costo as $centro) { 
+                                                    $selected = in_array($centro['id_centro_costo'], $centros_seleccionados) ? 'selected' : '';
+                                                ?>
+                                                    <option value="<?php echo $centro['id_centro_costo']; ?>" <?php echo $selected; ?>>
+                                                        <?php echo $centro['nom_centro_costo']; ?>
+                                                    </option>
+                                                <?php } ?>
+                                            </select>
+                                            <small class="form-text text-muted">
+                                                <i class="fa fa-info-circle"></i> Seleccione uno o más centros de costo para este material.
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    <!-- FILA 3: Botón Eliminar -->
                                     <div class="row mt-2">
                                         <div class="col-md-12 d-flex justify-content-end">
                                             <button type="button" class="btn btn-danger btn-sm eliminar-material" 
@@ -528,22 +554,23 @@ $(document).ready(function() {
 </script>
 
 <script>
-// Variable global para rastrear qué botón de búsqueda se clickeó
+// ============================================
+// VARIABLES GLOBALES
+// ============================================
 let currentSearchButton = null;
 let contadorMateriales = <?php echo count($salida_detalles); ?>;
-
-// Variables para control de cambios en edición
 let almacenOrigenInicial = '';
 let ubicacionOrigenInicial = '';
 
+// ============================================
+// FUNCIÓN: Buscar Material
+// ============================================
 function buscarMaterial(button) {
-    // Obtener valores de almacén y ubicación origen
     const idAlmacenOrigen = document.getElementById('id_almacen_origen').value;
     const idUbicacionOrigen = document.getElementById('id_ubicacion_origen').value;
     const idAlmacenDestino = document.getElementById('id_almacen_destino').value;
     const idUbicacionDestino = document.getElementById('id_ubicacion_destino').value;
     
-    // Obtener el tipo de material desde el formulario
     const idMaterialTipo = document.querySelector('input[name="id_material_tipo"]');
     const tipoMaterial = idMaterialTipo ? idMaterialTipo.value : '';
     
@@ -577,23 +604,19 @@ function buscarMaterial(button) {
         }
     }
     
-    // Guardar referencia al botón que se clickeó
     currentSearchButton = button;
-    
-    // Abrir la modal
     $('#buscar_producto').modal('show');
-    
-    // Cargar los productos en la tabla con información de stock Y filtro de tipo de material
     cargarProductos(idAlmacenOrigen, idUbicacionOrigen, tipoMaterial);
 }
 
+// ============================================
+// FUNCIÓN: Cargar Productos
+// ============================================
 function cargarProductos(idAlmacen, idUbicacion, tipoMaterial = '') {
-    // Si la tabla ya está inicializada, destrúyela antes de crear una nueva instancia
     if ($.fn.dataTable.isDataTable('#datatable_producto')) {
         $('#datatable_producto').DataTable().destroy();
     }
 
-    // Inicializar DataTable con configuración y AJAX
     $('#datatable_producto').DataTable({
         "processing": true,
         "serverSide": true,
@@ -648,8 +671,11 @@ function cargarProductos(idAlmacen, idUbicacion, tipoMaterial = '') {
     });
 }
 
+// ============================================
+// FUNCIÓN: Seleccionar Producto
+// ============================================
 function seleccionarProducto(idProducto, nombreProducto, stockDisponible) {
-    // 🔹 Verificar si el producto ya está seleccionado en algún material-item
+    // 🔹 Verificar si el producto ya está seleccionado
     const materialItems = document.querySelectorAll('.material-item');
     let productoExistente = null;
 
@@ -661,49 +687,40 @@ function seleccionarProducto(idProducto, nombreProducto, stockDisponible) {
     });
 
     if (productoExistente) {
-        // 🔸 Producto ya existe → resaltarlo y mostrar aviso
         productoExistente.classList.add('duplicado-resaltado');
         productoExistente.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
         setTimeout(() => productoExistente.classList.remove('duplicado-resaltado'), 2000);
-
         $('#buscar_producto').modal('hide');
-        return; // detener aquí
+        return;
     }
+
     if (currentSearchButton) {
         let materialItem = currentSearchButton.closest('.material-item');
         
         if (materialItem) {
-            // Actualizar el input de descripción
             let inputDescripcion = materialItem.querySelector('input[name="descripcion[]"]');
             if (inputDescripcion) {
                 inputDescripcion.value = nombreProducto;
             }
             
-            // Actualizar el input hidden del ID del material
             let inputIdMaterial = materialItem.querySelector('input[name="id_producto[]"]');
             if (inputIdMaterial) {
                 inputIdMaterial.value = idProducto;
             }
             
-            // Configurar input de cantidad según el stock disponible
             let inputCantidad = materialItem.querySelector('input[name="cantidad[]"]');
             
             if (inputCantidad) {
                 const stock = parseFloat(stockDisponible);
-                
-                // Guardar el stock como atributo data para validaciones posteriores
                 inputCantidad.setAttribute('data-stock-disponible', stock.toFixed(2));
                 
                 if (stock > 0) {
-                    // Si hay stock, establecer min y max
                     inputCantidad.setAttribute('min', '0.01');
                     inputCantidad.setAttribute('max', stockDisponible);
                     inputCantidad.setAttribute('step', '0.01');
                     inputCantidad.removeAttribute('readonly');
                     inputCantidad.removeAttribute('title');
                 } else {
-                    // Si no hay stock, deshabilitar el campo
                     inputCantidad.value = '';
                     inputCantidad.setAttribute('readonly', 'readonly');
                     inputCantidad.setAttribute('title', 'No hay stock disponible');
@@ -712,10 +729,8 @@ function seleccionarProducto(idProducto, nombreProducto, stockDisponible) {
         }
     }
     
-    // Cerrar la modal
     $('#buscar_producto').modal('hide');
     
-    // Mostrar mensaje según el stock
     if (parseFloat(stockDisponible) <= 0) {
         mostrarAlerta('warning', 'Producto sin stock',
             `El producto "${nombreProducto}" no tiene stock disponible en esta ubicación.`);
@@ -724,11 +739,12 @@ function seleccionarProducto(idProducto, nombreProducto, stockDisponible) {
             `El producto "${nombreProducto}" ha sido seleccionado correctamente.`, 2000);
     }
     
-    // Limpiar la referencia
     currentSearchButton = null;
 }
 
-// Función auxiliar para mostrar alertas
+// ============================================
+// FUNCIÓN: Mostrar Alerta
+// ============================================
 function mostrarAlerta(tipo, titulo, mensaje, tiempo = null) {
     if (typeof Swal !== 'undefined') {
         const config = {
@@ -749,7 +765,9 @@ function mostrarAlerta(tipo, titulo, mensaje, tiempo = null) {
     }
 }
 
-// Verificar si hay materiales con datos
+// ============================================
+// FUNCIÓN: Verificar Materiales Seleccionados
+// ============================================
 function hayMaterialesSeleccionados() {
     const materiales = document.querySelectorAll('input[name="descripcion[]"]');
     for (let i = 0; i < materiales.length; i++) {
@@ -760,7 +778,9 @@ function hayMaterialesSeleccionados() {
     return false;
 }
 
-// Limpiar todos los materiales
+// ============================================
+// FUNCIÓN: Limpiar Todos los Materiales
+// ============================================
 function limpiarTodosMateriales() {
     const descripciones = document.querySelectorAll('input[name="descripcion[]"]');
     const productos = document.querySelectorAll('input[name="id_producto[]"]');
@@ -778,10 +798,103 @@ function limpiarTodosMateriales() {
     });
 }
 
-// Script para manejo dinámico de materiales y validaciones
+// ============================================
+// FUNCIÓN: Validar Stock
+// ============================================
+function validarStock(inputCantidad, inputDescripcion) {
+    const cantidad = parseFloat(inputCantidad.value) || 0;
+    const stock = parseFloat(inputCantidad.getAttribute('data-stock-disponible')) || 0;
+    const nombreProducto = inputDescripcion.value;
+    
+    if (!nombreProducto.trim()) {
+        return true;
+    }
+    
+    if (stock <= 0) {
+        inputCantidad.value = '';
+        mostrarAlerta('error', 'Sin stock disponible',
+            `El producto "${nombreProducto}" no tiene stock disponible en esta ubicación.`);
+        return false;
+    }
+    
+    if (cantidad > stock) {
+        mostrarAlerta('warning', 'Cantidad excede el stock',
+            `La cantidad ingresada (${cantidad}) excede el stock disponible (${stock.toFixed(2)}) para "${nombreProducto}".`);
+        return false;
+    }
+    
+    return true;
+}
+
+// ============================================
+// FUNCIÓN: Configurar Eventos de Cantidad
+// ============================================
+function configurarEventosCantidad() {
+    document.querySelectorAll('input[name="cantidad[]"]').forEach(input => {
+        input.removeEventListener('input', validarCantidadEnTiempoReal);
+        input.removeEventListener('blur', validarCantidadAlSalir);
+        input.addEventListener('input', validarCantidadEnTiempoReal);
+        input.addEventListener('blur', validarCantidadAlSalir);
+    });
+}
+
+function validarCantidadEnTiempoReal(e) {
+    const inputCantidad = e.target;
+    const materialItem = inputCantidad.closest('.material-item');
+    const inputDescripcion = materialItem.querySelector('input[name="descripcion[]"]');
+    
+    if (inputDescripcion) {
+        const stock = parseFloat(inputCantidad.getAttribute('data-stock-disponible')) || 0;
+        if (stock <= 0 && inputCantidad.value && parseFloat(inputCantidad.value) > 0) {
+            validarStock(inputCantidad, inputDescripcion);
+        }
+    }
+}
+
+function validarCantidadAlSalir(e) {
+    const inputCantidad = e.target;
+    const materialItem = inputCantidad.closest('.material-item');
+    const inputDescripcion = materialItem.querySelector('input[name="descripcion[]"]');
+    
+    if (inputDescripcion && inputCantidad.value) {
+        validarStock(inputCantidad, inputDescripcion);
+    }
+}
+
+// ============================================
+// FUNCIÓN: Validar Ubicaciones
+// ============================================
+function validarUbicaciones() {
+    const almacenOrigen = document.getElementById('id_almacen_origen');
+    const ubicacionOrigen = document.getElementById('id_ubicacion_origen');
+    const almacenDestino = document.getElementById('id_almacen_destino');
+    const ubicacionDestino = document.getElementById('id_ubicacion_destino');
+    
+    if (almacenOrigen && ubicacionOrigen && almacenDestino && ubicacionDestino) {
+        if (almacenOrigen.value && ubicacionOrigen.value && 
+            almacenDestino.value && ubicacionDestino.value) {
+            
+            if (almacenOrigen.value === almacenDestino.value && 
+                ubicacionOrigen.value === ubicacionDestino.value) {
+                
+                mostrarAlerta('warning', 'Ubicaciones idénticas',
+                    'No puede realizar una salida hacia la misma ubicación de origen. Seleccione un destino diferente.');
+                
+                almacenDestino.value = '';
+                ubicacionDestino.value = '';
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+// ============================================
+// DOCUMENT READY
+// ============================================
 document.addEventListener('DOMContentLoaded', function() {
     
-    // Guardar valores iniciales para la funcionalidad de edición
+    // Guardar valores iniciales
     const almacenOrigen = document.getElementById('id_almacen_origen');
     const ubicacionOrigen = document.getElementById('id_ubicacion_origen');
     
@@ -792,107 +905,9 @@ document.addEventListener('DOMContentLoaded', function() {
         ubicacionOrigenInicial = ubicacionOrigen.value;
     }
     
-    // Función para validar stock en tiempo real
-    function validarStock(inputCantidad, inputDescripcion) {
-        const cantidad = parseFloat(inputCantidad.value) || 0;
-        const stock = parseFloat(inputCantidad.getAttribute('data-stock-disponible')) || 0;
-        const nombreProducto = inputDescripcion.value;
-        
-        // Si no hay producto seleccionado, permitir cualquier cantidad
-        if (!nombreProducto.trim()) {
-            return true;
-        }
-        
-        // VALIDACIÓN: Si el stock es 0 o menor
-        if (stock <= 0) {
-            inputCantidad.value = '';
-            mostrarAlerta('error', 'Sin stock disponible',
-                `El producto "${nombreProducto}" no tiene stock disponible en esta ubicación.`);
-            return false;
-        }
-        
-        // VALIDACIÓN: Si la cantidad excede el stock
-        if (cantidad > stock) {
-            mostrarAlerta('warning', 'Cantidad excede el stock',
-                `La cantidad ingresada (${cantidad}) excede el stock disponible (${stock.toFixed(2)}) para "${nombreProducto}".`);
-            return false;
-        }
-        
-        return true;
-    }
-    
-    // Función para configurar eventos en inputs de cantidad
-    function configurarEventosCantidad() {
-        document.querySelectorAll('input[name="cantidad[]"]').forEach(input => {
-            // Remover eventos anteriores para evitar duplicados
-            input.removeEventListener('input', validarCantidadEnTiempoReal);
-            input.removeEventListener('blur', validarCantidadAlSalir);
-            
-            // Agregar eventos
-            input.addEventListener('input', validarCantidadEnTiempoReal);
-            input.addEventListener('blur', validarCantidadAlSalir);
-        });
-    }
-    
-    function validarCantidadEnTiempoReal(e) {
-        const inputCantidad = e.target;
-        const materialItem = inputCantidad.closest('.material-item');
-        const stockElement = materialItem.querySelector('[id^="stock-disponible-"]') || 
-                            materialItem.querySelector('.stock-disponible') ||
-                            materialItem.querySelector('[data-stock]');
-        const inputDescripcion = materialItem.querySelector('input[name="descripcion[]"]');
-        
-        if (stockElement && inputDescripcion) {
-            const stock = parseFloat(stockElement.textContent) || 0;
-            
-            // Si no hay stock y se está intentando ingresar una cantidad
-            if (stock <= 0 && inputCantidad.value && parseFloat(inputCantidad.value) > 0) {
-                validarStock(inputCantidad, stockElement, inputDescripcion);
-            }
-        }
-    }
-    
-    function validarCantidadAlSalir(e) {
-        const inputCantidad = e.target;
-        const materialItem = inputCantidad.closest('.material-item');
-        const stockElement = materialItem.querySelector('[id^="stock-disponible-"]') || 
-                            materialItem.querySelector('.stock-disponible') ||
-                            materialItem.querySelector('[data-stock]');
-        const inputDescripcion = materialItem.querySelector('input[name="descripcion[]"]');
-        
-        if (stockElement && inputDescripcion && inputCantidad.value) {
-            validarStock(inputCantidad, stockElement, inputDescripcion);
-        }
-    }
-    
-    // VALIDACIÓN: Ubicaciones origen y destino
-    function validarUbicaciones() {
-        const almacenOrigen = document.getElementById('id_almacen_origen');
-        const ubicacionOrigen = document.getElementById('id_ubicacion_origen');
-        const almacenDestino = document.getElementById('id_almacen_destino');
-        const ubicacionDestino = document.getElementById('id_ubicacion_destino');
-        
-        if (almacenOrigen && ubicacionOrigen && almacenDestino && ubicacionDestino) {
-            if (almacenOrigen.value && ubicacionOrigen.value && 
-                almacenDestino.value && ubicacionDestino.value) {
-                
-                if (almacenOrigen.value === almacenDestino.value && 
-                    ubicacionOrigen.value === ubicacionDestino.value) {
-                    
-                    mostrarAlerta('warning', 'Ubicaciones idénticas',
-                        'No puede realizar una salida hacia la misma ubicación de origen. Seleccione un destino diferente.');
-                    
-                    // Limpiar destino
-                    almacenDestino.value = '';
-                    ubicacionDestino.value = '';
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-    
-    // Eventos para validar ubicaciones en tiempo real
+    // ============================================
+    // EVENTOS: Validar ubicaciones en tiempo real
+    // ============================================
     ['id_almacen_destino', 'id_ubicacion_destino'].forEach(id => {
         const elemento = document.getElementById(id);
         if (elemento) {
@@ -900,13 +915,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // MANEJAR CAMBIOS EN ORIGEN PARA EDICIÓN (ALERTA DE MATERIALES)
+    // ============================================
+    // EVENTO: Cambio en Almacén Origen
+    // ============================================
     if (almacenOrigen) {
         almacenOrigen.addEventListener('change', function() {
             const valorActual = this.value;
             
             if (valorActual !== almacenOrigenInicial && hayMaterialesSeleccionados()) {
-                // Revertir temporalmente el cambio
                 this.value = almacenOrigenInicial;
                 
                 if (typeof Swal !== 'undefined') {
@@ -921,7 +937,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         cancelButtonColor: '#3085d6'
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            // Aplicar el cambio
                             this.value = valorActual;
                             almacenOrigenInicial = valorActual;
                             limpiarTodosMateriales();
@@ -934,12 +949,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 showConfirmButton: false
                             });
                         } else {
-                            // Mantener el valor anterior
                             this.value = almacenOrigenInicial;
                         }
                     });
                 } else {
-                    // Fallback a confirm nativo si no hay SweetAlert
                     if (confirm('ADVERTENCIA: Si cambia el almacén de origen, se eliminarán todos los materiales seleccionados.\n\n¿Desea continuar?')) {
                         this.value = valorActual;
                         almacenOrigenInicial = valorActual;
@@ -957,12 +970,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // ============================================
+    // EVENTO: Cambio en Ubicación Origen
+    // ============================================
     if (ubicacionOrigen) {
         ubicacionOrigen.addEventListener('change', function() {
             const valorActual = this.value;
             
             if (valorActual !== ubicacionOrigenInicial && hayMaterialesSeleccionados()) {
-                // Revertir temporalmente el cambio
                 this.value = ubicacionOrigenInicial;
                 
                 if (typeof Swal !== 'undefined') {
@@ -977,7 +992,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         cancelButtonColor: '#3085d6'
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            // Aplicar el cambio
                             this.value = valorActual;
                             ubicacionOrigenInicial = valorActual;
                             limpiarTodosMateriales();
@@ -990,12 +1004,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 showConfirmButton: false
                             });
                         } else {
-                            // Mantener el valor anterior
                             this.value = ubicacionOrigenInicial;
                         }
                     });
                 } else {
-                    // Fallback a confirm nativo si no hay SweetAlert
                     if (confirm('ADVERTENCIA: Si cambia la ubicación de origen, se eliminarán todos los materiales seleccionados.\n\n¿Desea continuar?')) {
                         this.value = valorActual;
                         ubicacionOrigenInicial = valorActual;
@@ -1013,45 +1025,118 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Agregar nuevo material - CORREGIDO PARA EDICIÓN
+    // ============================================
+    // BOTÓN: Agregar Material (CON CENTROS DE COSTO)
+    // ============================================
     const btnAgregarMaterial = document.getElementById('agregar-material');
     if (btnAgregarMaterial) {
         btnAgregarMaterial.addEventListener('click', function() {
             const contenedor = document.getElementById('contenedor-materiales');
-            const nuevoMaterial = document.querySelector('.material-item').cloneNode(true);
+            const materialOriginal = contenedor.querySelector('.material-item');
             
-            // Limpiar los valores del nuevo elemento
-            const inputs = nuevoMaterial.querySelectorAll('input, textarea, select');
-            inputs.forEach(input => {
-                if (input.type !== 'button') {
-                    input.value = '';
-                    //  MANTENER readonly en el campo de descripción
-                    if (input.name === 'descripcion[]') {
-                        input.setAttribute('readonly', 'readonly');
-                    } else {
-                        input.removeAttribute('readonly');
+            if (materialOriginal) {
+                // 🔹 GUARDAR valores de Select2 ANTES de destruir
+                const valoresOriginalesSelect2 = {};
+                const selectsOriginales = materialOriginal.querySelectorAll('select.select2-centros-costo-salida');
+                
+                selectsOriginales.forEach((select, index) => {
+                    if ($(select).data('select2')) {
+                        valoresOriginalesSelect2[index] = $(select).val();
                     }
-                    input.removeAttribute('title');
-                    input.removeAttribute('data-stock-disponible');
+                });
+                
+                // 🔹 DESTRUIR Select2 en el original
+                selectsOriginales.forEach(select => {
+                    if ($(select).data('select2')) {
+                        $(select).select2('destroy');
+                    }
+                });
+                
+                // 🔹 CLONAR el elemento
+                const nuevoMaterial = materialOriginal.cloneNode(true);
+                
+                // 🔹 RESTAURAR Select2 en el ORIGINAL
+                selectsOriginales.forEach((select, index) => {
+                    $(select).select2({
+                        placeholder: 'Seleccionar uno o más centros de costo...',
+                        allowClear: true,
+                        width: '100%',
+                        multiple: true
+                    });
+                    if (valoresOriginalesSelect2[index]) {
+                        $(select).val(valoresOriginalesSelect2[index]).trigger('change');
+                    }
+                });
+                
+                // 🔹 LIMPIAR campos del NUEVO material
+                const inputs = nuevoMaterial.querySelectorAll('input, textarea');
+                inputs.forEach(input => {
+                    if (input.name === 'descripcion[]') {
+                        input.value = '';
+                    } else if (input.name === 'id_producto[]') {
+                        input.value = '';
+                    } else if (input.name === 'cantidad[]') {
+                        input.value = '';
+                        input.removeAttribute('data-stock-disponible');
+                    } else if (input.type !== 'button') {
+                        input.value = '';
+                    }
+                });
+                
+                // 🔹 LIMPIAR y PREPARAR los selects del NUEVO material
+                const selectsClonados = nuevoMaterial.querySelectorAll('select');
+                selectsClonados.forEach(select => {
+                    if (select.name && select.name.includes('centros_costo')) {
+                        select.name = `centros_costo[${contadorMateriales}][]`;
+                    }
+                    
+                    $(select).removeClass('select2-hidden-accessible');
+                    const select2Container = select.nextElementSibling;
+                    if (select2Container && select2Container.classList.contains('select2')) {
+                        select2Container.remove();
+                    }
+                    
+                    Array.from(select.options).forEach(option => {
+                        option.selected = false;
+                    });
+                    select.selectedIndex = -1;
+                });
+                
+                // 🔹 MOSTRAR botón eliminar
+                const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
+                if (btnEliminar) {
+                    btnEliminar.style.display = 'block';
                 }
-            });
-            
-            // Mostrar el botón eliminar
-            const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
-            if (btnEliminar) {
-                btnEliminar.style.display = 'block';
-            }
-            
-            contenedor.appendChild(nuevoMaterial);
-            contadorMateriales++;
+                
+                // 🔹 AGREGAR al contenedor
+                contenedor.appendChild(nuevoMaterial);
+                
+                // 🔹 INICIALIZAR Select2 en el NUEVO material
+                const selectsNuevos = nuevoMaterial.querySelectorAll('select.select2-centros-costo-salida');
+                selectsNuevos.forEach(select => {
+                    $(select).select2({
+                        placeholder: 'Seleccionar uno o más centros de costo...',
+                        allowClear: true,
+                        width: '100%',
+                        multiple: true
+                    });
+                });
+                
+                // 🔹 INCREMENTAR contador
+                contadorMateriales++;
             
             // Actualizar eventos
-            actualizarEventosEliminar();
-            configurarEventosCantidad();
+                actualizarEventosEliminar();
+                configurarEventosCantidad();
+                
+                console.log('✅ Nuevo material agregado con centros de costo');
+            }
         });
     }
     
-    // Función para actualizar eventos de eliminar
+    // ============================================
+    // FUNCIÓN: Actualizar Eventos Eliminar
+    // ============================================
     function actualizarEventosEliminar() {
         document.querySelectorAll('.eliminar-material').forEach(btn => {
             btn.onclick = function() {
@@ -1066,30 +1151,33 @@ document.addEventListener('DOMContentLoaded', function() {
     actualizarEventosEliminar();
     configurarEventosCantidad();
     
-    // VALIDACIÓN DEL FORMULARIO ANTES DE ENVIAR
+    // ============================================
+    // VALIDACIÓN FINAL DEL FORMULARIO
+    // ============================================
     const form = document.querySelector('form');
     if (form) {
         form.addEventListener('submit', function(e) {
             let errores = [];
             let tieneProductosSinStock = false;
             
-            // VALIDACIÓN 1: Verificar que origen y destino no sean iguales
+            // VALIDACIÓN 1: Verificar origen ≠ destino
             const almacenOrigenVal = document.getElementById('id_almacen_origen').value;
             const ubicacionOrigenVal = document.getElementById('id_ubicacion_origen').value;
             const almacenDestinoVal = document.getElementById('id_almacen_destino').value;
             const ubicacionDestinoVal = document.getElementById('id_ubicacion_destino').value;
             
             if (almacenOrigenVal === almacenDestinoVal && ubicacionOrigenVal === ubicacionDestinoVal) {
-                errores.push('No puede realizar una salida hacia la misma ubicación de origen. Seleccione un destino diferente.');
+                errores.push('No puede realizar una salida hacia la misma ubicación de origen.');
             }
             
-            // VALIDACIÓN 2: Verificar tipo de material no sea "NA" (solo si existe el campo)
-            const tipoMaterialElement = document.querySelector('input[name="id_material_tipo"]') || document.querySelector('select[name="id_material_tipo"]');
+            // VALIDACIÓN 2: Tipo de material no sea "NA"
+            const tipoMaterialElement = document.querySelector('input[name="id_material_tipo"]') || 
+                                       document.querySelector('select[name="id_material_tipo"]');
             if (tipoMaterialElement && tipoMaterialElement.value === '1') {
-                errores.push('No se puede realizar salidas para materiales tipo "NA". Este tipo está reservado para servicios.');
+                errores.push('No se puede realizar salidas para materiales tipo "NA".');
             }
             
-            // VALIDACIÓN 3: Verificar que al menos un material tenga cantidad
+            // VALIDACIÓN 3: Al menos un material con cantidad
             const cantidades = document.querySelectorAll('input[name="cantidad[]"]');
             let tieneMateriales = false;
             
@@ -1103,49 +1191,40 @@ document.addEventListener('DOMContentLoaded', function() {
                 errores.push('Debe agregar al menos un material con cantidad válida');
             }
             
-            // VALIDACIÓN 4: Validar stocks y cantidades
+            // VALIDACIÓN 4: Stocks y cantidades
             const materialesItems = document.querySelectorAll('.material-item');
             materialesItems.forEach((item, index) => {
                 const inputCantidad = item.querySelector('input[name="cantidad[]"]');
                 const inputDescripcion = item.querySelector('input[name="descripcion[]"]');
                 const inputIdProducto = item.querySelector('input[name="id_producto[]"]');
                 
-                // Solo validar si hay descripción Y id de producto (producto realmente seleccionado)
                 if (inputDescripcion && inputDescripcion.value.trim() && 
                     inputIdProducto && inputIdProducto.value) {
                     
                     const stock = parseFloat(inputCantidad.getAttribute('data-stock-disponible')) || 0;
                     const cantidad = parseFloat(inputCantidad.value) || 0;
                     
-                    // DEBUGGING: Verificar si el stock se está leyendo correctamente
-                    console.log('Producto:', inputDescripcion.value, 'Stock:', stock, 'Cantidad:', cantidad, 'ID Producto:', inputIdProducto.value);
-                    
-                    // Verificar que tenga cantidad si tiene producto
                     if (cantidad <= 0) {
                         errores.push(`Debe ingresar una cantidad válida para "${inputDescripcion.value}"`);
                     }
-                    // Solo validar stock si existe el atributo (para productos seleccionados desde modal)
                     else if (inputCantidad.hasAttribute('data-stock-disponible')) {
-                        // Verificar stock cero
                         if (stock <= 0) {
-                            errores.push(`El producto "${inputDescripcion.value}" no tiene stock disponible`);
+                            errores.push(`"${inputDescripcion.value}" no tiene stock disponible`);
                             tieneProductosSinStock = true;
                         }
-                        // Verificar cantidad mayor a stock
                         else if (cantidad > stock) {
-                            errores.push(`La cantidad de "${inputDescripcion.value}" (${cantidad}) excede el stock disponible (${stock.toFixed(2)})`);
+                            errores.push(`La cantidad de "${inputDescripcion.value}" (${cantidad}) excede el stock (${stock.toFixed(2)})`);
                         }
                     }
                 }
                 
-                // VALIDACIÓN ADICIONAL: Si hay descripción pero no ID de producto
                 if (inputDescripcion && inputDescripcion.value.trim() && 
                     (!inputIdProducto || !inputIdProducto.value)) {
                     errores.push(`Debe seleccionar un producto válido desde el buscador para "${inputDescripcion.value}"`);
                 }
             });
             
-            // Mostrar errores si existen
+            // Mostrar errores
             if (errores.length > 0) {
                 e.preventDefault();
                 
@@ -1162,13 +1241,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Guardar cantidades originales para cálculos de stock en edición
+    // Guardar cantidades originales
     document.querySelectorAll('input[name="cantidad[]"]').forEach(input => {
         input.dataset.cantidadOriginal = input.value;
     });
 });
 
-// Limpiar la referencia cuando se cierre la modal sin seleccionar
+// ============================================
+// MODAL: Limpiar referencia al cerrar
+// ============================================
 $('#buscar_producto').on('hidden.bs.modal', function () {
     currentSearchButton = null;
 });
@@ -1176,7 +1257,7 @@ $('#buscar_producto').on('hidden.bs.modal', function () {
 
 <style>
 .duplicado-resaltado {
-    background-color: #ffe6e6 !important; /* rojo pálido */
+    background-color: #ffe6e6 !important;
     border: 2px solid #ff4d4d !important;
     box-shadow: 0 0 10px rgba(255, 77, 77, 0.6);
     transition: all 0.3s ease;

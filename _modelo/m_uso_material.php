@@ -130,8 +130,20 @@ function ConsultarUsoMaterialDetalle($id_uso_material)
 function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_personal, $materiales, $archivos_subidos) 
 {
     include("../_conexion/conexion.php");
+    require_once("../_modelo/m_centro_costo.php"); 
+    
     $id_personal = $_SESSION['id_personal'];
-    // Iniciar transacción ANTES de hacer cualquier cosa
+    
+    // 🔹 OBTENER CENTRO DE COSTO DEL REGISTRADOR
+    $centro_costo_registrador = ObtenerCentroCostoPersonal($id_personal);
+    $id_registrador_centro_costo = $centro_costo_registrador ? 
+        intval($centro_costo_registrador['id_centro_costo']) : 'NULL';
+    
+    // 🔹 OBTENER CENTRO DE COSTO DEL SOLICITANTE
+    $centro_costo_solicitante = ObtenerCentroCostoPersonal($id_solicitante);
+    $id_solicitante_centro_costo = $centro_costo_solicitante ? 
+        intval($centro_costo_solicitante['id_centro_costo']) : 'NULL';
+    
     mysqli_autocommit($con, false);
 
     try {
@@ -172,10 +184,12 @@ function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_pers
         // Insertar uso de material principal con estado APROBADO (2) directamente
         $sql = "INSERT INTO uso_material (
                     id_uso_material, id_almacen, id_ubicacion, id_personal, 
-                    id_solicitante, fec_uso_material, est_uso_material
+                    id_solicitante, id_registrador_centro_costo, id_solicitante_centro_costo,
+                    fec_uso_material, est_uso_material
                 ) VALUES (
                     $id_uso_material, $id_almacen, $id_ubicacion, $id_personal, 
-                    $id_solicitante, NOW(), 2
+                    $id_solicitante, $id_registrador_centro_costo, $id_solicitante_centro_costo,
+                    NOW(), 2
                 )";
 
         if (!mysqli_query($con, $sql)) {
@@ -187,6 +201,7 @@ function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_pers
             $id_producto = intval($material['id_producto']);
             $cantidad = floatval($material['cantidad']);
             $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
+            $centros_costo = isset($material['centros_costo']) ? $material['centros_costo'] : array(); // 🔹 NUEVO
             
             // Insertar detalle
             $sql_detalle = "INSERT INTO uso_material_detalle (
@@ -203,7 +218,20 @@ function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_pers
 
             $id_detalle = mysqli_insert_id($con);
             
-            // Registrar movimiento de salida con tipo_orden = 4 (USO) INMEDIATAMENTE
+            // 🔹 INSERTAR CENTROS DE COSTO DEL MATERIAL
+            if (!empty($centros_costo) && is_array($centros_costo)) {
+                foreach ($centros_costo as $id_centro) {
+                    $id_centro = intval($id_centro);
+                    if ($id_centro > 0) {
+                        $sql_cc = "INSERT INTO uso_material_detalle_centro_costo 
+                                  (id_uso_material_detalle, id_centro_costo) 
+                                  VALUES ($id_detalle, $id_centro)";
+                        mysqli_query($con, $sql_cc);
+                    }
+                }
+            }
+            
+            // Registrar movimiento de salida (código existente)
             $sql_movimiento = "INSERT INTO movimiento (
                                 id_personal, id_orden, id_producto, id_almacen, 
                                 id_ubicacion, tipo_orden, tipo_movimiento, 
@@ -256,11 +284,22 @@ function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_pers
     }
 }
 
-function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante, $materiales, $archivos_subidos) 
+function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante, $materiales, $archivos_subidos, $id_personal_editor)
 {
     include("../_conexion/conexion.php");
+    require_once("../_modelo/m_centro_costo.php"); // 🔹 AGREGAR
     
-    // Obtener datos actuales del uso de material
+    // 🔹 OBTENER CENTRO DE COSTO DEL EDITOR
+    $centro_costo_editor = ObtenerCentroCostoPersonal($id_personal_editor);
+    $id_registrador_centro_costo = $centro_costo_editor ? 
+        intval($centro_costo_editor['id_centro_costo']) : 'NULL';
+    
+    // 🔹 OBTENER CENTRO DE COSTO DEL SOLICITANTE
+    $centro_costo_solicitante = ObtenerCentroCostoPersonal($id_solicitante);
+    $id_solicitante_centro_costo = $centro_costo_solicitante ? 
+        intval($centro_costo_solicitante['id_centro_costo']) : 'NULL';
+    
+    // Obtener datos actuales
     $sql_actual = "SELECT id_almacen, id_personal, id_ubicacion as ubicacion_anterior FROM uso_material WHERE id_uso_material = $id_uso_material";
     $result_actual = mysqli_query($con, $sql_actual);
     $row_actual = mysqli_fetch_assoc($result_actual);
@@ -275,7 +314,9 @@ function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante,
         // Actualizar uso de material principal
         $sql = "UPDATE uso_material SET 
                 id_ubicacion = $id_ubicacion,
-                id_solicitante = $id_solicitante
+                id_solicitante = $id_solicitante,
+                id_registrador_centro_costo = $id_registrador_centro_costo,
+                id_solicitante_centro_costo = $id_solicitante_centro_costo
                 WHERE id_uso_material = $id_uso_material";
 
         if (!mysqli_query($con, $sql)) {
@@ -313,6 +354,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante,
             $cantidad = floatval($material['cantidad']);
             $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
             $id_detalle = isset($material['id_detalle']) ? intval($material['id_detalle']) : 0;
+            $centros_costo = isset($material['centros_costo']) ? $material['centros_costo'] : array(); // 🔹 NUEVO
             
             // Verificar stock disponible (ahora que los movimientos anteriores están desactivados)
             $sql_stock = "SELECT COALESCE(SUM(CASE
@@ -347,6 +389,23 @@ function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante,
                 
                 $id_detalle_actual = $id_detalle;
                 $detalles_utilizados[] = $id_detalle;
+                
+                // 🔹 ACTUALIZAR CENTROS DE COSTO
+                if (!empty($centros_costo) && is_array($centros_costo)) {
+                    $sql_eliminar_cc = "DELETE FROM uso_material_detalle_centro_costo 
+                                      WHERE id_uso_material_detalle = $id_detalle_actual";
+                    mysqli_query($con, $sql_eliminar_cc);
+                    
+                    foreach ($centros_costo as $id_centro) {
+                        $id_centro = intval($id_centro);
+                        if ($id_centro > 0) {
+                            $sql_cc = "INSERT INTO uso_material_detalle_centro_costo 
+                                      (id_uso_material_detalle, id_centro_costo) 
+                                      VALUES ($id_detalle_actual, $id_centro)";
+                            mysqli_query($con, $sql_cc);
+                        }
+                    }
+                }
             } else {
                 // Insertar nuevo detalle
                 $sql_detalle = "INSERT INTO uso_material_detalle (
@@ -362,6 +421,19 @@ function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante,
                 }
                 
                 $id_detalle_actual = mysqli_insert_id($con);
+                
+                // 🔹 INSERTAR CENTROS DE COSTO
+                if (!empty($centros_costo) && is_array($centros_costo)) {
+                    foreach ($centros_costo as $id_centro) {
+                        $id_centro = intval($id_centro);
+                        if ($id_centro > 0) {
+                            $sql_cc = "INSERT INTO uso_material_detalle_centro_costo 
+                                      (id_uso_material_detalle, id_centro_costo) 
+                                      VALUES ($id_detalle_actual, $id_centro)";
+                            mysqli_query($con, $sql_cc);
+                        }
+                    }
+                }
             }
             
             // Crear nuevo movimiento de salida con tipo_orden = 4 (USO)
@@ -405,6 +477,12 @@ function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante,
             $detalles_a_eliminar = array_diff(array_keys($detalles_existentes), $detalles_utilizados);
             if (!empty($detalles_a_eliminar)) {
                 $ids_eliminar = implode(',', $detalles_a_eliminar);
+                
+                // 🔹 ELIMINAR CENTROS DE COSTO
+                $sql_eliminar_cc = "DELETE FROM uso_material_detalle_centro_costo 
+                                   WHERE id_uso_material_detalle IN ($ids_eliminar)";
+                mysqli_query($con, $sql_eliminar_cc);
+                
                 $sql_eliminar = "UPDATE uso_material_detalle SET est_uso_material_detalle = 0 
                                 WHERE id_uso_material_detalle IN ($ids_eliminar)";
                 mysqli_query($con, $sql_eliminar);
@@ -465,5 +543,25 @@ function AnularUsoMaterial($id_uso_material)
         mysqli_close($con);
         return $e->getMessage();
     }
+}
+function ObtenerCentrosCostoPorDetalleUsoMaterial($id_uso_material_detalle) 
+{
+    include("../_conexion/conexion.php");
+    
+    $id_uso_material_detalle = intval($id_uso_material_detalle);
+    
+    $sql = "SELECT id_centro_costo 
+            FROM uso_material_detalle_centro_costo 
+            WHERE id_uso_material_detalle = $id_uso_material_detalle";
+    
+    $result = mysqli_query($con, $sql);
+    
+    $centros = array();
+    while ($row = mysqli_fetch_assoc($result)) {
+        $centros[] = intval($row['id_centro_costo']);
+    }
+    
+    mysqli_close($con);
+    return $centros;
 }
 ?>

@@ -62,6 +62,21 @@
                             </div>
 
                             <div class="form-group row">
+                                <label class="control-label col-md-3">Centro de Costos:</label>
+                                <div class="col-md-9">
+                                    <?php if ($centro_costo_usuario) { ?>
+                                        <input type="text" class="form-control" 
+                                            value="<?php echo htmlspecialchars($centro_costo_usuario['nom_centro_costo']); ?>" 
+                                            readonly style="background-color: #f9f9f9;">
+                                    <?php } else { ?>
+                                        <input type="text" class="form-control" 
+                                            value="Sin centro de costo asignado" 
+                                            readonly style="background-color: #f9f9f9;">
+                                    <?php } ?>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
                                 <label class="control-label col-md-3">Fecha:</label>
                                 <div class="col-md-9">
                                     <input type="text" class="form-control" value="<?php echo date('d/m/Y H:i:s'); ?>" readonly>
@@ -106,13 +121,14 @@
                                 foreach ($devolucion_detalles as $detalle) { 
                                 ?>
                                 <div class="material-item border p-3 mb-3">
+                                    <!-- FILA 1: Material y Cantidad -->
                                     <div class="row">
                                         <div class="col-md-8">
                                             <label>Material <span class="text-danger">*</span>:</label>
                                             <div class="input-group">
                                                 <input type="text" name="descripcion[]" class="form-control" 
-                                                       placeholder="Material" 
-                                                       value="<?php echo htmlspecialchars($detalle['det_devolucion_detalle']); ?>" readonly required>
+                                                    placeholder="Material" 
+                                                    value="<?php echo htmlspecialchars($detalle['det_devolucion_detalle']); ?>" readonly required>
                                                 <input type="hidden" name="id_producto[]" value="<?php echo $detalle['id_producto']; ?>">
                                                 <input type="hidden" name="id_devolucion_detalle[]" value="<?php echo $detalle['id_devolucion_detalle']; ?>">
                                                 <button onclick="buscarMaterial(this)" class="btn btn-secondary btn-xs" type="button">
@@ -120,25 +136,53 @@
                                                 </button>
                                             </div>
                                         </div>
+                                        
                                         <div class="col-md-4">
                                             <label>Cantidad <span class="text-danger">*</span>:</label>
                                             <input type="number" name="cantidad[]" class="form-control" step="0.01" 
-                                                   value="<?php echo $detalle['cant_devolucion_detalle']; ?>" required>
+                                                value="<?php echo $detalle['cant_devolucion_detalle']; ?>" required>
                                         </div>
+                                        
                                         <div class="col-md-3" style="display: none;">
                                             <label>Stock Disponible:</label>
                                             <div class="form-control" id="stock-disponible-<?php echo $contador; ?>" style="background-color: #f8f9fa;">
                                                 <?php 
                                                 // Calcular stock disponible actual + cantidad ya asignada
                                                 $stock_actual = ObtenerStockDisponible($detalle['id_producto'], $devolucion_datos[0]['id_almacen'], $devolucion_datos[0]['id_ubicacion']);
-                                                // si el cliente destino es ARCE (id = 1) no se suma la devolución
                                                 $stock_con_devolucion = $stock_actual + $detalle['cant_devolucion_detalle'];
-                                                
                                                 echo number_format($stock_con_devolucion, 2);
                                                 ?>
                                             </div>
                                         </div>
                                     </div>
+                                    <!-- FIN de FILA 1 -->
+                                    
+                                    <!-- FILA 2: Centros de Costo -->
+                                    <div class="row mt-2">
+                                        <div class="col-md-12">
+                                            <label>Centros de Costo <span class="text-danger">*</span>:</label>
+                                            <select name="centros_costo[<?php echo $contador; ?>][]" 
+                                                    class="form-control select2-centros-costo-detalle" 
+                                                    multiple required>
+                                                <?php foreach ($centros_costo as $centro) { ?>
+                                                    <option value="<?php echo $centro['id_centro_costo']; ?>"
+                                                        <?php 
+                                                        if (in_array($centro['id_centro_costo'], $detalle['centros_costo'])) {
+                                                            echo 'selected';
+                                                        }
+                                                        ?>>
+                                                        <?php echo $centro['nom_centro_costo']; ?>
+                                                    </option>
+                                                <?php } ?>
+                                            </select>
+                                            <small class="form-text text-muted">
+                                                <i class="fa fa-info-circle"></i> Seleccione uno o más centros de costo para este material.
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <!--  FIN de FILA 2 -->
+                                    
+                                    <!-- FILA 3: Botón Eliminar -->
                                     <div class="row mt-2">
                                         <div class="col-md-12 d-flex justify-content-end">
                                             <button type="button" class="btn btn-danger btn-sm eliminar-material" 
@@ -147,7 +191,9 @@
                                             </button>
                                         </div>
                                     </div>
+                                    <!--  FIN de FILA 3 -->
                                 </div>
+
                                 <?php 
                                 $contador++;
                                 } 
@@ -165,7 +211,9 @@
                             <!-- Botones -->
                             <div class="form-group">
                                 <div class="col-md-2 offset-md-8">
-                                    <button type="reset" class="btn btn-outline-danger btn-block">Limpiar</button>
+                                    <a href="devoluciones_mostrar.php" class="btn btn-outline-danger btn-block">
+                                        <i class="bi bi-x-square"></i> Cancelar
+                                    </a>
                                 </div>
                                 <div class="col-md-2">
                                     <button type="submit" name="actualizar" id="btn_actualizar" class="btn btn-success btn-block">
@@ -372,9 +420,9 @@ $('#buscar_producto').on('hidden.bs.modal', function () {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    let contadorMateriales = 1;
+    let contadorMateriales = <?php echo count($devolucion_detalles); ?>;
 
-    // --- Agregar / eliminar materiales (clon)
+    // --- Agregar / eliminar materiales (clon) -  VERSIÓN CORREGIDA
     function actualizarEventosEliminar() {
         document.querySelectorAll('.eliminar-material').forEach(btn => {
             btn.onclick = function() {
@@ -389,36 +437,128 @@ document.addEventListener('DOMContentLoaded', function() {
     if (btnAgregarMaterial) {
         btnAgregarMaterial.addEventListener('click', function() {
             const contenedor = document.getElementById('contenedor-materiales');
-            const nuevoMaterial = document.querySelector('.material-item').cloneNode(true);
-
-            // Limpiar inputs/textarea/select (pero conservar botones)
-            nuevoMaterial.querySelectorAll('input, textarea, select').forEach(input => {
-                if (input.type !== 'button') input.value = '';
-            });
-
-            //Limpiar el id_devolucion_detalle para nuevos registros
-            const inputIdDetalle = nuevoMaterial.querySelector('input[name="id_devolucion_detalle[]"]');
-            if (inputIdDetalle) {
-                inputIdDetalle.value = ''; // Vacío indica que es un registro NUEVO
+            const materialOriginal = contenedor.querySelector('.material-item');
+            
+            if (materialOriginal) {
+                // 1. GUARDAR valores de Select2 ANTES de destruir
+                const valoresOriginalesSelect2 = {};
+                const selectsOriginales = materialOriginal.querySelectorAll(
+                    'select.select2-centros-costo-detalle'
+                );
+                
+                selectsOriginales.forEach((select, index) => {
+                    if ($(select).data('select2')) {
+                        valoresOriginalesSelect2[index] = $(select).val();
+                    }
+                });
+                
+                // 2. DESTRUIR Select2 en el original
+                selectsOriginales.forEach(select => {
+                    if ($(select).data('select2')) {
+                        $(select).select2('destroy');
+                    }
+                });
+                
+                // 3. CLONAR el elemento COMPLETO
+                const nuevoMaterial = materialOriginal.cloneNode(true);
+                
+                // 4. RESTAURAR Select2 en el ORIGINAL con sus valores
+                selectsOriginales.forEach((select, index) => {
+                    $(select).select2({
+                        placeholder: 'Seleccionar uno o más centros de costo...',
+                        allowClear: true,
+                        width: '100%',
+                        multiple: true,
+                        language: {
+                            noResults: function () { return 'No se encontraron resultados'; }
+                        }
+                    });
+                    if (valoresOriginalesSelect2[index]) {
+                        $(select).val(valoresOriginalesSelect2[index]).trigger('change');
+                    }
+                });
+                
+                // 5. LIMPIAR TODOS los campos del NUEVO material
+                const inputs = nuevoMaterial.querySelectorAll('input, textarea');
+                inputs.forEach(input => {
+                    if (input.name === 'id_devolucion_detalle[]') {
+                        input.value = ''; // Vacío indica que es un registro NUEVO
+                    } else if (input.name === 'id_producto[]') {
+                        input.value = '';
+                    } else if (input.name === 'descripcion[]') {
+                        input.value = '';
+                    } else if (input.name === 'cantidad[]') {
+                        input.value = '';
+                    } else if (input.type !== 'button') {
+                        input.value = '';
+                    }
+                });
+                
+                // 6. ACTUALIZAR ID del stock
+                const stockElement = nuevoMaterial.querySelector('[id^="stock-disponible-"]');
+                if (stockElement) {
+                    stockElement.id = 'stock-disponible-' + contadorMateriales;
+                    stockElement.textContent = '0.00';
+                }
+                
+                // 7. LIMPIAR y PREPARAR los selects del NUEVO material
+                const selectsClonados = nuevoMaterial.querySelectorAll('select');
+                selectsClonados.forEach(select => {
+                    //  CORRECCIÓN PRINCIPAL: Actualizar name con índice correcto
+                    if (select.name && select.name.includes('centros_costo')) {
+                        select.name = `centros_costo[${contadorMateriales}][]`;
+                        console.log('✅ Name actualizado:', select.name);
+                    }
+                    
+                    // Remover clases de Select2 previo
+                    $(select).removeClass('select2-hidden-accessible');
+                    const select2Container = select.nextElementSibling;
+                    if (select2Container && select2Container.classList.contains('select2')) {
+                        select2Container.remove();
+                    }
+                    
+                    // Limpiar selección
+                    Array.from(select.options).forEach(option => {
+                        option.selected = false;
+                    });
+                    select.selectedIndex = -1;
+                });
+                
+                // 8. MOSTRAR botón eliminar
+                const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
+                if (btnEliminar) {
+                    btnEliminar.style.display = 'block';
+                }
+                
+                // 9. AGREGAR al contenedor
+                contenedor.appendChild(nuevoMaterial);
+                
+                // 10. INICIALIZAR Select2 en el NUEVO material
+                const selectsNuevos = nuevoMaterial.querySelectorAll('select');
+                selectsNuevos.forEach(select => {
+                    if (select.name && select.name.includes('centros_costo')) {
+                        $(select).select2({
+                            placeholder: 'Seleccionar uno o más centros de costo...',
+                            allowClear: true,
+                            width: '100%',
+                            multiple: true,
+                            language: {
+                                noResults: function () { return 'No se encontraron resultados'; }
+                            }
+                        });
+                    }
+                });
+                
+                // 11. INCREMENTAR contador y actualizar eventos
+                contadorMateriales++;
+                actualizarEventosEliminar();
+                configurarEventosCantidad();
+                
+                // 12. SCROLL al nuevo elemento
+                nuevoMaterial.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                
+                console.log('✅ Nuevo material agregado en devoluciones, contador:', contadorMateriales);
             }
-
-            // Actualizar ID del stock
-            const stockElement = nuevoMaterial.querySelector('[id^="stock-disponible-"]');
-            if (stockElement) {
-                stockElement.id = 'stock-disponible-' + contadorMateriales;
-                stockElement.textContent = '0.00';
-            }
-
-            // Mostrar boton eliminar en nuevos bloques
-            const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
-            if (btnEliminar) btnEliminar.style.display = 'block';
-
-            contenedor.appendChild(nuevoMaterial);
-            contadorMateriales++;
-
-            // Reasignar eventos y validaciones
-            actualizarEventosEliminar();
-            configurarEventosCantidad();
         });
     }
     actualizarEventosEliminar();

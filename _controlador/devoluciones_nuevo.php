@@ -38,13 +38,18 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
             require_once("../_modelo/m_personal.php");
             require_once("../_modelo/m_producto.php");
             require_once("../_modelo/m_clientes.php"); // <--- Nuevo para clientes
+            require_once("../_modelo/m_centro_costo.php");
+
 
             // Cargar datos para el formulario
             $almacenes = MostrarAlmacenesActivos();
             $ubicaciones = MostrarUbicacionesActivas();
-            $personal = MostrarPersonal();
+            $personal = MostrarPersonalActivo();
             $productos = MostrarMaterialesActivos();
             $clientes = MostrarClientesActivos(); // <--- Lista de clientes
+            $centros_costo = MostrarCentrosCostoActivos();
+            $centro_costo_usuario = ObtenerCentroCostoPersonal($id);
+
 
             // Variables para alertas
             $mostrar_alerta = false;
@@ -84,13 +89,26 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
                                 $id_prod = intval($id_producto);
                                 $cantidad = floatval($_REQUEST['cantidad'][$index]);
 
+                                // 🔹 OBTENER CENTROS DE COSTO DEL MATERIAL
+                                $centros_costo_material = isset($_REQUEST['centros_costo'][$index]) && is_array($_REQUEST['centros_costo'][$index]) 
+                                                        ? $_REQUEST['centros_costo'][$index] 
+                                                        : array();
+                                
+                                // 🔹 VALIDAR QUE TENGA AL MENOS UN CENTRO
+                                if (empty($centros_costo_material)) {
+                                    $mostrar_alerta = true;
+                                    $tipo_alerta = 'warning';
+                                    $titulo_alerta = 'Centros de costo requeridos';
+                                    $mensaje_alerta = "Debe asignar al menos un centro de costo al material: " . $_REQUEST['descripcion'][$index];
+                                    break;
+                                }
+
                                 require_once("../_modelo/m_stock.php");
                                 
                                 // VALIDAR STOCK DISPONIBLE
                                 $stock_actual = ObtenerStockActual($id_prod, $id_almacen, $id_ubicacion);
                                 
                                 if ($cantidad > $stock_actual) {
-                                    // Obtener nombre del producto para el mensaje
                                     $sql_prod = "SELECT nom_producto FROM producto WHERE id_producto = $id_prod";
                                     $res_prod = mysqli_query($con, $sql_prod);
                                     $row_prod = mysqli_fetch_assoc($res_prod);
@@ -102,7 +120,8 @@ if (!verificarPermisoEspecifico('crear_devoluciones')) {
                                     $materiales[] = array(
                                         'id_producto' => $id_prod,
                                         'cantidad'    => $cantidad,
-                                        'detalle'     => mysqli_real_escape_string($con, $_REQUEST['descripcion'][$index])
+                                        'detalle'     => mysqli_real_escape_string($con, $_REQUEST['descripcion'][$index]),
+                                        'centros_costo' => $centros_costo_material 
                                     );
                                 }
                             }

@@ -6337,13 +6337,14 @@ function agregarItemAOrden(item) {
                         <table class="table table-striped table-sm" style="font-size: 12px;">
                             <thead style="background-color: #f8f9fa;">
                                 <tr>
-                                    <th style="width: 8%;">#</th>
-                                    <th style="width: 15%;">Código</th>
-                                    <th style="width: 35%;">Descripción</th>
-                                    <th style="width: 10%;">Cantidad</th>
-                                    <th style="width: 12%;">Precio Unit.</th>
-                                    <th style="width: 10%;">IGV (%)</th>
+                                    <th style="width: 5%;">#</th>
+                                    <th style="width: 10%;">Código</th>
+                                    <th style="width: 25%;">Descripción</th>
+                                    <th style="width: 8%;">Cantidad</th>
+                                    <th style="width: 10%;">Precio Unit.</th>
+                                    <th style="width: 8%;">IGV (%)</th>
                                     <th style="width: 10%;">Subtotal</th>
+                                    <th style="width: 24%;">Centro(s) de Costo</th>
                                 </tr>
                             </thead>
                             <tbody>`;
@@ -6363,6 +6364,72 @@ function agregarItemAOrden(item) {
             subtotalGeneral += subtotal;
             totalIgv += montoIgv;
             
+            // 🔹 CONSTRUIR HTML DE CENTROS DE COSTO CON MODAL
+            let centrosCostoHtml = '<small class="text-muted">Sin asignar</small>';
+            
+            if (detalle.centros_costo && Array.isArray(detalle.centros_costo) && detalle.centros_costo.length > 0) {
+                const totalCentros = detalle.centros_costo.length;
+                const modalId = `modalCentrosCostoDetalle${index}`;
+                
+                if (totalCentros === 1) {
+                    // Si solo hay 1 centro, mostrarlo directamente
+                    centrosCostoHtml = `
+                        <span class="badge badge-info badge_size" style="font-size: 11px;">
+                            ${detalle.centros_costo[0].nom_centro_costo}
+                        </span>`;
+                } else {
+                    // Si hay múltiples centros, usar modal
+                    const listaCentros = detalle.centros_costo.map((cc, idx) => 
+                        `<div style="padding: 8px; margin-bottom: 6px; background-color: #f8f9fa; border-left: 3px solid #17a2b8; border-radius: 4px;">
+                            <strong style="color: #17a2b8;">${idx + 1}.</strong> ${cc.nom_centro_costo}
+                        </div>`
+                    ).join('');
+                    
+                    centrosCostoHtml = `
+                        <button class="btn btn-sm btn-info btn-ver-centros-costo-detalle" 
+                                type="button" 
+                                data-modal-id="${modalId}"
+                                style="font-size: 11px; padding: 3px 10px;">
+                            <i class="fa fa-eye"></i> Ver ${totalCentros} centros
+                        </button>
+                        
+                        <!-- Modal para centros de costo -->
+                        <div class="modal fade" id="${modalId}" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+                            <div class="modal-dialog modal-dialog-centered" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header" style="background-color: #17a2b8; color: white; padding: 12px 20px;">
+                                        <h6 class="modal-title mb-0">
+                                            <i class="fa fa-building"></i> 
+                                            Centros de Costo Asignados
+                                        </h6>
+                                        <button type="button" class="close close-centros-modal-detalle" data-modal-id="${modalId}" aria-label="Close" style="color: white; opacity: 0.8;">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <div class="modal-body" style="padding: 20px;">
+                                        <div style="margin-bottom: 15px; padding: 10px; background-color: #e7f3ff; border-radius: 4px; border-left: 4px solid #17a2b8;">
+                                            <strong>Producto:</strong> ${detalle.nom_producto}
+                                        </div>
+                                        <div style="max-height: 400px; overflow-y: auto;">
+                                            ${listaCentros}
+                                        </div>
+                                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6; text-align: center;">
+                                            <span class="badge badge-info" style="font-size: 12px; padding: 6px 12px;">
+                                                Total: ${totalCentros} centro(s) de costo
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer" style="padding: 10px 20px;">
+                                        <button type="button" class="btn btn-secondary btn-sm close-centros-modal-detalle" data-modal-id="${modalId}">
+                                            <i class="fa fa-times"></i> Cerrar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                }
+            }
+            
             html += `<tr>
                         <td style="font-weight: bold;">${index + 1}</td>
                         <td>${detalle.cod_material || 'N/A'}</td>
@@ -6371,6 +6438,7 @@ function agregarItemAOrden(item) {
                         <td class="text-right">${simboloMoneda} ${precioUnit.toFixed(2)}</td>
                         <td class="text-center">${igvPorcentaje}%</td>
                         <td class="text-right" style="font-weight: bold;">${simboloMoneda} ${subtotal.toFixed(2)}</td>
+                        <td>${centrosCostoHtml}</td>
                     </tr>`;
         });
         
@@ -6426,30 +6494,84 @@ function agregarItemAOrden(item) {
         if (tipoAfectacion === 'DETRACCION') {
             html += `<div style="font-size: 13px; text-align: center; color: #ffc107; margin-bottom: 5px;">
                         <i class="fa fa-minus-circle"></i> <strong>Detracción ${nombreConcepto} (${porcentaje}%):</strong> -${simboloMoneda} ${montoAfectacion.toFixed(2)}
-                     </div>`;
+                    </div>`;
         }
         
         if (tipoAfectacion === 'RETENCION') {
             html += `<div style="font-size: 13px; text-align: center; color: #2196f3; margin-bottom: 5px;">
                         <i class="fa fa-minus-circle"></i> <strong>Retención ${nombreConcepto} (${porcentaje}%):</strong> -${simboloMoneda} ${montoAfectacion.toFixed(2)}
-                     </div>`;
+                    </div>`;
         }
         
         if (tipoAfectacion === 'PERCEPCION') {
             html += `<div style="font-size: 13px; text-align: center; color: #4caf50; margin-bottom: 5px;">
                         <i class="fa fa-plus-circle"></i> <strong>Percepción ${nombreConcepto} (${porcentaje}%):</strong> +${simboloMoneda} ${montoAfectacion.toFixed(2)}
-                     </div>`;
+                    </div>`;
         }
         
         html += `</div>
-                 <div class="alert alert-success text-center" style="font-size: 18px; font-weight: bold; margin: 0; padding: 15px;">
+                <div class="alert alert-success text-center" style="font-size: 18px; font-weight: bold; margin: 0; padding: 15px;">
                     <i class="fa fa-money"></i> TOTAL A PAGAR: ${simboloMoneda} ${totalFinal.toFixed(2)}
-                 </div></div></div></div></div>`;
+                </div></div></div></div></div>`;
         
         contenido.innerHTML = html;
         contenido.style.display = 'block';
+        
+        //  CONFIGURAR EVENTOS PARA MODALES DE CENTROS DE COSTO
+        configurarEventosCentrosCostoDetalle();
     }
-    
+
+    //  FUNCIÓN PARA MANEJAR MODALES DE CENTROS DE COSTO EN ESTA VISTA
+    function configurarEventosCentrosCostoDetalle() {
+        // Abrir modal de centros de costo
+        document.querySelectorAll('.btn-ver-centros-costo-detalle').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const modalId = this.getAttribute('data-modal-id');
+                const modalElement = document.getElementById(modalId);
+                
+                if (modalElement) {
+                    $(modalElement).modal({
+                        backdrop: 'static',
+                        keyboard: false
+                    });
+                    $(modalElement).modal('show');
+                }
+            });
+        });
+        
+        // Cerrar modal de centros de costo
+        document.querySelectorAll('.close-centros-modal-detalle').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const modalId = this.getAttribute('data-modal-id');
+                const modalElement = document.getElementById(modalId);
+                
+                if (modalElement) {
+                    $(modalElement).modal('hide');
+                    
+                    // Asegurar que el modal padre siga abierto
+                    setTimeout(() => {
+                        if (!$('#modalDetalleCompra').hasClass('show')) {
+                            $('#modalDetalleCompra').modal('show');
+                        }
+                    }, 300);
+                }
+            });
+        });
+        
+        // Prevenir que el cierre de modal hijo cierre el padre
+        $('[id^="modalCentrosCostoDetalle"]').on('hidden.bs.modal', function (e) {
+            e.stopPropagation();
+            // Reabrir el modal padre si se cerró accidentalmente
+            if (!$('#modalDetalleCompra').hasClass('show')) {
+                $('#modalDetalleCompra').modal('show');
+            }
+        });
+    }
+
     function mostrarErrorDetalle(mensaje) {
         const errorDiv = document.getElementById('error-detalle-compra');
         errorDiv.querySelector('p').textContent = mensaje;
