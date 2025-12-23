@@ -384,7 +384,71 @@ $('#buscar_producto').on('hidden.bs.modal', function () {
 document.addEventListener('DOMContentLoaded', function() {
     let contadorMateriales = 1;
 
-    // --- Agregar / eliminar materiales (clon) -  VERSIÓN CORREGIDA
+    // ============================================
+    //  ASIGNACIÓN AUTOMÁTICA DEL CENTRO DE COSTO DEL SOLICITANTE
+    // ============================================
+    const inputCentroCostoCabecera = document.querySelector('input[name="id_centro_costo"]');
+
+    if (inputCentroCostoCabecera && inputCentroCostoCabecera.value) {
+        const centroCostoSolicitante = inputCentroCostoCabecera.value;
+        
+        console.log(" Centro de costo del solicitante:", centroCostoSolicitante);
+        
+        // Función para aplicar a un material específico
+        function aplicarCentroCostoAMaterial(materialItem) {
+            const selectCentros = materialItem.querySelector('select.select2-centros-costo-detalle');
+            if (selectCentros) {
+                if ($(selectCentros).data('select2')) {
+                    console.log("✅ Aplicando centro de costo a material existente");
+                    setTimeout(() => {
+                        $(selectCentros).val([centroCostoSolicitante]).trigger('change');
+                    }, 100);
+                } else {
+                    console.log(" Inicializando Select2 y aplicando centro de costo");
+                    $(selectCentros).select2({
+                        placeholder: 'Seleccionar uno o más centros de costo...',
+                        allowClear: true,
+                        width: '100%',
+                        multiple: true,
+                        language: {
+                            noResults: function () { return 'No se encontraron resultados'; }
+                        }
+                    });
+                    setTimeout(() => {
+                        $(selectCentros).val([centroCostoSolicitante]).trigger('change');
+                    }, 200);
+                }
+            }
+        }
+        
+        // Aplicar a materiales existentes (el primer material al cargar)
+        setTimeout(() => {
+            document.querySelectorAll('.material-item').forEach(item => {
+                aplicarCentroCostoAMaterial(item);
+            });
+        }, 500);
+        
+        // Observar nuevos materiales agregados dinámicamente
+        const contenedorMateriales = document.getElementById('contenedor-materiales');
+        if (contenedorMateriales) {
+            const observador = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(nodo) {
+                        if (nodo.classList && nodo.classList.contains('material-item')) {
+                            console.log("✅ Nuevo material agregado, aplicando centro de costo");
+                            aplicarCentroCostoAMaterial(nodo);
+                        }
+                    });
+                });
+            });
+            
+            observador.observe(contenedorMateriales, { childList: true });
+        }
+    }
+
+    // ============================================
+    // AGREGAR / ELIMINAR MATERIALES (CLON)
+    // ============================================
     function actualizarEventosEliminar() {
         document.querySelectorAll('.eliminar-material').forEach(btn => {
             btn.onclick = null;
@@ -500,6 +564,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                 noResults: function () { return 'No se encontraron resultados'; }
                             }
                         });
+                        
+                        // APLICAR AUTOMÁTICAMENTE EL CENTRO DE COSTO DEL SOLICITANTE
+                        if (inputCentroCostoCabecera && inputCentroCostoCabecera.value) {
+                            setTimeout(() => {
+                                $(select).val([inputCentroCostoCabecera.value]).trigger('change');
+                            }, 100);
+                        }
                     }
                 });
                 

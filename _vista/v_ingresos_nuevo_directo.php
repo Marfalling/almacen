@@ -297,6 +297,69 @@
         
         // Inicializar centros de costo existentes
         initCentrosCostoIngreso($(document));
+        
+        // ============================================
+        //  ASIGNACIÓN AUTOMÁTICA DEL CENTRO DE COSTO DEL REGISTRADOR
+        // ============================================
+        const inputCentroCostoCabecera = document.querySelector('input[name="id_centro_costo_registrador"]');
+
+        if (inputCentroCostoCabecera && inputCentroCostoCabecera.value) {
+            const centroCostoRegistrador = inputCentroCostoCabecera.value;
+            
+            console.log(" Centro de costo del registrador:", centroCostoRegistrador);
+            
+            // Función para aplicar a un producto específico
+            function aplicarCentroCostoAProducto(productoItem) {
+                const selectCentros = productoItem.querySelector('select.select2-centros-costo-ingreso');
+                if (selectCentros) {
+                    if ($(selectCentros).data('select2')) {
+                        console.log(" Aplicando centro de costo a producto existente");
+                        setTimeout(() => {
+                            $(selectCentros).val([centroCostoRegistrador]).trigger('change');
+                        }, 100);
+                    } else {
+                        console.log(" Inicializando Select2 y aplicando centro de costo");
+                        $(selectCentros).select2({
+                            placeholder: 'Seleccionar uno o más centros de costo...',
+                            allowClear: true,
+                            width: '100%',
+                            multiple: true,
+                            language: {
+                                noResults: function () { return 'No se encontraron resultados'; }
+                            }
+                        });
+                        setTimeout(() => {
+                            $(selectCentros).val([centroCostoRegistrador]).trigger('change');
+                        }, 200);
+                    }
+                }
+            }
+            
+            // Aplicar a productos existentes (el primer producto al cargar)
+            setTimeout(() => {
+                document.querySelectorAll('.producto-item').forEach(item => {
+                    aplicarCentroCostoAProducto(item);
+                });
+            }, 500);
+            
+            // Observar nuevos productos agregados dinámicamente
+            const contenedorProductos = document.getElementById('contenedor-productos');
+            if (contenedorProductos) {
+                const observador = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        mutation.addedNodes.forEach(function(nodo) {
+                            if (nodo.classList && nodo.classList.contains('producto-item')) {
+                                console.log("✅ Nuevo producto agregado, aplicando centro de costo");
+                                aplicarCentroCostoAProducto(nodo);
+                            }
+                        });
+                    });
+                });
+                
+                observador.observe(contenedorProductos, { childList: true });
+            }
+        }
+        
         // Agregar nuevo producto
         document.getElementById('agregar-producto').addEventListener('click', function() {
             const contenedor = document.getElementById('contenedor-productos');
@@ -380,7 +443,17 @@
                 // 9. Inicializar Select2 en el NUEVO producto
                 initCentrosCostoIngreso($(nuevoProducto));
                 
-                // 10. Incrementar contador
+                //  10. APLICAR AUTOMÁTICAMENTE EL CENTRO DE COSTO DEL REGISTRADOR
+                if (inputCentroCostoCabecera && inputCentroCostoCabecera.value) {
+                    const selectNuevo = nuevoProducto.querySelector('select.select2-centros-costo-ingreso');
+                    if (selectNuevo) {
+                        setTimeout(() => {
+                            $(selectNuevo).val([inputCentroCostoCabecera.value]).trigger('change');
+                        }, 100);
+                    }
+                }
+                
+                // 11. Incrementar contador
                 contadorProductos++;
                 
                 actualizarEventosEliminar();
@@ -423,7 +496,15 @@
             
             if (errores.length > 0) {
                 e.preventDefault();
-                mostrarAlerta('error', 'Errores de Validación', errores.join('\n• '));
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Errores de Validación',
+                        html: '• ' + errores.join('<br>• ')
+                    });
+                } else {
+                    alert('Errores de Validación:\n• ' + errores.join('\n• '));
+                }
                 return false;
             }
             

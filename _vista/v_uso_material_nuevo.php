@@ -67,11 +67,27 @@
                                         <option value="">Seleccionar</option>
                                         <?php foreach ($personal as $persona) { ?>
                                             <option value="<?php echo $persona['id_personal']; ?>" 
+                                                    data-centro-costo="<?php echo isset($persona['id_centro_costo']) ? $persona['id_centro_costo'] : ''; ?>"
+                                                    data-centro-costo-nombre="<?php echo isset($persona['nom_centro_costo']) ? htmlspecialchars($persona['nom_centro_costo']) : 'Sin centro de costo asignado'; ?>"
                                                 <?php echo ($persona['id_personal'] == $id_personal) ? 'selected' : ''; ?>>
                                                 <?php echo $persona['nom_personal']; ?>
                                             </option>
                                         <?php } ?>
                                     </select>
+                                </div>
+                            </div>
+
+                            <!-- NUEVO CAMPO: Centro de Costo del Solicitante -->
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Centro de Costos (Solicitante):</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" id="texto_centro_costo_solicitante" class="form-control" 
+                                        value="Seleccione un solicitante" 
+                                        readonly style="background-color: #f9f9f9;">
+                                    <input type="hidden" name="id_solicitante_centro_costo" id="id_solicitante_centro_costo" value="">
+                                    <small class="text-muted" id="mensaje_sin_centro_solicitante" style="display: none;">
+                                        El solicitante no tiene un centro de costo asignado.
+                                    </small>
                                 </div>
                             </div>
 
@@ -352,9 +368,9 @@ function cargarProductos(idAlmacen, idUbicacion) {
             { "title": "Producto" },
             { "title": "Tipo" },
             { "title": "Unidad de Medida" },
-            { "title": "Marca" },       //  NUEVO
-            { "title": "Modelo" },    //  NUEVO
-            { "title": "Stock Disponible" },   //  NUEVO
+            { "title": "Marca" },
+            { "title": "Modelo" },
+            { "title": "Stock Disponible" },
             { "title": "Acción" }
         ],
         "order": [[1, 'asc']],
@@ -420,7 +436,7 @@ function seleccionarProducto(idProducto, nombreProducto, unidadMedida, stockDisp
             if (inputDescripcion) inputDescripcion.value = nombreProducto;
             if (inputIdProducto) inputIdProducto.value = idProducto;
             if (inputUnidad) inputUnidad.value = unidadMedida;
-            inputStock.value = stockDisponible; // <--- guardamos stock real
+            inputStock.value = stockDisponible;
         }
     }
     
@@ -563,9 +579,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const infoAlmacen = document.getElementById('info-almacen');
     const textoClienteObra = document.getElementById('texto-cliente-obra');
 
-    // NUEVO: Mostrar cliente/obra del almacén seleccionado (CON SELECT2)
+    // Mostrar cliente/obra del almacén seleccionado (CON SELECT2)
     if (selectAlmacen && infoAlmacen && textoClienteObra) {
-        // Usar el evento 'select2:select' en lugar de 'change'
         $(selectAlmacen).on('select2:select', function(e) {
             const selectedOption = e.params.data.element;
             
@@ -580,7 +595,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // También manejar cuando se limpia el select
         $(selectAlmacen).on('select2:clear', function() {
             infoAlmacen.style.display = 'none';
         });
@@ -589,6 +603,77 @@ document.addEventListener('DOMContentLoaded', function() {
     // Aplicar los event listeners específicos
     if (selectAlmacen) manejarCambioAlmacen(selectAlmacen);
     if (selectUbicacion) manejarCambioUbicacion(selectUbicacion);
+    
+    // ============================================
+    // ✅ DETECTAR CAMBIO EN SOLICITANTE Y MOSTRAR SU CENTRO DE COSTO
+    // ============================================
+    const selectSolicitante = document.getElementById('id_solicitante');
+    const textoCentroCostoSolicitante = document.getElementById('texto_centro_costo_solicitante');
+    const inputIdCentroCostoSolicitante = document.getElementById('id_solicitante_centro_costo');
+    const mensajeSinCentro = document.getElementById('mensaje_sin_centro_solicitante');
+
+    if (selectSolicitante) {
+        // Función para actualizar el centro de costo del solicitante
+        function actualizarCentroCostoSolicitante() {
+            const selectedOption = selectSolicitante.options[selectSolicitante.selectedIndex];
+            const idCentroCosto = selectedOption.getAttribute('data-centro-costo');
+            const nombreCentroCosto = selectedOption.getAttribute('data-centro-costo-nombre');
+            
+            if (idCentroCosto && idCentroCosto !== '') {
+                textoCentroCostoSolicitante.value = nombreCentroCosto;
+                inputIdCentroCostoSolicitante.value = idCentroCosto;
+                mensajeSinCentro.style.display = 'none';
+                
+                // ✅ APLICAR AUTOMÁTICAMENTE A TODOS LOS MATERIALES
+                aplicarCentroCostoATodosMateriales(idCentroCosto);
+            } else {
+                textoCentroCostoSolicitante.value = 'Sin centro de costo asignado';
+                inputIdCentroCostoSolicitante.value = '';
+                mensajeSinCentro.style.display = 'block';
+            }
+        }
+        
+        // Evento change con Select2
+        $(selectSolicitante).on('select2:select', function() {
+            actualizarCentroCostoSolicitante();
+        });
+        
+        // Inicializar con el solicitante predeterminado
+        if (selectSolicitante.value) {
+            actualizarCentroCostoSolicitante();
+        }
+    }
+    
+    // ============================================
+    // ✅ FUNCIÓN PARA APLICAR CENTRO DE COSTO DEL SOLICITANTE A MATERIALES
+    // ============================================
+    function aplicarCentroCostoATodosMateriales(idCentroCosto) {
+        if (!idCentroCosto) return;
+        
+        console.log("✅ Aplicando centro de costo del solicitante:", idCentroCosto);
+        
+        document.querySelectorAll('.material-item').forEach(item => {
+            const selectCentros = item.querySelector('select.select2-centros-costo-detalle');
+            if (selectCentros) {
+                if ($(selectCentros).data('select2')) {
+                    $(selectCentros).val([idCentroCosto]).trigger('change');
+                } else {
+                    $(selectCentros).select2({
+                        placeholder: 'Seleccionar uno o más centros de costo...',
+                        allowClear: true,
+                        width: '100%',
+                        multiple: true,
+                        language: {
+                            noResults: function () { return 'No se encontraron resultados'; }
+                        }
+                    });
+                    setTimeout(() => {
+                        $(selectCentros).val([idCentroCosto]).trigger('change');
+                    }, 100);
+                }
+            }
+        });
+    }
     
     // Agregar nuevo material
     const btnAgregarMaterial = document.getElementById('agregar-material');
@@ -603,7 +688,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 1. GUARDAR valores de Select2 antes de destruir
                 const valoresOriginalesSelect2 = {};
                 const selectsOriginales = materialOriginal.querySelectorAll(
-                    'select.select2-centros-costo-uso-material'
+                    'select.select2-centros-costo-detalle'
                 );
                 
                 selectsOriginales.forEach((select, index) => {
@@ -655,7 +740,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const selectsClonados = nuevoMaterial.querySelectorAll('select');
                 selectsClonados.forEach(select => {
                     // Actualizar name con índice correcto
-                    if ($(select).hasClass('select2-centros-costo-uso-material')) {
+                    if ($(select).hasClass('select2-centros-costo-detalle')) {
                         select.name = `centros_costo[${contadorMateriales}][]`;
                     }
                     
@@ -685,7 +770,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 9. INICIALIZAR Select2 en el NUEVO material
                 const selectsNuevos = nuevoMaterial.querySelectorAll('select');
                 selectsNuevos.forEach(select => {
-                    if ($(select).hasClass('select2-centros-costo-uso-material')) {
+                    if ($(select).hasClass('select2-centros-costo-detalle')) {
                         $(select).select2({
                             placeholder: 'Seleccionar uno o más centros de costo...',
                             allowClear: true,
@@ -695,6 +780,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                 noResults: function () { return 'No se encontraron resultados'; }
                             }
                         });
+                        
+                        // ✅ APLICAR AUTOMÁTICAMENTE EL CENTRO DE COSTO DEL SOLICITANTE
+                        const idCentroCostoSolicitante = inputIdCentroCostoSolicitante.value;
+                        if (idCentroCostoSolicitante) {
+                            setTimeout(() => {
+                                $(select).val([idCentroCostoSolicitante]).trigger('change');
+                            }, 100);
+                        }
                     }
                 });
                 
@@ -747,18 +840,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 const cantidadIngresada = parseFloat(e.target.value) || 0;
                 
                 if (cantidadIngresada > stockNumero) {
-                    //e.target.style.borderColor = 'red';
                     e.target.title = `La cantidad no puede ser mayor al stock disponible (${stockNumero})`;
                     if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Cantidad excede el stock',
-                        text: `La cantidad ingresada (${cantidadIngresada}) supera el stock disponible (${stockNumero}).`,
-                        timer: 2000,
-                        showConfirmButton: false
-                        
-                    });
-                }
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Cantidad excede el stock',
+                            text: `La cantidad ingresada (${cantidadIngresada}) supera el stock disponible (${stockNumero}).`,
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    }
                 } else {
                     e.target.style.borderColor = '';
                     e.target.title = '';
@@ -806,11 +897,9 @@ document.addEventListener('DOMContentLoaded', function() {
 $('#buscar_producto').on('hidden.bs.modal', function () {
     currentSearchButton = null;
 });
-</script>
 
-<script>
+// Validación de archivos
 document.addEventListener('DOMContentLoaded', function() {
-    // Selecciona el formulario por action o por clase
     const form = document.querySelector('form[action="uso_material_nuevo.php"], form[action="uso_material_editar.php"]');
     if (form) {
         form.addEventListener('submit', function(e) {
@@ -819,7 +908,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const archivosInputs = form.querySelectorAll('input[type="file"][name^="archivos_"]');
             archivosInputs.forEach(input => {
                 for (let i = 0; i < input.files.length; i++) {
-                    if (input.files[i].size > 5 * 1024 * 1024) { // 5MB
+                    if (input.files[i].size > 5 * 1024 * 1024) {
                         archivosInvalidos = true;
                         mensajeError = 'Uno o más archivos superan el límite de 5MB. Por favor seleccione archivos más pequeños.';
                         break;
@@ -841,23 +930,21 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-</script>
-<script>
+
+// Tooltips
 $(document).ready(function() {
-    // Inicializar tooltips
     $('[data-toggle="tooltip"]').tooltip({
         placement: 'top',
         trigger: 'hover'
     });
-
 });
 </script>
+
 <style>
 .duplicado-resaltado {
-    background-color: #ffe6e6 !important; /* rojo pálido */
+    background-color: #ffe6e6 !important;
     border: 2px solid #ff4d4d !important;
     box-shadow: 0 0 10px rgba(255, 77, 77, 0.6);
     transition: all 0.3s ease;
 }
 </style>
-

@@ -16,7 +16,11 @@ function MostrarPersonal() {
                 p.email_personal,
                 p.act_personal,
                 a.nom_area,
-                c.nom_cargo
+                c.nom_cargo,
+                a.id_area,
+                p.id_cargo,
+                a.id_area as id_centro_costo,
+                a.nom_area as nom_centro_costo
             FROM {$bd_complemento}.personal p
             LEFT JOIN {$bd_complemento}.area a ON p.id_area = a.id_area
             LEFT JOIN {$bd_complemento}.cargo c ON p.id_cargo = c.id_cargo
@@ -48,8 +52,12 @@ function ConsultarPersonal($id_personal) {
                 p.dni_personal,
                 p.cel_personal,
                 p.email_personal,
-                p.act_personal
+                p.act_personal,
+                a.id_area,
+                a.id_area as id_centro_costo,
+                a.nom_area as nom_centro_costo
             FROM {$bd_complemento}.personal p
+            LEFT JOIN {$bd_complemento}.area a ON p.id_area = a.id_area
             WHERE p.id_personal = $id_personal
             LIMIT 1";
 
@@ -287,7 +295,11 @@ function MostrarPersonalActivo() {
                 p.email_personal,
                 p.act_personal,
                 a.nom_area,
-                c.nom_cargo
+                c.nom_cargo,
+                a.id_area,
+                p.id_cargo,
+                a.id_area as id_centro_costo,
+                a.nom_area as nom_centro_costo
             FROM {$bd_complemento}.personal p
             LEFT JOIN {$bd_complemento}.area a ON p.id_area = a.id_area
             LEFT JOIN {$bd_complemento}.cargo c ON p.id_cargo = c.id_cargo

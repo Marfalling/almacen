@@ -3,6 +3,9 @@
 // VISTA: v_pedidos_verificar.php
 //=======================================================================
 $pedido = $pedido_data[0];
+// Verificar si ya tiene verificación técnica
+$verificacion_tecnica = TieneVerificacionTecnica($id_pedido);
+$tiene_verificacion_tecnica = $verificacion_tecnica['verificado'];
 $pedido_anulado = ($pedido['est_pedido'] == 0);
 $pedido['tiene_verificados'] = PedidoTieneVerificaciones($id_pedido);
 
@@ -118,14 +121,81 @@ $monedas = MostrarMoneda();
             <div class="col-md-6">
                 <div class="x_panel">
                     <div class="x_title" style="padding: 8px 15px; display: flex; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="display: flex; align-items: center; gap: 10px; flex-grow: 1;">
                             <h2 style="margin: 0; font-size: 16px;">
                                 Productos <small id="contador-pendientes">(<?php echo "Cantidad: " . count($pedido_detalle); ?>)</small>
                             </h2>
                             <?php if ($pedido_anulado): ?>
                                 <span class="badge badge-danger" style="font-size: 11px; padding: 4px 8px;">PEDIDO ANULADO</span>
                             <?php endif; ?>
+                            
+                            <?php if ($tiene_verificacion_tecnica): ?>
+                                <span class="badge badge-success" style="
+                                    font-size: 11px; 
+                                    padding: 4px 8px;
+                                    background-color: #28a745 !important;
+                                    color: white !important;
+                                    font-weight: 600;
+                                    border: 1px solid #218838;
+                                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                                ">
+                                    <i class="fa fa-check-circle"></i> VERIFICADO TÉCNICAMENTE
+                                </span>
+                            <?php endif; ?>
                         </div>
+                        
+                        <div style="margin-left: auto; padding-right: 5px;">
+                            <?php 
+                            // Verificar si hay items pendientes de OC/Servicio
+                            $hay_oc_pendiente = false;
+                            
+                            foreach ($pedido_detalle as $det_check) {
+                                if ($pedido['id_producto_tipo'] == 2) {
+                                    // SERVICIOS: Revisar si hay pendiente
+                                    $cant_ordenada = isset($det_check['cantidad_ya_ordenada']) ? floatval($det_check['cantidad_ya_ordenada']) : 0;
+                                    $cant_pedida = floatval($det_check['cant_pedido_detalle']);
+                                    if ($cant_ordenada < $cant_pedida) {
+                                        $hay_oc_pendiente = true;
+                                        break;
+                                    }
+                                } else {
+                                    // MATERIALES: Solo si tiene cant_oc_pedido_detalle > 0
+                                    $cant_oc = isset($det_check['cant_oc_pedido_detalle']) ? floatval($det_check['cant_oc_pedido_detalle']) : 0;
+                                    
+                                    // O si es BASE ARCE y no está todo ordenado
+                                    if ($es_pedido_base_arce) {
+                                        $cant_ordenada_oc = ObtenerCantidadYaOrdenadaOCPorDetalle($det_check['id_pedido_detalle']);
+                                        $cant_pedida = floatval($det_check['cant_pedido_detalle']);
+                                        if ($cant_ordenada_oc < $cant_pedida) {
+                                            $hay_oc_pendiente = true;
+                                            break;
+                                        }
+                                    } elseif ($cant_oc > 0) {
+                                        $hay_oc_pendiente = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // Mostrar botón con est_pedido (del pedido general), NO est_pedido_detalle
+                            if (!$pedido_anulado && 
+                                !$tiene_verificacion_tecnica && 
+                                !$modo_editar && 
+                                !$modo_editar_salida && 
+                                empty($pedido_compra) &&
+                                $pedido['est_pedido'] != 2 &&
+                                $hay_oc_pendiente): 
+                            ?>
+                                <button type="button" 
+                                        class="btn btn-warning btn-sm" 
+                                        id="btn-verificar-tecnicamente"
+                                        data-id-pedido="<?php echo $id_pedido; ?>"
+                                        style="padding: 6px 12px; font-size: 12px; margin-left: 10px;">
+                                    <i class="fa fa-check-square"></i> Verificar Técnicamente
+                                </button>
+                            <?php endif; ?>
+                        </div>
+                        
                         <div class="clearfix"></div>
                     </div>
                         
@@ -641,6 +711,7 @@ $monedas = MostrarMoneda();
                                     ?>
                                             <button type="button" 
                                                     class="btn btn-primary btn-xs btn-agregarOrden" 
+                                                    <?php echo !$tiene_verificacion_tecnica ? 'disabled' : ''; ?>
                                                     data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
                                                     data-id-producto="<?php echo $detalle['id_producto']; ?>"
                                                     data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
@@ -748,6 +819,7 @@ $monedas = MostrarMoneda();
                                             <!-- BOTÓN FUNCIONAL INTEGRADO -->
                                             <button type="button" 
                                                     class="btn btn-primary btn-sm btn-agregarOrden"
+                                                    <?php echo !$tiene_verificacion_tecnica ? 'disabled' : ''; ?>
                                                     data-id-detalle="<?= $id_detalle ?>"
                                                     data-id-producto="<?= $detalle['id_producto'] ?>"
                                                     data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
@@ -837,6 +909,7 @@ $monedas = MostrarMoneda();
                                             <!-- BOTÓN FUNCIONAL INTEGRADO -->
                                             <button type="button" 
                                                     class="btn btn-primary btn-sm btn-agregarOrden"
+                                                    <?php echo !$tiene_verificacion_tecnica ? 'disabled' : ''; ?>
                                                     data-id-detalle="<?= $id_detalle ?>"
                                                     data-id-producto="<?= $detalle['id_producto'] ?>"
                                                     data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
@@ -871,6 +944,7 @@ $monedas = MostrarMoneda();
                                             <!-- BOTÓN FUNCIONAL INTEGRADO -->
                                             <button type="button" 
                                                     class="btn btn-primary btn-sm btn-agregarOrden" 
+                                                    <?php echo !$tiene_verificacion_tecnica ? 'disabled' : ''; ?>
                                                     data-id-detalle="<?= $id_detalle ?>"
                                                     data-id-producto="<?= $detalle['id_producto'] ?>"
                                                     data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
@@ -898,6 +972,7 @@ $monedas = MostrarMoneda();
                                                     ?>
                                                     <button type="button" 
                                                             class="btn btn-primary btn-sm btn-agregarOrden"
+                                                            <?php echo !$tiene_verificacion_tecnica ? 'disabled' : ''; ?>
                                                             data-id-detalle="<?= $id_detalle ?>"
                                                             data-id-producto="<?= $detalle['id_producto'] ?>"
                                                             data-descripcion="<?= htmlspecialchars($descripcion_producto) ?>"
@@ -2812,6 +2887,90 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
 
+    // ============================================
+    //  VERIFICAR TÉCNICAMENTE
+    // ============================================
+    const btnVerificarTecnicamente = document.getElementById('btn-verificar-tecnicamente');
+    if (btnVerificarTecnicamente) {
+        btnVerificarTecnicamente.addEventListener('click', function() {
+            const idPedido = this.getAttribute('data-id-pedido');
+            
+            Swal.fire({
+                title: '¿Verificar técnicamente este pedido?',
+                html: `
+                    <div style="text-align: left; padding: 15px;">
+                        <p><strong>Esta acción:</strong></p>
+                        <ul style="margin-left: 20px;">
+                            <li>Habilitará los botones para crear órdenes de compra/servicio</li>
+                            <li>Registrará tu nombre y la fecha/hora de verificación</li>
+                        </ul>
+                        <p style="color: #856404; margin-top: 15px;">
+                            <i class="fa fa-exclamation-triangle"></i> 
+                            <strong>Esta acción no se puede deshacer</strong>
+                        </p>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fa fa-check"></i> Sí, verificar',
+                cancelButtonText: '<i class="fa fa-times"></i> Cancelar',
+                allowOutsideClick: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Mostrar loading
+                    Swal.fire({
+                        title: 'Procesando...',
+                        text: 'Verificando pedido',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Enviar petición
+                    fetch('pedido_verificar.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: `verificar_tecnicamente=1&id_pedido=${idPedido}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '¡Verificado!',
+                                text: data.message,
+                                confirmButtonColor: '#28a745'
+                            }).then(() => {
+                                // Recargar la página
+                                window.location.href = `pedido_verificar.php?id=${idPedido}&success=verificado_tecnica`;
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message,
+                                confirmButtonColor: '#d33'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error de conexión',
+                            text: 'No se pudo conectar con el servidor',
+                            confirmButtonColor: '#d33'
+                        });
+                    });
+                }
+            });
+        });
+    }
     // ============================================
     // MODAL DE VERIFICACIÓN MEJORADO
     // ============================================

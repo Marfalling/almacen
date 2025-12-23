@@ -274,6 +274,10 @@ function AprobarPedidoTecnica(id_pedido) {
                                                             $puede_editar_proceso = false;
                                                             $titulo_editar = '';
 
+                                                            // Verificar si tiene verificación técnica
+                                                            $verificacion_tecnica = TieneVerificacionTecnica($pedido['id_pedido']);
+                                                            $tiene_verificacion_tecnica = $verificacion_tecnica['verificado'];
+
                                                             if ($pedido['est_pedido'] == 0) {
                                                                 $titulo_editar = "No se puede editar - Pedido anulado";
                                                             } elseif ($pedido['est_pedido'] >= 3) {
@@ -286,12 +290,12 @@ function AprobarPedidoTecnica(id_pedido) {
                                                                 $titulo_editar = "No se puede editar - Pedido {$estado_nombre}";
                                                             } elseif ($es_rechazado) {
                                                                 $titulo_editar = "No se puede editar - Pedido rechazado";
+                                                            } elseif ($tiene_verificacion_tecnica) {
+                                                                $titulo_editar = "No se puede editar - Pedido verificado técnicamente";
                                                             } elseif ($pedido['tiene_verificados'] == 1) {
                                                                 $titulo_editar = "No se puede editar - Pedido con items verificados";
                                                             } elseif ($pedido['est_pedido'] == 2) {
                                                                 $titulo_editar = "No se puede editar - Pedido completado (órdenes en proceso)";
-                                                            } elseif ($tiene_tecnica) {
-                                                                $titulo_editar = "No se puede editar - Pedido aprobado ";
                                                             } else {
                                                                 $puede_editar_proceso = true;
                                                             }
@@ -773,6 +777,11 @@ foreach($pedidos as $pedido) {
                 $titulo_editar_modal = '';
                 
                 // Aplicar las mismas validaciones que en la tabla
+                // Verificar si tiene verificación técnica (para el modal)
+                $verificacion_tecnica_modal = TieneVerificacionTecnica($pedido['id_pedido']);
+                $tiene_verificacion_tecnica_modal = $verificacion_tecnica_modal['verificado'];
+
+                // Aplicar las mismas validaciones que en la tabla
                 if ($pedido['est_pedido'] == 0) {
                     $puede_editar_modal = false;
                     $titulo_editar_modal = "No se puede editar - Pedido anulado";
@@ -788,15 +797,15 @@ foreach($pedidos as $pedido) {
                 } elseif ($es_rechazado) {
                     $puede_editar_modal = false;
                     $titulo_editar_modal = "No se puede editar - Pedido rechazado";
+                } elseif ($tiene_verificacion_tecnica_modal) {
+                    $puede_editar_modal = false;
+                    $titulo_editar_modal = "No se puede editar - Pedido verificado técnicamente";
                 } elseif ($pedido['tiene_verificados'] == 1) {
                     $puede_editar_modal = false;
                     $titulo_editar_modal = "No se puede editar - Pedido con items verificados";
                 } elseif ($pedido['est_pedido'] == 2) {
                     $puede_editar_modal = false;
                     $titulo_editar_modal = "No se puede editar - Pedido completado (órdenes en proceso)";
-                } elseif ($tiene_tecnica) {
-                    $puede_editar_modal = false;
-                    $titulo_editar_modal = "No se puede editar - Pedido aprobado";
                 }
                 
                 if (!$tiene_permiso_editar) { ?>

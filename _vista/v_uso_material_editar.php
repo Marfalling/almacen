@@ -52,11 +52,26 @@
                                         <option value="">Seleccionar</option>
                                         <?php foreach ($personal as $persona) { ?>
                                             <option value="<?php echo $persona['id_personal']; ?>"
+                                                    data-centro-costo="<?php echo isset($persona['id_centro_costo']) ? $persona['id_centro_costo'] : ''; ?>"
+                                                    data-centro-costo-nombre="<?php echo isset($persona['nom_centro_costo']) ? htmlspecialchars($persona['nom_centro_costo']) : 'Sin centro de costo asignado'; ?>"
                                                 <?php echo ($uso['id_solicitante'] == $persona['id_personal']) ? 'selected' : ''; ?>>
                                                 <?php echo $persona['nom_personal']; ?>
                                             </option>
                                         <?php } ?>
                                     </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Centro de Costos (Solicitante):</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" id="texto_centro_costo_solicitante" class="form-control" 
+                                        value="Seleccione un solicitante" 
+                                        readonly style="background-color: #f9f9f9;">
+                                    <input type="hidden" name="id_solicitante_centro_costo" id="id_solicitante_centro_costo" value="">
+                                    <small class="text-muted" id="mensaje_sin_centro_solicitante" style="display: none;">
+                                        El solicitante no tiene un centro de costo asignado.
+                                    </small>
                                 </div>
                             </div>
 
@@ -73,7 +88,7 @@
                                     <?php 
                                     // Buscar el nombre del centro de costo del registrador
                                     $nombre_centro_costo_registrador = 'Sin asignar';
-                                    if (isset($uso['id_registrador_centro_costo'])) {
+                                    if (isset($uso['id_registrador_centro_costo']) && !empty($uso['id_registrador_centro_costo'])) {
                                         foreach ($centros_costo as $centro) {
                                             if ($centro['id_centro_costo'] == $uso['id_registrador_centro_costo']) {
                                                 $nombre_centro_costo_registrador = $centro['nom_centro_costo'];
@@ -315,15 +330,115 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Activar Select2 para el campo solicitante
-    $('#id_solicitante').select2({
-        placeholder: "Seleccione un solicitante",
-        allowClear: true,
-        width: '100%'
-    });
+    // ============================================
+    // ✅ DETECTAR CAMBIO EN SOLICITANTE Y MOSTRAR SU CENTRO DE COSTO
+    // ============================================
+    const selectSolicitante = document.getElementById('id_solicitante');
+    const textoCentroCostoSolicitante = document.getElementById('texto_centro_costo_solicitante');
+    const inputIdCentroCostoSolicitante = document.getElementById('id_solicitante_centro_costo');
+    const mensajeSinCentro = document.getElementById('mensaje_sin_centro_solicitante');
+
+    // ============================================
+    // ✅ FUNCIÓN PARA APLICAR CENTRO DE COSTO A TODOS LOS MATERIALES
+    // ============================================
+    function aplicarCentroCostoATodosMateriales(idCentroCosto) {
+        if (!idCentroCosto) return;
+        
+        console.log("✅ Aplicando centro de costo del solicitante a todos los materiales:", idCentroCosto);
+        
+        document.querySelectorAll('.material-item').forEach(item => {
+            const selectCentros = item.querySelector('select.select2-centros-costo-uso-material');
+            if (selectCentros) {
+                if ($(selectCentros).data('select2')) {
+                    // Select2 ya inicializado
+                    $(selectCentros).val([idCentroCosto]).trigger('change');
+                    console.log("✅ Centro aplicado a material existente");
+                } else {
+                    // Select2 no inicializado, inicializar primero
+                    $(selectCentros).select2({
+                        placeholder: 'Seleccionar uno o más centros de costo...',
+                        allowClear: true,
+                        width: '100%',
+                        multiple: true,
+                        language: {
+                            noResults: function () { return 'No se encontraron resultados'; }
+                        }
+                    });
+                    setTimeout(() => {
+                        $(selectCentros).val([idCentroCosto]).trigger('change');
+                        console.log("✅ Centro aplicado a material nuevo");
+                    }, 100);
+                }
+            }
+        });
+    }
+
+    if (selectSolicitante && textoCentroCostoSolicitante && inputIdCentroCostoSolicitante) {
+        console.log('✅ Elementos del centro de costo encontrados');
+        
+        // Función para actualizar el centro de costo del solicitante
+        function actualizarCentroCostoSolicitante() {
+            const selectedOption = selectSolicitante.options[selectSolicitante.selectedIndex];
+            
+            if (!selectedOption) {
+                console.log('❌ No hay opción seleccionada');
+                return;
+            }
+            
+            const idCentroCosto = selectedOption.getAttribute('data-centro-costo');
+            const nombreCentroCosto = selectedOption.getAttribute('data-centro-costo-nombre');
+            
+            console.log('📊 Centro de costo:', {
+                id: idCentroCosto,
+                nombre: nombreCentroCosto
+            });
+            
+            if (idCentroCosto && idCentroCosto !== '' && idCentroCosto !== 'null') {
+                textoCentroCostoSolicitante.value = nombreCentroCosto || 'Sin nombre';
+                inputIdCentroCostoSolicitante.value = idCentroCosto;
+                if (mensajeSinCentro) mensajeSinCentro.style.display = 'none';
+                console.log('✅ Centro de costo asignado');
+                
+                // ✅ APLICAR AUTOMÁTICAMENTE A TODOS LOS MATERIALES
+                aplicarCentroCostoATodosMateriales(idCentroCosto);
+            } else {
+                textoCentroCostoSolicitante.value = 'Sin centro de costo asignado';
+                inputIdCentroCostoSolicitante.value = '';
+                if (mensajeSinCentro) mensajeSinCentro.style.display = 'block';
+                console.log('⚠️ Sin centro de costo');
+            }
+        }
+        
+        // Evento change con Select2
+        $(selectSolicitante).on('select2:select', function() {
+            console.log('🔄 Select2 cambió');
+            actualizarCentroCostoSolicitante();
+        });
+        
+        // ✅ INICIALIZAR CON EL SOLICITANTE QUE YA ESTÁ SELECCIONADO
+        setTimeout(function() {
+            if (selectSolicitante.value && selectSolicitante.value !== '') {
+                console.log('🎯 Inicializando con valor preseleccionado:', selectSolicitante.value);
+                actualizarCentroCostoSolicitante();
+            } else {
+                console.log('⚠️ No hay valor preseleccionado');
+            }
+        }, 800); // Aumentado a 800ms para dar tiempo a que Select2 de materiales se inicialice
+        
+    } else {
+        console.error('❌ No se encontraron elementos del centro de costo:', {
+            selectSolicitante: !!selectSolicitante,
+            textoCentroCostoSolicitante: !!textoCentroCostoSolicitante,
+            inputIdCentroCostoSolicitante: !!inputIdCentroCostoSolicitante
+        });
+    }
+    
+    // ============================================
+    // ✅ EXPONER LA FUNCIÓN GLOBALMENTE PARA USO EN AGREGAR MATERIAL
+    // ============================================
+    window.aplicarCentroCostoATodosMateriales = aplicarCentroCostoATodosMateriales;
 });
 </script>
-
 <script>
 // ============================================
 // JAVASCRIPT COMPLETO PARA v_uso_material_editar.php
@@ -773,6 +888,15 @@ document.addEventListener('DOMContentLoaded', function() {
                                 noResults: function () { return 'No se encontraron resultados'; }
                             }
                         });
+                        
+                        //  APLICAR AUTOMÁTICAMENTE EL CENTRO DE COSTO DEL SOLICITANTE
+                        const inputIdCentroCostoSolicitante = document.getElementById('id_solicitante_centro_costo');
+                        if (inputIdCentroCostoSolicitante && inputIdCentroCostoSolicitante.value) {
+                            setTimeout(() => {
+                                $(select).val([inputIdCentroCostoSolicitante.value]).trigger('change');
+                                console.log('✅ Centro de costo aplicado automáticamente al nuevo material');
+                            }, 100);
+                        }
                     }
                 });
                 

@@ -47,6 +47,41 @@ $modo_editar_salida = ($id_salida_editar > 0);
 $alerta = null;
 
 // ============================================================================
+// VERIFICAR TÉCNICAMENTE EL PEDIDO
+// ============================================================================
+if (isset($_REQUEST['verificar_tecnicamente'])) {
+    $id_pedido = intval($_REQUEST['id_pedido']);
+    $id_personal = $_SESSION['id_personal'] ?? 0;
+    
+    if ($id_personal <= 0) {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Error: No se pudo identificar al usuario'
+        ]);
+        exit;
+    }
+    
+    $rpta = VerificarTecnicamente($id_pedido, $id_personal);
+    
+    if ($rpta == "SI") {
+        //  AUDITORÍA
+        $descripcion = "Pedido ID: $id_pedido verificado técnicamente";
+        GrabarAuditoria($id, $usuario_sesion, 'VERIFICAR TÉCNICAMENTE', 'PEDIDOS', $descripcion);
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Pedido verificado técnicamente con éxito'
+        ]);
+    } else {
+        echo json_encode([
+            'success' => false,
+            'message' => 'Error al verificar: ' . $rpta
+        ]);
+    }
+    exit;
+}
+
+// ============================================================================
 // PROCESAR FORMULARIOS (ANTES DE CUALQUIER HTML)
 // ============================================================================
 
@@ -1272,6 +1307,14 @@ if (isset($_GET['success'])) {
                 "icon" => "success",
                 "title" => "¡Solicitud de Salida Anulada!",
                 "text" => "La solicitud de salida ha sido anulada correctamente",
+                "timer" => 2000
+            ];
+            break;
+        case 'verificado_tecnica':
+            $alerta = [
+                "icon" => "success",
+                "title" => "¡Pedido Verificado!",
+                "text" => "El pedido ha sido verificado técnicamente. Ahora puedes crear órdenes.",
                 "timer" => 2000
             ];
             break;

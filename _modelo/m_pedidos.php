@@ -4601,3 +4601,55 @@ function ActualizarEstadoPedidoUnificado($id_pedido, $con = null)
         mysqli_close($con);
     }
 }
+
+function VerificarTecnicamente($id_pedido, $id_personal) {
+    include("../_conexion/conexion.php");
+    
+    $id_pedido = intval($id_pedido);
+    $id_personal = intval($id_personal);
+    $fecha_actual = date('Y-m-d H:i:s');
+    
+    $sql = "UPDATE pedido 
+            SET id_personal_verifica_tecnica = ?, 
+                fec_verifica_tecnica = ? 
+            WHERE id_pedido = ?";
+    
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param("isi", $id_personal, $fecha_actual, $id_pedido);
+    
+    if ($stmt->execute()) {
+        $stmt->close();
+        mysqli_close($con);
+        return "SI";
+    } else {
+        $error = $stmt->error;
+        $stmt->close();
+        mysqli_close($con);
+        return "ERROR: " . $error;
+    }
+}
+
+function TieneVerificacionTecnica($id_pedido) {
+    include("../_conexion/conexion.php");
+    
+    $id_pedido = intval($id_pedido);
+    
+    $sql = "SELECT id_personal_verifica_tecnica, fec_verifica_tecnica 
+            FROM pedido 
+            WHERE id_pedido = ?";
+    
+    $stmt = $con->prepare($sql);
+    $stmt->bind_param("i", $id_pedido);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $row = $result->fetch_assoc();
+    
+    $stmt->close();
+    mysqli_close($con);
+    
+    return [
+        'verificado' => !empty($row['id_personal_verifica_tecnica']),
+        'id_personal' => $row['id_personal_verifica_tecnica'] ?? null,
+        'fecha' => $row['fec_verifica_tecnica'] ?? null
+    ];
+}
