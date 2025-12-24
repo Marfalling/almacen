@@ -666,7 +666,7 @@ foreach($salidas as $salida) {
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="modalDetalleSalidaLabel<?php echo $salida['id_salida']; ?>">
-                    Detalle de Salida - <?php echo $salida_info['ndoc_salida']; ?>
+                    Detalle de Salida <?php echo $salida_info['ndoc_salida']; ?>
                 </h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>

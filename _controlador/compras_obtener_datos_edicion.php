@@ -4,7 +4,7 @@ require_once("../_conexion/sesion.php");
 require_once("../_modelo/m_compras.php");
 require_once("../_modelo/m_proveedor.php");
 require_once("../_modelo/m_detraccion.php");
-require_once("../_modelo/m_centro_costo.php"); 
+require_once("../_modelo/m_centro_costo.php");
 
 $id_compra = isset($_POST['id_compra']) ? intval($_POST['id_compra']) : 0;
 
@@ -45,11 +45,11 @@ if (empty($orden_data)) {
 }
 
 // OBTENER EL TIPO DE PRODUCTO DEL PEDIDO
-$sql_tipo = "SELECT p.id_producto_tipo 
-             FROM pedido p
-             INNER JOIN compra c ON c.id_pedido = p.id_pedido
-             WHERE c.id_compra = ?";
-             
+$sql_tipo = "SELECT p.id_producto_tipo
+              FROM pedido p
+              INNER JOIN compra c ON c.id_pedido = p.id_pedido
+              WHERE c.id_compra = ?";
+              
 $stmt_tipo = $con->prepare($sql_tipo);
 $stmt_tipo->bind_param("i", $id_compra);
 $stmt_tipo->execute();
@@ -63,19 +63,37 @@ if ($row_tipo) {
     $orden_data[0]['id_producto_tipo'] = 1;
 }
 
-//  OBTENER DETALLES CON CENTROS DE COSTO (USA LA FUNCIÓN CORRECTA)
+//  OBTENER DETALLES CON CENTROS DE COSTO
 $orden_detalle = ConsultarCompraDetalleConCentros($id_compra);
 
 error_log(" Cargando datos de compra ID: $id_compra");
-error_log("   📋 Detalles cargados: " . count($orden_detalle));
+error_log("   Detalles cargados: " . count($orden_detalle));
 
-//  LOG DE CENTROS CARGADOS
-foreach ($orden_detalle as $detalle) {
+//  LOG DE CENTROS CARGADOS Y PROCESAR DATOS
+foreach ($orden_detalle as $index => $detalle) {
     $num_centros = is_array($detalle['centros_costo']) ? count($detalle['centros_costo']) : 0;
-    error_log("   📝 Detalle {$detalle['id_compra_detalle']}: {$num_centros} centros | Pedido detalle: {$detalle['id_pedido_detalle']}");
-    if ($num_centros > 0) {
-        error_log("      Centros: " . implode(', ', $detalle['centros_costo']));
+    
+    error_log("  📝 Detalle {$detalle['id_compra_detalle']}: {$num_centros} centros | Pedido detalle: {$detalle['id_pedido_detalle']}");
+    
+    $centros_ids = [];
+    if ($num_centros > 0 && is_array($detalle['centros_costo'])) {
+        foreach ($detalle['centros_costo'] as $centro) {
+            if (isset($centro['id_centro_costo'])) {
+                $centros_ids[] = intval($centro['id_centro_costo']);
+            }
+        }
+        
+        // LOG: Mostrar nombres de centros
+        $nombres_centros = array_map(function($c) {
+            return isset($c['nom_centro_costo']) ? $c['nom_centro_costo'] : 'Sin nombre';
+        }, $detalle['centros_costo']);
+        
+        error_log("     Centros: " . implode(', ', $nombres_centros));
     }
+    
+    // 🔹 GUARDAR AMBOS: array completo (con nombres) Y array simple (solo IDs)
+    $orden_detalle[$index]['centros_costo_completo'] = $detalle['centros_costo']; // Para referencia
+    $orden_detalle[$index]['centros_costo'] = $centros_ids; // Para el select2
 }
 
 //  CARGAR CENTROS DE COSTO ACTIVOS PARA EL SELECT2
@@ -92,7 +110,7 @@ echo json_encode([
     'detalles' => $orden_detalle,
     'proveedores' => $proveedores,
     'detracciones' => $detracciones,
-    'centros_costo' => $centros_costo 
+    'centros_costo' => $centros_costo
 ]);
 
 mysqli_close($con);

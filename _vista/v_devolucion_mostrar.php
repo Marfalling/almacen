@@ -269,7 +269,7 @@ $tiene_permiso_anular = verificarPermisoEspecifico('anular_devoluciones');
 <?php 
 foreach($devoluciones as $devolucion) { 
     $dev_data = ConsultarDevolucion($devolucion['id_devolucion']);
-    $dev_detalle = ConsultarDevolucionDetalle($devolucion['id_devolucion']);
+    $dev_detalle = ConsultarDevolucionDetalleConCentros($devolucion['id_devolucion']);
     
     if (!empty($dev_data)) {
         $dev_info = $dev_data[0];
@@ -279,7 +279,7 @@ foreach($devoluciones as $devolucion) {
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="modalDetalleDevolucionLabel<?php echo $devolucion['id_devolucion']; ?>">
-                    Detalle de Devolución - <?php echo $dev_info['id_devolucion']; ?>
+                    Detalle de Devolución - D00<?php echo $dev_info['id_devolucion']; ?>
                 </h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
                     <span aria-hidden="true">&times;</span>
@@ -292,7 +292,7 @@ foreach($devoluciones as $devolucion) {
                         <table class="table table-bordered">
                             <tr>
                                 <td><strong>ID Devolución:</strong></td>
-                                <td><?php echo $dev_info['id_devolucion']; ?></td>
+                                <td>D00<?php echo $dev_info['id_devolucion']; ?></td>
                                 <td><strong>Fecha y hora:</strong></td>
                                 <td><?php echo date('d/m/Y H:i', strtotime($dev_info['fec_devolucion'])); ?></td>
                             </tr>
@@ -301,14 +301,25 @@ foreach($devoluciones as $devolucion) {
                                 <td><?php echo $dev_info['nom_almacen']; ?></td>
                                 <td><strong>Ubicación:</strong></td>
                                 <td><?php echo $dev_info['nom_ubicacion']; ?></td>
-                                <tr>
-                                    <td><strong>Cliente destino:</strong></td>
-                                    <td colspan="3"><?php echo $dev_info['nom_cliente_destino']; ?></td>
-                                </tr>
+                            </tr>
+                            <tr>
+                                <td><strong>Cliente destino:</strong></td>
+                                <td colspan="3"><?php echo $dev_info['nom_cliente_destino']; ?></td>
                             </tr>
                             <tr>
                                 <td><strong>Registrado por:</strong></td>
                                 <td colspan="3"><?php echo $dev_info['nom_personal']; ?></td>
+                            </tr>
+                            <!-- 🔹 MOSTRAR CENTRO DE COSTO DEL REGISTRADOR -->
+                            <tr>
+                                <td><strong>Centro de Costo (Registrador):</strong></td>
+                                <td colspan="3">
+                                    <span class="badge badge-primary badge_size">
+                                        <?php echo !empty($dev_info['nom_centro_costo_registrador']) 
+                                                ? $dev_info['nom_centro_costo_registrador'] 
+                                                : 'Sin asignar'; ?>
+                                    </span>
+                                </td>
                             </tr>
                             <?php if (!empty($dev_info['obs_devolucion'])) { ?>
                             <tr>
@@ -327,24 +338,95 @@ foreach($devoluciones as $devolucion) {
                             <table class="table table-striped table-bordered">
                                 <thead class="thead-dark">
                                     <tr>
-                                        <th>#</th>
-                                        <th>Producto</th>
-                                        <th>Cantidad</th>
-                                        <th>Detalle</th>
-                                        <th>Unidad</th>
+                                        <th style="width: 5%;">#</th>
+                                        <th style="width: 30%;">Producto</th>
+                                        <th style="width: 10%;">Cantidad</th>
+                                        <th style="width: 10%;">Unidad</th>
+                                        <th style="width: 25%;">Detalle</th>
+                                        <!--  COLUMNA PARA CENTROS DE COSTO -->
+                                        <th style="width: 20%;">Centro(s) de Costo</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <?php 
                                     $contador_det = 1;
                                     foreach ($dev_detalle as $detalle) { 
+                                        // 🔹 CONSTRUIR HTML DE CENTROS DE COSTO CON MODAL
+                                        $centrosCostoHtml = '<small class="text-muted">Sin asignar</small>';
+                                        
+                                        if (!empty($detalle['centros_costo']) && is_array($detalle['centros_costo'])) {
+                                            $totalCentros = count($detalle['centros_costo']);
+                                            $modalId = "modalCentrosCostoDevolucion{$devolucion['id_devolucion']}_{$contador_det}";
+                                            
+                                            if ($totalCentros === 1) {
+                                                
+                                                $centrosCostoHtml = '<span class="badge badge-info badge_size" style="font-size: 11px;">' 
+                                                    . htmlspecialchars($detalle['centros_costo'][0]['nom_centro_costo']) 
+                                                    . '</span>';
+                                            } else {
+                                               
+                                                $listaCentros = '';
+                                                foreach ($detalle['centros_costo'] as $idx => $centro) {
+                                                    $listaCentros .= '<div style="padding: 8px; margin-bottom: 6px; background-color: #f8f9fa; border-left: 3px solid #17a2b8; border-radius: 4px;">';
+                                                    $listaCentros .= '<strong style="color: #17a2b8;">' . ($idx + 1) . '.</strong> ';
+                                                    $listaCentros .= htmlspecialchars($centro['nom_centro_costo']);
+                                                    $listaCentros .= '</div>';
+                                                }
+                                                
+                                                $centrosCostoHtml = '
+                                                    <button class="btn btn-sm btn-info" 
+                                                            type="button" 
+                                                            data-toggle="modal"
+                                                            data-target="#' . $modalId . '"
+                                                            style="font-size: 11px; padding: 3px 10px;">
+                                                        <i class="fa fa-eye"></i> Ver ' . $totalCentros . ' centros
+                                                    </button>
+                                                    
+                                                    <!-- Modal para centros de costo -->
+                                                    <div class="modal fade" id="' . $modalId . '" tabindex="-1" role="dialog" data-backdrop="static">
+                                                        <div class="modal-dialog modal-dialog-centered">
+                                                            <div class="modal-content">
+                                                                <div class="modal-header" style="background-color: #17a2b8; color: white; padding: 12px 20px;">
+                                                                    <h6 class="modal-title mb-0">
+                                                                        <i class="fa fa-building"></i> 
+                                                                        Centros de Costo Asignados
+                                                                    </h6>
+                                                                    <button type="button" class="close" data-dismiss="modal" style="color: white; opacity: 0.8;">
+                                                                        <span>&times;</span>
+                                                                    </button>
+                                                                </div>
+                                                                <div class="modal-body" style="padding: 20px;">
+                                                                    <div style="margin-bottom: 15px; padding: 10px; background-color: #e7f3ff; border-radius: 4px; border-left: 4px solid #17a2b8;">
+                                                                        <strong>Producto:</strong> ' . htmlspecialchars($detalle['nom_producto']) . '
+                                                                    </div>
+                                                                    <div style="max-height: 400px; overflow-y: auto;">
+                                                                        ' . $listaCentros . '
+                                                                    </div>
+                                                                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6; text-align: center;">
+                                                                        <span class="badge badge-info" style="font-size: 12px; padding: 6px 12px;">
+                                                                            Total: ' . $totalCentros . ' centro(s) de costo
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer" style="padding: 10px 20px;">
+                                                                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">
+                                                                        <i class="fa fa-times"></i> Cerrar
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>';
+                                            }
+                                        }
                                     ?>
                                         <tr>
                                             <td><?php echo $contador_det; ?></td>
-                                            <td><?php echo $detalle['nom_producto']; ?></td>
-                                            <td><?php echo $detalle['cant_devolucion_detalle']; ?></td>
-                                            <td><?php echo $detalle['det_devolucion_detalle']; ?></td>
-                                            <td><?php echo $detalle['nom_unidad_medida']; ?></td>
+                                            <td><?php echo htmlspecialchars($detalle['nom_producto']); ?></td>
+                                            <td class="text-center"><?php echo number_format($detalle['cant_devolucion_detalle'], 2); ?></td>
+                                            <td><?php echo htmlspecialchars($detalle['nom_unidad_medida']); ?></td>
+                                            <td><?php echo htmlspecialchars($detalle['det_devolucion_detalle']); ?></td>
+                                            <!--  MOSTRAR CENTROS DE COSTO -->
+                                            <td><?php echo $centrosCostoHtml; ?></td>
                                         </tr>
                                     <?php 
                                         $contador_det++;
@@ -364,9 +446,7 @@ foreach($devoluciones as $devolucion) {
                 <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
                 
                 <?php 
-                // ============================================
                 // BOTÓN EDITAR EN MODAL - CON VALIDACIÓN DE PERMISOS
-                // ============================================
                 $puede_editar_modal = ($devolucion['est_devolucion'] == 1);
                 $titulo_editar_modal = '';
                 
@@ -380,7 +460,6 @@ foreach($devoluciones as $devolucion) {
                 ?>
                 
                 <?php if (!$tiene_permiso_editar) { ?>
-                    <!-- SIN PERMISO -->
                     <button type="button" 
                             class="btn btn-outline-secondary disabled"
                             title="<?php echo $titulo_editar_modal; ?>"
@@ -389,7 +468,6 @@ foreach($devoluciones as $devolucion) {
                         <i class="fa fa-edit"></i> Editar Devolución
                     </button>
                 <?php } elseif (!$puede_editar_modal) { ?>
-                    <!-- SIN PERMISO POR ESTADO -->
                     <button type="button" 
                             class="btn btn-outline-secondary disabled"
                             title="<?php echo $titulo_editar_modal; ?>"
@@ -398,7 +476,6 @@ foreach($devoluciones as $devolucion) {
                         <i class="fa fa-edit"></i> Editar Devolución
                     </button>
                 <?php } else { ?>
-                    <!-- CON PERMISO Y PUEDE EDITAR -->
                     <a href="devoluciones_editar.php?id=<?php echo $devolucion['id_devolucion']; ?>" 
                        class="btn btn-warning text-white"
                        title="<?php echo $titulo_editar_modal; ?>">

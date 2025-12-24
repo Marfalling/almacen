@@ -37,6 +37,7 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
             require_once("../_modelo/m_personal.php");
 
             // Cargar datos necesarios para el formulario
+            $almacenes = MostrarAlmacenesArce();
             $unidades_medida = MostrarUnidadMedidaActiva();
             $producto_tipos = MostrarProductoTipoActivos();
             $material_tipos = MostrarMaterialTipoActivos();

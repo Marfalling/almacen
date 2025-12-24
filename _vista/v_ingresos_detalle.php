@@ -69,7 +69,7 @@ $TIT_INGRESADA = $esServicio ? "Validada"     : "Ingresada";
                                                 <td><strong>Código de Pedido:</strong></td>
                                                 <td>
                                                     <a href="pedido_pdf.php?id=<?php echo $detalle_ingreso['compra']['id_pedido']; ?>" 
-                                                       target="_blank" class="btn btn-sm btn-outline-primary">
+                                                    target="_blank" class="btn btn-sm btn-outline-primary">
                                                         <?php echo $detalle_ingreso['compra']['cod_pedido']; ?>
                                                     </a>
                                                 </td>
@@ -86,16 +86,49 @@ $TIT_INGRESADA = $esServicio ? "Validada"     : "Ingresada";
                                                 <td><strong>Fecha de Registro:</strong></td>
                                                 <td><?php echo date('d/m/Y H:i', strtotime($detalle_ingreso['compra']['fec_compra'])); ?></td>
                                             </tr>
+                                            
+                                            <!--  CENTRO DE COSTO DEL REGISTRADOR -->
+                                            <tr>
+                                                <td><strong>Centro Costo (Registrador):</strong></td>
+                                                <td>
+                                                    <?php 
+                                                    if (!empty($detalle_ingreso['compra']['centro_costo_registrador'])) {
+                                                        echo '<span class="badge badge-primary badge_size">' . 
+                                                            htmlspecialchars($detalle_ingreso['compra']['centro_costo_registrador']) . 
+                                                            '</span>';
+                                                    } else {
+                                                        echo '<span class="badge badge-secondary badge_size">No asignado</span>';
+                                                    }
+                                                    ?>
+                                                </td>
+                                            </tr>
+                                            
+                                            <!--  CENTRO DE COSTO DEL APROBADOR -->
+                                            <tr>
+                                                <td><strong>Centro Costo (Aprobador):</strong></td>
+                                                <td>
+                                                    <?php 
+                                                    if (!empty($detalle_ingreso['compra']['centro_costo_aprobador'])) {
+                                                        echo '<span class="badge badge-success badge_size">' . 
+                                                            htmlspecialchars($detalle_ingreso['compra']['centro_costo_aprobador']) . 
+                                                            '</span>';
+                                                    } else {
+                                                        echo '<span class="badge badge-secondary badge_size">No asignado</span>';
+                                                    }
+                                                    ?>
+                                                </td>
+                                            </tr>
+                                            
                                             <tr>
                                                 <td><strong>Estado:</strong></td>
                                                 <td>
                                                     <?php 
-                                                    if ($detalle_ingreso['compra']['est_compra'] == 3) {
+                                                    if ($detalle_ingreso['compra']['est_compra'] == 0) {
+                                                        echo '<span class="badge badge-danger badge_size">ANULADO</span>';
+                                                    } elseif ($detalle_ingreso['compra']['est_compra'] == 3) {
                                                         echo '<span class="badge badge-success badge_size">COMPLETADO</span>';
-                                                    } elseif ($detalle_ingreso['resumen']['productos_parciales'] > 0) {
-                                                        echo '<span class="badge badge-warning badge_size">EN PROCESO</span>';
                                                     } else {
-                                                        echo '<span class="badge badge-warning badge_size">PENDIENTE</span>';
+                                                        echo '<span class="badge badge-warning badge_size">EN PROCESO</span>';
                                                     }
                                                     ?>
                                                 </td>
@@ -156,26 +189,25 @@ $TIT_INGRESADA = $esServicio ? "Validada"     : "Ingresada";
                                     </div>
                                     <div class="x_content">
                                         <div class="table-responsive">
-                                            <table class="table table-striped table-bordered">
+                                            <table class="table table-striped table-bordered print-table">
                                                 <thead class="thead-dark">
                                                     <tr>
-                                                        <th style="width: 5%;">#</th>
-                                                        <th style="width: 15%;">Código</th>
-                                                        <th style="width: 30%;">Producto</th>
-                                                        <th style="width: 8%;">Unidad</th>
-                                                        <th style="width: 12%;">Cantidad Pedida</th>
-                                                        <th style="width: 12%;">Cantidad <?= $TIT_INGRESADA ?></th>
-                                                        <th style="width: 15%;">
-                                                            <?= $esServicio ? 'Última Validación' : 'Último Ingreso' ?>
-                                                        </th>
+                                                        <th style="width: 4%;">#</th>
+                                                        <th style="width: 10%;">Código</th>
+                                                        <th style="width: 22%;">Producto</th>
+                                                        <th style="width: 7%;">Unidad</th>
+                                                        <th style="width: 10%;">Cantidad Pedida</th>
+                                                        <th style="width: 10%;">Cantidad <?= $TIT_INGRESADA ?></th>
+                                                        <th style="width: 12%;">Último <?= $TIT_INGRESO ?></th>
                                                         <th style="width: 8%;">Estado</th>
+                                                        <th style="width: 17%;">Centro(s) de Costo</th> 
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     <?php
                                                     $contador = 1;
                                                     foreach ($detalle_ingreso['productos'] as $producto) {
-                                                        $cantidad_ingresada = floatval($producto['cantidad_ingresada']) ?: 0;
+                                                        $cantidad_ingresada = floatval($producto['cantidad_ingresada']);
                                                         $cantidad_pedida = floatval($producto['cant_compra_detalle']);
                                                         
                                                         if ($cantidad_ingresada >= $cantidad_pedida) {
@@ -207,6 +239,20 @@ $TIT_INGRESADA = $esServicio ? "Validada"     : "Ingresada";
                                                                 <?php } ?>
                                                             </td>
                                                             <td class="text-center"><?php echo $estado_badge; ?></td>
+                                                            
+                                                            <!-- 🔹 CENTROS DE COSTO DEL MATERIAL -->
+                                                            <td>
+                                                                <?php 
+                                                                if (!empty($producto['centros_costo'])) { 
+                                                                    foreach ($producto['centros_costo'] as $centro) { ?>
+                                                                        <span class="badge badge-info badge_size mb-1 d-block">
+                                                                            <?php echo htmlspecialchars($centro['nom_centro_costo']); ?>
+                                                                        </span>
+                                                                    <?php } 
+                                                                } else { ?>
+                                                                    <small class="text-muted">Sin asignar</small>
+                                                                <?php } ?>
+                                                            </td>
                                                         </tr>
                                                     <?php 
                                                         $contador++;

@@ -120,6 +120,8 @@
                                             style="background-color: #e9ecef; font-weight: 500;">
                                         <input type="hidden" name="id_centro_costo" 
                                             value="<?php echo $centro_costo_usuario['id_centro_costo']; ?>">
+                                        <input type="hidden" name="id_centro_costo" id="id_centro_costo_registrador"
+                                            value="<?php echo $centro_costo_usuario['id_centro_costo']; ?>">
                                     <?php } else { ?>
                                         <input type="text" class="form-control" 
                                             value="Sin centro de costo asignado" 
@@ -1488,6 +1490,15 @@ document.addEventListener('DOMContentLoaded', function() {
                                 noResults: function () { return 'No se encontraron resultados'; }
                             }
                         });
+                        
+                        // APLICAR AUTOMÁTICAMENTE EL CENTRO DE COSTO DEL REGISTRADOR
+                        const idCentroCostoRegistrador = $('#id_centro_costo_registrador').val();
+                        if (idCentroCostoRegistrador) {
+                            setTimeout(() => {
+                                $(select).val([idCentroCostoRegistrador]).trigger('change');
+                                console.log(' Centro de costo del registrador aplicado al nuevo material');
+                            }, 100);
+                        }
                     }
                 });
                 
@@ -1799,7 +1810,61 @@ $('#buscar_producto').on('hidden.bs.modal', function () {
     currentSearchButton = null;
 });
 </script>
-
+<script>
+$(document).ready(function() {
+    console.log('🔄 Inicializando auto-aplicación de centro de costo del registrador...');
+    
+    // ============================================
+    // ✅ FUNCIÓN: Aplicar centro de costo a todos los materiales
+    // ============================================
+    function aplicarCentroCostoRegistradorATodosMateriales() {
+        const idCentroCostoRegistrador = $('#id_centro_costo_registrador').val();
+        
+        if (!idCentroCostoRegistrador) {
+            console.log('⚠️ No hay centro de costo del registrador');
+            return;
+        }
+        
+        console.log('✅ Aplicando centro de costo del registrador:', idCentroCostoRegistrador);
+        
+        document.querySelectorAll('.material-item').forEach(item => {
+            const selectCentros = item.querySelector('select.select2-centros-costo-salida');
+            if (selectCentros) {
+                if ($(selectCentros).data('select2')) {
+                    // Select2 ya inicializado
+                    $(selectCentros).val([idCentroCostoRegistrador]).trigger('change');
+                } else {
+                    // Inicializar Select2 primero
+                    $(selectCentros).select2({
+                        placeholder: 'Seleccionar uno o más centros de costo...',
+                        allowClear: true,
+                        width: '100%',
+                        multiple: true,
+                        language: {
+                            noResults: function () { return 'No se encontraron resultados'; }
+                        }
+                    });
+                    setTimeout(() => {
+                        $(selectCentros).val([idCentroCostoRegistrador]).trigger('change');
+                    }, 100);
+                }
+            }
+        });
+    }
+    
+    // ============================================
+    // ✅ APLICAR AL CARGAR LA PÁGINA
+    // ============================================
+    setTimeout(aplicarCentroCostoRegistradorATodosMateriales, 500);
+    
+    // ============================================
+    // ✅ EXPONER FUNCIÓN GLOBALMENTE
+    // ============================================
+    window.aplicarCentroCostoRegistradorATodosMateriales = aplicarCentroCostoRegistradorATodosMateriales;
+    
+    console.log('✅ Auto-aplicación de centro de costo configurada');
+});
+</script>
 <style>
 .duplicado-resaltado {
     background-color: #ffe6e6 !important; /* rojo pálido */

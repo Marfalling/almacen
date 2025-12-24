@@ -306,22 +306,20 @@ $html = '
                 <td class="value">' . htmlspecialchars($fecha_solicitud, ENT_QUOTES, 'UTF-8') . '</td>
             </tr>
             <tr>
-                <td class="label">RECEPCIONISTA:</td>
-                <td class="value">' . htmlspecialchars($nom_personal, ENT_QUOTES, 'UTF-8') . '</td>
                 <td class="label">FECHA REQUERIDA:</td>
                 <td class="value">' . htmlspecialchars($fecha_requerida, ENT_QUOTES, 'UTF-8') . '</td>
-            </tr>
-            <tr>
                 <td class="label">TELÉFONO:</td>
                 <td class="value">' . htmlspecialchars($telefono, ENT_QUOTES, 'UTF-8') . '</td>
-                <td class="label">LUGAR ENTREGA:</td>
-                <td class="value">' . htmlspecialchars($lugar_entrega, ENT_QUOTES, 'UTF-8') . '</td>
             </tr>
             <tr>
+                <td class="label">LUGAR ENTREGA:</td>
+                <td class="value">' . htmlspecialchars($lugar_entrega, ENT_QUOTES, 'UTF-8') . '</td>
                 <td class="label">ALMACÉN:</td>
                 <td class="value">' . htmlspecialchars($almacen, ENT_QUOTES, 'UTF-8') . '</td>
+            </tr>
+            <tr>
                 <td class="label">UBICACIÓN:</td>
-                <td class="value">' . htmlspecialchars($ubicacion, ENT_QUOTES, 'UTF-8') . '</td>
+                <td class="value" colspan="3">' . htmlspecialchars($ubicacion, ENT_QUOTES, 'UTF-8') . '</td>
             </tr>
         </table>
         

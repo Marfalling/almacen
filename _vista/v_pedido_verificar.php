@@ -131,15 +131,18 @@ $monedas = MostrarMoneda();
                             
                             <?php if ($tiene_verificacion_tecnica): ?>
                                 <span class="badge badge-success" style="
-                                    font-size: 11px; 
-                                    padding: 4px 8px;
+                                    font-size: 10px; 
+                                    padding: 5px 10px;
                                     background-color: #28a745 !important;
                                     color: white !important;
-                                    font-weight: 600;
+                                    font-weight: 500;
                                     border: 1px solid #218838;
                                     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
                                 ">
-                                    <i class="fa fa-check-circle"></i> VERIFICADO TÉCNICAMENTE
+                                    <i class="fa fa-check-circle"></i> 
+                                    <strong>VERIF. TÉCNICAMENTE</strong> 
+                                    por <?php echo htmlspecialchars($verificacion_tecnica['nom_personal']); ?> 
+                                    el <?php echo date('d/m/Y H:i:s', strtotime($verificacion_tecnica['fec_verificacion'])); ?>
                                 </span>
                             <?php endif; ?>
                         </div>
@@ -6416,25 +6419,38 @@ function agregarItemAOrden(item) {
         }
         
         let html = `
-            <div class="card mb-3">
-                <div class="card-header" style="background-color: #e3f2fd; padding: 10px 15px;">
-                    <h6 class="mb-0"><i class="fa fa-info-circle text-primary"></i> Información General</h6>
-                </div>
-                <div class="card-body" style="padding: 15px;">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p style="margin: 5px 0; font-size: 13px;"><strong>N° Orden:</strong> C00${compra.id_compra}</p>
-                            <p style="margin: 5px 0; font-size: 13px;"><strong>Proveedor:</strong> ${compra.nom_proveedor || 'No especificado'}</p>
-                            <p style="margin: 5px 0; font-size: 13px;"><strong>RUC:</strong> ${compra.ruc_proveedor || 'No especificado'}</p>
-                            <p style="margin: 5px 0; font-size: 13px;"><strong>Moneda:</strong> ${compra.nom_moneda || 'No especificada'}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p style="margin: 5px 0; font-size: 13px;"><strong>Fecha:</strong> ${fechaFormateada}</p>
-                            <p style="margin: 5px 0; font-size: 13px;"><strong>Estado:</strong> <span class="badge badge-${estadoClase}">${estadoTexto}</span></p>
-                            <p style="margin: 5px 0; font-size: 13px;"><strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'}</p>
-                            <p style="margin: 5px 0; font-size: 13px;"><strong>Condición de Pago:</strong> ${compra.plaz_compra || 'No especificado'}</p>
-                        </div>
-                    </div>`;
+        <div class="card mb-3">
+            <div class="card-header" style="background-color: #e3f2fd; padding: 10px 15px;">
+                <h6 class="mb-0"><i class="fa fa-info-circle text-primary"></i> Información General</h6>
+            </div>
+            <div class="card-body" style="padding: 15px;">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>N° Orden:</strong> C00${compra.id_compra}</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Proveedor:</strong> ${compra.nom_proveedor || 'No especificado'}</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>RUC:</strong> ${compra.ruc_proveedor || 'No especificado'}</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Moneda:</strong> ${compra.nom_moneda || 'No especificada'}</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Condición de Pago:</strong> ${(() => {
+                            if (!compra.plaz_compra) return 'No especificado';
+                            const plazo = parseInt(compra.plaz_compra);
+                            if (isNaN(plazo)) return compra.plaz_compra;
+                            return plazo === 0 ? 'Contado' : `Crédito ${plazo} días`;
+                        })()}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Fecha:</strong> ${fechaFormateada}</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Estado:</strong> <span class="badge badge-${estadoClase}">${estadoTexto}</span></p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'}</p>
+                        ${compra.nom_centro_costo ? `
+                        <p style="margin: 5px 0; font-size: 13px;">
+                            <strong>Centro de Costo:</strong> 
+                            <span class="badge badge-primary" style="font-size: 11px;">
+                                ${compra.nom_centro_costo}
+                            </span>
+                        </p>
+                        ` : ''}
+                    </div>
+                </div>`;
         
         let tieneAfectacion = false;
         

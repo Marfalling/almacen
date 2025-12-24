@@ -415,7 +415,16 @@ function ConsultarPedido($id_pedido)
                 COALESCE(a.nom_almacen, 'N/A') AS nom_almacen,
                 COALESCE(pr.nom_personal, 'Sin asignar') AS nom_personal,
                 COALESCE(pt.nom_producto_tipo, 'N/A') AS nom_producto_tipo,
-                COALESCE(ar.nom_area, 'N/A') AS nom_centro_costo
+                COALESCE(ar.nom_area, 'N/A') AS nom_centro_costo,
+                
+                --  APROBACIÓN TÉCNICA
+                COALESCE(per_aprueba.nom_personal, '-') AS nom_aprobado_tecnica,
+                p.fec_aprueba_tecnica,
+                
+                --  VERIFICACIÓN TÉCNICA  
+                COALESCE(per_verifica.nom_personal, '-') AS nom_verificado_tecnica,
+                p.fec_verifica_tecnica
+                
             FROM pedido p
             LEFT JOIN {$bd_complemento}.subestacion obp 
                 ON p.id_obra = obp.id_subestacion AND obp.act_subestacion = 1
@@ -433,9 +442,17 @@ function ConsultarPedido($id_pedido)
                 ON p.id_centro_costo = ar.id_area AND ar.act_area = 1
             LEFT JOIN producto_tipo pt 
                 ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
+            
+            -- 🔹 JOIN PARA APROBACIÓN TÉCNICA
+            LEFT JOIN {$bd_complemento}.personal per_aprueba
+                ON p.id_personal_aprueba_tecnica = per_aprueba.id_personal
+                
+            -- 🔹 JOIN PARA VERIFICACIÓN TÉCNICA
+            LEFT JOIN {$bd_complemento}.personal per_verifica
+                ON p.id_personal_verifica_tecnica = per_verifica.id_personal
+                
             WHERE p.id_pedido = ?";
 
-    // Preparar la sentencia
     $stmt = mysqli_prepare($con, $sqlc);
     mysqli_stmt_bind_param($stmt, "i", $id_pedido);
     mysqli_stmt_execute($stmt);
@@ -446,7 +463,6 @@ function ConsultarPedido($id_pedido)
         $resultado[] = $rowc;
     }
 
-    // Cierre de recursos
     mysqli_stmt_close($stmt);
     mysqli_close($con);
 
@@ -3171,7 +3187,7 @@ function AprobarPedidoTecnica($id_pedido, $id_personal)
 {
     include("../_conexion/conexion.php");
 
-    //  AGREGAR {$bd_complemento} 
+    //  VALIDAR que el personal existe
     $sql_validar = "SELECT id_personal FROM {$bd_complemento}.personal WHERE id_personal = '$id_personal'";
     $res_validar = mysqli_query($con, $sql_validar);
     
@@ -3181,6 +3197,7 @@ function AprobarPedidoTecnica($id_pedido, $id_personal)
         return false;
     }
 
+    //  VALIDAR estado del pedido
     $sql_check = "SELECT p.est_pedido, p.id_personal_aprueba_tecnica
                   FROM pedido p 
                   WHERE p.id_pedido = '$id_pedido'";
@@ -3199,9 +3216,10 @@ function AprobarPedidoTecnica($id_pedido, $id_personal)
         return false;
     }
 
-    // 🔸 Registrar aprobación técnica
+    // 🔹 REGISTRAR APROBACIÓN TÉCNICA CON FECHA Y HORA AUTOMÁTICA
     $sql_update = "UPDATE pedido 
-                   SET id_personal_aprueba_tecnica = '$id_personal'
+                   SET id_personal_aprueba_tecnica = '$id_personal',
+                       fec_aprueba_tecnica = NOW()
                    WHERE id_pedido = '$id_pedido'";
     $res_update = mysqli_query($con, $sql_update);
 
@@ -4634,9 +4652,12 @@ function TieneVerificacionTecnica($id_pedido) {
     
     $id_pedido = intval($id_pedido);
     
-    $sql = "SELECT id_personal_verifica_tecnica, fec_verifica_tecnica 
-            FROM pedido 
-            WHERE id_pedido = ?";
+    $sql = "SELECT p.id_personal_verifica_tecnica, 
+                   p.fec_verifica_tecnica,
+                   per.nom_personal
+            FROM pedido p
+            LEFT JOIN {$bd_complemento}.personal per ON p.id_personal_verifica_tecnica = per.id_personal
+            WHERE p.id_pedido = ?";
     
     $stmt = $con->prepare($sql);
     $stmt->bind_param("i", $id_pedido);
@@ -4650,6 +4671,7 @@ function TieneVerificacionTecnica($id_pedido) {
     return [
         'verificado' => !empty($row['id_personal_verifica_tecnica']),
         'id_personal' => $row['id_personal_verifica_tecnica'] ?? null,
-        'fecha' => $row['fec_verifica_tecnica'] ?? null
+        'nom_personal' => $row['nom_personal'] ?? 'Desconocido', // 🔹 AGREGADO
+        'fec_verificacion' => $row['fec_verifica_tecnica'] ?? null // 🔹 NOMBRE CORREGIDO
     ];
 }

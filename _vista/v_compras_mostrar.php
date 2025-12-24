@@ -1791,7 +1791,11 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
     const esServicio = compra.id_producto_tipo == 2;
     const tipoOrden = esServicio ? 'Servicio' : 'Compra';
     
-    titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de ${tipoOrden} - C00${compra.id_compra}`;
+    const cod_orden = esServicio 
+    ? 'OS' + String(compra.id_compra).padStart(4, '0')
+    : 'OC' + String(compra.id_compra).padStart(4, '0');
+
+    titulo.innerHTML = `<i class="fa fa-file-text-o text-primary"></i> Orden de ${tipoOrden} - ${cod_orden}`;
     
     const contenido = document.getElementById('contenido-detalle-compra-mostrar');
     const fechaFormateada = new Date(compra.fec_compra).toLocaleDateString('es-PE');
@@ -1823,16 +1827,29 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
             <div class="card-body" style="padding: 15px;">
                 <div class="row">
                     <div class="col-md-6">
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>N° Orden:</strong> C00${compra.id_compra}</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>N° Orden:</strong> ${cod_orden}</p>
                         <p style="margin: 5px 0; font-size: 13px;"><strong>Proveedor:</strong> ${compra.nom_proveedor || 'No especificado'}</p>
                         <p style="margin: 5px 0; font-size: 13px;"><strong>RUC:</strong> ${compra.ruc_proveedor || 'No especificado'}</p>
                         <p style="margin: 5px 0; font-size: 13px;"><strong>Moneda:</strong> ${compra.nom_moneda || 'No especificada'}</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Condición de Pago:</strong> ${(() => {
+                            if (!compra.plaz_compra) return 'No especificado';
+                            const plazo = parseInt(compra.plaz_compra);
+                            if (isNaN(plazo)) return compra.plaz_compra;
+                            return plazo === 0 ? 'Contado' : `Crédito ${plazo} días`;
+                        })()}</p>
                     </div>
                     <div class="col-md-6">
                         <p style="margin: 5px 0; font-size: 13px;"><strong>Fecha Orden:</strong> ${fechaFormateada}</p>
                         <p style="margin: 5px 0; font-size: 13px;"><strong>Estado:</strong> <span class="badge badge-${estadoClase}">${estadoTexto}</span></p>
                         <p style="margin: 5px 0; font-size: 13px;"><strong>Creado por:</strong> ${compra.nom_personal || 'No especificado'}</p>
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Condición de Pago:</strong> ${compra.plaz_compra || 'No especificado'}</p>
+                        ${compra.nom_centro_costo ? `
+                        <p style="margin: 5px 0; font-size: 13px;">
+                            <strong>Centro de Costo:</strong> 
+                            <span class="badge badge-primary" style="font-size: 11px;">
+                                ${compra.nom_centro_costo}
+                            </span>
+                        </p>
+                        ` : ''}
                     </div>
                 </div>`;
     
@@ -2243,8 +2260,12 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones, centr
         ? '<span class="badge badge-primary ml-2">SERVICIO</span>'
         : '<span class="badge badge-info ml-2">MATERIAL</span>';
     
-    document.getElementById('orden-numero').innerHTML = `C00${orden.id_compra} ${badgeTipo}`;
-    document.getElementById('edit_id_compra').value = orden.id_compra;
+    // 🔹 GENERAR CÓDIGO DINÁMICAMENTE
+    const cod_orden_edit = esOrdenServicioGlobal 
+        ? 'OS' + String(orden.id_compra).padStart(4, '0')
+        : 'OC' + String(orden.id_compra).padStart(4, '0');
+
+    document.getElementById('orden-numero').innerHTML = `${cod_orden_edit} ${badgeTipo}`;    document.getElementById('edit_id_compra').value = orden.id_compra;
     document.getElementById('edit_fecha_orden').value = orden.fec_compra.split(' ')[0];
     document.getElementById('edit_moneda_orden').value = orden.id_moneda;
     document.getElementById('edit_plazo_entrega').value = orden.plaz_compra || '';

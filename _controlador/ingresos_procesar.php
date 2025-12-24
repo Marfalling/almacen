@@ -42,7 +42,7 @@ try {
     // VALIDACIÓN 1: VERIFICAR QUE HAYA DOCUMENTOS
     // ============================================
     $documentos_ingreso = MostrarDocumentos('ingresos', $id_compra);
-    
+
     if (empty($documentos_ingreso)) {
         echo json_encode([
             "tipo_mensaje" => "warning", 
@@ -55,13 +55,12 @@ try {
     }
 
     // ============================================
-    // VALIDACIÓN 2: VERIFICAR DOCUMENTO PARA CADA INGRESO
+    // VALIDACIÓN 2: VERIFICAR RELACIÓN DOCUMENTOS/INGRESOS
     // ============================================
     include("../_conexion/conexion.php");
 
-    // Paso 1: Contar ingresos previos
-    $sql_count_ingresos = "SELECT COUNT(DISTINCT i.id_ingreso) as total_ingresos,
-                                MAX(i.fec_ingreso) as ultima_fecha
+    // Contar ingresos YA procesados (no incluye el actual)
+    $sql_count_ingresos = "SELECT COUNT(DISTINCT i.id_ingreso) as total_ingresos
                         FROM ingreso i
                         INNER JOIN ingreso_detalle id ON i.id_ingreso = id.id_ingreso
                         WHERE i.id_compra = $id_compra 
@@ -70,45 +69,35 @@ try {
     $res_count = mysqli_query($con, $sql_count_ingresos);
     $row_count = mysqli_fetch_assoc($res_count);
     $total_ingresos_previos = intval($row_count['total_ingresos']);
-    $fecha_ultimo_ingreso = $row_count['ultima_fecha'];
 
-    // Si no hay ingresos previos, solo verificar que haya al menos 1 documento
-    if ($total_ingresos_previos == 0) {
-        // Primera vez, VALIDACIÓN 1 ya verificó que hay docs
+    // Contar documentos totales
+    $total_documentos = count($documentos_ingreso);
+
+    // 🔹 NUEVA LÓGICA: Debe haber al menos (N_ingresos + 1) documentos
+    $documentos_minimos_requeridos = $total_ingresos_previos + 1;
+
+    if ($total_documentos < $documentos_minimos_requeridos) {
         mysqli_close($con);
-    } else {
-        // Ya hubo ingresos, DEBE haber documento DESPUÉS del último ingreso
-        $sql_doc_nuevo = "SELECT COUNT(*) as total,
-                                MAX(fec_subida) as ultimo_doc_subido
-                        FROM documentos 
-                        WHERE entidad = 'ingresos' 
-                        AND id_entidad = $id_compra 
-                        AND fec_subida > '$fecha_ultimo_ingreso'";
-        $res_doc_nuevo = mysqli_query($con, $sql_doc_nuevo);
-        $row_doc_nuevo = mysqli_fetch_assoc($res_doc_nuevo);
         
-        if ($row_doc_nuevo['total'] == 0) {
-            // Contar docs totales para mensaje informativo
-            $sql_count_docs = "SELECT COUNT(*) as total_docs 
-                            FROM documentos 
-                            WHERE entidad = 'ingresos' 
-                            AND id_entidad = $id_compra";
-            $res_count_docs = mysqli_query($con, $sql_count_docs);
-            $total_documentos = mysqli_fetch_assoc($res_count_docs)['total_docs'];
-            
-            mysqli_close($con);
-            echo json_encode([
-                "tipo_mensaje" => "warning",
-                "mensaje" => "DEBE SUBIR UN NUEVO DOCUMENTO PARA ESTE INGRESO.\n\n" .
-                        "Ya se realizó un ingreso anterior. Cada ingreso requiere su propia guía de remisión.\n\n" .
-                        "Último ingreso: " . date('d/m/Y H:i', strtotime($fecha_ultimo_ingreso)) . "\n\n" .
-                        "Por favor, suba el nuevo documento antes de continuar."
-            ]);
-            exit;
+        $mensaje_error = "DEBE SUBIR UN NUEVO DOCUMENTO PARA ESTE INGRESO.\n\n";
+        
+        if ($total_ingresos_previos > 0) {
+            $mensaje_error .= "Ya se realizaron $total_ingresos_previos ingreso(s) anterior(es).\n";
+            $mensaje_error .= "Cada ingreso requiere su propia guía de remisión.\n\n";
+            $mensaje_error .= "Documentos actuales: $total_documentos\n";
+            $mensaje_error .= "Documentos requeridos: $documentos_minimos_requeridos\n\n";
         }
         
-        mysqli_close($con);
+        $mensaje_error .= "Por favor, suba el nuevo documento antes de continuar.";
+        
+        echo json_encode([
+            "tipo_mensaje" => "warning",
+            "mensaje" => $mensaje_error
+        ]);
+        exit;
     }
+
+    mysqli_close($con);
     // ============================================
 
     if (!function_exists('ProcesarIngresoProducto')) {

@@ -281,7 +281,8 @@ function ConsultarCompraPorId($id_compra)
                     ELSE 'S/.'
                 END as sim_moneda,
                 per.nom_personal,
-                /*per_tec.nom_personal AS nom_aprobado_tecnica,*/
+                -- 🔹 AGREGAR CENTRO DE COSTO DEL PERSONAL
+                cc.nom_area as nom_centro_costo,
                 per_fin.nom_personal AS nom_aprobado_financiera,
                 COALESCE(obp.nom_subestacion, oba.nom_subestacion, 'N/A') AS nom_obra,
                 COALESCE(cli.nom_cliente, 'N/A') AS nom_cliente,
@@ -304,7 +305,8 @@ function ConsultarCompraPorId($id_compra)
             INNER JOIN proveedor p ON c.id_proveedor = p.id_proveedor
             INNER JOIN moneda m ON c.id_moneda = m.id_moneda
             LEFT JOIN {$bd_complemento}.personal per ON c.id_personal = per.id_personal
-            /*LEFT JOIN {$bd_complemento}.personal per_tec ON c.id_personal_aprueba_tecnica = per_tec.id_personal*/
+            -- 🔹 JOIN PARA CENTRO DE COSTO DEL PERSONAL
+            LEFT JOIN {$bd_complemento}.area cc ON per.id_area = cc.id_area
             LEFT JOIN {$bd_complemento}.personal per_fin ON c.id_personal_aprueba_financiera = per_fin.id_personal
             LEFT JOIN pedido ped ON c.id_pedido = ped.id_pedido
             LEFT JOIN {$bd_complemento}.subestacion obp 

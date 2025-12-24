@@ -10,7 +10,7 @@ function ObtenerDetalleIngresoPorCompra($id_compra)
         return false;
     }
     
-    // Información básica de la compra
+    //  INFORMACIÓN DE LA COMPRA (AHORA CON CENTROS DE COSTO)
     $sql_compra = "SELECT 
                     c.id_compra,
                     c.id_pedido,
@@ -20,16 +20,29 @@ function ObtenerDetalleIngresoPorCompra($id_compra)
                     p.id_producto_tipo,
                     pr.nom_proveedor,
                     al.nom_almacen,
+                    
+                    --  PERSONAL REGISTRADOR + SU CENTRO DE COSTO
                     pe1.nom_personal as registrado_por,
                     /*pe2.nom_personal as aprobado_tecnica_por,*/
-                    pe3.nom_personal as aprobado_financiera_por
+                    area_registrador.nom_area as centro_costo_registrador,
+                    
+                    --  PERSONAL APROBADOR FINANCIERO + SU CENTRO DE COSTO
+                    pe3.nom_personal as aprobado_financiera_por,
+                    area_aprobador.nom_area as centro_costo_aprobador
+                    
                 FROM compra c
                 INNER JOIN pedido p ON c.id_pedido = p.id_pedido
                 INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
                 INNER JOIN almacen al ON p.id_almacen = al.id_almacen
+                
+                --  JOIN PARA REGISTRADOR Y SU CENTRO DE COSTO
                 LEFT JOIN {$bd_complemento}.personal pe1 ON c.id_personal = pe1.id_personal
-                /*LEFT JOIN {$bd_complemento}.personal pe2 ON c.id_personal_aprueba_tecnica  = pe2.id_personal*/
-                LEFT JOIN {$bd_complemento}.personal pe3 ON c.id_personal_aprueba_financiera  = pe3.id_personal
+                LEFT JOIN {$bd_complemento}.area area_registrador ON pe1.id_area = area_registrador.id_area
+                
+                --  JOIN PARA APROBADOR FINANCIERO Y SU CENTRO DE COSTO
+                LEFT JOIN {$bd_complemento}.personal pe3 ON c.id_personal_aprueba_financiera = pe3.id_personal
+                LEFT JOIN {$bd_complemento}.area area_aprobador ON pe3.id_area = area_aprobador.id_area
+                
                 WHERE c.id_compra = '$id_compra'";
                 
     $resultado_compra = mysqli_query($con, $sql_compra);
@@ -47,7 +60,7 @@ function ObtenerDetalleIngresoPorCompra($id_compra)
         return false;
     }
 
-    // Productos del detalle de compra con información de ingresos - CORREGIDO
+    //  PRODUCTOS CON CENTROS DE COSTO HEREDADOS
     $sql_productos = "SELECT 
                         cd.id_producto,
                         cd.cant_compra_detalle,
@@ -58,17 +71,19 @@ function ObtenerDetalleIngresoPorCompra($id_compra)
                         MAX(i.fec_ingreso) as fecha_ultimo_ingreso
                     FROM compra_detalle cd
                     INNER JOIN compra c ON cd.id_compra = c.id_compra
-                    INNER JOIN pedido_detalle pd ON cd.id_producto = pd.id_producto 
-                        AND pd.id_pedido = c.id_pedido
+                    INNER JOIN pedido_detalle pd ON cd.id_pedido_detalle = pd.id_pedido_detalle
                         AND pd.est_pedido_detalle IN (1, 2)
                     INNER JOIN producto prod ON cd.id_producto = prod.id_producto
                     INNER JOIN unidad_medida um ON prod.id_unidad_medida = um.id_unidad_medida
-                    LEFT JOIN ingreso i ON i.id_compra = '$id_compra'
-                    LEFT JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso AND cd.id_producto = id2.id_producto
+                    LEFT JOIN ingreso i ON i.id_compra = '$id_compra' 
+                        AND i.est_ingreso = 1  
+                    LEFT JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso 
+                        AND cd.id_producto = id2.id_producto
+                        AND id2.est_ingreso_detalle = 1  
                     WHERE cd.id_compra = '$id_compra'
                     AND cd.est_compra_detalle = 1
                     GROUP BY cd.id_compra_detalle, cd.id_producto, cd.cant_compra_detalle, 
-                             prod.cod_material, pd.prod_pedido_detalle, um.nom_unidad_medida
+                            prod.cod_material, pd.prod_pedido_detalle, um.nom_unidad_medida
                     ORDER BY pd.prod_pedido_detalle";
                     
     $resultado_productos = mysqli_query($con, $sql_productos);
@@ -98,34 +113,37 @@ function ObtenerDetalleIngresoPorCompra($id_compra)
             $productos_pendientes++;
         }
         
+        //  OBTENER CENTROS DE COSTO DEL MATERIAL (heredados desde pedido)
+        $row['centros_costo'] = ObtenerCentrosCostoPorProductoEnCompra($id_compra, $row['id_producto']);
+        
         $productos[] = $row;
         $total_productos++;
     }
 
     // Historial de ingresos
-        $sql_historial = "SELECT 
-                            i.id_ingreso,
-                            i.fec_ingreso,
-                            COALESCE(p.nom_personal, 'Usuario') as nom_personal,
-                            id2.cant_ingreso_detalle as cantidad_individual,
-                            prod.nom_producto,
-                            prod.cod_material
-                        FROM ingreso i
-                        LEFT JOIN {$bd_complemento}.personal p ON i.id_personal = p.id_personal
-                        INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso
-                        INNER JOIN producto prod ON id2.id_producto = prod.id_producto
-                        WHERE i.id_compra = '$id_compra'
-                        AND id2.est_ingreso_detalle = 1
-                        ORDER BY i.fec_ingreso DESC, prod.nom_producto";
-                            
-        $resultado_historial = mysqli_query($con, $sql_historial);
-        $historial = array();
+    $sql_historial = "SELECT 
+                        i.id_ingreso,
+                        i.fec_ingreso,
+                        COALESCE(p.nom_personal, 'Usuario') as nom_personal,
+                        id2.cant_ingreso_detalle as cantidad_individual,
+                        prod.nom_producto,
+                        prod.cod_material
+                    FROM ingreso i
+                    LEFT JOIN {$bd_complemento}.personal p ON i.id_personal = p.id_personal
+                    INNER JOIN ingreso_detalle id2 ON i.id_ingreso = id2.id_ingreso
+                    INNER JOIN producto prod ON id2.id_producto = prod.id_producto
+                    WHERE i.id_compra = '$id_compra'
+                    AND id2.est_ingreso_detalle = 1
+                    ORDER BY i.fec_ingreso DESC, prod.nom_producto";
+                        
+    $resultado_historial = mysqli_query($con, $sql_historial);
+    $historial = array();
 
-        if ($resultado_historial) {
-            while ($row = mysqli_fetch_array($resultado_historial, MYSQLI_ASSOC)) {
-                $historial[] = $row;
-            }
+    if ($resultado_historial) {
+        while ($row = mysqli_fetch_array($resultado_historial, MYSQLI_ASSOC)) {
+            $historial[] = $row;
         }
+    }
 
     // Resumen
     $resumen = array(
@@ -144,6 +162,38 @@ function ObtenerDetalleIngresoPorCompra($id_compra)
     
     mysqli_close($con);
     return $resultado;
+}
+function ObtenerCentrosCostoPorProductoEnCompra($id_compra, $id_producto) 
+{
+    include("../_conexion/conexion.php");
+    
+    $id_compra = intval($id_compra);
+    $id_producto = intval($id_producto);
+    
+    // Buscar centros de costo desde pedido_detalle
+    $sql = "SELECT DISTINCT
+                cc.id_centro_costo,
+                a.nom_area as nom_centro_costo
+            FROM compra_detalle cd
+            INNER JOIN pedido_detalle pd ON cd.id_pedido_detalle = pd.id_pedido_detalle
+            INNER JOIN pedido_detalle_centro_costo cc ON pd.id_pedido_detalle = cc.id_pedido_detalle
+            INNER JOIN {$bd_complemento}.area a ON cc.id_centro_costo = a.id_area
+            WHERE cd.id_compra = $id_compra
+              AND cd.id_producto = $id_producto
+            ORDER BY a.nom_area ASC";
+    
+    $result = mysqli_query($con, $sql);
+    
+    $centros = array();
+    while ($row = mysqli_fetch_assoc($result)) {
+        $centros[] = array(
+            'id_centro_costo' => $row['id_centro_costo'],
+            'nom_centro_costo' => $row['nom_centro_costo']
+        );
+    }
+    
+    mysqli_close($con);
+    return $centros;
 }
 //-----------------------------------------------------------------------
 function MostrarComprasAprobadas()
@@ -1142,10 +1192,10 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
     $whereDirectos = "";
 
     if ($fecha_inicio && $fecha_fin) {
-        $whereCompras   = " AND DATE(c.fec_compra) BETWEEN '$fecha_inicio' AND '$fecha_fin' ";
+        $whereCompras   = " AND DATE(i.fec_ingreso) BETWEEN '$fecha_inicio' AND '$fecha_fin' ";
         $whereDirectos  = " AND DATE(i.fec_ingreso) BETWEEN '$fecha_inicio' AND '$fecha_fin' ";
     } else {
-        $whereCompras   = " AND DATE(c.fec_compra) = CURDATE() ";
+        $whereCompras   = " AND DATE(i.fec_ingreso) = CURDATE() ";
         $whereDirectos  = " AND DATE(i.fec_ingreso) = CURDATE() ";
     }
 
@@ -1160,7 +1210,14 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
                 ) AS cod_ingreso,
                 NULL as id_ingreso,
                 c.id_pedido,
-                c.fec_compra AS fecha,
+                --  Usar la fecha del último ingreso, no la fecha de compra
+                COALESCE(
+                    (SELECT MAX(i.fec_ingreso) 
+                     FROM ingreso i 
+                     WHERE i.id_compra = c.id_compra 
+                     AND i.est_ingreso = 1),
+                    c.fec_compra
+                ) AS fecha,
                 c.est_compra AS estado,
                 p.cod_pedido,
                 pr.nom_proveedor AS origen,
@@ -1204,19 +1261,18 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
                 ), 0) AS productos_ingresados
             FROM compra c
             INNER JOIN pedido p ON c.id_pedido = p.id_pedido
-            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo --  JOIN NUEVO
+            INNER JOIN producto_tipo pt ON p.id_producto_tipo = pt.id_producto_tipo
             INNER JOIN proveedor pr ON c.id_proveedor = pr.id_proveedor
             INNER JOIN almacen al ON p.id_almacen = al.id_almacen
             INNER JOIN ubicacion ub ON p.id_ubicacion = ub.id_ubicacion
             INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
             LEFT JOIN {$bd_complemento}.personal pe1 ON c.id_personal = pe1.id_personal
-            /*LEFT JOIN {$bd_complemento}.personal pe2 ON c.id_personal_aprueba_tecnica = pe2.id_personal*/
             LEFT JOIN {$bd_complemento}.personal pe3 ON c.id_personal_aprueba_financiera = pe3.id_personal
-            WHERE c.est_compra IN (1, 2, 3, 4) $whereCompras  -- ✅ mantenido igual
-            /*AND c.id_personal_aprueba_tecnica IS NOT NULL*/     -- ✅ mantenido igual
-            AND c.id_personal_aprueba_financiera IS NOT NULL -- ✅ mantenido igual
-
-
+            --  NECESARIO para aplicar el filtro de fecha de ingreso
+            LEFT JOIN ingreso i ON c.id_compra = i.id_compra AND i.est_ingreso = 1
+            WHERE c.est_compra IN (1, 2, 3, 4)
+            AND c.id_personal_aprueba_financiera IS NOT NULL
+            $whereCompras
 
             UNION ALL
 
@@ -1235,8 +1291,8 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
                 al.nom_almacen,
                 ub.nom_ubicacion,
                 'N/A' as nom_moneda,
-                'INGRESO DIRECTO' AS tipo_pedido_texto, -- ✅ NUEVO
-                NULL AS id_producto_tipo, -- ✅ NUEVO
+                'INGRESO DIRECTO' AS tipo_pedido_texto,
+                NULL AS id_producto_tipo,
                 COALESCE((SELECT COUNT(*) FROM ingreso_detalle id WHERE id.id_ingreso = i.id_ingreso), 0) as total_productos,
                 0 as cantidad_total_pedida,
                 COALESCE((SELECT SUM(id2.cant_ingreso_detalle) FROM ingreso_detalle id2 WHERE id2.id_ingreso = i.id_ingreso), 0) as cantidad_total_ingresada,

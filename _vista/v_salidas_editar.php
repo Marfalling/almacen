@@ -105,6 +105,8 @@ function eliminarDocumento(idDoc) {
                                             style="background-color: #e9ecef; font-weight: 500;">
                                         <input type="hidden" name="id_centro_costo" 
                                             value="<?php echo $centro_costo_usuario['id_centro_costo']; ?>">
+                                        <input type="hidden" name="id_centro_costo" id="id_centro_costo_registrador"
+                                            value="<?php echo $centro_costo_usuario['id_centro_costo']; ?>">
                                     <?php } else { ?>
                                         <input type="text" class="form-control" 
                                             value="Sin centro de costo asignado" 
@@ -1120,6 +1122,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         width: '100%',
                         multiple: true
                     });
+                    
+                    //  APLICAR AUTOMÁTICAMENTE EL CENTRO DE COSTO DEL REGISTRADOR
+                    const idCentroCostoRegistrador = $('#id_centro_costo_registrador').val();
+                    if (idCentroCostoRegistrador) {
+                        setTimeout(() => {
+                            $(select).val([idCentroCostoRegistrador]).trigger('change');
+                            console.log(' Centro de costo del registrador aplicado al nuevo material en edición');
+                        }, 100);
+                    }
                 });
                 
                 // 🔹 INCREMENTAR contador
@@ -1254,7 +1265,55 @@ $('#buscar_producto').on('hidden.bs.modal', function () {
     currentSearchButton = null;
 });
 </script>
-
+<script>
+$(document).ready(function() {
+    console.log('🔄 Inicializando auto-aplicación de centro de costo en EDICIÓN...');
+    
+    // ============================================
+    //  FUNCIÓN: Aplicar centro de costo SOLO a materiales nuevos
+    // ============================================
+    function aplicarCentroCostoRegistradorATodosMateriales() {
+        const idCentroCostoRegistrador = $('#id_centro_costo_registrador').val();
+        
+        if (!idCentroCostoRegistrador) {
+            console.log('⚠️ No hay centro de costo del registrador');
+            return;
+        }
+        
+        console.log(' Verificando materiales para aplicar centro de costo:', idCentroCostoRegistrador);
+        
+        document.querySelectorAll('.material-item').forEach((item, index) => {
+            const selectCentros = item.querySelector('select.select2-centros-costo-salida');
+            if (selectCentros) {
+                const valoresActuales = $(selectCentros).val();
+                
+                //  Solo aplicar si NO tiene centros de costo (es un material nuevo)
+                if (!valoresActuales || valoresActuales.length === 0) {
+                    console.log(`📝 Aplicando centro de costo al material ${index} (nuevo)`);
+                    
+                    if ($(selectCentros).data('select2')) {
+                        $(selectCentros).val([idCentroCostoRegistrador]).trigger('change');
+                    }
+                } else {
+                    console.log(`⏭️ Material ${index} ya tiene centros asignados, respetando`);
+                }
+            }
+        });
+    }
+    
+    // ============================================
+    //  NO APLICAR automáticamente al cargar (respeta centros existentes)
+    // ============================================
+    // En modo edición, solo aplicamos cuando se agregan materiales nuevos
+    
+    // ============================================
+    //  EXPONER FUNCIÓN GLOBALMENTE
+    // ============================================
+    window.aplicarCentroCostoRegistradorATodosMateriales = aplicarCentroCostoRegistradorATodosMateriales;
+    
+    console.log('✅ Auto-aplicación de centro de costo configurada (MODO EDICIÓN)');
+});
+</script>
 <style>
 .duplicado-resaltado {
     background-color: #ffe6e6 !important;

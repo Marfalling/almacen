@@ -264,12 +264,16 @@ function MostrarDevoluciones()
                    a.nom_almacen, 
                    u.nom_ubicacion, 
                    p.nom_personal,
-                   c.nom_cliente as nom_cliente_destino
+                   c.nom_cliente as nom_cliente_destino,
+                   -- Centro de costo del registrador
+                   area_reg.nom_area as nom_centro_costo_registrador
             FROM devolucion d
             INNER JOIN almacen a ON d.id_almacen = a.id_almacen
             INNER JOIN ubicacion u ON d.id_ubicacion = u.id_ubicacion
             INNER JOIN {$bd_complemento}.personal p ON d.id_personal = p.id_personal
             INNER JOIN {$bd_complemento}.cliente c ON d.id_cliente_destino = c.id_cliente
+            -- JOIN para centro de costo del registrador
+            LEFT JOIN {$bd_complemento}.area area_reg ON d.id_registrador_centro_costo = area_reg.id_area
             /*WHERE d.est_devolucion = 1*/
             ORDER BY d.fec_devolucion DESC";
 
@@ -300,12 +304,16 @@ function MostrarDevolucionesFecha($fecha_inicio = null, $fecha_fin = null)
                    a.nom_almacen, 
                    u.nom_ubicacion, 
                    p.nom_personal, 
-                   c.nom_cliente as nom_cliente_destino
+                   c.nom_cliente as nom_cliente_destino,
+                   -- Centro de costo del registrador
+                   area_reg.nom_area as nom_centro_costo_registrador
             FROM devolucion d
             INNER JOIN almacen a ON d.id_almacen = a.id_almacen
             INNER JOIN ubicacion u ON d.id_ubicacion = u.id_ubicacion
             INNER JOIN {$bd_complemento}.personal p ON d.id_personal = p.id_personal
             INNER JOIN {$bd_complemento}.cliente c ON d.id_cliente_destino = c.id_cliente
+            -- JOIN para centro de costo del registrador
+            LEFT JOIN {$bd_complemento}.area area_reg ON d.id_registrador_centro_costo = area_reg.id_area
             $where
             ORDER BY d.fec_devolucion DESC";
 
@@ -329,12 +337,16 @@ function ConsultarDevolucion($id_devolucion)
                    a.nom_almacen, 
                    u.nom_ubicacion, 
                    p.nom_personal,
-                   c.nom_cliente as nom_cliente_destino
+                   c.nom_cliente as nom_cliente_destino,
+                   -- Centro de costo del registrador
+                   area_reg.nom_area as nom_centro_costo_registrador
             FROM devolucion d
             INNER JOIN almacen a ON d.id_almacen = a.id_almacen
             INNER JOIN ubicacion u ON d.id_ubicacion = u.id_ubicacion
             INNER JOIN {$bd_complemento}.personal p ON d.id_personal = p.id_personal
             INNER JOIN {$bd_complemento}.cliente c ON d.id_cliente_destino = c.id_cliente
+            -- JOIN para centro de costo del registrador
+            LEFT JOIN {$bd_complemento}.area area_reg ON d.id_registrador_centro_costo = area_reg.id_area
             WHERE d.id_devolucion = $id_devolucion";
 
     $res = mysqli_query($con, $sql);
@@ -797,8 +809,25 @@ function ConsultarDevolucionDetalleConCentros($id_devolucion)
     $resultado = array();
 
     while ($row = mysqli_fetch_array($res, MYSQLI_ASSOC)) {
-        //  CARGAR CENTROS DE COSTO
-        $row['centros_costo'] = ObtenerCentrosCostoPorDetalleDevolucion($row['id_devolucion_detalle']);
+        // 🔹 CARGAR CENTROS DE COSTO CON NOMBRES
+        $centros_sql = "SELECT 
+                            ddcc.id_centro_costo,
+                            a.nom_area as nom_centro_costo
+                        FROM devolucion_detalle_centro_costo ddcc
+                        INNER JOIN {$bd_complemento}.area a ON ddcc.id_centro_costo = a.id_area
+                        WHERE ddcc.id_devolucion_detalle = {$row['id_devolucion_detalle']}
+                        ORDER BY a.nom_area ASC";
+        
+        $centros_res = mysqli_query($con, $centros_sql);
+        $centros = array();
+        
+        if ($centros_res) {
+            while ($centro_row = mysqli_fetch_assoc($centros_res)) {
+                $centros[] = $centro_row;
+            }
+        }
+        
+        $row['centros_costo'] = $centros;
         $resultado[] = $row;
     }
 

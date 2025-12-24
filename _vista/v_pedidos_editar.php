@@ -1388,6 +1388,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    
     // ============================================
     // FUNCIÓN: Crear producto
     // ============================================
@@ -1528,6 +1529,57 @@ document.addEventListener('DOMContentLoaded', function() {
                 btnGuardarProducto.textContent = textoOriginal;
             });
         });
+    }
+    
+    // ============================================
+    // CONTROL DINÁMICO DE UBICACIONES SEGÚN ALMACÉN (PARA EDITAR)
+    // ============================================
+    const selectUbicacion = document.querySelector('select[name="id_ubicacion"]');
+    const idAlmacenActual = <?php echo isset($pedido['id_almacen']) ? $pedido['id_almacen'] : 0; ?>;
+
+    // Guardar todas las opciones originales de ubicación
+    let todasUbicaciones = [];
+
+    function inicializarUbicaciones() {
+        todasUbicaciones = Array.from(selectUbicacion.options).slice(1); // Excluir "Seleccionar"
+    }
+
+    function filtrarUbicacionesPorAlmacen() {
+        // Limpiar select de ubicación (mantener opción "Seleccionar")
+        const ubicacionActual = selectUbicacion.value;
+        selectUbicacion.innerHTML = '<option value="">Seleccionar</option>';
+        
+        // Si es BASE ARCE (id_almacen = 1), solo mostrar BASE (id_ubicacion = 1)
+        if (idAlmacenActual === 1) {
+            const opcionBase = todasUbicaciones.find(opt => opt.value === '1');
+            if (opcionBase) {
+                selectUbicacion.appendChild(opcionBase.cloneNode(true));
+            }
+            // Mantener la selección si era BASE, sino seleccionar BASE automáticamente
+            if (ubicacionActual === '1') {
+                selectUbicacion.value = '1';
+            } else {
+                selectUbicacion.value = '1';
+            }
+        } else {
+            // Para otros almacenes, mostrar todas las ubicaciones
+            todasUbicaciones.forEach(opt => {
+                selectUbicacion.appendChild(opt.cloneNode(true));
+            });
+            // Mantener la selección actual
+            selectUbicacion.value = ubicacionActual;
+        }
+        
+        // Si hay Select2 inicializado, actualizarlo
+        if ($(selectUbicacion).data('select2')) {
+            $(selectUbicacion).trigger('change');
+        }
+    }
+
+    // Ejecutar al cargar la página
+    if (selectUbicacion) {
+        inicializarUbicaciones();
+        setTimeout(filtrarUbicacionesPorAlmacen, 200);
     }
     
     function resetearSwitches(form) {
