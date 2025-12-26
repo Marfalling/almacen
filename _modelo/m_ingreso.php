@@ -1188,15 +1188,28 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
 {
     include("../_conexion/conexion.php");
 
+    //  CONSTRUIR FILTROS DE FECHA
     $whereCompras = "";
     $whereDirectos = "";
 
     if ($fecha_inicio && $fecha_fin) {
-        $whereCompras   = " AND DATE(i.fec_ingreso) BETWEEN '$fecha_inicio' AND '$fecha_fin' ";
-        $whereDirectos  = " AND DATE(i.fec_ingreso) BETWEEN '$fecha_inicio' AND '$fecha_fin' ";
+        // Para compras: Usar fecha de ingreso si existe, sino usar fecha de compra
+        $whereCompras = " AND (
+            (i.fec_ingreso IS NOT NULL AND DATE(i.fec_ingreso) BETWEEN '$fecha_inicio' AND '$fecha_fin')
+            OR 
+            (i.fec_ingreso IS NULL AND DATE(c.fec_compra) BETWEEN '$fecha_inicio' AND '$fecha_fin')
+        )";
+        
+        $whereDirectos = " AND DATE(i.fec_ingreso) BETWEEN '$fecha_inicio' AND '$fecha_fin' ";
     } else {
-        $whereCompras   = " AND DATE(i.fec_ingreso) = CURDATE() ";
-        $whereDirectos  = " AND DATE(i.fec_ingreso) = CURDATE() ";
+        // Sin filtro de fecha: usar fecha de hoy
+        $whereCompras = " AND (
+            (i.fec_ingreso IS NOT NULL AND DATE(i.fec_ingreso) = CURDATE())
+            OR 
+            (i.fec_ingreso IS NULL AND DATE(c.fec_compra) = CURDATE())
+        )";
+        
+        $whereDirectos = " AND DATE(i.fec_ingreso) = CURDATE() ";
     }
 
     $sql = "SELECT 
@@ -1210,7 +1223,7 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
                 ) AS cod_ingreso,
                 NULL as id_ingreso,
                 c.id_pedido,
-                --  Usar la fecha del último ingreso, no la fecha de compra
+                --  Usar la fecha del último ingreso, o la fecha de compra si no hay ingresos
                 COALESCE(
                     (SELECT MAX(i.fec_ingreso) 
                      FROM ingreso i 
@@ -1268,7 +1281,7 @@ function MostrarIngresosFecha($fecha_inicio = null, $fecha_fin = null)
             INNER JOIN moneda mon ON c.id_moneda = mon.id_moneda
             LEFT JOIN {$bd_complemento}.personal pe1 ON c.id_personal = pe1.id_personal
             LEFT JOIN {$bd_complemento}.personal pe3 ON c.id_personal_aprueba_financiera = pe3.id_personal
-            --  NECESARIO para aplicar el filtro de fecha de ingreso
+            --  LEFT JOIN para aplicar el filtro de fecha
             LEFT JOIN ingreso i ON c.id_compra = i.id_compra AND i.est_ingreso = 1
             WHERE c.est_compra IN (1, 2, 3, 4)
             AND c.id_personal_aprueba_financiera IS NOT NULL
