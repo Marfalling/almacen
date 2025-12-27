@@ -924,7 +924,7 @@ function ConsultarSalida($id_salida)
                 pe.nom_personal as nom_encargado,
                 prec.nom_personal as nom_recibe,
                 
-                /*  AGREGAR CENTROS DE COSTO */
+                -- 🔹 CENTROS DE COSTO DEL PERSONAL
                 area_reg.nom_area as nom_centro_costo_registrador,
                 area_enc.nom_area as nom_centro_costo_encargado,
                 area_rec.nom_area as nom_centro_costo_recibe,
@@ -939,7 +939,7 @@ function ConsultarSalida($id_salida)
              INNER JOIN ubicacion ud ON s.id_ubicacion_destino = ud.id_ubicacion
              INNER JOIN {$bd_complemento}.personal pr ON s.id_personal = pr.id_personal
              
-             /*  JOIN CENTROS DE COSTO */
+             -- 🔹 JOIN PARA CENTROS DE COSTO
              LEFT JOIN {$bd_complemento}.area area_reg ON s.id_registrador_centro_costo = area_reg.id_area
              LEFT JOIN {$bd_complemento}.area area_enc ON s.id_encargado_centro_costo = area_enc.id_area
              LEFT JOIN {$bd_complemento}.area area_rec ON s.id_recibe_centro_costo = area_rec.id_area
@@ -976,6 +976,7 @@ function ConsultarSalidaDetalle($id_salida)
                 p.nom_producto,
                 p.cod_material,
                 um.nom_unidad_medida,
+                um.cod_unidad_medida,
                 pd.id_pedido_detalle,
                 pd.cant_pedido_detalle,
                 pd.cant_os_pedido_detalle,
@@ -3939,7 +3940,8 @@ function EnviarCorreoSalidaRecepcionada($id_salida)
 /**
  * ✅ NUEVA FUNCIÓN: Obtener centros de costo de un detalle de salida
  */
-function ObtenerCentrosCostoPorDetalleSalidaCompleto($id_salida_detalle) {
+function ObtenerCentrosCostoPorDetalleSalidaCompleto($id_salida_detalle) 
+{
     include("../_conexion/conexion.php");
     
     $id_salida_detalle = intval($id_salida_detalle);
@@ -3961,7 +3963,59 @@ function ObtenerCentrosCostoPorDetalleSalidaCompleto($id_salida_detalle) {
     mysqli_close($con);
     return $centros;
 }
-function ObtenerCentrosCostoPorDetalleSalida($id_salida_detalle) {
+function ConsultarSalidaDetalleConCentros($id_salida)
+{
+    include("../_conexion/conexion.php");
+
+$sqlc = "SELECT sd.*, 
+                p.nom_producto,
+                p.cod_material,
+                um.nom_unidad_medida,
+                um.cod_unidad_medida,
+                pd.id_pedido_detalle,
+                pd.cant_pedido_detalle,
+                pd.cant_os_pedido_detalle,
+                
+                -- CÁLCULO CORRECTO DE CANTIDAD MÁXIMA
+                COALESCE(pd.cant_os_pedido_detalle, 0) - COALESCE(
+                    (SELECT SUM(sd2.cant_salida_detalle)
+                     FROM salida_detalle sd2
+                     INNER JOIN salida s2 ON sd2.id_salida = s2.id_salida
+                     WHERE sd2.id_pedido_detalle = pd.id_pedido_detalle
+                     AND s2.est_salida = 1
+                     AND s2.id_salida != $id_salida
+                     AND sd2.est_salida_detalle = 1
+                    ), 0
+                ) + sd.cant_salida_detalle AS cantidad_maxima
+                
+             FROM salida_detalle sd 
+             INNER JOIN producto p ON sd.id_producto = p.id_producto
+             INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+             LEFT JOIN pedido_detalle pd ON sd.id_pedido_detalle = pd.id_pedido_detalle
+             WHERE sd.id_salida = $id_salida AND sd.est_salida_detalle = 1
+             ORDER BY sd.id_salida_detalle";
+             
+    $resc = mysqli_query($con, $sqlc);
+    
+    if (!$resc) {
+        error_log("❌ Error en ConsultarSalidaDetalleConCentros: " . mysqli_error($con));
+        mysqli_close($con);
+        return array();
+    }
+    
+    $resultado = array();
+
+    // 🔹 CARGAR CENTROS DE COSTO POR MATERIAL
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        $rowc['centros_costo'] = ObtenerCentrosCostoPorDetalleSalidaCompleto($rowc['id_salida_detalle']);
+        $resultado[] = $rowc;
+    }
+
+    mysqli_close($con);
+    return $resultado;
+}
+function ObtenerCentrosCostoPorDetalleSalida($id_salida_detalle) 
+{
     include("../_conexion/conexion.php");
     
     $id_salida_detalle = intval($id_salida_detalle);

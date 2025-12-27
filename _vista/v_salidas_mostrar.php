@@ -649,7 +649,6 @@ function AnularSalida(id_salida) {
     </div>
 </div>
 <!-- /page content -->
-
 <!-- Modales para ver detalle de cada salida -->
 <?php 
 foreach($salidas as $salida) { 
@@ -662,273 +661,359 @@ foreach($salidas as $salida) {
         $salida_info = $salida_data[0];
 ?>
 <div class="modal fade" id="modalDetalleSalida<?php echo $salida['id_salida']; ?>" tabindex="-1" role="dialog" aria-labelledby="modalDetalleSalidaLabel<?php echo $salida['id_salida']; ?>" aria-hidden="true">
-    <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header" style="background-color: #f8f9fa; padding: 15px;">
                 <h5 class="modal-title" id="modalDetalleSalidaLabel<?php echo $salida['id_salida']; ?>">
-                    Detalle de Salida <?php echo $salida_info['ndoc_salida']; ?>
+                    <i class="fa fa-file-text-o text-primary"></i> 
+                    Detalle de Salida - <?php echo $salida_info['ndoc_salida']; ?>
                 </h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
+                <!-- INFORMACIÓN GENERAL -->
                 <div class="row">
                     <div class="col-md-12">
-                        <h5><strong>Información General</strong></h5>
-                        <table class="table table-bordered">
-                            <tr>
-                                <!-- <td><strong>Nº Documento:</strong></td>
-                                <td><?php echo $salida_info['ndoc_salida']; ?></td>
-                                -->
-                                <td><strong>Fecha de Traslado:</strong></td>
-                                <td><?php echo date('d/m/Y H:i', strtotime($salida_info['fec_salida'])); ?></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Tipo de Material:</strong></td>
-                                <td><?php echo $salida_info['nom_material_tipo']; ?></td>
-                                <td><strong>Fecha Requerida:</strong></td>
-                                <td><?php echo date('d/m/Y', strtotime($salida_info['fec_req_salida'])); ?></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Almacén Origen:</strong></td>
-                                <td><?php echo $salida_info['nom_almacen_origen'] . ' (' . $salida_info['nom_ubicacion_origen'] . ')'; ?></td>
-                                <td><strong>Almacén Destino:</strong></td>
-                                <td><?php echo $salida_info['nom_almacen_destino'] . ' (' . $salida_info['nom_ubicacion_destino'] . ')'; ?></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Registrado por:</strong></td>
-                                <td><?php echo $salida_info['nom_personal']; ?></td>
-                                <td><strong>Personal Encargado:</strong></td>
-                                <td><?php echo ($salida_info['nom_encargado'] ? $salida_info['nom_encargado'] : 'No especificado'); ?></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Personal que Recibe:</strong></td>
-                                <td><?php echo ($salida_info['nom_recibe'] ? $salida_info['nom_recibe'] : 'No especificado'); ?></td>
-                                <td><strong>Recepcionado por:</strong></td>
-                                <td>
-                                    <?php 
-                                    //  Si está DENEGADA (estado 4), mostrar guion
-                                    if ($salida_info['est_salida'] == 4) {
-                                        echo '-';
-                                    } elseif (!empty($salida_info['id_personal_recepciona_salida'])) {
-                                        echo $salida_info['nom_recepciona'];
-                                        if (!empty($salida_info['fec_recepciona_salida'])) {
-                                            echo '<br><small class="text-muted">' . date('d/m/Y H:i', strtotime($salida_info['fec_recepciona_salida'])) . '</small>';
-                                        }
-                                    } else {
-                                        echo '<span class="badge badge-warning">Pendiente</span>';
-                                    }
-                                    ?>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong>Centro de Costo (Registrador):</strong></td>
-                                <td>
-                                    <span class="badge badge-primary badge_size">
-                                        <?php echo !empty($salida_info['nom_centro_costo_registrador']) 
-                                                ? $salida_info['nom_centro_costo_registrador'] 
-                                                : 'Sin asignar'; ?>
-                                    </span>
-                                </td>
-                                <td><strong>Centro de Costo (Encargado):</strong></td>
-                                <td>
-                                    <span class="badge badge-info badge_size">
-                                        <?php echo !empty($salida_info['nom_centro_costo_encargado']) 
-                                                ? $salida_info['nom_centro_costo_encargado'] 
-                                                : 'Sin asignar'; ?>
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong>Centro de Costo (Receptor):</strong></td>
-                                <td colspan="3">
-                                    <span class="badge badge-success badge_size">
-                                        <?php echo !empty($salida_info['nom_centro_costo_recibe']) 
-                                                ? $salida_info['nom_centro_costo_recibe'] 
-                                                : 'Sin asignar'; ?>
-                                    </span>
-                                </td>
-                            </tr>
-                            <?php if (!empty($salida_info['obs_salida'])) { ?>
-                            <tr>
-                                <td><strong>Observaciones:</strong></td>
-                                <td colspan="3">
-                                    <?php 
-                                    if ($salida_info['est_salida'] == 4 && trim($salida_info['obs_salida']) == '-') {
-                                        echo '-';
-                                    } else {
-                                        echo $salida_info['obs_salida'];
-                                    }
-                                    ?>
-                                </td>
-                            </tr>
-                            <?php } ?>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="row mt-3">
-                    <div class="col-md-12">
-                        <h5><strong>Detalles del Traslado</strong></h5>
-                        <?php if (!empty($salida_detalle)) { ?>
-                            <table class="table table-striped table-bordered">
-                                <thead class="thead-dark">
-                                    <tr>
-                                        <th style="width: 5%;">#</th>
-                                        <th style="width: 10%;">Código</th>
-                                        <th style="width: 30%;">Producto/Material</th>
-                                        <th style="width: 10%;">Cantidad</th>
-                                        <th style="width: 10%;">Unidad</th>
-                                        <th style="width: 35%;">Centro(s) de Costo</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php 
-                                    $contador_detalle = 1;
-                                    foreach ($salida_detalle as $detalle) { 
-                                        // 🔹 CONSTRUIR HTML DE CENTROS DE COSTO CON MODAL
-                                        $centrosCostoHtml = '<small class="text-muted">Sin asignar</small>';
-                                        
-                                        if (!empty($detalle['centros_costo']) && is_array($detalle['centros_costo'])) {
-                                            $totalCentros = count($detalle['centros_costo']);
-                                            $modalId = "modalCentrosCostoSalida{$salida['id_salida']}_{$contador_detalle}";
-                                            
-                                            if ($totalCentros === 1) {
-                                                // Si solo hay 1 centro, mostrarlo directamente
-                                                $centrosCostoHtml = '<span class="badge badge-info badge_size" style="font-size: 11px;">' 
-                                                    . htmlspecialchars($detalle['centros_costo'][0]['nom_centro_costo']) 
-                                                    . '</span>';
-                                            } else {
-                                                // Si hay múltiples centros, usar modal
-                                                $listaCentros = '';
-                                                foreach ($detalle['centros_costo'] as $idx => $cc) {
-                                                    $listaCentros .= '<div style="padding: 8px; margin-bottom: 6px; background-color: #f8f9fa; border-left: 3px solid #17a2b8; border-radius: 4px;">';
-                                                    $listaCentros .= '<strong style="color: #17a2b8;">' . ($idx + 1) . '.</strong> ';
-                                                    $listaCentros .= htmlspecialchars($cc['nom_centro_costo']);
-                                                    $listaCentros .= '</div>';
-                                                }
-                                                
-                                                $nombre_producto = !empty($detalle['nom_producto']) 
-                                                    ? $detalle['nom_producto'] 
-                                                    : (!empty($detalle['prod_salida_detalle']) 
-                                                        ? $detalle['prod_salida_detalle'] 
-                                                        : 'Producto ID ' . $detalle['id_producto']);
-                                                
-                                                $centrosCostoHtml = '
-                                                    <button class="btn btn-sm btn-info" 
-                                                            type="button" 
-                                                            data-toggle="modal"
-                                                            data-target="#' . $modalId . '"
-                                                            style="font-size: 11px; padding: 3px 10px;">
-                                                        <i class="fa fa-eye"></i> Ver ' . $totalCentros . ' centros
-                                                    </button>
-                                                    
-                                                    <!-- Modal para centros de costo -->
-                                                    <div class="modal fade" id="' . $modalId . '" tabindex="-1" role="dialog" data-backdrop="static">
-                                                        <div class="modal-dialog modal-dialog-centered">
-                                                            <div class="modal-content">
-                                                                <div class="modal-header" style="background-color: #17a2b8; color: white; padding: 12px 20px;">
-                                                                    <h6 class="modal-title mb-0">
-                                                                        <i class="fa fa-building"></i> 
-                                                                        Centros de Costo Asignados
-                                                                    </h6>
-                                                                    <button type="button" class="close" data-dismiss="modal" style="color: white; opacity: 0.8;">
-                                                                        <span>&times;</span>
-                                                                    </button>
-                                                                </div>
-                                                                <div class="modal-body" style="padding: 20px;">
-                                                                    <div style="margin-bottom: 15px; padding: 10px; background-color: #e7f3ff; border-radius: 4px; border-left: 4px solid #17a2b8;">
-                                                                        <strong>Producto:</strong> ' . htmlspecialchars($nombre_producto) . '
-                                                                    </div>
-                                                                    <div style="max-height: 400px; overflow-y: auto;">
-                                                                        ' . $listaCentros . '
-                                                                    </div>
-                                                                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6; text-align: center;">
-                                                                        <span class="badge badge-info" style="font-size: 12px; padding: 6px 12px;">
-                                                                            Total: ' . $totalCentros . ' centro(s) de costo
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="modal-footer" style="padding: 10px 20px;">
-                                                                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">
-                                                                        <i class="fa fa-times"></i> Cerrar
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>';
-                                            }
-                                        }
-                                        
-                                        $nombre_producto = !empty($detalle['nom_producto']) 
-                                            ? $detalle['nom_producto'] 
-                                            : (!empty($detalle['prod_salida_detalle']) 
-                                                ? $detalle['prod_salida_detalle'] 
-                                                : 'Producto ID ' . $detalle['id_producto']);
-                                    ?>
-                                        <tr>
-                                            <td><?php echo $contador_detalle; ?></td>
-                                            <td><?php echo htmlspecialchars($detalle['cod_material'] ?? 'N/A'); ?></td>
-                                            <td><?php echo htmlspecialchars($nombre_producto); ?></td>
-                                            <td class="text-center"><?php echo number_format($detalle['cant_salida_detalle'], 2); ?></td>
-                                            <td><?php echo htmlspecialchars($detalle['nom_unidad_medida']); ?></td>
-                                            <td><?php echo $centrosCostoHtml; ?></td>
-                                        </tr>
-                                    <?php 
-                                        $contador_detalle++;
-                                    } 
-                                    ?>
-                                </tbody>
-                            </table>
-                        <?php } else { ?>
-                            <div class="alert alert-info">
-                                <i class="fa fa-info-circle"></i> No hay detalles disponibles para esta salida.
+                        <div class="card mb-3">
+                            <div class="card-header" style="background-color: #e3f2fd; padding: 10px 15px;">
+                                <h6 class="mb-0">
+                                    <i class="fa fa-info-circle text-primary"></i> 
+                                    Información General
+                                </h6>
                             </div>
-                        <?php } ?>
-                    </div>
-                </div>
-
-                <div class="row mt-3">
-                    <div class="col-md-12">
-                        <h5><strong>Documentos Adjuntos</strong></h5>
-                        <?php if (!empty($salida_docs)) { ?>
-                            <table class="table table-striped table-bordered">
-                                <thead class="thead-dark">
+                            <div class="card-body" style="padding: 15px;">
+                                <table class="table table-bordered" style="font-size: 13px; margin-bottom: 0;">
                                     <tr>
-                                        <th>#</th>
-                                        <th>Nombre del Documento</th>
-                                        <th>Fecha de Subida</th>
-                                        <th>Acción</th>
+                                        <td style="width: 25%;"><strong>Fecha de Traslado:</strong></td>
+                                        <td style="width: 25%;"><?php echo date('d/m/Y H:i', strtotime($salida_info['fec_salida'])); ?></td>
+                                        <td style="width: 25%;"><strong>Fecha Requerida:</strong></td>
+                                        <td style="width: 25%;"><?php echo date('d/m/Y', strtotime($salida_info['fec_req_salida'])); ?></td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    <?php $i = 1; foreach ($salida_docs as $doc) { ?>
                                     <tr>
-                                        <td><?= $i++; ?></td>
-                                        <td><?= htmlspecialchars($doc['documento']); ?></td>
-                                        <td><?= date('d/m/Y H:i', strtotime($doc['fec_subida'])); ?></td>
+                                        <td><strong>Tipo de Material:</strong></td>
+                                        <td><?php echo $salida_info['nom_material_tipo']; ?></td>
+                                        <td><strong>Registrado por:</strong></td>
+                                        <td><?php echo $salida_info['nom_personal']; ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Almacén Origen:</strong></td>
+                                        <td><?php echo $salida_info['nom_almacen_origen']; ?></td>
+                                        <td><strong>Ubicación Origen:</strong></td>
+                                        <td><?php echo $salida_info['nom_ubicacion_origen']; ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Almacén Destino:</strong></td>
+                                        <td><?php echo $salida_info['nom_almacen_destino']; ?></td>
+                                        <td><strong>Ubicación Destino:</strong></td>
+                                        <td><?php echo $salida_info['nom_ubicacion_destino']; ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Personal Encargado:</strong></td>
+                                        <td><?php echo ($salida_info['nom_encargado'] ? $salida_info['nom_encargado'] : 'No especificado'); ?></td>
+                                        <td><strong>Personal que Recibe:</strong></td>
+                                        <td><?php echo ($salida_info['nom_recibe'] ? $salida_info['nom_recibe'] : 'No especificado'); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Centro de Costo (Registrador):</strong></td>
                                         <td>
-                                            <a href="../uploads/salidas/<?= urlencode($doc['documento']); ?>" 
-                                               target="_blank" 
-                                               class="btn btn-sm btn-outline-info">
-                                                <i class="fa fa-download"></i> Ver / Descargar
-                                            </a>
+                                            <span class="badge badge-primary badge_size" style="font-size: 11px;">
+                                                <?php echo !empty($salida_info['nom_centro_costo_registrador']) 
+                                                        ? $salida_info['nom_centro_costo_registrador'] 
+                                                        : 'Sin asignar'; ?>
+                                            </span>
+                                        </td>
+                                        <td><strong>Centro de Costo (Encargado):</strong></td>
+                                        <td>
+                                            <span class="badge badge-info badge_size" style="font-size: 11px;">
+                                                <?php echo !empty($salida_info['nom_centro_costo_encargado']) 
+                                                        ? $salida_info['nom_centro_costo_encargado'] 
+                                                        : 'Sin asignar'; ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Centro de Costo (Receptor):</strong></td>
+                                        <td colspan="3">
+                                            <span class="badge badge-success badge_size" style="font-size: 11px;">
+                                                <?php echo !empty($salida_info['nom_centro_costo_recibe']) 
+                                                        ? $salida_info['nom_centro_costo_recibe'] 
+                                                        : 'Sin asignar'; ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <?php if (!empty($salida_info['obs_salida'])) { ?>
+                                    <tr>
+                                        <td><strong>Observaciones:</strong></td>
+                                        <td colspan="3">
+                                            <?php 
+                                            if ($salida_info['est_salida'] == 4 && trim($salida_info['obs_salida']) == '-') {
+                                                echo '-';
+                                            } else {
+                                                echo $salida_info['obs_salida'];
+                                            }
+                                            ?>
                                         </td>
                                     </tr>
                                     <?php } ?>
-                                </tbody>
-                            </table>
-                        <?php } else { ?>
-                            <div class="alert alert-secondary mb-0">
-                                <i class="fa fa-info-circle"></i> No hay documentos adjuntos para esta salida.
+                                </table>
                             </div>
-                        <?php } ?>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- APROBACIÓN Y RECEPCIÓN -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card mb-3">
+                            <div class="card-header" style="background-color: #e8f5e8; padding: 10px 15px;">
+                                <h6 class="mb-0">
+                                    <i class="fa fa-check-circle text-success"></i> 
+                                    Aprobación y Recepción
+                                </h6>
+                            </div>
+                            <div class="card-body" style="padding: 15px;">
+                                <table class="table table-bordered" style="font-size: 13px; margin-bottom: 0;">
+                                    <tr>
+                                        <td style="width: 25%;"><strong>Aprobado por:</strong></td>
+                                        <td style="width: 25%;">
+                                            <?php 
+                                            if (!empty($salida_info['id_personal_aprueba_salida'])) {
+                                                echo $salida_info['nom_aprueba'];
+                                            } else {
+                                                echo '<span class="text-muted">Pendiente</span>';
+                                            }
+                                            ?>
+                                        </td>
+                                        <td style="width: 25%;"><strong>Fecha de Aprobación:</strong></td>
+                                        <td style="width: 25%;">
+                                            <?php 
+                                            if (!empty($salida_info['fec_aprueba_salida'])) {
+                                                echo date('d/m/Y H:i', strtotime($salida_info['fec_aprueba_salida']));
+                                            } else {
+                                                echo '<span class="text-muted">-</span>';
+                                            }
+                                            ?>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Recepcionado por:</strong></td>
+                                        <td>
+                                            <?php 
+                                            if ($salida_info['est_salida'] == 4) {
+                                                echo '-';
+                                            } elseif (!empty($salida_info['id_personal_recepciona_salida'])) {
+                                                echo $salida_info['nom_recepciona'];
+                                            } else {
+                                                echo '<span class="text-muted">Pendiente</span>';
+                                            }
+                                            ?>
+                                        </td>
+                                        <td><strong>Fecha de Recepción:</strong></td>
+                                        <td>
+                                            <?php 
+                                            if ($salida_info['est_salida'] == 4) {
+                                                echo '-';
+                                            } elseif (!empty($salida_info['fec_recepciona_salida'])) {
+                                                echo date('d/m/Y H:i', strtotime($salida_info['fec_recepciona_salida']));
+                                            } else {
+                                                echo '<span class="text-muted">-</span>';
+                                            }
+                                            ?>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DETALLES DEL TRASLADO -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card mb-3">
+                            <div class="card-header" style="background-color: #fff3cd; padding: 10px 15px;">
+                                <h6 class="mb-0">
+                                    <i class="fa fa-list-alt text-warning"></i> 
+                                    Detalles del Traslado
+                                </h6>
+                            </div>
+                            <div class="card-body" style="padding: 15px;">
+                                <?php if (!empty($salida_detalle)) { ?>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-sm" style="font-size: 12px;">
+                                            <thead style="background-color: #f8f9fa;">
+                                                <tr>
+                                                    <th style="width: 5%;">#</th>
+                                                    <th style="width: 10%;">Código</th>
+                                                    <th style="width: 30%;">Producto/Material</th>
+                                                    <th style="width: 10%;">Cantidad</th>
+                                                    <th style="width: 10%;">Unidad</th>
+                                                    <th style="width: 35%;">Centro(s) de Costo</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php 
+                                                $contador_detalle = 1;
+                                                foreach ($salida_detalle as $detalle) { 
+                                                    // 🔹 CONSTRUIR HTML DE CENTROS DE COSTO CON MODAL
+                                                    $centrosCostoHtml = '<small class="text-muted">Sin asignar</small>';
+                                                    
+                                                    if (!empty($detalle['centros_costo']) && is_array($detalle['centros_costo'])) {
+                                                        $totalCentros = count($detalle['centros_costo']);
+                                                        $modalId = "modalCentrosCostoSalida{$salida['id_salida']}_{$contador_detalle}";
+                                                        
+                                                        if ($totalCentros === 1) {
+                                                            $centrosCostoHtml = '<span class="badge badge-info badge_size" style="font-size: 11px;">' 
+                                                                . htmlspecialchars($detalle['centros_costo'][0]['nom_centro_costo']) 
+                                                                . '</span>';
+                                                        } else {
+                                                            $listaCentros = '';
+                                                            foreach ($detalle['centros_costo'] as $idx => $cc) {
+                                                                $listaCentros .= '<div style="padding: 8px; margin-bottom: 6px; background-color: #f8f9fa; border-left: 3px solid #17a2b8; border-radius: 4px;">';
+                                                                $listaCentros .= '<strong style="color: #17a2b8;">' . ($idx + 1) . '.</strong> ';
+                                                                $listaCentros .= htmlspecialchars($cc['nom_centro_costo']);
+                                                                $listaCentros .= '</div>';
+                                                            }
+                                                            
+                                                            $nombre_producto = !empty($detalle['nom_producto']) 
+                                                                ? $detalle['nom_producto'] 
+                                                                : (!empty($detalle['prod_salida_detalle']) 
+                                                                    ? $detalle['prod_salida_detalle'] 
+                                                                    : 'Producto ID ' . $detalle['id_producto']);
+                                                            
+                                                            $centrosCostoHtml = '
+                                                                <button class="btn btn-sm btn-info btn-ver-centros-salida" 
+                                                                        type="button" 
+                                                                        data-modal-id="' . $modalId . '"
+                                                                        style="font-size: 11px; padding: 3px 10px;">
+                                                                    <i class="fa fa-eye"></i> Ver ' . $totalCentros . ' centros
+                                                                </button>
+                                                                
+                                                                <!-- Modal para centros de costo -->
+                                                                <div class="modal fade" id="' . $modalId . '" tabindex="-1" role="dialog" data-backdrop="static">
+                                                                    <div class="modal-dialog modal-dialog-centered">
+                                                                        <div class="modal-content">
+                                                                            <div class="modal-header" style="background-color: #17a2b8; color: white; padding: 12px 20px;">
+                                                                                <h6 class="modal-title mb-0">
+                                                                                    <i class="fa fa-building"></i> 
+                                                                                    Centros de Costo Asignados
+                                                                                </h6>
+                                                                                <button type="button" class="close close-centros-modal-salida" data-modal-id="' . $modalId . '" style="color: white; opacity: 0.8;">
+                                                                                    <span>&times;</span>
+                                                                                </button>
+                                                                            </div>
+                                                                            <div class="modal-body" style="padding: 20px;">
+                                                                                <div style="margin-bottom: 15px; padding: 10px; background-color: #e7f3ff; border-radius: 4px; border-left: 4px solid #17a2b8;">
+                                                                                    <strong>Producto:</strong> ' . htmlspecialchars($nombre_producto) . '
+                                                                                </div>
+                                                                                <div style="max-height: 400px; overflow-y: auto;">
+                                                                                    ' . $listaCentros . '
+                                                                                </div>
+                                                                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6; text-align: center;">
+                                                                                    <span class="badge badge-info" style="font-size: 12px; padding: 6px 12px;">
+                                                                                        Total: ' . $totalCentros . ' centro(s) de costo
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div class="modal-footer" style="padding: 10px 20px;">
+                                                                                <button type="button" class="btn btn-secondary btn-sm close-centros-modal-salida" data-modal-id="' . $modalId . '">
+                                                                                    <i class="fa fa-times"></i> Cerrar
+                                                                                </button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>';
+                                                        }
+                                                    }
+                                                    
+                                                    $nombre_producto = !empty($detalle['nom_producto']) 
+                                                        ? $detalle['nom_producto'] 
+                                                        : (!empty($detalle['prod_salida_detalle']) 
+                                                            ? $detalle['prod_salida_detalle'] 
+                                                            : 'Producto ID ' . $detalle['id_producto']);
+                                                ?>
+                                                    <tr>
+                                                        <td style="font-weight: bold;"><?php echo $contador_detalle; ?></td>
+                                                        <td><?php echo htmlspecialchars($detalle['cod_material'] ?? 'N/A'); ?></td>
+                                                        <td><?php echo htmlspecialchars($nombre_producto); ?></td>
+                                                        <td class="text-center"><?php echo number_format($detalle['cant_salida_detalle'], 2); ?></td>
+                                                        <td><?php echo htmlspecialchars($detalle['nom_unidad_medida']); ?></td>
+                                                        <td><?php echo $centrosCostoHtml; ?></td>
+                                                    </tr>
+                                                <?php 
+                                                    $contador_detalle++;
+                                                } 
+                                                ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                <?php } else { ?>
+                                    <div class="alert alert-info">
+                                        <i class="fa fa-info-circle"></i> No hay detalles disponibles para esta salida.
+                                    </div>
+                                <?php } ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DOCUMENTOS ADJUNTOS -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header" style="background-color: #f0f0f0; padding: 10px 15px;">
+                                <h6 class="mb-0">
+                                    <i class="fa fa-paperclip text-secondary"></i> 
+                                    Documentos Adjuntos
+                                </h6>
+                            </div>
+                            <div class="card-body" style="padding: 15px;">
+                                <?php if (!empty($salida_docs)) { ?>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-sm" style="font-size: 12px;">
+                                            <thead style="background-color: #f8f9fa;">
+                                                <tr>
+                                                    <th style="width: 5%;">#</th>
+                                                    <th style="width: 60%;">Nombre del Documento</th>
+                                                    <th style="width: 20%;">Fecha de Subida</th>
+                                                    <th style="width: 15%;">Acción</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php $i = 1; foreach ($salida_docs as $doc) { ?>
+                                                <tr>
+                                                    <td style="font-weight: bold;"><?= $i++; ?></td>
+                                                    <td><?= htmlspecialchars($doc['documento']); ?></td>
+                                                    <td><?= date('d/m/Y H:i', strtotime($doc['fec_subida'])); ?></td>
+                                                    <td>
+                                                        <a href="../uploads/salidas/<?= urlencode($doc['documento']); ?>" 
+                                                           target="_blank" 
+                                                           class="btn btn-sm btn-outline-info"
+                                                           style="font-size: 11px; padding: 3px 10px;">
+                                                            <i class="fa fa-download"></i> Ver
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                                <?php } ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                <?php } else { ?>
+                                    <div class="alert alert-secondary mb-0">
+                                        <i class="fa fa-info-circle"></i> No hay documentos adjuntos para esta salida.
+                                    </div>
+                                <?php } ?>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            <div class="modal-footer" style="padding: 15px;">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fa fa-times"></i> Cerrar
+                </button>
                 <?php 
                 $puede_editar_modal = ($salida['est_salida'] == 1 && empty($salida_info['id_personal_aprueba_salida']));
                 
@@ -943,6 +1028,12 @@ foreach($salidas as $salida) {
                     <a href="salidas_editar.php?id=<?php echo $salida['id_salida']; ?>" class="btn btn-warning">
                         <i class="fa fa-edit"></i> Editar Salida
                     </a>
+                <?php } else { ?>
+                    <a href="#" class="btn btn-outline-secondary disabled" 
+                    title="No se puede editar - Salida en proceso" 
+                    tabindex="-1" aria-disabled="true">
+                        <i class="fa fa-edit"></i> No se puede editar
+                    </a>
                 <?php } ?>
             </div>
         </div>
@@ -952,3 +1043,81 @@ foreach($salidas as $salida) {
     }
 } 
 ?>
+
+<script>
+// 🔹 CONFIGURAR EVENTOS PARA MODALES ANIDADOS EN SALIDAS
+(function() {
+    'use strict';
+    
+    function esperarLibrerias(callback) {
+        if (typeof jQuery !== 'undefined' && typeof jQuery.fn.modal !== 'undefined') {
+            callback();
+        } else {
+            setTimeout(function() { esperarLibrerias(callback); }, 100);
+        }
+    }
+    
+    esperarLibrerias(function() {
+        console.log('🟢 Inicializando eventos de modales de salidas');
+        configurarEventosModalesSalidas();
+    });
+    
+    function configurarEventosModalesSalidas() {
+        // Abrir modal de centros de costo
+        jQuery(document).off('click', '.btn-ver-centros-salida').on('click', '.btn-ver-centros-salida', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const modalId = jQuery(this).data('modal-id');
+            abrirModalHijoSalida(modalId);
+        });
+        
+        // Cerrar modal de centros de costo
+        jQuery(document).off('click', '.close-centros-modal-salida').on('click', '.close-centros-modal-salida', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const modalId = jQuery(this).data('modal-id');
+            cerrarModalHijoSalida(modalId);
+        });
+        
+        function abrirModalHijoSalida(modalId) {
+            const $modalHijo = jQuery('#' + modalId);
+            
+            if ($modalHijo.length) {
+                const $modalPadreAlt = jQuery('.modal.show').last();
+                if ($modalPadreAlt.length) {
+                    const modalPadreId = $modalPadreAlt.attr('id');
+                    $modalHijo.data('modal-padre-id', modalPadreId);
+                }
+                
+                $modalHijo.modal({
+                    backdrop: 'static',
+                    keyboard: false,
+                    show: true
+                });
+            }
+        }
+        
+        function cerrarModalHijoSalida(modalId) {
+            const $modalHijo = jQuery('#' + modalId);
+            
+            if ($modalHijo.length) {
+                const modalPadreId = $modalHijo.data('modal-padre-id');
+                $modalHijo.modal('hide');
+                
+                $modalHijo.one('hidden.bs.modal', function() {
+                    if (modalPadreId) {
+                        const $modalPadre = jQuery('#' + modalPadreId);
+                        if ($modalPadre.length) {
+                            setTimeout(function() {
+                                $modalPadre.modal('show');
+                            }, 100);
+                        }
+                    }
+                });
+            }
+        }
+    }
+})();
+</script>

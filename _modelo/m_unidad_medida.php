@@ -17,10 +17,19 @@ function MostrarUnidadMedida() {
 }
 
 //-----------------------------------------------------------------------
-function GrabarUnidadMedida($nom, $est) {
+function GrabarUnidadMedida($cod, $nom, $est) {
     include("../_conexion/conexion.php");
     
-    // Verificar si ya existe
+    // Verificar si ya existe el código
+    $sqlv_cod = "SELECT * FROM unidad_medida WHERE cod_unidad_medida = '$cod'";
+    $resv_cod = mysqli_query($con, $sqlv_cod);
+    
+    if (mysqli_num_rows($resv_cod) > 0) {
+        mysqli_close($con);
+        return "CODIGO_EXISTE"; // El código ya existe
+    }
+    
+    // Verificar si ya existe el nombre
     $sqlv = "SELECT * FROM unidad_medida WHERE nom_unidad_medida = '$nom'";
     $resv = mysqli_query($con, $sqlv);
     
@@ -30,7 +39,8 @@ function GrabarUnidadMedida($nom, $est) {
     }
     
     // Insertar nuevo registro
-    $sqli = "INSERT INTO unidad_medida (nom_unidad_medida, est_unidad_medida) VALUES ('$nom', $est)";
+    $sqli = "INSERT INTO unidad_medida (cod_unidad_medida, nom_unidad_medida, est_unidad_medida) 
+             VALUES ('$cod', '$nom', $est)";
     $resi = mysqli_query($con, $sqli);
     
     mysqli_close($con);
@@ -38,7 +48,7 @@ function GrabarUnidadMedida($nom, $est) {
     if ($resi) {
         return "SI";
     } else {
-        return "NO";
+        return "ERROR";
     }
 }
 
@@ -73,12 +83,24 @@ function ObtenerUnidadMedida($id)
 }
 
 //-----------------------------------------------------------------------
-function ActualizarUnidadMedida($id, $nom, $est)
+function ActualizarUnidadMedida($id, $cod, $nom, $est)
 {
     include("../_conexion/conexion.php");
     
+    // Verificar si ya existe otro código con el mismo valor
+    $sql_verificar_cod = "SELECT COUNT(*) as total FROM unidad_medida 
+                          WHERE cod_unidad_medida = '$cod' AND id_unidad_medida != $id";
+    $resultado_verificar_cod = mysqli_query($con, $sql_verificar_cod);
+    $fila_cod = mysqli_fetch_assoc($resultado_verificar_cod);
+    
+    if ($fila_cod['total'] > 0) {
+        mysqli_close($con);
+        return "CODIGO_EXISTE"; // Ya existe otro con el mismo código
+    }
+    
     // Verificar si ya existe otra unidad de medida con el mismo nombre
-    $sql_verificar = "SELECT COUNT(*) as total FROM unidad_medida WHERE nom_unidad_medida = '$nom' AND id_unidad_medida != $id";
+    $sql_verificar = "SELECT COUNT(*) as total FROM unidad_medida 
+                      WHERE nom_unidad_medida = '$nom' AND id_unidad_medida != $id";
     $resultado_verificar = mysqli_query($con, $sql_verificar);
     $fila = mysqli_fetch_assoc($resultado_verificar);
     
@@ -89,6 +111,7 @@ function ActualizarUnidadMedida($id, $nom, $est)
     
     // Actualizar unidad de medida
     $sql = "UPDATE unidad_medida SET 
+            cod_unidad_medida = '$cod',
             nom_unidad_medida = '$nom', 
             est_unidad_medida = $est 
             WHERE id_unidad_medida = $id";

@@ -1,6 +1,6 @@
 <?php
 //=======================================================================
-// VISTA: v_ingresos_detalle_directo.php - MEJORADA PARA IMPRESIÓN
+// VISTA: v_ingresos_detalle_directo.php - CON MODALES PARA CENTROS DE COSTO
 //=======================================================================
 ?>
 <!-- page content -->
@@ -195,13 +195,13 @@
                                                     <tr>
                                                         <th style="width: 4%;">#</th>
                                                         <th style="width: 12%;">Código</th>
-                                                        <th style="width: 25%;">Producto</th>
+                                                        <th style="width: 20%;">Producto</th>
                                                         <th style="width: 12%;">Tipo</th>
                                                         <th style="width: 8%;">Marca</th>
                                                         <th style="width: 8%;">Modelo</th>
                                                         <th style="width: 7%;">Unidad</th>
                                                         <th style="width: 10%;">Cantidad</th>
-                                                        <th style="width: 14%;">Centro(s) de Costo</th> <!-- 🔹 NUEVA COLUMNA -->
+                                                        <th style="width: 19%;">Centro(s) de Costo</th> 
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -227,16 +227,72 @@
                                                                     </span>
                                                                 <?php endif; ?>
                                                             </td>
-                                                            <!-- CENTROS DE COSTO -->
+                                                            
+                                                            <!-- 🔹 CENTROS DE COSTO CON MODAL -->
                                                             <td>
                                                                 <?php 
                                                                 if (!empty($producto['centros_costo'])) { 
-                                                                    foreach ($producto['centros_costo'] as $centro) { ?>
-                                                                        <span class="badge badge-info badge_size mb-1 d-block">
-                                                                            <?php echo htmlspecialchars($centro['nom_centro_costo']); ?>
+                                                                    $total_centros = count($producto['centros_costo']);
+                                                                    $modalId = 'modalCentrosCostoIngresoDirecto' . $producto['id_ingreso_detalle'];
+                                                                    
+                                                                    if ($total_centros === 1) {
+                                                                        // Un solo centro de costo - mostrar directamente
+                                                                        ?>
+                                                                        <span class="badge badge-info badge_size" style="font-size: 11px;">
+                                                                            <?php echo htmlspecialchars($producto['centros_costo'][0]['nom_centro_costo']); ?>
                                                                         </span>
-                                                                    <?php } 
-                                                                } else { ?>
+                                                                    <?php } else { 
+                                                                        // Múltiples centros de costo - mostrar botón con modal
+                                                                        $listaCentros = '';
+                                                                        foreach ($producto['centros_costo'] as $idx => $cc) {
+                                                                            $listaCentros .= '<div style="padding: 8px; margin-bottom: 6px; background-color: #f8f9fa; border-left: 3px solid #17a2b8; border-radius: 4px;">';
+                                                                            $listaCentros .= '<strong style="color: #17a2b8;">' . ($idx + 1) . '.</strong> ' . htmlspecialchars($cc['nom_centro_costo']);
+                                                                            $listaCentros .= '</div>';
+                                                                        }
+                                                                        ?>
+                                                                        <button class="btn btn-sm btn-info btn-ver-centros-directo" 
+                                                                                type="button" 
+                                                                                data-modal-id="<?php echo $modalId; ?>"
+                                                                                style="font-size: 11px; padding: 3px 10px;">
+                                                                            <i class="fa fa-eye"></i> Ver <?php echo $total_centros; ?> centros
+                                                                        </button>
+                                                                        
+                                                                        <!-- Modal para centros de costo -->
+                                                                        <div class="modal fade" id="<?php echo $modalId; ?>" tabindex="-1" role="dialog" aria-hidden="true">
+                                                                            <div class="modal-dialog modal-dialog-centered" role="document">
+                                                                                <div class="modal-content">
+                                                                                    <div class="modal-header" style="background-color: #17a2b8; color: white; padding: 12px 20px;">
+                                                                                        <h6 class="modal-title mb-0">
+                                                                                            <i class="fa fa-building"></i> 
+                                                                                            Centros de Costo Asignados
+                                                                                        </h6>
+                                                                                        <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white; opacity: 0.8;">
+                                                                                            <span aria-hidden="true">&times;</span>
+                                                                                        </button>
+                                                                                    </div>
+                                                                                    <div class="modal-body" style="padding: 20px;">
+                                                                                        <div style="margin-bottom: 15px; padding: 10px; background-color: #e7f3ff; border-radius: 4px; border-left: 4px solid #17a2b8;">
+                                                                                            <strong>Producto:</strong> <?php echo htmlspecialchars($producto['nom_producto']); ?>
+                                                                                        </div>
+                                                                                        <div style="max-height: 400px; overflow-y: auto;">
+                                                                                            <?php echo $listaCentros; ?>
+                                                                                        </div>
+                                                                                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6; text-align: center;">
+                                                                                            <span class="badge badge-info" style="font-size: 12px; padding: 6px 12px;">
+                                                                                                Total: <?php echo $total_centros; ?> centro(s) de costo
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    <div class="modal-footer" style="padding: 10px 20px;">
+                                                                                        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">
+                                                                                            <i class="fa fa-times"></i> Cerrar
+                                                                                        </button>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    <?php } ?>
+                                                                <?php } else { ?>
                                                                     <small class="text-muted">Sin asignar</small>
                                                                 <?php } ?>
                                                             </td>
@@ -311,6 +367,7 @@
                             </div>
                         </div>
                         <?php } ?>
+                        
                         <!-- Información Adicional -->
                         <div class="row">
                             <div class="col-md-12">
@@ -354,6 +411,47 @@
     </div>
 </div>
 <!-- /page content -->
+
+<!-- 🔹 SCRIPT PARA MANEJAR MODALES DE CENTROS DE COSTO -->
+<script>
+(function() {
+    'use strict';
+    
+    // Esperar a que jQuery y Bootstrap estén disponibles
+    function esperarLibrerias(callback) {
+        if (typeof jQuery !== 'undefined' && typeof jQuery.fn.modal !== 'undefined') {
+            callback();
+        } else {
+            setTimeout(function() { esperarLibrerias(callback); }, 100);
+        }
+    }
+    
+    esperarLibrerias(function() {
+        console.log('🟢 Inicializando modales de centros de costo en ingresos directos');
+        
+        // Manejar clic en botones de ver centros de costo
+        jQuery(document).off('click', '.btn-ver-centros-directo').on('click', '.btn-ver-centros-directo', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const modalId = jQuery(this).data('modal-id');
+            console.log('👁️ Abriendo modal de centros:', modalId);
+            
+            const $modal = jQuery('#' + modalId);
+            if ($modal.length) {
+                $modal.modal({
+                    backdrop: 'static',
+                    keyboard: false,
+                    show: true
+                });
+            }
+        });
+        
+        console.log('✅ Eventos de modales configurados');
+        console.log('🔢 Botones encontrados:', jQuery('.btn-ver-centros-directo').length);
+    });
+})();
+</script>
 
 <style>
 .badge-lg {

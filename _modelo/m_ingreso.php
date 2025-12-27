@@ -62,6 +62,7 @@ function ObtenerDetalleIngresoPorCompra($id_compra)
 
     //  PRODUCTOS CON CENTROS DE COSTO HEREDADOS
     $sql_productos = "SELECT 
+                        cd.id_compra_detalle,
                         cd.id_producto,
                         cd.cant_compra_detalle,
                         prod.cod_material,

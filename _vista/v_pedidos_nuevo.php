@@ -421,8 +421,8 @@
                         
                         <div class="col-md-4">
                             <div class="form-group">
-                                <label class="control-label">Modelo:</label>
-                                <input type="text" name="mod_producto" class="form-control" placeholder="Modelo del producto">
+                                <label class="control-label">Modelo/Presentación:</label>
+                                <input type="text" name="mod_producto" class="form-control" placeholder="Modelo/Presentación del producto">
                             </div>
                         </div>
                         

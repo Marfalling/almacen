@@ -721,6 +721,7 @@ $monedas = MostrarMoneda();
                                                     data-cantidad-verificada="<?php echo $cantidad_para_ordenar; ?>"
                                                     data-cantidad-ordenada="<?php echo $cantidad_ya_ordenada_real; ?>"
                                                     data-cantidad-pendiente="<?php echo $cantidad_pendiente_real; ?>"
+                                                    data-requisitos="<?php echo htmlspecialchars($detalle['req_pedido'] ?? ''); ?>"
                                                     title="Agregar a Orden (Pendiente: <?php echo $cantidad_pendiente_real; ?>)" 
                                                     style="padding: 2px 8px; font-size: 11px;">
                                                 <i class="fa fa-check"></i> Agregar a Orden
@@ -732,14 +733,15 @@ $monedas = MostrarMoneda();
                                             // ============================================
                                     ?>
                                             <button type="button" 
-                                                    class="btn btn-primary btn-xs btn-agregarOrden" 
-                                                    data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
-                                                    data-id-producto="<?php echo $detalle['id_producto']; ?>"
-                                                    data-descripcion="<?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>"
-                                                    data-cantidad-verificada="<?php echo $cantidad_para_ordenar; ?>"
-                                                    data-cantidad-ordenada="<?php echo $cantidad_ya_ordenada_real; ?>"
-                                                    data-cantidad-pendiente="<?php echo $cantidad_pendiente_real; ?>"
-                                                    style="padding: 2px 8px; font-size: 11px;">
+                                                class="btn btn-primary btn-xs btn-agregarOrden" 
+                                                data-id-detalle="<?php echo $detalle['id_pedido_detalle']; ?>"
+                                                data-id-producto="<?php echo $detalle['id_producto']; ?>"
+                                                data-descripcion="<?php echo htmlspecialchars($detalle['nom_producto']); ?>"
+                                                data-cantidad-verificada="<?php echo $detalle['cant_oc_pedido_detalle']; ?>"
+                                                data-cantidad-ordenada="<?php echo $detalle['cantidad_ya_ordenada']; ?>"
+                                                data-cantidad-pendiente="<?php echo $detalle['cantidad_pendiente_oc']; ?>"
+                                                data-es-base-arce="0"
+                                                data-requisitos="<?php echo htmlspecialchars($detalle['req_pedido'] ?? ''); ?>">
                                                 <i class="fa fa-plus"></i> Agregar
                                             </button>
                                     <?php
@@ -830,6 +832,7 @@ $monedas = MostrarMoneda();
                                                     data-cantidad-ordenada="<?= $cant_ya_ordenada_item ?>"
                                                     data-cantidad-pendiente="<?= $cant_pendiente_item ?>"
                                                     data-es-base-arce="<?= $es_pedido_base_arce ? 1 : 0 ?>"
+                                                    data-requisitos="<?php echo htmlspecialchars($detalle['req_pedido'] ?? ''); ?>"
                                                     style="padding:2px 8px;font-size:11px;">
                                                 <i class="fa fa-shopping-cart"></i> Agregar a OC (<?= number_format($cant_pendiente_item,2) ?>)
                                             </button>
@@ -920,6 +923,7 @@ $monedas = MostrarMoneda();
                                                     data-cantidad-ordenada="<?= $cant_ya_ordenada_item ?>"
                                                     data-cantidad-pendiente="<?= $cant_pendiente_item ?>"
                                                     data-es-base-arce="<?= $es_pedido_base_arce ? 1 : 0 ?>"
+                                                    data-requisitos="<?php echo htmlspecialchars($detalle['req_pedido'] ?? ''); ?>"
                                                     style="padding:2px 8px;font-size:11px;">
                                                 <i class="fa fa-shopping-cart"></i> Agregar a OC (<?= number_format($cant_pendiente_item, 2) ?>)
                                             </button>
@@ -955,6 +959,7 @@ $monedas = MostrarMoneda();
                                                     data-cantidad-ordenada="<?= $cant_ya_ordenada_item ?>"
                                                     data-cantidad-pendiente="<?= $cant_pendiente_item ?>"
                                                     data-es-base-arce="<?= $es_pedido_base_arce ? 1 : 0 ?>"
+                                                    data-requisitos="<?php echo htmlspecialchars($detalle['req_pedido'] ?? ''); ?>"
                                                     style="padding: 2px 8px; font-size: 11px;">
                                                 <i class="fa fa-shopping-cart"></i> OC (<?= number_format($cant_pendiente_item, 2) ?>)
                                             </button>
@@ -983,6 +988,7 @@ $monedas = MostrarMoneda();
                                                             data-cantidad-ordenada="<?= $cantidad_ya_ordenada_oc ?>"
                                                             data-cantidad-pendiente="<?= $cantidad_pendiente_base_arce ?>"
                                                             data-es-base-arce="1"
+                                                            data-requisitos="<?php echo htmlspecialchars($detalle['req_pedido'] ?? ''); ?>"
                                                             style="padding: 2px 8px; font-size: 11px;">
                                                         <i class="fa fa-shopping-cart"></i> Agregar a OC (<?= number_format($cantidad_pendiente_base_arce, 2) ?>)
                                                     </button>
@@ -1934,7 +1940,39 @@ $monedas = MostrarMoneda();
                                                             </button>
                                                         </div>
                                                     </div>
-                                                    
+                                                    <!-- Requisitos SST/MA/CA -->
+                                                    <div class="row mt-2 mb-2">
+                                                        <div class="col-md-12">
+                                                            <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block; color: #495057;">
+                                                                <i></i> Requisitos SST/MA/CA:
+                                                            </label>
+                                                            <?php 
+                                                            // 🔹 CORRECCIÓN: Mostrar req_compra_detalle si existe, sino req_pedido
+                                                            $req_texto = '';
+                                                            
+                                                            // Primero intentar obtener de la orden (si ya fue guardado)
+                                                            if (!empty($item['req_compra_detalle'])) {
+                                                                $req_texto = $item['req_compra_detalle'];
+                                                            } 
+                                                            // Si no existe en la orden, buscar en el pedido original
+                                                            else {
+                                                                foreach ($pedido_detalle as $det) {
+                                                                    if ($det['id_pedido_detalle'] == $id_pedido_detalle) {
+                                                                        $req_texto = !empty($det['req_pedido']) ? $det['req_pedido'] : '';
+                                                                        break;
+                                                                    }
+                                                                }
+                                                            }
+                                                            ?>
+                                                            <input type="text"
+                                                            class="form-control form-control-sm" 
+                                                            name="req_compra[<?php echo $id_pedido_detalle; ?>]"
+                                                            value="<?php echo htmlspecialchars($req_texto); ?>"
+                                                            style="font-size: 11px;"
+                                                            placeholder="Requisitos de seguridad, medio ambiente y calidad...">
+                                                        </div>
+                                                    </div>
+                                                    <div style="border-top: 1px dashed #dee2e6; margin: 10px 0;"></div>
                                                     <!-- Campos en una sola línea: Cantidad, Precio, IGV, Homologación -->
                                                     <div class="row">
                                                         <!-- Cantidad -->
@@ -5280,7 +5318,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     cantidadVerificada: parseFloat(btnAgregar.dataset.cantidadVerificada) || 0,
                     cantidadOrdenada: parseFloat(btnAgregar.dataset.cantidadOrdenada) || 0,
                     cantidadPendiente: parseFloat(btnAgregar.dataset.cantidadPendiente) || 0,
-                    es_base_arce: btnAgregar.dataset.esBaseArce,  
+                    es_base_arce: btnAgregar.dataset.esBaseArce,
+                    requisitos: btnAgregar.dataset.requisitos || '',  // ⬅️ AGREGAR ESTA LÍNEA
                     botonOriginal: btnAgregar
                 });
             }
@@ -5814,6 +5853,22 @@ function agregarItemAOrden(item) {
                 </div>
             </div>
             
+            <!-- REQUISITOS SST/MA/CA -->
+            <div class="row mt-2 mb-2">
+                <div class="col-md-12">
+                    <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block; color: #495057;">
+                        <i></i> Requisitos SST/MA/CA:
+                    </label>
+                    <input type="text" 
+                        class="form-control form-control-sm" 
+                        name="req_compra[${item.idDetalle}]"
+                        value="${item.requisitos || ''}"
+                        style="font-size: 11px;"
+                        placeholder="Requisitos de seguridad, medio ambiente y calidad...">
+                </div>
+            </div>
+            <div style="border-top: 1px dashed #dee2e6; margin: 10px 0;"></div>
+
             <div class="row">
                 <div class="col-md-2">
                     <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Cantidad:</label>

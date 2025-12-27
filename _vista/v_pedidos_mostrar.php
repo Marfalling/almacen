@@ -528,433 +528,464 @@ foreach($pedidos as $pedido) {
         $pedido_info = $pedido_data[0];
 ?>
 <div class="modal fade" id="modalDetallePedido<?php echo $pedido['id_pedido']; ?>" tabindex="-1" role="dialog" aria-labelledby="modalDetallePedidoLabel<?php echo $pedido['id_pedido']; ?>" aria-hidden="true">
-    <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header" style="background-color: #f8f9fa; padding: 15px;">
                 <h5 class="modal-title" id="modalDetallePedidoLabel<?php echo $pedido['id_pedido']; ?>">
+                    <i class="fa fa-file-text-o text-primary"></i> 
                     Detalle del Pedido - <?php echo $pedido_info['cod_pedido']; ?>
                 </h5>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body" style="max-height: 600px; overflow-y: auto;">
                 <!-- INFORMACIÓN GENERAL -->
                 <div class="row">
                     <div class="col-md-12">
-                        <h5><strong>Información General</strong></h5>
-                        <table class="table table-bordered">
-                            <tr>
-                                <td><strong>Código del Pedido:</strong></td>
-                                <td><?php echo $pedido_info['cod_pedido']; ?></td>
-                                <td><strong>Tipo de Pedido:</strong></td>
-                                <td><?php echo $pedido_info['nom_producto_tipo']; ?></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Fecha del Pedido:</strong></td>
-                                <td><?php echo date('d/m/Y H:i', strtotime($pedido_info['fec_pedido'])); ?></td>
-                                <td><strong>Fecha de Necesidad:</strong></td>
-                                <td><?php echo date('d/m/Y', strtotime($pedido_info['fec_req_pedido'])); ?></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Almacén:</strong></td>
-                                <td><?php echo $pedido_info['nom_almacen']; ?></td>
-                                <td><strong>Ubicación:</strong></td>
-                                <td><?php echo $pedido_info['nom_ubicacion']; ?></td>
-                            </tr>
-                            <tr>
-                                <td><strong>Solicitante:</strong></td>
-                                <td><?php echo $pedido_info['nom_personal']; ?></td>
-                                <td><strong>Centro de Costo (Solicitante):</strong></td>
-                                <td>
-                                    <span class="badge badge-primary badge_size">
-                                        <?php echo !empty($pedido_info['nom_centro_costo']) ? $pedido_info['nom_centro_costo'] : 'Sin asignar'; ?>
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><strong>Contacto:</strong></td>
-                                <td><?php echo $pedido_info['cel_pedido']; ?></td>
-                                <td><strong>Lugar de Entrega:</strong></td>
-                                <td><?php echo $pedido_info['lug_pedido']; ?></td>
-                            </tr>
-                            <?php if (!empty($pedido_info['acl_pedido'])) { ?>
-                            <tr>
-                                <td><strong>Aclaraciones:</strong></td>
-                                <td colspan="3"><?php echo nl2br($pedido_info['acl_pedido']); ?></td>
-                            </tr>
-                            <?php } ?>
-                        </table>
+                        <div class="card mb-3">
+                            <div class="card-header" style="background-color: #e3f2fd; padding: 10px 15px;">
+                                <h6 class="mb-0">
+                                    <i class="fa fa-info-circle text-primary"></i> 
+                                    Información General
+                                </h6>
+                            </div>
+                            <div class="card-body" style="padding: 15px;">
+                                <table class="table table-bordered" style="font-size: 13px; margin-bottom: 0;">
+                                    <tr>
+                                        <td style="width: 25%;"><strong>Código del Pedido:</strong></td>
+                                        <td style="width: 25%;"><?php echo $pedido_info['cod_pedido']; ?></td>
+                                        <td style="width: 25%;"><strong>Tipo de Pedido:</strong></td>
+                                        <td style="width: 25%;"><?php echo $pedido_info['nom_producto_tipo']; ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Fecha del Pedido:</strong></td>
+                                        <td><?php echo date('d/m/Y H:i', strtotime($pedido_info['fec_pedido'])); ?></td>
+                                        <td><strong>Fecha de Necesidad:</strong></td>
+                                        <td><?php echo date('d/m/Y', strtotime($pedido_info['fec_req_pedido'])); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Almacén:</strong></td>
+                                        <td><?php echo $pedido_info['nom_almacen']; ?></td>
+                                        <td><strong>Ubicación:</strong></td>
+                                        <td><?php echo $pedido_info['nom_ubicacion']; ?></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Solicitante:</strong></td>
+                                        <td><?php echo $pedido_info['nom_personal']; ?></td>
+                                        <td><strong>Centro de Costo (Solicitante):</strong></td>
+                                        <td>
+                                            <span class="badge badge-primary badge_size" style="font-size: 11px;">
+                                                <?php echo !empty($pedido_info['nom_centro_costo']) ? $pedido_info['nom_centro_costo'] : 'Sin asignar'; ?>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Contacto:</strong></td>
+                                        <td><?php echo $pedido_info['cel_pedido']; ?></td>
+                                        <td><strong>Lugar de Entrega:</strong></td>
+                                        <td><?php echo $pedido_info['lug_pedido']; ?></td>
+                                    </tr>
+                                    <?php if (!empty($pedido_info['acl_pedido'])) { ?>
+                                    <tr>
+                                        <td><strong>Aclaraciones:</strong></td>
+                                        <td colspan="3"><?php echo nl2br($pedido_info['acl_pedido']); ?></td>
+                                    </tr>
+                                    <?php } ?>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- 🔹 APROBACIONES Y VERIFICACIONES -->
-                <div class="row mt-3">
+                <div class="row">
                     <div class="col-md-12">
-                        <h5><strong>Aprobaciones y Verificaciones</strong></h5>
-                        <table class="table table-bordered">
-                            <!-- Aprobación Técnica -->
-                            <tr>
-                                <td style="width: 25%;"><strong>Aprobado Técnicamente Por:</strong></td>
-                                <td style="width: 25%;">
-                                    <?php 
-                                    if (!empty($pedido_info['id_personal_aprueba_tecnica'])) {
-                                        echo $pedido_info['nom_aprobado_tecnica'];
-                                    } else {
-                                        echo '<span class="text-muted">Pendiente</span>';
-                                    }
-                                    ?>
-                                </td>
-                                <td style="width: 25%;"><strong>Fecha de Aprobación Técnica:</strong></td>
-                                <td style="width: 25%;">
-                                    <?php 
-                                    if (!empty($pedido_info['fec_aprueba_tecnica'])) {
-                                        echo date('d/m/Y H:i', strtotime($pedido_info['fec_aprueba_tecnica']));
-                                    } else {
-                                        echo '<span class="text-muted">-</span>';
-                                    }
-                                    ?>
-                                </td>
-                            </tr>
-                            
-                            <!-- Verificación Técnica -->
-                            <tr>
-                                <td><strong>Verificado Técnicamente Por:</strong></td>
-                                <td>
-                                    <?php 
-                                    if (!empty($pedido_info['id_personal_verifica_tecnica'])) {
-                                        echo $pedido_info['nom_verificado_tecnica'];
-                                    } else {
-                                        echo '<span class="text-muted">Pendiente</span>';
-                                    }
-                                    ?>
-                                </td>
-                                <td><strong>Fecha de Verificación Técnica:</strong></td>
-                                <td>
-                                    <?php 
-                                    if (!empty($pedido_info['fec_verifica_tecnica'])) {
-                                        echo date('d/m/Y H:i', strtotime($pedido_info['fec_verifica_tecnica']));
-                                    } else {
-                                        echo '<span class="text-muted">-</span>';
-                                    }
-                                    ?>
-                                </td>
-                            </tr>
-                        </table>
+                        <div class="card mb-3">
+                            <div class="card-header" style="background-color: #e8f5e8; padding: 10px 15px;">
+                                <h6 class="mb-0">
+                                    <i class="fa fa-check-circle text-success"></i> 
+                                    Aprobaciones y Verificaciones
+                                </h6>
+                            </div>
+                            <div class="card-body" style="padding: 15px;">
+                                <table class="table table-bordered" style="font-size: 13px; margin-bottom: 0;">
+                                    <!-- Aprobación Técnica -->
+                                    <tr>
+                                        <td style="width: 25%;"><strong>Aprobado Técnicamente Por:</strong></td>
+                                        <td style="width: 25%;">
+                                            <?php 
+                                            if (!empty($pedido_info['id_personal_aprueba_tecnica'])) {
+                                                echo $pedido_info['nom_aprobado_tecnica'];
+                                            } else {
+                                                echo '<span class="text-muted">Pendiente</span>';
+                                            }
+                                            ?>
+                                        </td>
+                                        <td style="width: 25%;"><strong>Fecha de Aprobación Técnica:</strong></td>
+                                        <td style="width: 25%;">
+                                            <?php 
+                                            if (!empty($pedido_info['fec_aprueba_tecnica'])) {
+                                                echo date('d/m/Y H:i', strtotime($pedido_info['fec_aprueba_tecnica']));
+                                            } else {
+                                                echo '<span class="text-muted">-</span>';
+                                            }
+                                            ?>
+                                        </td>
+                                    </tr>
+                                    
+                                    <!-- Verificación Técnica -->
+                                    <tr>
+                                        <td><strong>Verificado Técnicamente Por:</strong></td>
+                                        <td>
+                                            <?php 
+                                            if (!empty($pedido_info['id_personal_verifica_tecnica'])) {
+                                                echo $pedido_info['nom_verificado_tecnica'];
+                                            } else {
+                                                echo '<span class="text-muted">Pendiente</span>';
+                                            }
+                                            ?>
+                                        </td>
+                                        <td><strong>Fecha de Verificación Técnica:</strong></td>
+                                        <td>
+                                            <?php 
+                                            if (!empty($pedido_info['fec_verifica_tecnica'])) {
+                                                echo date('d/m/Y H:i', strtotime($pedido_info['fec_verifica_tecnica']));
+                                            } else {
+                                                echo '<span class="text-muted">-</span>';
+                                            }
+                                            ?>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- DETALLES DEL PEDIDO -->
-                <div class="row mt-3">
+                <div class="row">
                     <div class="col-md-12">
-                        <h5><strong>Detalles del Pedido</strong></h5>
-                        <?php if (!empty($pedido_detalle)) { ?>
-                            <table class="table table-striped table-bordered">
-                            <thead class="thead-dark">
-                                <tr>
-                                    <th>#</th>
-                                    <th>Material/Servicio</th>
-                                    <th>Unidad</th>
-                                    <th>Cantidad</th>
-                                    <th>Centro(s) de Costo</th>
-                                    <th>Personal Asignado</th>
-                                    <th>Nº OT/LCL/LCA</th>
-                                    <th>Descripción SST/MA/CA</th>
-                                    <th>Archivos</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php 
-                                $contador_detalle = 1;
-                                foreach ($pedido_detalle as $detalle) { 
-                                    // Parsear comentarios para extraer unidad
-                                    $comentario = $detalle['com_pedido_detalle'];
-                                    $unidad_nombre = '';
-                                    
-                                    if (preg_match('/Unidad:\s*([^|]*)\s*\|/', $comentario, $matches)) {
-                                        $unidad_nombre = trim($matches[1]);
-                                    }
-                                    
-                                    $sst_descripcion = $detalle['req_pedido'];
-                                    
-                                    $ot_numero = !empty($detalle['ot_pedido_detalle']) ? trim($detalle['ot_pedido_detalle']) : '';
-
-                                    
-                                    // Obtener centros de costo del detalle
-                                    $centros_costo_detalle = [];
-                                    if (function_exists('ObtenerCentrosCostoDetalle')) {
-                                        $centros_costo_detalle = ObtenerCentrosCostoDetalle($detalle['id_pedido_detalle']);
-                                    }
-                                    
-                                    // Obtener personal asignado
-                                    $personal_asignado = [];
-                                    if (function_exists('ObtenerPersonalDetalleCompleto')) {
-                                        $personal_asignado = ObtenerPersonalDetalleCompleto($detalle['id_pedido_detalle']);
-                                    }
-                                ?>
-                                    <tr>
-                                        <!-- COLUMNA 1: # -->
-                                        <td><?php echo $contador_detalle; ?></td>
-                                        
-                                        <!-- COLUMNA 2: Material/Servicio -->
-                                        <td>
-                                            <strong><?php echo $detalle['prod_pedido_detalle']; ?></strong>
-                                            <?php if (!empty($detalle['cod_material'])) { ?>
-                                                <br><small class="text-muted">Código: <?php echo $detalle['cod_material']; ?></small>
-                                            <?php } elseif (!empty($detalle['nom_producto'])) { ?>
-                                                <br><small class="text-muted">Producto: <?php echo $detalle['nom_producto']; ?></small>
-                                            <?php } ?>
-                                        </td>
-                                        
-                                        <!-- COLUMNA 3: Unidad -->
-                                        <td>
-                                            <span class="badge badge-secondary badge_size">
-                                                <?php echo !empty($unidad_nombre) ? $unidad_nombre : 'N/A'; ?>
-                                            </span>
-                                        </td>
-                                        
-                                        <!-- COLUMNA 4: Cantidad -->
-                                        <td>
-                                            <span class="badge badge-primary badge_size"><?php echo $detalle['cant_pedido_detalle']; ?></span>
-                                            <?php if ($detalle['cant_oc_pedido_detalle'] !== null) { ?>
-                                                <br><small class="text-success"><i class="fa fa-check"></i> Verificado: <?php echo $detalle['cant_oc_pedido_detalle']; ?></small>
-                                            <?php } ?>
-                                        </td>
-                                        
-                                        <!-- COLUMNA 5: Centro(s) de Costo -->
-                                        <td>
-                                            <?php if (!empty($centros_costo_detalle)) { 
-                                                $total_centros = count($centros_costo_detalle);
-                                                $modalId = 'modalCentrosCostoPedido' . $detalle['id_pedido_detalle'];
-                                                
-                                                if ($total_centros === 1) {
-                                                    ?>
-                                                    <span class="badge badge-info badge_size" style="font-size: 11px;">
-                                                        <?php echo $centros_costo_detalle[0]['nom_centro_costo']; ?>
-                                                    </span>
-                                                <?php } else { 
-                                                    $listaCentros = '';
-                                                    foreach ($centros_costo_detalle as $idx => $cc) {
-                                                        $listaCentros .= '<div style="padding: 8px; margin-bottom: 6px; background-color: #f8f9fa; border-left: 3px solid #17a2b8; border-radius: 4px;">';
-                                                        $listaCentros .= '<strong style="color: #17a2b8;">' . ($idx + 1) . '.</strong> ' . htmlspecialchars($cc['nom_centro_costo']);
-                                                        $listaCentros .= '</div>';
-                                                    }
-                                                    ?>
-                                                    <button class="btn btn-sm btn-info btn-ver-centros-costo-pedido" 
-                                                            type="button" 
-                                                            data-modal-id="<?php echo $modalId; ?>"
-                                                            style="font-size: 11px; padding: 3px 10px;">
-                                                        <i class="fa fa-eye"></i> Ver <?php echo $total_centros; ?> centros
-                                                    </button>
-                                                    
-                                                    <!-- Modal para centros de costo -->
-                                                    <div class="modal fade" id="<?php echo $modalId; ?>" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
-                                                        <div class="modal-dialog modal-dialog-centered" role="document">
-                                                            <div class="modal-content">
-                                                                <div class="modal-header" style="background-color: #17a2b8; color: white; padding: 12px 20px;">
-                                                                    <h6 class="modal-title mb-0">
-                                                                        <i class="fa fa-building"></i> 
-                                                                        Centros de Costo Asignados
-                                                                    </h6>
-                                                                    <button type="button" class="close close-centros-modal-pedido" data-modal-id="<?php echo $modalId; ?>" aria-label="Close" style="color: white; opacity: 0.8;">
-                                                                        <span aria-hidden="true">&times;</span>
-                                                                    </button>
-                                                                </div>
-                                                                <div class="modal-body" style="padding: 20px;">
-                                                                    <div style="margin-bottom: 15px; padding: 10px; background-color: #e7f3ff; border-radius: 4px; border-left: 4px solid #17a2b8;">
-                                                                        <strong>Producto:</strong> <?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>
-                                                                    </div>
-                                                                    <div style="max-height: 400px; overflow-y: auto;">
-                                                                        <?php echo $listaCentros; ?>
-                                                                    </div>
-                                                                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6; text-align: center;">
-                                                                        <span class="badge badge-info" style="font-size: 12px; padding: 6px 12px;">
-                                                                            Total: <?php echo $total_centros; ?> centro(s) de costo
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="modal-footer" style="padding: 10px 20px;">
-                                                                    <button type="button" class="btn btn-secondary btn-sm close-centros-modal-pedido" data-modal-id="<?php echo $modalId; ?>">
-                                                                        <i class="fa fa-times"></i> Cerrar
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                <?php } ?>
-                                            <?php } else { ?>
-                                                <small class="text-muted">Sin asignar</small>
-                                            <?php } ?>
-                                        </td>
-                                        
-                                        <!-- COLUMNA 6: Personal Asignado -->
-                                        <td>
-                                            <?php if (!empty($personal_asignado)) { 
-                                                $total_personal = count($personal_asignado);
-                                                $modalIdPersonal = 'modalPersonalPedido' . $detalle['id_pedido_detalle'];
-                                                
-                                                if ($total_personal === 1) {
-                                                    $persona = $personal_asignado[0];
-                                                    ?>
-                                                    <span class="badge badge-success badge_size d-block" style="font-size: 11px;">
-                                                        <?php echo $persona['nom_personal']; ?>
-                                                        <?php if (!empty($persona['nom_cargo'])) { ?>
-                                                            <br><small><?php echo $persona['nom_cargo']; ?></small>
-                                                        <?php } ?>
-                                                    </span>
-                                                <?php } else { 
-                                                    $listaPersonal = '';
-                                                    foreach ($personal_asignado as $idx => $persona) {
-                                                        $listaPersonal .= '<div style="padding: 10px; margin-bottom: 8px; background-color: #f0f9ff; border-left: 3px solid #28a745; border-radius: 4px;">';
-                                                        $listaPersonal .= '<div style="display: flex; align-items: center; gap: 8px;">';
-                                                        $listaPersonal .= '<strong style="color: #28a745; font-size: 16px;">' . ($idx + 1) . '.</strong>';
-                                                        $listaPersonal .= '<div>';
-                                                        $listaPersonal .= '<div style="font-weight: 600; color: #2c3e50;">' . htmlspecialchars($persona['nom_personal']) . '</div>';
-                                                        if (!empty($persona['nom_cargo'])) {
-                                                            $listaPersonal .= '<small style="color: #7f8c8d;">' . htmlspecialchars($persona['nom_cargo']) . '</small>';
-                                                        }
-                                                        $listaPersonal .= '</div>';
-                                                        $listaPersonal .= '</div>';
-                                                        $listaPersonal .= '</div>';
-                                                    }
-                                                    ?>
-                                                    <button class="btn btn-sm btn-success btn-ver-personal-pedido" 
-                                                            type="button" 
-                                                            data-modal-id="<?php echo $modalIdPersonal; ?>"
-                                                            style="font-size: 11px; padding: 3px 10px;">
-                                                        <i class="fa fa-users"></i> Ver <?php echo $total_personal; ?> persona(s)
-                                                    </button>
-                                                    
-                                                    <!-- Modal para personal asignado -->
-                                                    <div class="modal fade" id="<?php echo $modalIdPersonal; ?>" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
-                                                        <div class="modal-dialog modal-dialog-centered" role="document">
-                                                            <div class="modal-content">
-                                                                <div class="modal-header" style="background-color: #28a745; color: white; padding: 12px 20px;">
-                                                                    <h6 class="modal-title mb-0">
-                                                                        <i class="fa fa-users"></i> 
-                                                                        Personal Asignado
-                                                                    </h6>
-                                                                    <button type="button" class="close close-personal-modal-pedido" data-modal-id="<?php echo $modalIdPersonal; ?>" aria-label="Close" style="color: white; opacity: 0.8;">
-                                                                        <span aria-hidden="true">&times;</span>
-                                                                    </button>
-                                                                </div>
-                                                                <div class="modal-body" style="padding: 20px;">
-                                                                    <div style="margin-bottom: 15px; padding: 10px; background-color: #e7f3ff; border-radius: 4px; border-left: 4px solid #17a2b8;">
-                                                                        <strong>Servicio:</strong> <?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>
-                                                                    </div>
-                                                                    <div style="max-height: 400px; overflow-y: auto;">
-                                                                        <?php echo $listaPersonal; ?>
-                                                                    </div>
-                                                                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6; text-align: center;">
-                                                                        <span class="badge badge-success" style="font-size: 12px; padding: 6px 12px;">
-                                                                            Total: <?php echo $total_personal; ?> persona(s) asignada(s)
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                                <div class="modal-footer" style="padding: 10px 20px;">
-                                                                    <button type="button" class="btn btn-secondary btn-sm close-personal-modal-pedido" data-modal-id="<?php echo $modalIdPersonal; ?>">
-                                                                        <i class="fa fa-times"></i> Cerrar
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                <?php } ?>
-                                            <?php } else { ?>
-                                                <small class="text-muted">-</small>
-                                            <?php } ?>
-                                        </td>
-                                        
-                                        <!-- COLUMNA 7: Nº OT/LCL/LCA -->
-                                        <td>
-                                            <?php if (!empty($ot_numero)) { ?>
-                                                <?php echo htmlspecialchars($ot_numero); ?>
-                                            <?php } else { ?>
-                                                <small class="text-muted">-</small>
-                                            <?php } ?>
-                                        </td>
-                                        
-                                        <!-- COLUMNA 8: Descripción SST/MA/CA -->
-                                        <td>
-                                            <?php if (!empty($sst_descripcion)) { ?>
-                                                <small><?php echo nl2br($sst_descripcion); ?></small>
-                                            <?php } else { ?>
-                                                <small class="text-muted">-</small>
-                                            <?php } ?>
-                                        </td>
-                                        
-                                        <!-- COLUMNA 9: Archivos -->
-                                        <td>
-                                            <?php 
-                                            $archivos_activos = ObtenerArchivosActivosDetalle($detalle['id_pedido_detalle']);
-                                            
-                                            if (!empty($archivos_activos)) { 
-                                                foreach ($archivos_activos as $archivo) { 
-                                                    $extension = strtolower(pathinfo($archivo, PATHINFO_EXTENSION));
-                                                    $icono = 'fa-file';
-                                                    $clase_color = 'text-info';
-                                                    
-                                                    switch ($extension) {
-                                                        case 'pdf':
-                                                            $icono = 'fa-file-pdf-o';
-                                                            $clase_color = 'text-danger';
-                                                            break;
-                                                        case 'jpg':
-                                                        case 'jpeg':
-                                                        case 'png':
-                                                        case 'gif':
-                                                            $icono = 'fa-file-image-o';
-                                                            $clase_color = 'text-success';
-                                                            break;
-                                                        case 'doc':
-                                                        case 'docx':
-                                                            $icono = 'fa-file-word-o';
-                                                            $clase_color = 'text-primary';
-                                                            break;
-                                                        case 'xls':
-                                                        case 'xlsx':
-                                                            $icono = 'fa-file-excel-o';
-                                                            $clase_color = 'text-warning';
-                                                            break;
-                                                    }
-                                            ?>
-                                                    <a href="../_archivos/pedidos/<?php echo $archivo; ?>" 
-                                                    target="_blank" 
-                                                    class="btn btn-sm btn-outline-primary mb-1 d-block text-left <?php echo $clase_color; ?>"
-                                                    title="Ver <?php echo $archivo; ?>"
-                                                    style="font-size: 11px;">
-                                                        <i class="fa <?php echo $icono; ?>"></i> 
-                                                        <?php echo strlen($archivo) > 25 ? substr($archivo, 0, 25) . '...' : $archivo; ?>
-                                                    </a>
-                                            <?php } 
-                                            } else { ?>
-                                                <small class="text-muted">Sin archivos adjuntos</small>
-                                            <?php } ?>
-                                        </td>
-                                    </tr>
-                                <?php 
-                                    $contador_detalle++;
-                                } 
-                                ?>
-                            </tbody>
-                        </table>
-                        <?php } else { ?>
-                            <div class="alert alert-info">
-                                <i class="fa fa-info-circle"></i> No hay detalles disponibles para este pedido.
+                        <div class="card">
+                            <div class="card-header" style="background-color: #fff3cd; padding: 10px 15px;">
+                                <h6 class="mb-0">
+                                    <i class="fa fa-list-alt text-warning"></i> 
+                                    Detalles del Pedido
+                                </h6>
                             </div>
-                        <?php } ?>
+                            <div class="card-body" style="padding: 15px;">
+                                <?php if (!empty($pedido_detalle)) { ?>
+                                    <div class="table-responsive">
+                                        <table class="table table-striped table-sm" style="font-size: 12px;">
+                                            <thead style="background-color: #f8f9fa;">
+                                                <tr>
+                                                    <th style="width: 3%;">#</th>
+                                                    <th style="width: 15%;">Material/Servicio</th>
+                                                    <th style="width: 8%;">Unidad</th>
+                                                    <th style="width: 8%;">Cantidad</th>
+                                                    <th style="width: 12%;">Centro(s) de Costo</th>
+                                                    <th style="width: 12%;">Personal Asignado</th>
+                                                    <th style="width: 10%;">Nº OT/LCL/LCA</th>
+                                                    <th style="width: 15%;">Descripción SST/MA/CA</th>
+                                                    <th style="width: 17%;">Archivos</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php 
+                                                $contador_detalle = 1;
+                                                foreach ($pedido_detalle as $detalle) { 
+                                                    // Parsear comentarios para extraer unidad
+                                                    $comentario = $detalle['com_pedido_detalle'];
+                                                    $unidad_nombre = '';
+                                                    
+                                                    if (preg_match('/Unidad:\s*([^|]*)\s*\|/', $comentario, $matches)) {
+                                                        $unidad_nombre = trim($matches[1]);
+                                                    }
+                                                    
+                                                    $sst_descripcion = $detalle['req_pedido'];
+                                                    
+                                                    $ot_numero = !empty($detalle['ot_pedido_detalle']) ? trim($detalle['ot_pedido_detalle']) : '';
+
+                                                    
+                                                    // Obtener centros de costo del detalle
+                                                    $centros_costo_detalle = [];
+                                                    if (function_exists('ObtenerCentrosCostoDetalle')) {
+                                                        $centros_costo_detalle = ObtenerCentrosCostoDetalle($detalle['id_pedido_detalle']);
+                                                    }
+                                                    
+                                                    // Obtener personal asignado
+                                                    $personal_asignado = [];
+                                                    if (function_exists('ObtenerPersonalDetalleCompleto')) {
+                                                        $personal_asignado = ObtenerPersonalDetalleCompleto($detalle['id_pedido_detalle']);
+                                                    }
+                                                ?>
+                                                    <tr>
+                                                        <!-- COLUMNA 1: # -->
+                                                        <td style="font-weight: bold;"><?php echo $contador_detalle; ?></td>
+                                                        
+                                                        <!-- COLUMNA 2: Material/Servicio -->
+                                                        <td>
+                                                            <strong><?php echo $detalle['prod_pedido_detalle']; ?></strong>
+                                                            <?php if (!empty($detalle['cod_material'])) { ?>
+                                                                <br><small class="text-muted">Código: <?php echo $detalle['cod_material']; ?></small>
+                                                            <?php } elseif (!empty($detalle['nom_producto'])) { ?>
+                                                                <br><small class="text-muted">Producto: <?php echo $detalle['nom_producto']; ?></small>
+                                                            <?php } ?>
+                                                        </td>
+                                                        
+                                                        <!-- COLUMNA 3: Unidad -->
+                                                        <td>
+                                                            <span class="badge badge-secondary badge_size" style="font-size: 11px;">
+                                                                <?php echo !empty($unidad_nombre) ? $unidad_nombre : 'N/A'; ?>
+                                                            </span>
+                                                        </td>
+                                                        
+                                                        <!-- COLUMNA 4: Cantidad -->
+                                                        <td class="text-center">
+                                                            <span class="badge badge-primary badge_size" style="font-size: 11px;"><?php echo $detalle['cant_pedido_detalle']; ?></span>
+                                                            <?php if ($detalle['cant_oc_pedido_detalle'] !== null) { ?>
+                                                                <br><small class="text-success"><i class="fa fa-check"></i> Verificado: <?php echo $detalle['cant_oc_pedido_detalle']; ?></small>
+                                                            <?php } ?>
+                                                        </td>
+                                                        
+                                                        <!-- COLUMNA 5: Centro(s) de Costo -->
+                                                        <td>
+                                                            <?php if (!empty($centros_costo_detalle)) { 
+                                                                $total_centros = count($centros_costo_detalle);
+                                                                $modalId = 'modalCentrosCostoPedido' . $detalle['id_pedido_detalle'];
+                                                                
+                                                                if ($total_centros === 1) {
+                                                                    ?>
+                                                                    <span class="badge badge-info badge_size" style="font-size: 11px;">
+                                                                        <?php echo $centros_costo_detalle[0]['nom_centro_costo']; ?>
+                                                                    </span>
+                                                                <?php } else { 
+                                                                    $listaCentros = '';
+                                                                    foreach ($centros_costo_detalle as $idx => $cc) {
+                                                                        $listaCentros .= '<div style="padding: 8px; margin-bottom: 6px; background-color: #f8f9fa; border-left: 3px solid #17a2b8; border-radius: 4px;">';
+                                                                        $listaCentros .= '<strong style="color: #17a2b8;">' . ($idx + 1) . '.</strong> ' . htmlspecialchars($cc['nom_centro_costo']);
+                                                                        $listaCentros .= '</div>';
+                                                                    }
+                                                                    ?>
+                                                                    <button class="btn btn-sm btn-info btn-ver-centros-costo-pedido" 
+                                                                            type="button" 
+                                                                            data-modal-id="<?php echo $modalId; ?>"
+                                                                            style="font-size: 11px; padding: 3px 10px;">
+                                                                        <i class="fa fa-eye"></i> Ver <?php echo $total_centros; ?> centros
+                                                                    </button>
+                                                                    
+                                                                    <!-- Modal para centros de costo -->
+                                                                    <div class="modal fade" id="<?php echo $modalId; ?>" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+                                                                        <div class="modal-dialog modal-dialog-centered" role="document">
+                                                                            <div class="modal-content">
+                                                                                <div class="modal-header" style="background-color: #17a2b8; color: white; padding: 12px 20px;">
+                                                                                    <h6 class="modal-title mb-0">
+                                                                                        <i class="fa fa-building"></i> 
+                                                                                        Centros de Costo Asignados
+                                                                                    </h6>
+                                                                                    <button type="button" class="close close-centros-modal-pedido" data-modal-id="<?php echo $modalId; ?>" aria-label="Close" style="color: white; opacity: 0.8;">
+                                                                                        <span aria-hidden="true">&times;</span>
+                                                                                    </button>
+                                                                                </div>
+                                                                                <div class="modal-body" style="padding: 20px;">
+                                                                                    <div style="margin-bottom: 15px; padding: 10px; background-color: #e7f3ff; border-radius: 4px; border-left: 4px solid #17a2b8;">
+                                                                                        <strong>Producto:</strong> <?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>
+                                                                                    </div>
+                                                                                    <div style="max-height: 400px; overflow-y: auto;">
+                                                                                        <?php echo $listaCentros; ?>
+                                                                                    </div>
+                                                                                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6; text-align: center;">
+                                                                                        <span class="badge badge-info" style="font-size: 12px; padding: 6px 12px;">
+                                                                                            Total: <?php echo $total_centros; ?> centro(s) de costo
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="modal-footer" style="padding: 10px 20px;">
+                                                                                    <button type="button" class="btn btn-secondary btn-sm close-centros-modal-pedido" data-modal-id="<?php echo $modalId; ?>">
+                                                                                        <i class="fa fa-times"></i> Cerrar
+                                                                                    </button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                <?php } ?>
+                                                            <?php } else { ?>
+                                                                <small class="text-muted">Sin asignar</small>
+                                                            <?php } ?>
+                                                        </td>
+                                                        
+                                                        <!-- COLUMNA 6: Personal Asignado -->
+                                                        <td>
+                                                            <?php if (!empty($personal_asignado)) { 
+                                                                $total_personal = count($personal_asignado);
+                                                                $modalIdPersonal = 'modalPersonalPedido' . $detalle['id_pedido_detalle'];
+                                                                
+                                                                if ($total_personal === 1) {
+                                                                    $persona = $personal_asignado[0];
+                                                                    ?>
+                                                                    <span class="badge badge-success badge_size d-block" style="font-size: 11px;">
+                                                                        <?php echo $persona['nom_personal']; ?>
+                                                                        <?php if (!empty($persona['nom_cargo'])) { ?>
+                                                                            <br><small><?php echo $persona['nom_cargo']; ?></small>
+                                                                        <?php } ?>
+                                                                    </span>
+                                                                <?php } else { 
+                                                                    $listaPersonal = '';
+                                                                    foreach ($personal_asignado as $idx => $persona) {
+                                                                        $listaPersonal .= '<div style="padding: 10px; margin-bottom: 8px; background-color: #f0f9ff; border-left: 3px solid #28a745; border-radius: 4px;">';
+                                                                        $listaPersonal .= '<div style="display: flex; align-items: center; gap: 8px;">';
+                                                                        $listaPersonal .= '<strong style="color: #28a745; font-size: 16px;">' . ($idx + 1) . '.</strong>';
+                                                                        $listaPersonal .= '<div>';
+                                                                        $listaPersonal .= '<div style="font-weight: 600; color: #2c3e50;">' . htmlspecialchars($persona['nom_personal']) . '</div>';
+                                                                        if (!empty($persona['nom_cargo'])) {
+                                                                            $listaPersonal .= '<small style="color: #7f8c8d;">' . htmlspecialchars($persona['nom_cargo']) . '</small>';
+                                                                        }
+                                                                        $listaPersonal .= '</div>';
+                                                                        $listaPersonal .= '</div>';
+                                                                        $listaPersonal .= '</div>';
+                                                                    }
+                                                                    ?>
+                                                                    <button class="btn btn-sm btn-success btn-ver-personal-pedido" 
+                                                                            type="button" 
+                                                                            data-modal-id="<?php echo $modalIdPersonal; ?>"
+                                                                            style="font-size: 11px; padding: 3px 10px;">
+                                                                        <i class="fa fa-users"></i> Ver <?php echo $total_personal; ?> persona(s)
+                                                                    </button>
+                                                                    
+                                                                    <!-- Modal para personal asignado -->
+                                                                    <div class="modal fade" id="<?php echo $modalIdPersonal; ?>" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+                                                                        <div class="modal-dialog modal-dialog-centered" role="document">
+                                                                            <div class="modal-content">
+                                                                                <div class="modal-header" style="background-color: #28a745; color: white; padding: 12px 20px;">
+                                                                                    <h6 class="modal-title mb-0">
+                                                                                        <i class="fa fa-users"></i> 
+                                                                                        Personal Asignado
+                                                                                    </h6>
+                                                                                    <button type="button" class="close close-personal-modal-pedido" data-modal-id="<?php echo $modalIdPersonal; ?>" aria-label="Close" style="color: white; opacity: 0.8;">
+                                                                                        <span aria-hidden="true">&times;</span>
+                                                                                    </button>
+                                                                                </div>
+                                                                                <div class="modal-body" style="padding: 20px;">
+                                                                                    <div style="margin-bottom: 15px; padding: 10px; background-color: #e7f3ff; border-radius: 4px; border-left: 4px solid #17a2b8;">
+                                                                                        <strong>Servicio:</strong> <?php echo htmlspecialchars($detalle['prod_pedido_detalle']); ?>
+                                                                                    </div>
+                                                                                    <div style="max-height: 400px; overflow-y: auto;">
+                                                                                        <?php echo $listaPersonal; ?>
+                                                                                    </div>
+                                                                                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6; text-align: center;">
+                                                                                        <span class="badge badge-success" style="font-size: 12px; padding: 6px 12px;">
+                                                                                            Total: <?php echo $total_personal; ?> persona(s) asignada(s)
+                                                                                        </span>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div class="modal-footer" style="padding: 10px 20px;">
+                                                                                    <button type="button" class="btn btn-secondary btn-sm close-personal-modal-pedido" data-modal-id="<?php echo $modalIdPersonal; ?>">
+                                                                                        <i class="fa fa-times"></i> Cerrar
+                                                                                    </button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                <?php } ?>
+                                                            <?php } else { ?>
+                                                                <small class="text-muted">-</small>
+                                                            <?php } ?>
+                                                        </td>
+                                                        
+                                                        <!-- COLUMNA 7: Nº OT/LCL/LCA -->
+                                                        <td>
+                                                            <?php if (!empty($ot_numero)) { ?>
+                                                                <?php echo htmlspecialchars($ot_numero); ?>
+                                                            <?php } else { ?>
+                                                                <small class="text-muted">-</small>
+                                                            <?php } ?>
+                                                        </td>
+                                                        
+                                                        <!-- COLUMNA 8: Descripción SST/MA/CA -->
+                                                        <td>
+                                                            <?php if (!empty($sst_descripcion)) { ?>
+                                                                <small><?php echo nl2br($sst_descripcion); ?></small>
+                                                            <?php } else { ?>
+                                                                <small class="text-muted">-</small>
+                                                            <?php } ?>
+                                                        </td>
+                                                        
+                                                        <!-- COLUMNA 9: Archivos -->
+                                                        <td>
+                                                            <?php 
+                                                            $archivos_activos = ObtenerArchivosActivosDetalle($detalle['id_pedido_detalle']);
+                                                            
+                                                            if (!empty($archivos_activos)) { 
+                                                                foreach ($archivos_activos as $archivo) { 
+                                                                    $extension = strtolower(pathinfo($archivo, PATHINFO_EXTENSION));
+                                                                    $icono = 'fa-file';
+                                                                    $clase_color = 'text-info';
+                                                                    
+                                                                    switch ($extension) {
+                                                                        case 'pdf':
+                                                                            $icono = 'fa-file-pdf-o';
+                                                                            $clase_color = 'text-danger';
+                                                                            break;
+                                                                        case 'jpg':
+                                                                        case 'jpeg':
+                                                                        case 'png':
+                                                                        case 'gif':
+                                                                            $icono = 'fa-file-image-o';
+                                                                            $clase_color = 'text-success';
+                                                                            break;
+                                                                        case 'doc':
+                                                                        case 'docx':
+                                                                            $icono = 'fa-file-word-o';
+                                                                            $clase_color = 'text-primary';
+                                                                            break;
+                                                                        case 'xls':
+                                                                        case 'xlsx':
+                                                                            $icono = 'fa-file-excel-o';
+                                                                            $clase_color = 'text-warning';
+                                                                            break;
+                                                                    }
+                                                            ?>
+                                                                    <a href="../_archivos/pedidos/<?php echo $archivo; ?>" 
+                                                                    target="_blank" 
+                                                                    class="btn btn-sm btn-outline-primary mb-1 d-block text-left <?php echo $clase_color; ?>"
+                                                                    title="Ver <?php echo $archivo; ?>"
+                                                                    style="font-size: 11px;">
+                                                                        <i class="fa <?php echo $icono; ?>"></i> 
+                                                                        <?php echo strlen($archivo) > 25 ? substr($archivo, 0, 25) . '...' : $archivo; ?>
+                                                                    </a>
+                                                            <?php } 
+                                                            } else { ?>
+                                                                <small class="text-muted">Sin archivos adjuntos</small>
+                                                            <?php } ?>
+                                                        </td>
+                                                    </tr>
+                                                <?php 
+                                                    $contador_detalle++;
+                                                } 
+                                                ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                <?php } else { ?>
+                                    <div class="alert alert-info">
+                                        <i class="fa fa-info-circle"></i> No hay detalles disponibles para este pedido.
+                                    </div>
+                                <?php } ?>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+            <div class="modal-footer" style="padding: 15px;">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fa fa-times"></i> Cerrar
+                </button>
                 <?php
                 $es_rechazado = in_array($pedido['id_pedido'], $pedidos_rechazados);
                 $tiene_tecnica = !empty($pedido['id_personal_aprueba_tecnica']);
                 $puede_editar_modal = true;
                 $titulo_editar_modal = '';
                 
-                // Aplicar las mismas validaciones que en la tabla
                 // Verificar si tiene verificación técnica (para el modal)
                 $verificacion_tecnica_modal = TieneVerificacionTecnica($pedido['id_pedido']);
                 $tiene_verificacion_tecnica_modal = $verificacion_tecnica_modal['verificado'];

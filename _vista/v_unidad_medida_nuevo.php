@@ -24,10 +24,31 @@
                     <div class="x_content">
                         <br>
                         <form class="form-horizontal form-label-left" action="unidad_medida_nuevo.php" method="post">
+                            
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Código <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" 
+                                           name="cod" 
+                                           class="form-control" 
+                                           placeholder="Código o abreviatura (Ej: UND, KG, M)" 
+                                           maxlength="10"
+                                           style="text-transform: uppercase;"
+                                           required="required">
+                                    <small class="form-text text-muted">
+                                        <i class="fa fa-info-circle"></i> Abreviatura única de la unidad de medida
+                                    </small>
+                                </div>
+                            </div>
+
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Nombre <span class="text-danger">*</span> :</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="nom" class="form-control" placeholder="Nombre de la unidad de medida" required="required">
+                                    <input type="text" 
+                                           name="nom" 
+                                           class="form-control" 
+                                           placeholder="Nombre completo de la unidad de medida (Ej: UNIDAD, KILOGRAMO, METRO)" 
+                                           required="required">
                                 </div>
                             </div>
 
@@ -51,7 +72,9 @@
                                     </a>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
-                                    <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block"><i class="bi bi-pencil-square"></i> Registrar</button>
+                                    <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">
+                                        <i class="bi bi-pencil-square"></i> Registrar
+                                    </button>
                                 </div>
                             </div>
 

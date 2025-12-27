@@ -63,15 +63,23 @@ function ConsultarUsoMaterial($id_uso_material)
                 o.nom_subestacion as nom_obra,
                 c.nom_cliente, 
                 u.nom_ubicacion, 
-                per1.nom_personal AS nom_registrado, 
-                per2.nom_personal AS nom_solicitante
+                per1.nom_personal AS nom_registrado,
+                per2.nom_personal AS nom_solicitante,
+                -- 🔹 CENTRO DE COSTO DEL REGISTRADOR
+                cc_reg.nom_area as nom_centro_costo_registrador,
+                -- 🔹 CENTRO DE COSTO DEL SOLICITANTE
+                cc_sol.nom_area as nom_centro_costo_solicitante
             FROM uso_material usm 
             LEFT JOIN almacen alm ON usm.id_almacen = alm.id_almacen 
             LEFT JOIN {$bd_complemento}.subestacion o ON alm.id_obra = o.id_subestacion 
             LEFT JOIN {$bd_complemento}.cliente c ON alm.id_cliente = c.id_cliente 
             LEFT JOIN ubicacion u ON usm.id_ubicacion = u.id_ubicacion 
             LEFT JOIN {$bd_complemento}.personal per1 ON usm.id_personal = per1.id_personal 
-            LEFT JOIN {$bd_complemento}.personal per2 ON usm.id_solicitante = per2.id_personal 
+            LEFT JOIN {$bd_complemento}.personal per2 ON usm.id_solicitante = per2.id_personal
+            -- 🔹 JOIN PARA CENTRO DE COSTO DEL REGISTRADOR
+            LEFT JOIN {$bd_complemento}.area cc_reg ON usm.id_registrador_centro_costo = cc_reg.id_area
+            -- 🔹 JOIN PARA CENTRO DE COSTO DEL SOLICITANTE
+            LEFT JOIN {$bd_complemento}.area cc_sol ON usm.id_solicitante_centro_costo = cc_sol.id_area
             WHERE usm.id_uso_material = $id_uso_material";
     
     $resc = mysqli_query($con, $sql);
@@ -85,6 +93,7 @@ function ConsultarUsoMaterial($id_uso_material)
     return $resultado;
 }
 
+
 function ConsultarUsoMaterialDetalle($id_uso_material)
 {
     include("../_conexion/conexion.php");
@@ -93,6 +102,7 @@ function ConsultarUsoMaterialDetalle($id_uso_material)
                 p.nom_producto,
                 p.id_unidad_medida,
                 um.nom_unidad_medida,
+                um.cod_unidad_medida,
                 GROUP_CONCAT(umdd.nom_uso_material_detalle_documento) as archivos,
                 COALESCE(
                     (SELECT SUM(CASE
@@ -559,6 +569,82 @@ function ObtenerCentrosCostoPorDetalleUsoMaterial($id_uso_material_detalle)
     $centros = array();
     while ($row = mysqli_fetch_assoc($result)) {
         $centros[] = intval($row['id_centro_costo']);
+    }
+    
+    mysqli_close($con);
+    return $centros;
+}
+function ConsultarUsoMaterialDetalleConCentros($id_uso_material)
+{
+    include("../_conexion/conexion.php");
+
+    $sql = "SELECT umd.*, 
+                p.nom_producto,
+                p.id_unidad_medida,
+                um.nom_unidad_medida,
+                um.cod_unidad_medida,
+                GROUP_CONCAT(umdd.nom_uso_material_detalle_documento) as archivos,
+                COALESCE(
+                    (SELECT SUM(CASE
+                        WHEN mov.tipo_movimiento = 1 AND mov.tipo_orden != 3 THEN mov.cant_movimiento
+                        WHEN mov.tipo_movimiento = 2 THEN -mov.cant_movimiento
+                        ELSE 0
+                    END)
+                    FROM movimiento mov
+                    INNER JOIN uso_material usm ON umd.id_uso_material = usm.id_uso_material
+                    WHERE mov.id_producto = umd.id_producto 
+                    AND mov.id_almacen = usm.id_almacen 
+                    AND mov.id_ubicacion = usm.id_ubicacion
+                    AND mov.est_movimiento != 0), 0
+                ) + umd.cant_uso_material_detalle AS cantidad_disponible_almacen
+            FROM uso_material_detalle umd 
+            LEFT JOIN uso_material_detalle_documento umdd ON umd.id_uso_material_detalle = umdd.id_uso_material_detalle AND umdd.est_uso_material_detalle_documento = 1
+            INNER JOIN producto p ON umd.id_producto = p.id_producto
+            INNER JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
+            WHERE umd.id_uso_material = $id_uso_material 
+            AND umd.est_uso_material_detalle = 1
+            GROUP BY umd.id_uso_material_detalle
+            ORDER BY umd.id_uso_material_detalle";
+    
+    $resc = mysqli_query($con, $sql);
+    
+    if (!$resc) {
+        error_log("Error en ConsultarUsoMaterialDetalleConCentros SQL: " . mysqli_error($con));
+        mysqli_close($con);
+        return array();
+    }
+    
+    $resultado = array();
+    while ($rowc = mysqli_fetch_array($resc, MYSQLI_ASSOC)) {
+        // 🔹 CARGAR CENTROS DE COSTO CON NOMBRES
+        $rowc['centros_costo'] = ObtenerCentrosCostoPorDetalleUsoMaterialCompleto($rowc['id_uso_material_detalle']);
+        $resultado[] = $rowc;
+    }
+    
+    mysqli_close($con);
+    return $resultado;
+}
+// =====================================================
+// NUEVA FUNCIÓN: Obtener centros de costo con nombres
+// =====================================================
+function ObtenerCentrosCostoPorDetalleUsoMaterialCompleto($id_uso_material_detalle) 
+{
+    include("../_conexion/conexion.php");
+    
+    $id_uso_material_detalle = intval($id_uso_material_detalle);
+    
+    $sql = "SELECT cc.id_centro_costo, a.nom_area as nom_centro_costo
+            FROM uso_material_detalle_centro_costo cc
+            INNER JOIN {$bd_complemento}.area a ON cc.id_centro_costo = a.id_area
+            WHERE cc.id_uso_material_detalle = $id_uso_material_detalle";
+    
+    $resultado = mysqli_query($con, $sql);
+    $centros = [];
+    
+    if ($resultado) {
+        while ($row = mysqli_fetch_assoc($resultado)) {
+            $centros[] = $row;
+        }
     }
     
     mysqli_close($con);

@@ -494,14 +494,31 @@ require_once("../_modelo/m_detraccion.php");
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Serie <span class="text-danger">*</span></label>
-                            <input type="text" name="serie" class="form-control" placeholder="Ej: F001" required>
+                            <input 
+                                type="text" 
+                                name="serie" 
+                                class="form-control" 
+                                placeholder="Ej: F001" 
+                                maxlength="4"
+                                pattern="[A-Z]\d{3}"
+                                title="Debe contener 1 letra seguida de 3 dígitos (Ej: F001)"
+                                style="text-transform: uppercase;"
+                                required>
                         </div>
                     </div>
                     
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Número <span class="text-danger">*</span></label>
-                            <input type="text" name="numero" class="form-control" placeholder="Ej: 00001234" required>
+                            <input 
+                                type="text" 
+                                name="numero" 
+                                class="form-control" 
+                                placeholder="Ej: 00001234"
+                                maxlength="10"
+                                pattern="\d{1,10}"
+                                title="Debe contener entre 1 y 10 dígitos"
+                                required>
                         </div>
                     </div>
                 </div>
@@ -699,7 +716,17 @@ require_once("../_modelo/m_detraccion.php");
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Serie <span class="text-danger">*</span></label>
-                            <input type="text" name="serie" id="edit_serie" class="form-control" placeholder="Ej: F001" required>
+                            <input 
+                                type="text" 
+                                name="serie" 
+                                id="edit_serie" 
+                                class="form-control" 
+                                placeholder="Ej: F001"
+                                maxlength="4"
+                                pattern="[A-Z]\d{3}"
+                                title="Debe contener 1 letra seguida de 3 dígitos (Ej: F001)"
+                                style="text-transform: uppercase;"
+                                required>
                         </div>
                     </div>
                     
@@ -1298,6 +1325,9 @@ function inicializarModalEditar() {
 
 $(document).ready(function() {
     console.log(' jQuery ready ejecutado');
+
+    // Configurar validaciones de serie y número
+    configurarValidacionesCampos();
     
     // Modal Registrar
     $('#modalRegistrarComprobante').on('shown.bs.modal', function() {
@@ -1312,6 +1342,8 @@ $(document).ready(function() {
                 setupCuentaControl(false);
                 calcularTotalPagar(false);
             }
+            // Reconfigurar validaciones
+            configurarValidacionesCampos();
         }, 100);
     });
     
@@ -1328,9 +1360,34 @@ $(document).ready(function() {
                 setupCuentaControl(true);
                 calcularTotalPagar(true);
             }
+            // Reconfigurar validaciones
+            configurarValidacionesCampos();
         }, 150);
     });
     
+
+    // Validar antes de enviar formulario de REGISTRO
+    $('#modalRegistrarComprobante form').on('submit', function(e) {
+        const serie = $(this).find('input[name="serie"]').val().trim();
+        const numero = $(this).find('input[name="numero"]').val().trim();
+        
+        if (!validarSerie(serie, false) || !validarNumero(numero, false)) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
+    // Validar antes de enviar formulario de EDICIÓN
+    $('#modalEditarComprobante form').on('submit', function(e) {
+        const serie = $(this).find('input[name="serie"]').val().trim();
+        const numero = $(this).find('input[name="numero"]').val().trim();
+        
+        if (!validarSerie(serie, true) || !validarNumero(numero, true)) {
+            e.preventDefault();
+            return false;
+        }
+    });
+
     // DataTables
     if ($.fn.DataTable && $('#tablaComprobantes').length > 0) {
         $('#tablaComprobantes').DataTable({
@@ -1665,7 +1722,7 @@ function cerrarModalMasivo() {
 }
 
 function manejarCambioArchivos(e) {
-    console.log(" ¡¡¡CAMBIO DETECTADO!!!");
+    console.log("📁 ¡¡¡CAMBIO DETECTADO!!!");
     const nuevosArchivos = Array.from(e.target.files);
     if (nuevosArchivos.length === 0) return;
 
@@ -1682,7 +1739,8 @@ function manejarCambioArchivos(e) {
             return;
         }
 
-        const regexNombre = /^[A-Z0-9]{4}-\d{2,8}\.[A-Za-z0-9]+$/i;
+        //  REGEX CORREGIDO: 1 letra + 3 dígitos - número de 1 a 10 dígitos
+        const regexNombre = /^[A-Z]\d{3}-\d{1,10}\.[A-Za-z0-9]+$/i;
         if (!regexNombre.test(nombre)) {
             Swal.fire({
                 icon: 'warning',
@@ -1694,7 +1752,7 @@ function manejarCambioArchivos(e) {
 
         if (!archivosSeleccionados.find(a => a.name === nombre)) {
             archivosSeleccionados.push(archivo);
-            console.log(" Archivo agregado:", nombre);
+            console.log("✅ Archivo agregado:", nombre);
         } else {
             Swal.fire({
                 icon: 'info',
@@ -2233,7 +2291,7 @@ function inicializarVoucherPago() {
         return;
     }
 
-    // ✅ Remover listener anterior
+    //  Remover listener anterior
     inputVoucher.removeEventListener('change', validarVoucherPago);
     inputVoucher.addEventListener('change', validarVoucherPago);
     
@@ -2257,7 +2315,8 @@ function validarVoucherPago(e) {
         return;
     }
 
-    const regexNombre = /^[A-Z0-9]{4}-\d{2,8}\.[A-Za-z0-9]+$/i;
+    //  REGEX CORREGIDO: 1 letra + 3 dígitos - número de 1 a 10 dígitos
+    const regexNombre = /^[A-Z]\d{3}-\d{1,10}\.[A-Za-z0-9]+$/i;
     if (!regexNombre.test(nombre)) {
         Swal.fire({
             icon: 'warning',
@@ -2268,12 +2327,8 @@ function validarVoucherPago(e) {
         return;
     }
 
-    // ============================
-    // 🚨 VALIDAR QUE SEA EL MISMO COMPROBANTE
-    // ============================
+    // Validar que sea el mismo comprobante
     const numComprobante = document.getElementById('voucher_num_comprobante').value.trim();
-
-    // Extraer nombre sin extensión
     const nombreSinExt = nombre.split('.').slice(0, -1).join('.');
 
     if (nombreSinExt.toUpperCase() !== numComprobante.toUpperCase()) {
@@ -2287,6 +2342,129 @@ function validarVoucherPago(e) {
     }
 
     console.log("✅ Voucher válido:", nombre);
+}
+
+// ============================================================
+// VALIDACIONES DE SERIE Y NÚMERO
+// ============================================================
+
+function validarSerie(valor, isEditMode = false) {
+    const prefix = isEditMode ? 'edit_' : '';
+    const inputSerie = document.getElementById(prefix + 'serie') || document.querySelector(`input[name="serie"]`);
+    
+    // Formato: 1 letra mayúscula + 3 dígitos (ej: F001, B002, E123)
+    const regexSerie = /^[A-Z]\d{3}$/;
+    
+    if (!regexSerie.test(valor.trim())) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Serie inválida',
+            text: 'La serie debe tener 1 letra seguida de 3 dígitos. Ejemplo: F001, B002, E123',
+            confirmButtonColor: '#d33'
+        });
+        if (inputSerie) inputSerie.value = '';
+        return false;
+    }
+    
+    return true;
+}
+
+function validarNumero(valor, isEditMode = false) {
+    const prefix = isEditMode ? 'edit_' : '';
+    const inputNumero = document.getElementById(prefix + 'numero') || document.querySelector(`input[name="numero"]`);
+    
+    // Formato: De 1 a 10 dígitos numéricos
+    const regexNumero = /^\d{1,10}$/;
+    
+    if (!regexNumero.test(valor.trim())) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Número inválido',
+            text: 'El número debe contener entre 1 y 10 dígitos. Ejemplo: 1234, 00001234',
+            confirmButtonColor: '#d33'
+        });
+        if (inputNumero) inputNumero.value = '';
+        return false;
+    }
+    
+    return true;
+}
+
+// Agregar eventos de validación en tiempo real
+function configurarValidacionesCampos() {
+    // Para modal de REGISTRO
+    const serieInput = document.querySelector('#modalRegistrarComprobante input[name="serie"]');
+    const numeroInput = document.querySelector('#modalRegistrarComprobante input[name="numero"]');
+    
+    if (serieInput) {
+        serieInput.addEventListener('blur', function() {
+            if (this.value.trim() !== '') {
+                validarSerie(this.value, false);
+            }
+        });
+        
+        // Convertir a mayúsculas automáticamente
+        serieInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+            
+            // Limitar a 4 caracteres y formato específico
+            if (this.value.length > 4) {
+                this.value = this.value.substring(0, 4);
+            }
+        });
+    }
+    
+    if (numeroInput) {
+        numeroInput.addEventListener('blur', function() {
+            if (this.value.trim() !== '') {
+                validarNumero(this.value, false);
+            }
+        });
+        
+        // Solo permitir números
+        numeroInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length > 10) {
+                this.value = this.value.substring(0, 10);
+            }
+        });
+    }
+    
+    // Para modal de EDICIÓN
+    const serieEditInput = document.querySelector('#modalEditarComprobante input[name="serie"]');
+    const numeroEditInput = document.querySelector('#modalEditarComprobante input[name="numero"]');
+    
+    if (serieEditInput) {
+        serieEditInput.addEventListener('blur', function() {
+            if (this.value.trim() !== '') {
+                validarSerie(this.value, true);
+            }
+        });
+        
+        serieEditInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+            
+            // Limitar a 4 caracteres
+            if (this.value.length > 4) {
+                this.value = this.value.substring(0, 4);
+            }
+        });
+    }
+    
+    if (numeroEditInput) {
+        numeroEditInput.addEventListener('blur', function() {
+            if (this.value.trim() !== '') {
+                validarNumero(this.value, true);
+            }
+        });
+        
+        numeroEditInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length > 10) {
+                this.value = this.value.substring(0, 10);
+            }
+        });
+    }
 }
 
 // ============================================================

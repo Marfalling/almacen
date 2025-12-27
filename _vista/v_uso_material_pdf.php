@@ -121,13 +121,13 @@ $html = '
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 12px;
-            font-size: 7.5pt;
+            font-size: 7pt;
         }
 
         .detalles-table th {
             background-color: #d0d0d0;
             border: 1px solid #000;
-            padding: 5px 3px;
+            padding: 4px 2px;
             text-align: center;
             font-weight: bold;
             line-height: 1.1;
@@ -135,8 +135,9 @@ $html = '
 
         .detalles-table td {
             border: 1px solid #000;
-            padding: 4px 5px;
+            padding: 3px 4px;
             vertical-align: top;
+            line-height: 1.3;
         }
 
         .text-center {
@@ -147,24 +148,29 @@ $html = '
             text-align: left;
         }
 
+        /* 🔹 AJUSTE DE COLUMNAS PARA INCLUIR CENTRO DE COSTO */
         .col-item {
-            width: 8%;
+            width: 6%;
         }
 
         .col-cantidad {
-            width: 10%;
+            width: 8%;
         }
 
         .col-unidad {
-            width: 10%;
+            width: 8%;
         }
 
         .col-descripcion {
-            width: 50%;
+            width: 32%;
+        }
+
+        .col-centro-costo {
+            width: 20%;
         }
 
         .col-observaciones {
-            width: 22%;
+            width: 26%;
         }
 
         .observaciones-section {
@@ -244,7 +250,9 @@ $html = '
             <div><strong>CLIENTE:</strong> ' . $nombre_cliente . '</div>
             <div><strong>FECHA USO:</strong> ' . $fecha_uso . '</div>
             <div><strong>SOLICITANTE:</strong> ' . $nom_solicitante . '</div>
+            <div><strong>CENTRO DE COSTO (SOLICITANTE):</strong> ' . $centro_costo_solicitante . '</div>
             <div><strong>REGISTRADO POR:</strong> ' . $nom_registrado . '</div>
+            <div><strong>CENTRO DE COSTO (REGISTRADOR):</strong> ' . $centro_costo_registrador . '</div>
         </div>
 
         <!-- TABLA DE MATERIALES -->
@@ -252,9 +260,10 @@ $html = '
             <thead>
                 <tr>
                     <th class="col-item">ÍTEM</th>
-                    <th class="col-cantidad">CANTIDAD</th>
-                    <th class="col-unidad">UNIDAD</th>
-                    <th class="col-descripcion">DESCRIPCIÓN DEL MATERIAL</th>
+                    <th class="col-cantidad">CANT.</th>
+                    <th class="col-unidad">UND.</th>
+                    <th class="col-descripcion">DESCRIPCIÓN</th>
+                    <th class="col-centro-costo">CENTRO COSTO</th>
                     <th class="col-observaciones">OBSERVACIONES</th>
                 </tr>
             </thead>

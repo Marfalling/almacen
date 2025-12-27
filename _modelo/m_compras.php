@@ -409,7 +409,7 @@ function ConsultarCompraDetalle($id_compra)
     
     $id_compra = intval($id_compra);
     
-    // JOIN directo por id_pedido_detalle 
+    // 🔹 AGREGAR: cod_unidad_medida al SELECT
     $sql = "SELECT 
                 cd.id_compra_detalle,
                 cd.id_compra,
@@ -419,12 +419,14 @@ function ConsultarCompraDetalle($id_compra)
                 cd.prec_compra_detalle,
                 cd.igv_compra_detalle,
                 cd.hom_compra_detalle,
+                cd.req_compra_detalle,
                 cd.est_compra_detalle,
                 pd.prod_pedido_detalle,
                 pd.com_pedido_detalle,
                 pd.req_pedido,
                 pr.nom_producto,
                 pr.cod_material,
+                um.cod_unidad_medida,
                 um.nom_unidad_medida
             FROM compra_detalle cd
             LEFT JOIN pedido_detalle pd ON cd.id_pedido_detalle = pd.id_pedido_detalle
@@ -610,6 +612,7 @@ function ConsultarCompraDetalleConCentros($id_compra)
     
     $id_compra = intval($id_compra);
     
+    // 🔹 AGREGAR: cod_unidad_medida al SELECT
     $sql = "SELECT 
                 cd.id_compra_detalle,
                 cd.id_compra,
@@ -619,12 +622,14 @@ function ConsultarCompraDetalleConCentros($id_compra)
                 cd.prec_compra_detalle,
                 cd.igv_compra_detalle,
                 cd.hom_compra_detalle,
+                cd.req_compra_detalle,
                 cd.est_compra_detalle,
                 pd.prod_pedido_detalle,
                 pd.com_pedido_detalle,
                 pd.req_pedido,
                 pr.nom_producto,
                 pr.cod_material,
+                um.cod_unidad_medida,
                 um.nom_unidad_medida
             FROM compra_detalle cd
             LEFT JOIN pedido_detalle pd ON cd.id_pedido_detalle = pd.id_pedido_detalle

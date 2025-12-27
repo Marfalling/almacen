@@ -62,6 +62,7 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_unidad de medida');
                                         <thead>
                                             <tr>
                                                 <th>#</th>
+                                                <th>Código</th>
                                                 <th>Nombre</th>
                                                 <th>Estado</th>
                                                 <th>Editar</th> 
@@ -74,12 +75,14 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_unidad de medida');
                                             foreach ($unidad_medida as  $value) {
                                                 $c++;
                                                 $id_unidad_medida = $value['id_unidad_medida'];
+                                                $cod_unidad_medida = isset($value['cod_unidad_medida']) ? $value['cod_unidad_medida'] : 'N/A';
                                                 $nom_unidad_medida = $value['nom_unidad_medida'];
                                                 $est_unidad_medida = $value['est_unidad_medida'];
                                                 $estado = ($est_unidad_medida == 1) ? "ACTIVO" : "INACTIVO";
                                             ?>
                                                 <tr>
                                                     <td><?php echo $c; ?></td>
+                                                    <td><strong><?php echo $cod_unidad_medida; ?></strong></td>
                                                     <td><?php echo $nom_unidad_medida; ?></td>
                                                     <td>
                                                         <center>
@@ -134,9 +137,7 @@ $tiene_permiso_editar = verificarPermisoEspecifico('editar_unidad de medida');
 <!-- /page content -->
 
 <script>
-
 $(function () {
     $('[data-toggle="tooltip"]').tooltip();
 });
-
 </script>

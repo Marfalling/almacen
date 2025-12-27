@@ -215,6 +215,14 @@ try {
         }
     }
 
+    $requisitos_items = [];
+    if (isset($_POST['req_compra']) && is_array($_POST['req_compra'])) {
+        foreach ($_POST['req_compra'] as $id_pedido_detalle => $req) {
+            $requisitos_items[intval($id_pedido_detalle)] = trim($req);
+        }
+        error_log(" Requisitos capturados: " . count($requisitos_items) . " items");
+    }
+
     // 🔹 PASO 5: ACTUALIZAR LA ORDEN SEGÚN TIPO
     if ($es_orden_servicio) {
         // ORDEN DE SERVICIO
@@ -231,7 +239,8 @@ try {
             $id_detraccion,
             $archivos_homologacion,
             $id_retencion,
-            $id_percepcion
+            $id_percepcion,
+            $requisitos_items 
         );
     } else {
         // ORDEN DE MATERIAL
@@ -248,7 +257,8 @@ try {
             $id_detraccion,
             $archivos_homologacion,
             $id_retencion,
-            $id_percepcion
+            $id_percepcion,
+            $requisitos_items 
         );
     }
 

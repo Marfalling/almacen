@@ -35,20 +35,26 @@ if (!verificarPermisoEspecifico('editar_unidad de medida')) {
             //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
                 $id_unidad_medida = $_REQUEST['id_unidad_medida'];
-                $nom = strtoupper($_REQUEST['nom']);
+                $cod = strtoupper(trim($_REQUEST['cod']));
+                $nom = strtoupper(trim($_REQUEST['nom']));
                 $est = isset($_REQUEST['est']) ? 1 : 0;
 
                 //  OBTENER DATOS ANTES DE EDITAR
                 $unidad_medida_actual = ObtenerUnidadMedida($id_unidad_medida);
+                $cod_anterior = isset($unidad_medida_actual['cod_unidad_medida']) ? $unidad_medida_actual['cod_unidad_medida'] : '';
                 $nom_anterior = $unidad_medida_actual['nom_unidad_medida'] ?? '';
                 $est_anterior = $unidad_medida_actual['est_unidad_medida'] ?? 0;
 
                 //  EJECUTAR ACTUALIZACIÓN
-                $rpta = ActualizarUnidadMedida($id_unidad_medida, $nom, $est);
+                $rpta = ActualizarUnidadMedida($id_unidad_medida, $cod, $nom, $est);
 
                 if ($rpta == "SI") {
                     //  COMPARAR Y CONSTRUIR DESCRIPCIÓN
                     $cambios = [];
+                    
+                    if ($cod_anterior != $cod) {
+                        $cambios[] = "Código: '$cod_anterior' → '$cod'";
+                    }
                     
                     if ($nom_anterior != $nom) {
                         $cambios[] = "Nombre: '$nom_anterior' → '$nom'";
@@ -73,8 +79,16 @@ if (!verificarPermisoEspecifico('editar_unidad de medida')) {
                         location.href = 'unidad_medida_mostrar.php?actualizado=true';
                     </script>
                 <?php
+                } else if ($rpta == "CODIGO_EXISTE") {
+                    // AUDITORÍA: ERROR - CÓDIGO YA EXISTE
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'UNIDAD_MEDIDA', "ID: $id_unidad_medida | Código '$cod' ya existe");
+                ?>
+                    <script Language="JavaScript">
+                        location.href = 'unidad_medida_mostrar.php?codigo_existe=true';
+                    </script>
+                <?php
                 } else if ($rpta == "NO") {
-                    // AUDITORÍA: ERROR - YA EXISTE
+                    // AUDITORÍA: ERROR - NOMBRE YA EXISTE
                     GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'UNIDAD_MEDIDA', "ID: $id_unidad_medida | Nombre '$nom' ya existe");
                 ?>
                     <script Language="JavaScript">

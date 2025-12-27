@@ -1,6 +1,7 @@
 <?php
 require_once '../_conexion/sesion.php';
 //require_once '../_modelo/m_auditoria.php';
+require_once '../_modelo/m_centro_costo.php'; 
 require_once '../_modelo/m_pedidos.php';
 require_once '../_complemento/dompdf/autoload.inc.php';
 require_once '../_complemento/vendor/autoload.php';
@@ -66,6 +67,7 @@ $fecha_solicitud = date('d/m/Y', strtotime($pedido['fec_pedido']));
 $fecha_requerida = isset($pedido['fec_req_pedido']) ? date('d/m/Y', strtotime($pedido['fec_req_pedido'])) : '';
 $ot_pedido = $pedido['ot_pedido'] ?? '';
 $nom_personal = $pedido['nom_personal'];
+$centro_costo_solicitante = $pedido['nom_centro_costo_registrador'] ?? 'NO ESPECIFICADO';
 $lugar_entrega = $pedido['lug_pedido'] ?? '';
 $telefono = $pedido['cel_pedido'] ?? '';
 $almacen = $pedido['nom_almacen'] ?? '';
@@ -109,7 +111,20 @@ foreach ($pedido_detalle as $detalle) {
     if (!empty($detalle['ot_pedido_detalle'])) {
         $ot_material = htmlspecialchars($detalle['ot_pedido_detalle'], ENT_QUOTES, 'UTF-8');
     }
+    //  OBTENER CENTROS DE COSTO DEL DETALLE (usando función de m_centro_costo)
+    $centros_texto = '';
+    $centros_costo = ObtenerCentrosCostoDetalle($detalle['id_pedido_detalle']);
     
+    if (!empty($centros_costo) && is_array($centros_costo)) {
+        $nombres_centros = array_map(function($centro) {
+            return htmlspecialchars($centro['nom_centro_costo'], ENT_QUOTES, 'UTF-8');
+        }, $centros_costo);
+        $centros_texto = implode(', ', $nombres_centros);
+    } else {
+        $centros_texto = 'No especificado';
+    }
+    
+
     // Obtener personal asignado a este detalle
     $personal_asignado = array();
     if ($es_servicio) {
@@ -131,7 +146,7 @@ foreach ($pedido_detalle as $detalle) {
         $comentario_limpio = $detalle['com_pedido_detalle'];
         
         // ========================================
-        // LIMPIEZA: Remover solo "Unidad:" y "Unidad ID:", MANTENER "Obs:"
+        // LIMPIEZA: Remover "Unidad:", "Unidad ID:" y "Obs:"
         // ========================================
         
         // 1. Remover "Unidad: XXXX |" (puede tener cualquier texto hasta el pipe)
@@ -140,13 +155,19 @@ foreach ($pedido_detalle as $detalle) {
         // 2. Remover "Unidad ID: 123 |" (solo números)
         $comentario_limpio = preg_replace('/Unidad ID:\s*\d+\s*\|\s*/i', '', $comentario_limpio);
         
-        // 3. Limpiar pipes sobrantes y espacios
+        // 3. Remover "Obs: XXXX |" (puede tener cualquier texto hasta el pipe)
+        $comentario_limpio = preg_replace('/Obs:\s*[^|]*\|\s*/i', '', $comentario_limpio);
+        
+        // 4. Remover "Obs: XXXX" si está al final (sin pipe después)
+        $comentario_limpio = preg_replace('/Obs:\s*.*$/i', '', $comentario_limpio);
+        
+        // 5. Limpiar pipes sobrantes y espacios
         $comentario_limpio = trim($comentario_limpio, ' |');
         $comentario_limpio = preg_replace('/\|\s*\|/', '|', $comentario_limpio); // Pipes dobles
         $comentario_limpio = trim($comentario_limpio, ' |'); // Limpiar nuevamente
         
         if (!empty($comentario_limpio)) {
-            // Agregar el texto limpio (que puede incluir "Obs:" si existe)
+            // Agregar el texto limpio
             $comentarios_array[] = htmlspecialchars($comentario_limpio, ENT_QUOTES, 'UTF-8');
         }
     }
@@ -183,11 +204,22 @@ foreach ($pedido_detalle as $detalle) {
         
         // Consultar la unidad de medida en la base de datos
         include("../_conexion/conexion.php");
-        $sql_unidad = "SELECT nom_unidad_medida FROM unidad_medida WHERE id_unidad_medida = $id_unidad";
+        
+        // 🔹 CAMBIO: Priorizar cod_unidad_medida, luego nom_unidad_medida
+        $sql_unidad = "SELECT cod_unidad_medida, nom_unidad_medida 
+                       FROM unidad_medida 
+                       WHERE id_unidad_medida = $id_unidad";
         $res_unidad = mysqli_query($con, $sql_unidad);
         
         if ($res_unidad && $row_unidad = mysqli_fetch_assoc($res_unidad)) {
-            $unidad = htmlspecialchars($row_unidad['nom_unidad_medida'], ENT_QUOTES, 'UTF-8');
+            // Prioridad 1: Código (si existe y no está vacío)
+            if (!empty($row_unidad['cod_unidad_medida'])) {
+                $unidad = htmlspecialchars($row_unidad['cod_unidad_medida'], ENT_QUOTES, 'UTF-8');
+            } 
+            // Prioridad 2: Nombre completo
+            elseif (!empty($row_unidad['nom_unidad_medida'])) {
+                $unidad = htmlspecialchars($row_unidad['nom_unidad_medida'], ENT_QUOTES, 'UTF-8');
+            }
         }
         
         mysqli_close($con);
@@ -243,6 +275,7 @@ foreach ($pedido_detalle as $detalle) {
         <td class="cantidad-col text-center">' . $cantidad_text . '</td>
         <td class="unidad-col text-center">' . $unidad . '</td>
         <td class="descripcion-col">' . $descripcion . '</td>
+        <td class="centro-costo-col">' . $centros_texto . '</td>
         <td class="ot-col text-center">' . (!empty($ot_material) ? $ot_material : '-') . '</td>
         <td class="comentarios-col">
             <div class="comentarios-texto">' . $comentarios . '</div>

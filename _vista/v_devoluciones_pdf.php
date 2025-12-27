@@ -147,13 +147,13 @@ $html = '
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 12px;
-            font-size: 7.5pt;
+            font-size: 7pt;
         }
         
         .detalles-table th {
             background-color: #d0d0d0;
             border: 1px solid #000;
-            padding: 5px 3px;
+            padding: 4px 2px;
             text-align: center;
             font-weight: bold;
             line-height: 1.1;
@@ -161,17 +161,20 @@ $html = '
         
         .detalles-table td {
             border: 1px solid #000;
-            padding: 4px 5px;
+            padding: 3px 4px;
             vertical-align: top;
+            line-height: 1.3;
         }
         
         .text-center { text-align: center; }
         .text-left { text-align: left; }
         
-        .col-item { width: 8%; }
-        .col-descripcion { width: 60%; }
-        .col-cantidad { width: 12%; }
-        .col-unidad { width: 12%; }
+        /* 🔹 AJUSTE DE COLUMNAS PARA INCLUIR CENTRO DE COSTO */
+        .col-item { width: 6%; }
+        .col-descripcion { width: 38%; }
+        .col-centro-costo { width: 26%; }
+        .col-cantidad { width: 15%; }
+        .col-unidad { width: 15%; }
 
         /* OBSERVACIONES */
         .observaciones-section {
@@ -289,6 +292,7 @@ $html = '
                 <div class="info-left">
                     <div><strong>FECHA DEVOLUCIÓN:</strong> ' . $fecha_devolucion . '</div>
                     <div><strong>REGISTRADO POR:</strong> ' . $nom_personal . '</div>
+                    <div><strong>CENTRO DE COSTO (REGISTRADOR):</strong> ' . $centro_costo_registrador . '</div>
                 </div>
                 <div class="info-right">
                     <div><strong>ALMACÉN:</strong> ' . $almacen . '</div>
@@ -303,7 +307,8 @@ $html = '
             <thead>
                 <tr>
                     <th class="col-item">ÍTEM</th>
-                    <th class="col-descripcion">DESCRIPCIÓN DEL MATERIAL</th>
+                    <th class="col-descripcion">DESCRIPCIÓN</th>
+                    <th class="col-centro-costo">CENTRO COSTO</th>
                     <th class="col-cantidad">CANTIDAD</th>
                     <th class="col-unidad">UNIDAD</th>
                 </tr>

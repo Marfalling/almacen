@@ -2504,6 +2504,22 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones, centr
                     </div>
                 </div>
                 
+                <!--  REQUISITOS SST/MA/CA -->
+                <div class="row mt-2 mb-2">
+                    <div class="col-md-12">
+                        <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block; color: #495057;">
+                            <i></i> Requisitos SST/MA/CA:
+                        </label>
+                        <input type="text" 
+                            class="form-control form-control-sm" 
+                            name="req_compra[${item.id_pedido_detalle}]"
+                            value="${item.req_compra_detalle || ''}"
+                            style="font-size: 11px;"
+                            placeholder="SST/MA/CA">
+                    </div>
+                </div>
+                <div style="border-top: 1px dashed #dee2e6; margin: 10px 0;"></div>
+
                 <div class="row">
                     <div class="col-md-2">
                         <label style="font-size: 11px; font-weight: bold; margin-bottom: 4px; display: block;">Cantidad:</label>

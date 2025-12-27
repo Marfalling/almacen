@@ -8,6 +8,24 @@ require_once("../_modelo/m_comprobante.php");
 require_once("../_modelo/m_auditoria.php"); 
 
 // ====================================================================
+// FUNCIÓN DE VALIDACIÓN DE SERIE Y NÚMERO
+// ====================================================================
+function validarSerieNumero($serie, $numero, &$error) {
+    // Validar SERIE: 1 letra mayúscula + 3 dígitos (ej: F001, B002, E123)
+    if (!preg_match('/^[A-Z]\d{3}$/', trim($serie))) {
+        $error = 'La serie debe tener 1 letra seguida de 3 dígitos. Ejemplo: F001, B002, E123';
+        return false;
+    }
+    
+    // Validar NÚMERO: de 1 a 10 dígitos
+    if (!preg_match('/^\d{1,10}$/', trim($numero))) {
+        $error = 'El número debe contener entre 1 y 10 dígitos numéricos.';
+        return false;
+    }
+    
+    return true;
+}
+// ====================================================================
 // VALIDAR QUE SE RECIBIÓ ID DE COMPRA
 // ====================================================================
 if (!isset($_GET['id_compra']) || empty($_GET['id_compra'])) {
@@ -95,114 +113,20 @@ $mensaje_alerta = '';
 // ====================================================================
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'registrar') {
     
-    $archivo_pdf = null;
-    $archivo_xml = null;
-    $error_archivo = false;
-
-    // Procesar PDF
-    if (!empty($_FILES['archivo_pdf']['name'])) {
-        $resultado_pdf = procesarArchivo($_FILES['archivo_pdf'], 'pdf');
-        if ($resultado_pdf['error']) {
-            $mostrar_alerta = true;
-            $tipo_alerta = 'warning';
-            $titulo_alerta = 'Error en PDF';
-            $mensaje_alerta = $resultado_pdf['mensaje'];
-            $error_archivo = true;
-        } else {
-            $archivo_pdf = $resultado_pdf['ruta'];
-        }
-    }
-
-    // Procesar XML
-    if (!$error_archivo && !empty($_FILES['archivo_xml']['name'])) {
-        $resultado_xml = procesarArchivo($_FILES['archivo_xml'], 'xml');
-        if ($resultado_xml['error']) {
-            $mostrar_alerta = true;
-            $tipo_alerta = 'warning';
-            $titulo_alerta = 'Error en XML';
-            $mensaje_alerta = $resultado_xml['mensaje'];
-            $error_archivo = true;
-        } else {
-            $archivo_xml = $resultado_xml['ruta'];
-        }
-    }
-
-    if (!$error_archivo) {
-        $datos = [
-            'id_compra' => $id_compra,
-            'id_tipo_documento' => $_POST['id_tipo_documento'],
-            'serie' => trim($_POST['serie']),
-            'numero' => trim($_POST['numero']),
-            'monto_total_igv' => $_POST['monto_total_igv'],
-            'id_detraccion' => !empty($_POST['id_afectacion']) ? $_POST['id_afectacion'] : null,
-            'id_moneda' => $_POST['id_moneda'],
-            'total_pagar' => $_POST['total_pagar'],
-            'id_medio_pago' => !empty($_POST['id_medio_pago']) ? $_POST['id_medio_pago'] : null,
-            'fec_pago' => !empty($_POST['fec_pago']) ? $_POST['fec_pago'] : null,
-            'id_cuenta_proveedor' => !empty($_POST['id_cuenta_proveedor']) ? $_POST['id_cuenta_proveedor'] : null,
-            'archivo_pdf' => $archivo_pdf,
-            'archivo_xml' => $archivo_xml,
-            'id_personal' => $_SESSION['id_personal'],
-            'est_comprobante' => 1
-        ];
-
-        $resultado = GrabarComprobante($datos);
-
-        if (strpos($resultado, 'SI|') === 0) {
-            $partes = explode('|', $resultado);
-            $id_comprobante = $partes[1];
-            
-            //  AUDITORÍA: COMPROBANTE REGISTRADO
-            $serie = trim($_POST['serie']);
-            $numero = trim($_POST['numero']);
-            $monto = number_format(floatval($_POST['total_pagar']), 2);
-            
-            GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'COMPROBANTES', 
-                "ID: $id_comprobante | OC: $id_compra | Serie-Número: $serie-$numero | Monto: S/ $monto");
-            
-            ?>
-            <script>
-            setTimeout(function() {
-                window.location.href = 'comprobante_registrar.php?id_compra=<?php echo $id_compra; ?>&alert=success&tipo=registrar&id=<?php echo $id_comprobante; ?>';
-            }, 100);
-            </script>
-            <?php
-            exit();
-        } else {
-            //  AUDITORÍA: ERROR AL REGISTRAR
-            GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'COMPROBANTES', 
-                "OC: $id_compra | Error: $resultado");
-            
-            $mostrar_alerta = true;
-            $tipo_alerta = 'error';
-            $titulo_alerta = 'Error al registrar';
-            $mensaje_alerta = $resultado;
-        }
-    }
-}
-
-// ====================================================================
-// 2. EDITAR COMPROBANTE
-// ====================================================================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'editar') {
-    
-    $id_comprobante = intval($_POST['id_comprobante']);
-    $comprobante_actual = ConsultarComprobante($id_comprobante);
-    
-    if (!$comprobante_actual) {
-        //  AUDITORÍA: COMPROBANTE NO ENCONTRADO
-        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'COMPROBANTES', 
-            "ID: $id_comprobante - Comprobante no encontrado");
-        
+    //  VALIDAR SERIE Y NÚMERO PRIMERO
+    $errorValidacion = '';
+    if (!validarSerieNumero($_POST['serie'], $_POST['numero'], $errorValidacion)) {
         $mostrar_alerta = true;
         $tipo_alerta = 'error';
-        $titulo_alerta = 'Comprobante no encontrado';
-        $mensaje_alerta = 'El comprobante que intenta editar no existe.';
+        $titulo_alerta = 'Validación fallida';
+        $mensaje_alerta = $errorValidacion;
     } else {
-        $archivo_pdf = $comprobante_actual['archivo_pdf'];
-        $archivo_xml = $comprobante_actual['archivo_xml'];
+        //  SOLO AQUÍ DECLARAMOS LAS VARIABLES
+        $archivo_pdf = null;
+        $archivo_xml = null;
         $error_archivo = false;
 
+        // Procesar PDF
         if (!empty($_FILES['archivo_pdf']['name'])) {
             $resultado_pdf = procesarArchivo($_FILES['archivo_pdf'], 'pdf');
             if ($resultado_pdf['error']) {
@@ -212,13 +136,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 $mensaje_alerta = $resultado_pdf['mensaje'];
                 $error_archivo = true;
             } else {
-                if ($archivo_pdf && file_exists("../_upload/comprobantes/" . $archivo_pdf)) {
-                    unlink("../_upload/comprobantes/" . $archivo_pdf);
-                }
                 $archivo_pdf = $resultado_pdf['ruta'];
             }
         }
 
+        // Procesar XML
         if (!$error_archivo && !empty($_FILES['archivo_xml']['name'])) {
             $resultado_xml = procesarArchivo($_FILES['archivo_xml'], 'xml');
             if ($resultado_xml['error']) {
@@ -228,9 +150,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 $mensaje_alerta = $resultado_xml['mensaje'];
                 $error_archivo = true;
             } else {
-                if ($archivo_xml && file_exists("../_upload/comprobantes/" . $archivo_xml)) {
-                    unlink("../_upload/comprobantes/" . $archivo_xml);
-                }
                 $archivo_xml = $resultado_xml['ruta'];
             }
         }
@@ -247,43 +166,161 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['
                 'total_pagar' => $_POST['total_pagar'],
                 'id_medio_pago' => !empty($_POST['id_medio_pago']) ? $_POST['id_medio_pago'] : null,
                 'fec_pago' => !empty($_POST['fec_pago']) ? $_POST['fec_pago'] : null,
-                'id_cuenta_proveedor' => !empty($_POST['edit_id_cuenta_proveedor']) ? $_POST['edit_id_cuenta_proveedor'] : null,
+                'id_cuenta_proveedor' => !empty($_POST['id_cuenta_proveedor']) ? $_POST['id_cuenta_proveedor'] : null,
                 'archivo_pdf' => $archivo_pdf,
-                'archivo_xml' => $archivo_xml
+                'archivo_xml' => $archivo_xml,
+                'id_personal' => $_SESSION['id_personal'],
+                'est_comprobante' => 1
             ];
 
-            $resultado = EditarComprobante($id_comprobante, $datos);
+            $resultado = GrabarComprobante($datos);
 
-            if ($resultado === "SI") {
-                //  AUDITORÍA: COMPROBANTE EDITADO
+            if (strpos($resultado, 'SI|') === 0) {
+                $partes = explode('|', $resultado);
+                $id_comprobante = $partes[1];
+                
+                // AUDITORÍA: COMPROBANTE REGISTRADO
                 $serie = trim($_POST['serie']);
                 $numero = trim($_POST['numero']);
                 $monto = number_format(floatval($_POST['total_pagar']), 2);
                 
-                GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'COMPROBANTES', 
+                GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'COMPROBANTES', 
                     "ID: $id_comprobante | OC: $id_compra | Serie-Número: $serie-$numero | Monto: S/ $monto");
                 
                 ?>
                 <script>
                 setTimeout(function() {
-                    window.location.href = 'comprobante_registrar.php?id_compra=<?php echo $id_compra; ?>&alert=success&tipo=editar&id=<?php echo $id_comprobante; ?>';
+                    window.location.href = 'comprobante_registrar.php?id_compra=<?php echo $id_compra; ?>&alert=success&tipo=registrar&id=<?php echo $id_comprobante; ?>';
                 }, 100);
                 </script>
                 <?php
                 exit();
             } else {
-                //  AUDITORÍA: ERROR AL EDITAR
-                GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'COMPROBANTES', 
-                    "ID: $id_comprobante | Error: $resultado");
+                // AUDITORÍA: ERROR AL REGISTRAR
+                GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'COMPROBANTES', 
+                    "OC: $id_compra | Error: $resultado");
                 
                 $mostrar_alerta = true;
                 $tipo_alerta = 'error';
-                $titulo_alerta = 'Error al actualizar';
+                $titulo_alerta = 'Error al registrar';
                 $mensaje_alerta = $resultado;
             }
         }
-    }
-}
+    } 
+} 
+
+// ====================================================================
+// 2. EDITAR COMPROBANTE
+// ====================================================================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['accion']) && $_POST['accion'] === 'editar') {
+    
+    $id_comprobante = intval($_POST['id_comprobante']);
+    $comprobante_actual = ConsultarComprobante($id_comprobante);
+    
+    if (!$comprobante_actual) {
+        // AUDITORÍA: COMPROBANTE NO ENCONTRADO
+        GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'COMPROBANTES', 
+            "ID: $id_comprobante - Comprobante no encontrado");
+        
+        $mostrar_alerta = true;
+        $tipo_alerta = 'error';
+        $titulo_alerta = 'Comprobante no encontrado';
+        $mensaje_alerta = 'El comprobante que intenta editar no existe.';
+    } else {
+        //  VALIDAR SERIE Y NÚMERO
+        $errorValidacion = '';
+        if (!validarSerieNumero($_POST['serie'], $_POST['numero'], $errorValidacion)) {
+            $mostrar_alerta = true;
+            $tipo_alerta = 'error';
+            $titulo_alerta = 'Validación fallida';
+            $mensaje_alerta = $errorValidacion;
+        } else {
+            $archivo_pdf = $comprobante_actual['archivo_pdf'];
+            $archivo_xml = $comprobante_actual['archivo_xml'];
+            $error_archivo = false;
+
+            if (!empty($_FILES['archivo_pdf']['name'])) {
+                $resultado_pdf = procesarArchivo($_FILES['archivo_pdf'], 'pdf');
+                if ($resultado_pdf['error']) {
+                    $mostrar_alerta = true;
+                    $tipo_alerta = 'warning';
+                    $titulo_alerta = 'Error en PDF';
+                    $mensaje_alerta = $resultado_pdf['mensaje'];
+                    $error_archivo = true;
+                } else {
+                    if ($archivo_pdf && file_exists("../_upload/comprobantes/" . $archivo_pdf)) {
+                        unlink("../_upload/comprobantes/" . $archivo_pdf);
+                    }
+                    $archivo_pdf = $resultado_pdf['ruta'];
+                }
+            }
+
+            if (!$error_archivo && !empty($_FILES['archivo_xml']['name'])) {
+                $resultado_xml = procesarArchivo($_FILES['archivo_xml'], 'xml');
+                if ($resultado_xml['error']) {
+                    $mostrar_alerta = true;
+                    $tipo_alerta = 'warning';
+                    $titulo_alerta = 'Error en XML';
+                    $mensaje_alerta = $resultado_xml['mensaje'];
+                    $error_archivo = true;
+                } else {
+                    if ($archivo_xml && file_exists("../_upload/comprobantes/" . $archivo_xml)) {
+                        unlink("../_upload/comprobantes/" . $archivo_xml);
+                    }
+                    $archivo_xml = $resultado_xml['ruta'];
+                }
+            }
+
+            if (!$error_archivo) {
+                $datos = [
+                    'id_compra' => $id_compra,
+                    'id_tipo_documento' => $_POST['id_tipo_documento'],
+                    'serie' => trim($_POST['serie']),
+                    'numero' => trim($_POST['numero']),
+                    'monto_total_igv' => $_POST['monto_total_igv'],
+                    'id_detraccion' => !empty($_POST['id_afectacion']) ? $_POST['id_afectacion'] : null,
+                    'id_moneda' => $_POST['id_moneda'],
+                    'total_pagar' => $_POST['total_pagar'],
+                    'id_medio_pago' => !empty($_POST['id_medio_pago']) ? $_POST['id_medio_pago'] : null,
+                    'fec_pago' => !empty($_POST['fec_pago']) ? $_POST['fec_pago'] : null,
+                    'id_cuenta_proveedor' => !empty($_POST['edit_id_cuenta_proveedor']) ? $_POST['edit_id_cuenta_proveedor'] : null,
+                    'archivo_pdf' => $archivo_pdf,
+                    'archivo_xml' => $archivo_xml
+                ];
+
+                $resultado = EditarComprobante($id_comprobante, $datos);
+
+                if ($resultado === "SI") {
+                    // AUDITORÍA: COMPROBANTE EDITADO
+                    $serie = trim($_POST['serie']);
+                    $numero = trim($_POST['numero']);
+                    $monto = number_format(floatval($_POST['total_pagar']), 2);
+                    
+                    GrabarAuditoria($id, $usuario_sesion, 'EDITAR', 'COMPROBANTES', 
+                        "ID: $id_comprobante | OC: $id_compra | Serie-Número: $serie-$numero | Monto: S/ $monto");
+                    
+                    ?>
+                    <script>
+                    setTimeout(function() {
+                        window.location.href = 'comprobante_registrar.php?id_compra=<?php echo $id_compra; ?>&alert=success&tipo=editar&id=<?php echo $id_comprobante; ?>';
+                    }, 100);
+                    </script>
+                    <?php
+                    exit();
+                } else {
+                    // AUDITORÍA: ERROR AL EDITAR
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL EDITAR', 'COMPROBANTES', 
+                        "ID: $id_comprobante | Error: $resultado");
+                    
+                    $mostrar_alerta = true;
+                    $tipo_alerta = 'error';
+                    $titulo_alerta = 'Error al actualizar';
+                    $mensaje_alerta = $resultado;
+                }
+            }
+        } 
+    } 
+} 
 
 // ====================================================================
 // 3. SUBIR VOUCHER DE PAGO

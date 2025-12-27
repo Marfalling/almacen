@@ -74,6 +74,7 @@ foreach ($orden_detalle as $index => $detalle) {
     $num_centros = is_array($detalle['centros_costo']) ? count($detalle['centros_costo']) : 0;
     
     error_log("  📝 Detalle {$detalle['id_compra_detalle']}: {$num_centros} centros | Pedido detalle: {$detalle['id_pedido_detalle']}");
+    error_log("     Requisitos: " . ($detalle['req_compra_detalle'] ?: 'Sin requisitos'));
     
     $centros_ids = [];
     if ($num_centros > 0 && is_array($detalle['centros_costo'])) {
@@ -91,15 +92,20 @@ foreach ($orden_detalle as $index => $detalle) {
         error_log("     Centros: " . implode(', ', $nombres_centros));
     }
     
-    // 🔹 GUARDAR AMBOS: array completo (con nombres) Y array simple (solo IDs)
-    $orden_detalle[$index]['centros_costo_completo'] = $detalle['centros_costo']; // Para referencia
-    $orden_detalle[$index]['centros_costo'] = $centros_ids; // Para el select2
+    //  GUARDAR DATOS
+    $orden_detalle[$index]['centros_costo_completo'] = $detalle['centros_costo'];
+    $orden_detalle[$index]['centros_costo'] = $centros_ids;
+    
+    //  ASEGURAR QUE req_compra_detalle ESTÉ PRESENTE
+    if (!isset($orden_detalle[$index]['req_compra_detalle'])) {
+        $orden_detalle[$index]['req_compra_detalle'] = '';
+    }
 }
 
-//  CARGAR CENTROS DE COSTO ACTIVOS PARA EL SELECT2
+// CARGAR CENTROS DE COSTO ACTIVOS PARA EL SELECT2
 $centros_costo = MostrarCentrosCostoActivos();
 
-error_log("    Centros de costo disponibles: " . count($centros_costo));
+error_log("📊 Centros de costo disponibles: " . count($centros_costo));
 
 $proveedores = MostrarProveedores();
 $detracciones = ObtenerDetracciones();

@@ -338,14 +338,14 @@ function ConsultarDevolucion($id_devolucion)
                    u.nom_ubicacion, 
                    p.nom_personal,
                    c.nom_cliente as nom_cliente_destino,
-                   -- Centro de costo del registrador
+                   -- 🔹 CENTRO DE COSTO DEL REGISTRADOR
                    area_reg.nom_area as nom_centro_costo_registrador
             FROM devolucion d
             INNER JOIN almacen a ON d.id_almacen = a.id_almacen
             INNER JOIN ubicacion u ON d.id_ubicacion = u.id_ubicacion
             INNER JOIN {$bd_complemento}.personal p ON d.id_personal = p.id_personal
             INNER JOIN {$bd_complemento}.cliente c ON d.id_cliente_destino = c.id_cliente
-            -- JOIN para centro de costo del registrador
+            -- 🔹 JOIN PARA CENTRO DE COSTO DEL REGISTRADOR
             LEFT JOIN {$bd_complemento}.area area_reg ON d.id_registrador_centro_costo = area_reg.id_area
             WHERE d.id_devolucion = $id_devolucion";
 
@@ -367,6 +367,7 @@ function ConsultarDevolucionDetalle($id_devolucion)
 
     $sql = "SELECT dd.*, 
                pr.nom_producto, 
+               um.cod_unidad_medida,
                um.nom_unidad_medida
         FROM devolucion_detalle dd
         INNER JOIN producto pr ON dd.id_producto = pr.id_producto
@@ -769,7 +770,8 @@ function ObtenerClientePorAlmacen($id_almacen)
     return $resultado;
 }
 
-function ObtenerCentrosCostoPorDetalleDevolucion($id_devolucion_detalle) {
+function ObtenerCentrosCostoPorDetalleDevolucion($id_devolucion_detalle) 
+{
     include("../_conexion/conexion.php");
     
     $id_devolucion_detalle = intval($id_devolucion_detalle);
@@ -797,6 +799,7 @@ function ConsultarDevolucionDetalleConCentros($id_devolucion)
 
     $sql = "SELECT dd.*, 
                pr.nom_producto, 
+               um.cod_unidad_medida,
                um.nom_unidad_medida
         FROM devolucion_detalle dd
         INNER JOIN producto pr ON dd.id_producto = pr.id_producto

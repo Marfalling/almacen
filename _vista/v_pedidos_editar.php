@@ -441,9 +441,10 @@ $pedido = $pedido_data[0]; // Datos del pedido principal
                                 <th>Código</th>
                                 <th>Producto</th>
                                 <th>Tipo</th>
-                                <th>Unidad</th>
+                                <th>Unidad de Medida</th>
                                 <th>Marca</th>
                                 <th>Modelo</th>
+                                <th>Stock Disponible</th> <!-- COLUMNA AGREGADA -->
                                 <th>Acción</th>
                             </tr>
                         </thead>
@@ -688,17 +689,41 @@ let aplicarCentroCostoAutomaticamente = false;
 // FUNCIONES GLOBALES - BÚSQUEDA DE PRODUCTOS
 // ============================================
 function buscarMaterial(button) {
-    currentSearchButton = button;
-    
-    // Obtener el tipo de producto desde el hidden input
+    // Obtener el valor del select tipo de pedido
     const tipoProductoInput = document.getElementById('id_producto_tipo_hidden');
     const tipoPedidoValue = tipoProductoInput ? tipoProductoInput.value : '';
     
+    // AGREGAR: Obtener id_almacen e id_ubicacion del pedido actual
+    const idAlmacen = <?php echo isset($pedido['id_almacen']) ? $pedido['id_almacen'] : 0; ?>;
+    const selectUbicacion = document.querySelector('select[name="id_ubicacion"]');
+    const idUbicacion = selectUbicacion ? selectUbicacion.value : '';
+
+    // Validar que se haya seleccionado un tipo de pedido
+    if (!tipoPedidoValue) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Tipo de pedido requerido',
+                text: 'Debe tener un tipo de pedido asignado.',
+                confirmButtonText: 'Entendido'
+            });
+        } else {
+            alert('Debe tener un tipo de pedido asignado.');
+        }
+        return;
+    }
+   
+    // Guardar referencia al botón que se clickeó
+    currentSearchButton = button;
+        
+    // Abrir la modal
     $('#buscar_producto').modal('show');
-    cargarProductos(tipoPedidoValue);
+
+    // Cargar los productos en la tabla con filtros
+    cargarProductos(idAlmacen, idUbicacion, tipoPedidoValue);
 }
 
-function cargarProductos(tipoPedido = '') {
+function cargarProductos(idAlmacen, idUbicacion, tipoPedido = '') {
     if ($.fn.dataTable.isDataTable('#datatable_producto')) {
         $('#datatable_producto').DataTable().destroy();
     }
@@ -711,7 +736,10 @@ function cargarProductos(tipoPedido = '') {
             "url": "producto_mostrar_modal.php",
             "type": "POST",
             "data": function(d) {
-                d.tipo_pedido = tipoPedido;
+                // CAMBIO CRÍTICO: usar 'tipo_producto' en lugar de 'tipo_pedido'
+                d.tipo_producto = tipoPedido;
+                d.id_almacen = idAlmacen;
+                d.id_ubicacion = idUbicacion;
                 return d;
             }
         },
@@ -722,6 +750,7 @@ function cargarProductos(tipoPedido = '') {
             { "title": "Unidad de Medida" },
             { "title": "Marca" },
             { "title": "Modelo" },
+            { "title": "Stock Disponible" }, // Columna agregada
             { "title": "Acción" }
         ],
         "order": [[1, 'asc']],
@@ -748,6 +777,10 @@ function cargarProductos(tipoPedido = '') {
                 "sortDescending": ": activar para ordenar la columna de manera descendente"
             }
         }
+    });
+    
+    $('#datatable_producto').on('draw.dt', function () {
+        $('[data-toggle="tooltip"]').tooltip();
     });
 }
 
@@ -963,61 +996,60 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // ============================================
-    // APLICAR CENTRO DE COSTO DEL SOLICITANTE AUTOMÁTICAMENTE A MATERIALES
+    // APLICAR CENTRO DE COSTO DEL SOLICITANTE AUTOMÁTICAMENTE A MATERIALES NUEVOS
     // ============================================
-    // Obtener centro de costo del solicitante (desde input hidden)
     const inputCentroCostoCabecera = document.querySelector('input[name="id_centro_costo"]');
 
     if (inputCentroCostoCabecera && inputCentroCostoCabecera.value) {
         const centroCostoSolicitante = inputCentroCostoCabecera.value;
         
-        console.log(" Centro de costo del solicitante:", centroCostoSolicitante);
+        console.log("🎯 Centro de costo del solicitante:", centroCostoSolicitante);
         
-        // Función para aplicar a un material específico
-        function aplicarCentroCostoAMaterial(materialItem) {
+        function aplicarCentroCostoAMaterialNuevo(materialItem) {
+            const inputIdDetalle = materialItem.querySelector('input[name="id_detalle[]"]');
+            const esNuevo = !inputIdDetalle || !inputIdDetalle.value || inputIdDetalle.value === '';
+            
+            if (!esNuevo) {
+                console.log("⏭️ Material existente, no aplicar");
+                return;
+            }
+            
+            console.log("✨ Material NUEVO detectado");
+            
             const selectCentros = materialItem.querySelector('select.select2-centros-costo-detalle');
             if (selectCentros) {
-                // Esperar a que Select2 esté inicializado
-                if ($(selectCentros).data('select2')) {
-                    console.log("✅ Aplicando centro de costo a material existente");
-                    // Si ya tiene centros de costo seleccionados, agregar el del solicitante si no está
-                    let valoresActuales = $(selectCentros).val() || [];
-                    if (!valoresActuales.includes(centroCostoSolicitante)) {
-                        valoresActuales.push(centroCostoSolicitante);
-                        $(selectCentros).val(valoresActuales).trigger('change');
+                // 🔹 ESPERAR A QUE ESTÉ REINDEXADO
+                setTimeout(() => {
+                    if ($(selectCentros).data('select2')) {
+                        const nombreActual = selectCentros.name;
+                        console.log(`✅ Aplicando centro a: ${nombreActual}`);
+                        
+                        $(selectCentros).val([centroCostoSolicitante]).trigger('change');
+                        
+                        // Verificar
+                        setTimeout(() => {
+                            const valorFinal = $(selectCentros).val();
+                            console.log(`🔍 Verificación ${nombreActual}:`, valorFinal);
+                            
+                            if (!valorFinal || valorFinal.length === 0) {
+                                console.error("❌ Reintentando...");
+                                $(selectCentros).val([centroCostoSolicitante]).trigger('change.select2');
+                            }
+                        }, 200);
                     }
-                } else {
-                    // Si Select2 no está inicializado, hacerlo primero
-                    console.log(" Inicializando Select2 y aplicando centro de costo");
-                    $(selectCentros).select2({
-                        placeholder: 'Seleccionar uno o más centros de costo...',
-                        allowClear: true,
-                        width: '100%',
-                        multiple: true,
-                        language: {
-                            noResults: function () { return 'No se encontraron resultados'; }
-                        }
-                    });
-                    setTimeout(() => {
-                        let valoresActuales = $(selectCentros).val() || [];
-                        if (!valoresActuales.includes(centroCostoSolicitante)) {
-                            valoresActuales.push(centroCostoSolicitante);
-                            $(selectCentros).val(valoresActuales).trigger('change');
-                        }
-                    }, 200);
-                }
+                }, 800); // ⬅️ Aumentado a 800ms para dar tiempo al reindex
             }
         }
         
-        // Observar nuevos materiales agregados dinámicamente
+        // Observador
         const contenedorMateriales = document.getElementById('contenedor-materiales');
         if (contenedorMateriales) {
             const observador = new MutationObserver(function(mutations) {
                 mutations.forEach(function(mutation) {
                     mutation.addedNodes.forEach(function(nodo) {
                         if (nodo.classList && nodo.classList.contains('material-item')) {
-                            console.log(" Nuevo material agregado, aplicando centro de costo del solicitante");
-                            aplicarCentroCostoAMaterial(nodo);
+                            console.log("➕ Nuevo material detectado");
+                            aplicarCentroCostoAMaterialNuevo(nodo);
                         }
                     });
                 });
@@ -1060,16 +1092,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const materialOriginal = contenedor.querySelector('.material-item');
             
             if (materialOriginal) {
-                const valoresOriginalesSelect2 = {};
+                // 🔹 PASO 1: DESTRUIR SELECT2 DEL ORIGINAL (sin guardar valores)
                 const selectsOriginales = materialOriginal.querySelectorAll(
                     'select[name="unidad[]"], select.select2-centros-costo-detalle, select.select2-personal-detalle'
                 );
-                
-                selectsOriginales.forEach((select, index) => {
-                    if ($(select).data('select2')) {
-                        valoresOriginalesSelect2[index] = $(select).val();
-                    }
-                });
                 
                 selectsOriginales.forEach(select => {
                     if ($(select).data('select2')) {
@@ -1077,9 +1103,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
                 
+                // 🔹 PASO 2: CLONAR ESTRUCTURA HTML COMPLETA
                 const nuevoMaterial = materialOriginal.cloneNode(true);
                 
-                selectsOriginales.forEach((select, index) => {
+                // 🔹 PASO 3: RESTAURAR SELECT2 EN EL ORIGINAL
+                selectsOriginales.forEach(select => {
                     if (select.name === 'unidad[]') {
                         $(select).select2({
                             placeholder: 'Seleccionar unidad de medida...',
@@ -1089,9 +1117,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 noResults: function () { return 'No se encontraron resultados'; }
                             }
                         });
-                        if (valoresOriginalesSelect2[index]) {
-                            $(select).val(valoresOriginalesSelect2[index]).trigger('change');
-                        }
                     } else if ($(select).hasClass('select2-centros-costo-detalle')) {
                         $(select).select2({
                             placeholder: 'Seleccionar uno o más centros de costo...',
@@ -1102,9 +1127,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 noResults: function () { return 'No se encontraron resultados'; }
                             }
                         });
-                        if (valoresOriginalesSelect2[index]) {
-                            $(select).val(valoresOriginalesSelect2[index]).trigger('change');
-                        }
                     } else if ($(select).hasClass('select2-personal-detalle')) {
                         $(select).select2({
                             placeholder: 'Seleccionar personal...',
@@ -1115,70 +1137,98 @@ document.addEventListener('DOMContentLoaded', function() {
                                 noResults: function () { return 'No se encontraron resultados'; }
                             }
                         });
-                        if (valoresOriginalesSelect2[index]) {
-                            $(select).val(valoresOriginalesSelect2[index]).trigger('change');
-                        }
                     }
                 });
                 
-                // Limpiar campos del nuevo material
-                const inputs = nuevoMaterial.querySelectorAll('input, textarea');
-                inputs.forEach(input => {
+                // 🔹 PASO 4: LIMPIAR **COMPLETAMENTE** EL NUEVO MATERIAL
+                
+                // 4.1 - Limpiar TODOS los inputs (incluyendo hidden)
+                const inputsNuevos = nuevoMaterial.querySelectorAll('input, textarea');
+                inputsNuevos.forEach(input => {
                     if (input.type === 'file') {
                         input.value = '';
                         input.name = `archivos_${contadorMateriales}[]`;
-                    } else if (input.type === 'hidden') {
-                        // SIEMPRE limpiar id_material[] y id_detalle[]
-                        if (input.name === 'id_detalle[]' || input.name === 'id_material[]') {
-                            input.value = '';
-                        }
-                    } else {
-                        // Limpiar todos los demás inputs
+                    } else if (input.name === 'id_detalle[]') {
+                        // Material nuevo = sin ID
+                        input.value = '';
+                    } else if (input.name === 'id_material[]') {
+                        // Sin producto seleccionado
+                        input.value = '';
+                    } else if (input.name === 'cantidad[]') {
+                        // 🔹 CRÍTICO: Limpiar valor Y atributos
+                        input.value = '';
+                        input.removeAttribute('data-stock');
+                        input.removeAttribute('value');
+                    } else if (input.name === 'descripcion[]') {
+                        input.value = '';
+                    } else if (input.name === 'observaciones[]') {
+                        input.value = '';
+                    } else if (input.name === 'ot_detalle[]') {
+                        input.value = '';
+                    } else if (input.name === 'sst[]') {
+                        input.value = '';
+                    } else if (input.type !== 'hidden') {
                         input.value = '';
                     }
                 });
                 
-                const selectsClonados = nuevoMaterial.querySelectorAll('select');
-                selectsClonados.forEach(select => {
+                // 4.2 - Limpiar el <small> del stock
+                const smallStock = nuevoMaterial.querySelector('small.form-text.text-muted');
+                if (smallStock && smallStock.textContent.includes('Stock Disponible')) {
+                    smallStock.remove(); // Eliminar completamente para materiales nuevos
+                }
+                
+                // 🔹 PASO 5: RENOMBRAR Y LIMPIAR SELECTS
+                const selectsNuevos = nuevoMaterial.querySelectorAll('select');
+                selectsNuevos.forEach(select => {
+                    // Renombrar según tipo
                     if ($(select).hasClass('select2-centros-costo-detalle')) {
                         select.name = `centros_costo[${contadorMateriales}][]`;
+                        console.log(`✅ Centros renombrado: centros_costo[${contadorMateriales}][]`);
                     } else if ($(select).hasClass('select2-personal-detalle')) {
                         select.name = `personal_ids[${contadorMateriales}][]`;
+                        console.log(`✅ Personal renombrado: personal_ids[${contadorMateriales}][]`);
                     }
                     
+                    // Limpiar restos de Select2
                     $(select).removeClass('select2-hidden-accessible');
-                    const select2Container = select.nextElementSibling;
-                    if (select2Container && select2Container.classList.contains('select2')) {
-                        select2Container.remove();
+                    const container = select.nextElementSibling;
+                    if (container && container.classList.contains('select2')) {
+                        container.remove();
                     }
                     
+                    // Deseleccionar TODO
                     Array.from(select.options).forEach(option => {
                         option.selected = false;
+                        option.removeAttribute('selected');
                     });
                     select.selectedIndex = -1;
                 });
                 
-                // Actualizar ID de col-centros
+                // 🔹 PASO 6: ACTUALIZAR ID DEL CONTENEDOR
                 const colCentros = nuevoMaterial.querySelector('[id^="col-centros-"]');
                 if (colCentros) {
                     colCentros.id = `col-centros-${contadorMateriales}`;
                 }
                 
-                // Remover archivos existentes
+                // 🔹 PASO 7: REMOVER ARCHIVOS EXISTENTES
                 const archivosExistentes = nuevoMaterial.querySelector('.archivos-existentes');
                 if (archivosExistentes) {
                     archivosExistentes.remove();
                 }
                 
+                // 🔹 PASO 8: MOSTRAR BOTÓN ELIMINAR
                 const btnEliminar = nuevoMaterial.querySelector('.eliminar-material');
                 if (btnEliminar) {
                     btnEliminar.style.display = 'block';
                 }
                 
+                // 🔹 PASO 9: AGREGAR AL DOM
                 contenedor.appendChild(nuevoMaterial);
                 
-                const selectsNuevos = nuevoMaterial.querySelectorAll('select');
-                selectsNuevos.forEach(select => {
+                // 🔹 PASO 10: INICIALIZAR SELECT2 EN EL NUEVO
+                const selectsParaInicializar = nuevoMaterial.querySelectorAll('select');
+                selectsParaInicializar.forEach(select => {
                     if (select.name === 'unidad[]') {
                         $(select).select2({
                             placeholder: 'Seleccionar unidad de medida...',
@@ -1211,11 +1261,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
                 
+                // 🔹 PASO 11: REINDEXAR **ANTES** DE INCREMENTAR CONTADOR
+                console.log("🔄 Reindexando materiales...");
+                reindexarCentrosCosto();
+                
+                // 🔹 PASO 12: INCREMENTAR CONTADOR
                 contadorMateriales++;
+                console.log(`📊 Contador ahora: ${contadorMateriales}`);
+                
                 actualizarEventosEliminar();
                 agregarEventosACampos();
                 formularioModificado = true;
                 
+                // Scroll suave
                 nuevoMaterial.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
         });
@@ -1286,20 +1344,80 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function reindexarCentrosCosto() {
         const materiales = document.querySelectorAll('.material-item');
+        console.log(`🔄 Reindexando ${materiales.length} materiales...`);
+        
         materiales.forEach((material, index) => {
+            // 🔹 CENTROS DE COSTO
             const selectCentros = material.querySelector('select.select2-centros-costo-detalle');
             if (selectCentros) {
-                selectCentros.name = `centros_costo[${index}][]`;
+                const nombreAnterior = selectCentros.name;
+                const nuevoNombre = `centros_costo[${index}][]`;
+                
+                // Destruir Select2 si existe
+                if ($(selectCentros).data('select2')) {
+                    const valoresActuales = $(selectCentros).val();
+                    $(selectCentros).select2('destroy');
+                    selectCentros.name = nuevoNombre;
+                    
+                    // Reinicializar Select2
+                    $(selectCentros).select2({
+                        placeholder: 'Seleccionar uno o más centros de costo...',
+                        allowClear: true,
+                        width: '100%',
+                        multiple: true,
+                        language: {
+                            noResults: function () { return 'No se encontraron resultados'; }
+                        }
+                    });
+                    
+                    // Restaurar valores
+                    if (valoresActuales && valoresActuales.length > 0) {
+                        $(selectCentros).val(valoresActuales).trigger('change');
+                    }
+                    
+                    console.log(`   ✅ ${nombreAnterior} → ${nuevoNombre} (valores: ${valoresActuales})`);
+                } else {
+                    selectCentros.name = nuevoNombre;
+                    console.log(`   ✅ ${nombreAnterior} → ${nuevoNombre}`);
+                }
             }
+            
+            // 🔹 PERSONAL
             const selectPersonal = material.querySelector('select.select2-personal-detalle');
             if (selectPersonal) {
-                selectPersonal.name = `personal_ids[${index}][]`;
+                const nuevoNombre = `personal_ids[${index}][]`;
+                
+                if ($(selectPersonal).data('select2')) {
+                    const valoresActuales = $(selectPersonal).val();
+                    $(selectPersonal).select2('destroy');
+                    selectPersonal.name = nuevoNombre;
+                    
+                    $(selectPersonal).select2({
+                        placeholder: 'Seleccionar personal...',
+                        allowClear: true,
+                        width: '100%',
+                        multiple: true,
+                        language: {
+                            noResults: function () { return 'No se encontraron resultados'; }
+                        }
+                    });
+                    
+                    if (valoresActuales && valoresActuales.length > 0) {
+                        $(selectPersonal).val(valoresActuales).trigger('change');
+                    }
+                } else {
+                    selectPersonal.name = nuevoNombre;
+                }
             }
+            
+            // 🔹 CONTENEDOR
             const colCentros = material.querySelector('[id^="col-centros-"]');
             if (colCentros) {
                 colCentros.id = `col-centros-${index}`;
             }
         });
+        
+        console.log(`✅ Reindexación completa`);
     }
     
     actualizarEventosEliminar();

@@ -23,11 +23,34 @@
                     </div>
                     <div class="x_content">
                         <br>
-                        <form class="form-horizontal form-label-left" action="unidad_medida_editar.php" method="post">
+                        <form class="form-horizontal form-label-left" action="unidad_medida_editar.php?id_unidad_medida=<?php echo $id_unidad_medida; ?>" method="post">
+                            
+                            <div class="form-group row">
+                                <label class="control-label col-md-3 col-sm-3">Código <span class="text-danger">*</span> :</label>
+                                <div class="col-md-9 col-sm-9">
+                                    <input type="text" 
+                                           name="cod" 
+                                           class="form-control" 
+                                           value="<?php echo isset($unidad_medida_data['cod_unidad_medida']) ? $unidad_medida_data['cod_unidad_medida'] : ''; ?>"
+                                           placeholder="Código o abreviatura (Ej: UND, KG, M)" 
+                                           maxlength="10"
+                                           style="text-transform: uppercase;"
+                                           required="required">
+                                    <small class="form-text text-muted">
+                                        <i class="fa fa-info-circle"></i> Abreviatura única de la unidad de medida (máximo 10 caracteres)
+                                    </small>
+                                </div>
+                            </div>
+
                             <div class="form-group row">
                                 <label class="control-label col-md-3 col-sm-3">Nombre <span class="text-danger">*</span> :</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="nom" value="<?php echo $nom; ?>" class="form-control" placeholder="Nombre de la unidad de medida" required="required">
+                                    <input type="text" 
+                                           name="nom" 
+                                           class="form-control" 
+                                           value="<?php echo $nom; ?>"
+                                           placeholder="Nombre completo de la unidad de medida" 
+                                           required="required">
                                 </div>
                             </div>
 
@@ -44,17 +67,12 @@
 
                             <div class="ln_solid"></div>
 
-                            <!-- Botones -->
                             <div class="form-group">
                                 <div class="col-md-2 col-sm-2 offset-md-8">
-                                    <a href="unidad_medida_mostrar.php" class="btn btn-outline-danger btn-block">
-                                        <i class="bi bi-x-square"></i> Cancelar
-                                    </a>
+                                    <a href="unidad_medida_mostrar.php" class="btn btn-outline-danger btn-block">Cancelar</a>
                                 </div>
                                 <div class="col-md-2 col-sm-2">
-                                    <button type="submit" name="registrar" class="btn btn-success btn-block actualizar-btn">
-                                     <i class="bi bi-arrow-clockwise"></i> Actualizar
-                                    </button>
+                                    <button type="submit" name="registrar" id="btn_registrar" class="btn btn-success btn-block">Actualizar</button>
                                 </div>
                             </div>
 
@@ -63,9 +81,6 @@
                                     <p><span class="text-danger">*</span> Los campos con (<span class="text-danger">*</span>) son obligatorios.</p>
                                 </div>
                             </div>
-
-                            <!-- Campos ocultos -->
-                            <input type="hidden" name="id_unidad_medida" value="<?php echo $id_unidad_medida; ?>">
                         </form>
                     </div>
                 </div>

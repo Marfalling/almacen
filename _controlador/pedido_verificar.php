@@ -189,6 +189,13 @@ if (isset($_REQUEST['crear_orden'])) {
     $id_retencion = isset($_REQUEST['id_retencion']) && !empty($_REQUEST['id_retencion']) ? intval($_REQUEST['id_retencion']) : null;
     $id_percepcion = isset($_REQUEST['id_percepcion']) && !empty($_REQUEST['id_percepcion']) ? intval($_REQUEST['id_percepcion']) : null;
     
+    $requisitos_items = [];
+    if (isset($_POST['req_compra']) && is_array($_POST['req_compra'])) {
+        foreach ($_POST['req_compra'] as $index => $req) {
+            // El index corresponde al id_pedido_detalle
+            $requisitos_items[$index] = trim($req);
+        }
+    }
     // Manejar archivos
     $archivos_homologacion = [];
     if (isset($_FILES['homologacion'])) {
@@ -218,14 +225,14 @@ if (isset($_REQUEST['crear_orden'])) {
             $id_pedido, $proveedor, $moneda, $id_personal, 
             $observacion, $direccion, $plazo_entrega, $porte, 
             $fecha_orden, $items, $id_detraccion, $archivos_homologacion,
-            $id_retencion, $id_percepcion
+            $id_retencion, $id_percepcion, $requisitos_items
         );
     } else {
         $rpta = CrearOrdenCompra(
             $id_pedido, $proveedor, $moneda, $id_personal, 
             $observacion, $direccion, $plazo_entrega, $porte, 
             $fecha_orden, $items, $id_detraccion, $archivos_homologacion,
-            $id_retencion, $id_percepcion
+            $id_retencion, $id_percepcion, $requisitos_items 
         );
     }
     
@@ -273,6 +280,15 @@ if (isset($_REQUEST['actualizar_orden'])) {
     $archivos_homologacion = [];
     if (isset($_FILES['homologacion'])) {
         $archivos_homologacion = $_FILES['homologacion'];
+    }
+
+    // 🔹 CAPTURAR REQUISITOS (IGUAL QUE EN CREAR)
+    $requisitos_items = [];
+    if (isset($_POST['req_compra']) && is_array($_POST['req_compra'])) {
+        foreach ($_POST['req_compra'] as $index => $req) {
+            // El index corresponde al id_pedido_detalle
+            $requisitos_items[$index] = trim($req);
+        }
     }
     
     // VALIDACIONES BÁSICAS
@@ -432,14 +448,14 @@ if (isset($_REQUEST['actualizar_orden'])) {
             $id_compra, $proveedor_sel, $moneda_sel,
             $observacion, $direccion, $plazo_entrega, $porte,
             $fecha_orden, $items_existentes, $id_detraccion,
-            $archivos_homologacion, $id_retencion, $id_percepcion
+            $archivos_homologacion, $id_retencion, $id_percepcion, $requisitos_items
         );
     } else {
         $rpta = ActualizarOrdenCompra(
             $id_compra, $proveedor_sel, $moneda_sel,
             $observacion, $direccion, $plazo_entrega, $porte,
             $fecha_orden, $items_existentes, $id_detraccion,
-            $archivos_homologacion, $id_retencion, $id_percepcion
+            $archivos_homologacion, $id_retencion, $id_percepcion, $requisitos_items 
         );
     }
     

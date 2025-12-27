@@ -147,29 +147,36 @@ $html = '
         }
         
         .item-col {
-            width: 6%;
+            width: 5%;
             text-align: center;
         }
         
         .cantidad-col {
-            width: 8%;
+            width: 7%;
             text-align: center;
         }
         
         .unidad-col {
-            width: 8%;
-            text-align: center;
-        }
-        
-        .ot-col {
-            width: 10%;
+            width: 7%;
             text-align: center;
         }
         
         .descripcion-col {
-            width: 38%;
+            width: 28%;
             text-align: left;
             padding-left: 6px;
+        }
+        
+        .centro-costo-col {
+            width: 15%;
+            text-align: left;
+            padding-left: 6px;
+            font-size: 7pt;
+        }
+        
+        .ot-col {
+            width: 8%;
+            text-align: center;
         }
         
         .comentarios-col {
@@ -306,20 +313,22 @@ $html = '
                 <td class="value">' . htmlspecialchars($fecha_solicitud, ENT_QUOTES, 'UTF-8') . '</td>
             </tr>
             <tr>
+                <td class="label">CENTRO COSTO SOLICITANTE:</td>
+                <td class="value">' . htmlspecialchars($centro_costo_solicitante, ENT_QUOTES, 'UTF-8') . '</td>
                 <td class="label">FECHA REQUERIDA:</td>
                 <td class="value">' . htmlspecialchars($fecha_requerida, ENT_QUOTES, 'UTF-8') . '</td>
+            </tr>
+            <tr>
                 <td class="label">TELÉFONO:</td>
                 <td class="value">' . htmlspecialchars($telefono, ENT_QUOTES, 'UTF-8') . '</td>
-            </tr>
-            <tr>
                 <td class="label">LUGAR ENTREGA:</td>
                 <td class="value">' . htmlspecialchars($lugar_entrega, ENT_QUOTES, 'UTF-8') . '</td>
-                <td class="label">ALMACÉN:</td>
-                <td class="value">' . htmlspecialchars($almacen, ENT_QUOTES, 'UTF-8') . '</td>
             </tr>
             <tr>
+                <td class="label">ALMACÉN:</td>
+                <td class="value">' . htmlspecialchars($almacen, ENT_QUOTES, 'UTF-8') . '</td>
                 <td class="label">UBICACIÓN:</td>
-                <td class="value" colspan="3">' . htmlspecialchars($ubicacion, ENT_QUOTES, 'UTF-8') . '</td>
+                <td class="value">' . htmlspecialchars($ubicacion, ENT_QUOTES, 'UTF-8') . '</td>
             </tr>
         </table>
         
@@ -330,6 +339,7 @@ $html = '
                     <th class="cantidad-col">CANT.</th>
                     <th class="unidad-col">UNIDAD</th>
                     <th class="descripcion-col">DESCRIPCIÓN DETALLADA</th>
+                    <th class="centro-costo-col">CENTRO COSTO</th>
                     <th class="ot-col">OT</th>
                     <th class="comentarios-col">COMENTARIOS</th>
                 </tr>

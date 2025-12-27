@@ -39,9 +39,10 @@ if (file_exists($imagenLogo)) {
     $imagenLogoBase64 = "data:image/png;base64," . base64_encode(file_get_contents($imagenLogo));
 }
 
-// Obtener datos de la salida
+// 🔹 OBTENER DATOS DE LA SALIDA CON CENTROS DE COSTO
 $salida_data = ConsultarSalida($id_salida);
-$salida_detalle = ConsultarSalidaDetalle($id_salida);
+// 🔹 OBTENER DETALLES CON CENTROS DE COSTO
+$salida_detalle = ConsultarSalidaDetalleConCentros($id_salida);
 
 if (empty($salida_data)) {
     $titulo = 'Error en datos';
@@ -64,6 +65,11 @@ $fecha_salida = date('d/m/Y H:i', strtotime($salida['fec_salida']));
 $fecha_requerida = date('d/m/Y', strtotime($salida['fec_req_salida']));
 $nom_personal = trim($salida['nom_personal'] ?? '');
 $observaciones = $salida['obs_salida'] ?? 'Sin observaciones especiales';
+
+// 🔹 OBTENER CENTROS DE COSTO DEL PERSONAL
+$centro_costo_registrador = $salida['nom_centro_costo_registrador'] ?? 'NO ESPECIFICADO';
+$centro_costo_encargado = $salida['nom_centro_costo_encargado'] ?? 'NO ESPECIFICADO';
+$centro_costo_recibe = $salida['nom_centro_costo_recibe'] ?? 'NO ESPECIFICADO';
 
 // Datos de origen
 $almacen_origen = $salida['nom_almacen_origen'] ?? '';
@@ -127,12 +133,12 @@ switch($salida['est_salida']) {
         $estado_bg = '#e2e3e5';
 }
 
-// 🔹 PREPARAR DETALLES DE LA SALIDA CON NOMBRE DE PRODUCTO Y UNIDAD
+// 🔹 PREPARAR DETALLES DE LA SALIDA CON CENTROS DE COSTO
 $detalles_html = '';
 $item = 1;
 
 foreach ($salida_detalle as $detalle) {
-    //  LÓGICA PARA OBTENER EL NOMBRE DEL PRODUCTO (igual que en v_salidas_editar.php)
+    // Lógica para obtener el nombre del producto
     $nombre_producto = '';
     if (!empty($detalle['nom_producto'])) {
         $nombre_producto = $detalle['nom_producto'];
@@ -145,18 +151,32 @@ foreach ($salida_detalle as $detalle) {
     $descripcion = htmlspecialchars($nombre_producto, ENT_QUOTES, 'UTF-8');
     $cantidad = number_format($detalle['cant_salida_detalle'], 2);
     
-    //  UNIDAD DE MEDIDA con mejor manejo de datos
-    $unidad = 'UND'; // Valor por defecto
-    if (!empty($detalle['nom_unidad_medida'])) {
+    // Unidad de medida - Priorizar código
+    $unidad = 'UND';
+    if (!empty($detalle['cod_unidad_medida'])) {
+        $unidad = htmlspecialchars($detalle['cod_unidad_medida'], ENT_QUOTES, 'UTF-8');
+    } elseif (!empty($detalle['nom_unidad_medida'])) {
         $unidad = htmlspecialchars($detalle['nom_unidad_medida'], ENT_QUOTES, 'UTF-8');
     } elseif (!empty($detalle['abr_unidad_medida'])) {
         $unidad = htmlspecialchars($detalle['abr_unidad_medida'], ENT_QUOTES, 'UTF-8');
+    }
+    
+    // 🔹 OBTENER CENTROS DE COSTO DEL MATERIAL
+    $centros_texto = '';
+    if (!empty($detalle['centros_costo']) && is_array($detalle['centros_costo'])) {
+        $nombres_centros = array_map(function($centro) {
+            return htmlspecialchars($centro['nom_centro_costo'], ENT_QUOTES, 'UTF-8');
+        }, $detalle['centros_costo']);
+        $centros_texto = implode(', ', $nombres_centros);
+    } else {
+        $centros_texto = 'No especificado';
     }
     
     $detalles_html .= '
     <tr>
         <td class="text-center">' . $item . '</td>
         <td class="text-left">' . $descripcion . '</td>
+        <td class="text-left">' . $centros_texto . '</td>
         <td class="text-center">' . $cantidad . '</td>
         <td class="text-center">' . $unidad . '</td>
     </tr>';
@@ -170,6 +190,7 @@ if (empty($detalles_html)) {
     <tr>
         <td class="text-center">1</td>
         <td class="text-left">No hay materiales en esta salida</td>
+        <td class="text-left">-</td>
         <td class="text-center">0.00</td>
         <td class="text-center">UND</td>
     </tr>';

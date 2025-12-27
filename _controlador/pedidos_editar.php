@@ -93,40 +93,55 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                 // Procesar materiales con centros de costo multiples
                 $materiales = array();
                 $errores_validacion = array();
-                
+
                 if (isset($_REQUEST['descripcion']) && is_array($_REQUEST['descripcion'])) {
+                    // 🔹 DEBUG: Ver estructura completa
+                    error_log("🔍 POST centros_costo: " . print_r($_REQUEST['centros_costo'], true));
+                    
+                    // 🔹 VALIDAR EXISTENCIA DE personal_ids ANTES DE IMPRIMIR
+                    if (isset($_REQUEST['personal_ids'])) {
+                        error_log("🔍 POST personal_ids: " . print_r($_REQUEST['personal_ids'], true));
+                    } else {
+                        error_log("🔍 POST personal_ids: NO ENVIADO (pedido no es tipo servicio)");
+                    }
+                    
                     for ($i = 0; $i < count($_REQUEST['descripcion']); $i++) {
                         $sst_descripcion = trim($_REQUEST['sst'][$i]);
                         $ot_detalle = isset($_REQUEST['ot_detalle'][$i]) ? trim($_REQUEST['ot_detalle'][$i]) : '';
 
-                        // Procesar centros de costo múltiples
+                        // 🔹 PROCESAMIENTO DIRECTO DE CENTROS DE COSTO
                         $centros_costo_material = array();
-                        if (isset($_REQUEST['centros_costo']) && is_array($_REQUEST['centros_costo'])) {
-                            if (isset($_REQUEST['centros_costo'][$i])) {
-                                $centros_value = $_REQUEST['centros_costo'][$i];
-                                if (is_array($centros_value)) {
-                                    $centros_costo_material = $centros_value;
-                                } else if (is_string($centros_value) && !empty($centros_value)) {
-                                    $centros_costo_material = explode(',', $centros_value);
-                                }
+                        
+                        if (isset($_REQUEST['centros_costo'][$i])) {
+                            $valores = $_REQUEST['centros_costo'][$i];
+                            
+                            if (is_array($valores)) {
+                                $centros_costo_material = $valores;
+                            } else if (!empty($valores)) {
+                                $centros_costo_material = array_map('trim', explode(',', $valores));
                             }
                         }
                         
+                        // Limpiar y validar
                         $centros_costo_material = array_map('intval', $centros_costo_material);
                         $centros_costo_material = array_filter($centros_costo_material, function($id) {
                             return $id > 0;
                         });
                         $centros_costo_material = array_unique($centros_costo_material);
                         
+                        error_log("📦 Material $i | ID Detalle: " . ($_REQUEST['id_detalle'][$i] ?? 'NUEVO') . " | Centros: " . implode(',', $centros_costo_material));
+                        
+                        // 🔹 PROCESAMIENTO DE PERSONAL (CON VALIDACIÓN)
                         $personal_material = array();
-                        if (isset($_REQUEST['personal_ids']) && is_array($_REQUEST['personal_ids'])) {
-                            if (isset($_REQUEST['personal_ids'][$i])) {
-                                $personal_value = $_REQUEST['personal_ids'][$i];
-                                if (is_array($personal_value)) {
-                                    $personal_material = $personal_value;
-                                } else if (is_string($personal_value) && !empty($personal_value)) {
-                                    $personal_material = explode(',', $personal_value);
-                                }
+                        
+                        // ⬇️ CAMBIO CRÍTICO: Verificar si existe el campo
+                        if (isset($_REQUEST['personal_ids']) && isset($_REQUEST['personal_ids'][$i])) {
+                            $valores = $_REQUEST['personal_ids'][$i];
+                            
+                            if (is_array($valores)) {
+                                $personal_material = $valores;
+                            } else if (!empty($valores)) {
+                                $personal_material = array_map('trim', explode(',', $valores));
                             }
                         }
                         
@@ -144,7 +159,7 @@ if (!verificarPermisoEspecifico('editar_pedidos')) {
                             'observaciones' => $_REQUEST['observaciones'][$i],
                             'sst_descripcion' => $sst_descripcion,
                             'ot_detalle' => $ot_detalle,
-                            'id_detalle' => $_REQUEST['id_detalle'][$i],
+                            'id_detalle' => isset($_REQUEST['id_detalle'][$i]) ? $_REQUEST['id_detalle'][$i] : '',
                             'centros_costo' => $centros_costo_material,
                             'personal_ids' => $personal_material 
                         );

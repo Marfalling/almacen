@@ -417,6 +417,9 @@ function ConsultarPedido($id_pedido)
                 COALESCE(pt.nom_producto_tipo, 'N/A') AS nom_producto_tipo,
                 COALESCE(ar.nom_area, 'N/A') AS nom_centro_costo,
                 
+                -- 🔹 CENTRO DE COSTO DEL SOLICITANTE (registrador)
+                COALESCE(cc_reg.nom_area, 'NO ESPECIFICADO') AS nom_centro_costo_registrador,
+                
                 --  APROBACIÓN TÉCNICA
                 COALESCE(per_aprueba.nom_personal, '-') AS nom_aprobado_tecnica,
                 p.fec_aprueba_tecnica,
@@ -440,6 +443,10 @@ function ConsultarPedido($id_pedido)
                 ON p.id_personal = pr.id_personal AND pr.act_personal = 1
             LEFT JOIN {$bd_complemento}.area ar 
                 ON p.id_centro_costo = ar.id_area AND ar.act_area = 1
+            
+            -- 🔹 JOIN PARA CENTRO DE COSTO DEL REGISTRADOR
+            LEFT JOIN {$bd_complemento}.area cc_reg ON p.id_registrador_centro_costo = cc_reg.id_area
+            
             LEFT JOIN producto_tipo pt 
                 ON p.id_producto_tipo = pt.id_producto_tipo AND pt.est_producto_tipo = 1
             
@@ -498,8 +505,9 @@ function ConsultarPedidoDetalle($id_pedido)
 
     $id_pedido = intval($id_pedido);
 
-    $sqlc = "SELECT pd.*, 
+   $sqlc = "SELECT pd.*, 
              pd.ot_pedido_detalle,
+             pd.req_pedido,  
              GROUP_CONCAT(
                 CASE 
                     WHEN pdd.est_pedido_detalle_documento = 1 
@@ -510,6 +518,8 @@ function ConsultarPedidoDetalle($id_pedido)
              p.nom_producto,
              p.cod_material,  
              p.id_producto as id_producto,
+             um.cod_unidad_medida,
+             um.nom_unidad_medida,
              
              --  STOCK EN UBICACIÓN DESTINO (usando movimientos)
              COALESCE(
@@ -602,6 +612,7 @@ function ConsultarPedidoDetalle($id_pedido)
              LEFT JOIN pedido_detalle_documento pdd ON pd.id_pedido_detalle = pdd.id_pedido_detalle
                 AND pdd.est_pedido_detalle_documento = 1
              INNER JOIN producto p ON pd.id_producto = p.id_producto
+             LEFT JOIN unidad_medida um ON p.id_unidad_medida = um.id_unidad_medida
              INNER JOIN pedido ped ON pd.id_pedido = ped.id_pedido
              WHERE pd.id_pedido = $id_pedido AND pd.est_pedido_detalle IN (1, 2)
              GROUP BY pd.id_pedido_detalle
@@ -773,31 +784,40 @@ function ActualizarPedido($id_pedido, $id_ubicacion, $id_centro_costo, $nom_pedi
             } else {
                 // INSERTAR NUEVO DETALLE
                 $sql_detalle = "INSERT INTO pedido_detalle (
-                                    id_pedido, id_producto, prod_pedido_detalle, 
-                                    ot_pedido_detalle, cant_pedido_detalle, cant_oc_pedido_detalle, 
-                                    com_pedido_detalle, req_pedido, est_pedido_detalle
-                                ) VALUES (
-                                    $id_pedido, $id_producto, '$descripcion', 
-                                    '$ot_detalle',
-                                    $cantidad, NULL, 
-                                    '$comentario_detalle', '$requisitos', 1
-                                )";
+                                id_pedido, id_producto, prod_pedido_detalle, 
+                                ot_pedido_detalle, cant_pedido_detalle, cant_oc_pedido_detalle, 
+                                com_pedido_detalle, req_pedido, est_pedido_detalle
+                            ) VALUES (
+                                $id_pedido, $id_producto, '$descripcion', 
+                                '$ot_detalle',
+                                $cantidad, NULL, 
+                                '$comentario_detalle', '$requisitos', 1
+                            )";
                 
                 if (mysqli_query($con, $sql_detalle)) {
-                    $id_detalle_actual = mysqli_insert_id($con);
+                $id_detalle_actual = mysqli_insert_id($con);
 
-                    // Insertar centros de costo
-                    if (!empty($centros_costo) && is_array($centros_costo)) {
-                        foreach ($centros_costo as $id_centro) {
-                            $id_centro = intval($id_centro);
-                            if ($id_centro > 0) {
-                                $sql_cc = "INSERT INTO pedido_detalle_centro_costo 
-                                          (id_pedido_detalle, id_centro_costo) 
-                                          VALUES ($id_detalle_actual, $id_centro)";
-                                mysqli_query($con, $sql_cc);
+                // 🔹 INSERTAR CENTROS DE COSTO PARA MATERIAL NUEVO
+                if (!empty($centros_costo) && is_array($centros_costo)) {
+                    error_log("✅ Insertando " . count($centros_costo) . " centros de costo para nuevo detalle $id_detalle_actual");
+                    
+                    foreach ($centros_costo as $id_centro) {
+                        $id_centro = intval($id_centro);
+                        if ($id_centro > 0) {
+                            $sql_cc = "INSERT INTO pedido_detalle_centro_costo 
+                                    (id_pedido_detalle, id_centro_costo) 
+                                    VALUES ($id_detalle_actual, $id_centro)";
+                            
+                            if (!mysqli_query($con, $sql_cc)) {
+                                error_log("❌ Error al insertar centro de costo: " . mysqli_error($con));
+                            } else {
+                                error_log("   ✔️ Centro $id_centro insertado");
                             }
                         }
                     }
+                } else {
+                    error_log("⚠️ No hay centros de costo para insertar en detalle $id_detalle_actual");
+                }
                     
                     if (!empty($personal_ids) && is_array($personal_ids)) {
                         foreach ($personal_ids as $id_personal_item) {
@@ -1442,7 +1462,8 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal,
                          $observacion, $direccion, $plazo_entrega, $porte, 
                          $fecha_orden, $items, 
                          $id_detraccion = null, $archivos_homologacion = [],
-                         $id_retencion = null, $id_percepcion = null) 
+                         $id_retencion = null, $id_percepcion = null,
+                         $requisitos_items = [])  
 {
     include("../_conexion/conexion.php");
 
@@ -1486,6 +1507,9 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal,
             $precio_unitario = floatval($item['precio_unitario']);
             $igv = floatval($item['igv']);
             $id_detalle = intval($item['id_detalle']);
+
+            $requisitos = isset($requisitos_items[$id_detalle]) ? 
+                     mysqli_real_escape_string($con, $requisitos_items[$id_detalle]) : '';
             
             // Guardar en el array de afectados
             $detalles_afectados[] = $id_detalle;
@@ -1509,10 +1533,10 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal,
             $sql_detalle = "INSERT INTO compra_detalle (
                                 id_compra, id_pedido_detalle, id_producto, 
                                 cant_compra_detalle, prec_compra_detalle, 
-                                igv_compra_detalle, hom_compra_detalle, est_compra_detalle
+                                igv_compra_detalle, hom_compra_detalle, req_compra_detalle, est_compra_detalle
                             ) VALUES (
                                 $id_compra, $id_detalle, $id_producto, 
-                                $cantidad, $precio_unitario, $igv, $hom_sql, 1
+                                $cantidad, $precio_unitario, $igv, $hom_sql,'$requisitos', 1
                             )";
             
             if (mysqli_query($con, $sql_detalle)) {
@@ -1564,7 +1588,7 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal,
 function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $direccion, 
                               $plazo_entrega, $porte, $fecha_orden, $items, 
                               $id_detraccion = null, $archivos_homologacion = [],
-                              $id_retencion = null, $id_percepcion = null) {
+                              $id_retencion = null, $id_percepcion = null, $requisitos_items = []) {
     include("../_conexion/conexion.php");
     
     error_log("🔧 ActualizarOrdenCompra - ID Compra: $id_compra");
@@ -1623,6 +1647,7 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
             error_log("   🔄 Actualizando compra_detalle ID: $id_compra_detalle | Nueva cantidad: $cantidad");
             
             // 🔹 OBTENER ID_PEDIDO_DETALLE del compra_detalle ANTES de actualizar
+            $id_pedido_detalle_actual = 0;
             $sql_detalle_info = "SELECT id_pedido_detalle, id_producto FROM compra_detalle WHERE id_compra_detalle = $id_compra_detalle";
             $res_detalle_info = mysqli_query($con, $sql_detalle_info);
             $row_detalle_info = mysqli_fetch_assoc($res_detalle_info);
@@ -1638,6 +1663,10 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
                 }
             }
             
+            $requisitos = isset($requisitos_items[$id_pedido_detalle_actual]) 
+                ? mysqli_real_escape_string($con, $requisitos_items[$id_pedido_detalle_actual]) 
+                : '';
+
             // Manejar archivo de homologación si existe
             $nombre_archivo_hom = null;
             if (isset($archivos_homologacion[$id_compra_detalle]) && !empty($archivos_homologacion[$id_compra_detalle]['name'])) {
@@ -1656,7 +1685,8 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
             $sql_detalle = "UPDATE compra_detalle 
                            SET cant_compra_detalle = $cantidad,
                                prec_compra_detalle = $precio_unitario,
-                               igv_compra_detalle = $igv";
+                               igv_compra_detalle = $igv,
+                               req_compra_detalle = '$requisitos'";
             
             if ($nombre_archivo_hom) {
                 $sql_detalle .= ", hom_compra_detalle = '" . mysqli_real_escape_string($con, $nombre_archivo_hom) . "'";
@@ -1762,7 +1792,9 @@ function ObtenerOrdenPorId($id_compra) {
 function ObtenerDetalleOrden($id_compra) {
     include("../_conexion/conexion.php");
     
-    $sql = "SELECT cd.*, p.nom_producto 
+    $sql = "SELECT cd.*, 
+                   cd.req_compra_detalle,  
+                   p.nom_producto 
             FROM compra_detalle cd 
             INNER JOIN producto p ON cd.id_producto = p.id_producto 
             WHERE cd.id_compra = ?";
@@ -2682,7 +2714,7 @@ function CrearOrdenServicio($id_pedido, $proveedor, $moneda, $id_personal,
                             $observacion, $direccion, $plazo_entrega, $porte, 
                             $fecha_orden, $items, 
                             $id_detraccion = null, $archivos_homologacion = [],
-                            $id_retencion = null, $id_percepcion = null) 
+                            $id_retencion = null, $id_percepcion = null, $requisitos_items = []) 
 {
     include("../_conexion/conexion.php");
 
@@ -2717,6 +2749,10 @@ function CrearOrdenServicio($id_pedido, $proveedor, $moneda, $id_personal,
             $igv = floatval($item['igv']);
             $id_pedido_detalle = isset($item['id_pedido_detalle']) ? intval($item['id_pedido_detalle']) : intval($item['id_detalle']);
             
+            $requisitos = isset($requisitos_items[$id_pedido_detalle]) 
+                        ? mysqli_real_escape_string($con, $requisitos_items[$id_pedido_detalle]) 
+                        : '';
+
             $nombre_archivo_hom = null;
             if (isset($archivos_homologacion[$id_pedido_detalle]) && !empty($archivos_homologacion[$id_pedido_detalle]['name'])) {
                 $archivo = $archivos_homologacion[$id_pedido_detalle];
@@ -2736,10 +2772,10 @@ function CrearOrdenServicio($id_pedido, $proveedor, $moneda, $id_personal,
             $sql_detalle = "INSERT INTO compra_detalle (
                                 id_compra, id_pedido_detalle, id_producto, 
                                 cant_compra_detalle, prec_compra_detalle, 
-                                igv_compra_detalle, hom_compra_detalle, est_compra_detalle
+                                igv_compra_detalle, hom_compra_detalle, req_compra_detalle, est_compra_detalle
                             ) VALUES (
                                 $id_compra, $id_pedido_detalle, $id_producto, 
-                                $cantidad, $precio_unitario, $igv, $hom_sql, 1
+                                $cantidad, $precio_unitario, $igv, $hom_sql, '$requisitos', 1
                             )";
             
             if (mysqli_query($con, $sql_detalle)) {
@@ -2840,7 +2876,7 @@ function ObtenerCantidadYaOrdenadaServicioPorDetalle($id_pedido_detalle) {
 function ActualizarOrdenServicio($id_compra, $proveedor, $moneda, $observacion, $direccion, 
                                  $plazo_entrega, $porte, $fecha_orden, $items, 
                                  $id_detraccion = null, $archivos_homologacion = [],
-                                 $id_retencion = null, $id_percepcion = null) 
+                                 $id_retencion = null, $id_percepcion = null, $requisitos_items = [])  
 {
     include("../_conexion/conexion.php");
     
@@ -2900,10 +2936,18 @@ function ActualizarOrdenServicio($id_compra, $proveedor, $moneda, $observacion, 
             $sql_detalle_info = "SELECT id_pedido_detalle FROM compra_detalle WHERE id_compra_detalle = $id_compra_detalle";
             $res_detalle_info = mysqli_query($con, $sql_detalle_info);
             $row_detalle_info = mysqli_fetch_assoc($res_detalle_info);
+
+            $id_pedido_detalle_actual = 0;
             if ($row_detalle_info) {
-                $detalles_afectados[] = intval($row_detalle_info['id_pedido_detalle']);
+                $id_pedido_detalle_actual = intval($row_detalle_info['id_pedido_detalle']);
+                $detalles_afectados[] = $id_pedido_detalle_actual;
             }
             
+            // 🔹 CAPTURAR REQUISITOS
+            $requisitos = isset($requisitos_items[$id_pedido_detalle_actual]) 
+                        ? mysqli_real_escape_string($con, $requisitos_items[$id_pedido_detalle_actual]) 
+                        : '';
+    
             // Manejar archivo de homologación
             $nombre_archivo_hom = null;
             if (isset($archivos_homologacion[$id_compra_detalle]) && !empty($archivos_homologacion[$id_compra_detalle]['name'])) {
@@ -2922,7 +2966,8 @@ function ActualizarOrdenServicio($id_compra, $proveedor, $moneda, $observacion, 
             $sql_detalle = "UPDATE compra_detalle 
                            SET cant_compra_detalle = $cantidad,
                                prec_compra_detalle = $precio_unitario,
-                               igv_compra_detalle = $igv";
+                               igv_compra_detalle = $igv,
+                               req_compra_detalle = '$requisitos'";
             
             if ($nombre_archivo_hom) {
                 $sql_detalle .= ", hom_compra_detalle = '" . mysqli_real_escape_string($con, $nombre_archivo_hom) . "'";

@@ -91,9 +91,9 @@
                             </div>
 
                             <div class="form-group row">
-                                <label class="control-label col-md-3 col-sm-3">Modelo:</label>
+                                <label class="control-label col-md-3 col-sm-3">Modelo/Presentación:</label>
                                 <div class="col-md-9 col-sm-9">
-                                    <input type="text" name="mod_producto" value="<?php echo $mod_producto; ?>" class="form-control" placeholder="Modelo del producto">
+                                    <input type="text" name="mod_producto" value="<?php echo $mod_producto; ?>" class="form-control" placeholder="Modelo/Presentación del producto">
                                 </div>
                             </div>
 

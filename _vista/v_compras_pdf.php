@@ -150,13 +150,13 @@ $html = '
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 10px;
-            font-size: 7.5pt;
+            font-size: 7pt;
         }
         
         .detalles-table th {
             background-color: #d0d0d0;
             border: 1px solid #000;
-            padding: 5px 3px;
+            padding: 4px 2px;
             text-align: center;
             font-weight: bold;
             line-height: 1.1;
@@ -164,20 +164,22 @@ $html = '
         
         .detalles-table td {
             border: 1px solid #000;
-            padding: 4px 5px;
+            padding: 3px 4px;
             vertical-align: top;
+            line-height: 1.3;
         }
         
         .text-center { text-align: center; }
         .text-left { text-align: left; }
         .text-right { text-align: right; }
         
-        .col-item { width: 8%; }
-        .col-cantidad { width: 10%; }
-        .col-unidad { width: 10%; }
-        .col-descripcion { width: 42%; }
-        .col-precio { width: 15%; }
-        .col-total { width: 15%; }
+        .col-item { width: 6%; }
+        .col-cantidad { width: 8%; }
+        .col-unidad { width: 8%; }
+        .col-descripcion { width: 35%; }
+        .col-centro-costo { width: 18%; }
+        .col-precio { width: 12%; }
+        .col-total { width: 13%; }
 
         /* TOTALES */
         .totales-section {
@@ -311,7 +313,7 @@ $html = '
         <!-- MENSAJE FORMAL -->
         <div class="mensaje-formal">
             <div class="mb-10"><span class="field-label">Muy Sres. Nuestros:</span></div>
-            <div>Sírvanse suministrarnos los materiales contenidos en la orden de compra, la misma que pasamos a detallar:</div>
+            <div>Sírvanse suministrarnos ' . ($tipo_orden == 'COMPRA' ? 'los materiales' : 'los servicios') . ' contenidos en la orden de ' . strtolower($tipo_orden) . ', la misma que pasamos a detallar:</div>
         </div>
 
         <!-- INFORMACIÓN DE LA OBRA -->
@@ -332,10 +334,11 @@ $html = '
         <table class="detalles-table">
             <thead>
                 <tr>
-                    <th class="col-item">POS</th>
+                    <th class="col-item">ITEM</th>
                     <th class="col-cantidad">CANT.</th>
                     <th class="col-unidad">UND.</th>
                     <th class="col-descripcion">ESPECIFICACIÓN</th>
+                    <th class="col-centro-costo">CENTRO COSTO</th>
                     <th class="col-precio">PRECIO U.</th>
                     <th class="col-total">IMPORTE</th>
                 </tr>
@@ -405,6 +408,7 @@ $html = '
                     <div><strong>DIRECCIÓN ENVÍO:</strong> ' . $lugar_entrega . '</div>
                     <div><strong>REFERENCIA:</strong> ' . $aclaraciones . '</div>
                     <div><strong>SOLICITADO POR:</strong> ' . $nom_personal . '</div>
+                    <div><strong>CENTRO COSTO SOLICITANTE:</strong> ' . $centro_costo_personal . '</div>
                 </div>
                 <div class="info-right">
                     <div><strong>MONEDA:</strong> ' . $moneda . '</div>

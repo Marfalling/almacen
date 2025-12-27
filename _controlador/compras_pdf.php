@@ -41,7 +41,7 @@ if (file_exists($imagenLogo)) {
 
 // Obtener datos de la compra
 $compra_data = ConsultarCompraPorId($id_compra);
-$compra_detalle = ConsultarCompraDetalle($id_compra);
+$compra_detalle = ConsultarCompraDetalleConCentros($id_compra); // 🔹 USAR FUNCIÓN CON CENTROS
 
 if (empty($compra_data)) {
     $titulo = 'Error en datos';
@@ -81,6 +81,11 @@ $observaciones = $compra['obs_compra'] ?? 'Sin observaciones especiales';
 $aclaraciones = $compra['acl_pedido'] ?? '';
 $plazo_entrega = $compra['plaz_compra'] ?? '';
 $portes = $compra['port_compra'] ?? '';
+
+// 🔹 OBTENER CENTRO DE COSTO DEL PERSONAL
+$centro_costo_personal = $compra['nom_centro_costo'] ?? 'NO ESPECIFICADO';
+
+
 
 // Definir condición de pago de forma clara
 $es_contado = empty($plazo_entrega) || $plazo_entrega == '0' || $plazo_entrega == 0;
@@ -168,20 +173,50 @@ $subtotal = 0;
 $igv_total_acumulado = 0; 
 
 foreach ($compra_detalle as $detalle) {
+    // 🔹 DESCRIPCIÓN BASE
     $descripcion = !empty($detalle['prod_pedido_detalle']) 
         ? htmlspecialchars($detalle['prod_pedido_detalle'], ENT_QUOTES, 'UTF-8')
         : htmlspecialchars($detalle['nom_producto'], ENT_QUOTES, 'UTF-8');
     
-    $cantidad = number_format($detalle['cant_compra_detalle'], 2);
-    $unidad = isset($detalle['nom_unidad_medida']) ? htmlspecialchars($detalle['nom_unidad_medida'], ENT_QUOTES, 'UTF-8') : 'UND';
+    // 🔹 AGREGAR REQUISITOS SST/MA/CA SI EXISTE
+    $req_compra = isset($detalle['req_compra_detalle']) && !empty($detalle['req_compra_detalle'])
+        ? htmlspecialchars($detalle['req_compra_detalle'], ENT_QUOTES, 'UTF-8')
+        : '';
+
+    if (!empty($req_compra)) {
+        $descripcion .= ' - ' . $req_compra;
+    }
     
+    // 🔹 OBTENER CENTROS DE COSTO
+    $centros_texto = '';
+    if (!empty($detalle['centros_costo']) && is_array($detalle['centros_costo'])) {
+        $nombres_centros = array_map(function($centro) {
+            return htmlspecialchars($centro['nom_centro_costo'], ENT_QUOTES, 'UTF-8');
+        }, $detalle['centros_costo']);
+        $centros_texto = implode(', ', $nombres_centros);
+    } else {
+        $centros_texto = 'No especificado';
+    }
+    
+    $cantidad = number_format($detalle['cant_compra_detalle'], 2);
+    
+    $unidad = 'UND'; // Valor por defecto
+    
+    // Prioridad 1: Código de unidad (si existe y no está vacío)
+    if (isset($detalle['cod_unidad_medida']) && !empty($detalle['cod_unidad_medida'])) {
+        $unidad = htmlspecialchars($detalle['cod_unidad_medida'], ENT_QUOTES, 'UTF-8');
+    } 
+    // Prioridad 2: Nombre completo de unidad
+    elseif (isset($detalle['nom_unidad_medida']) && !empty($detalle['nom_unidad_medida'])) {
+        $unidad = htmlspecialchars($detalle['nom_unidad_medida'], ENT_QUOTES, 'UTF-8');
+    }    
     $precio_unitario = isset($detalle['prec_compra_detalle']) && $detalle['prec_compra_detalle'] > 0 
         ? number_format($detalle['prec_compra_detalle'], 2) 
         : '0.00';
     
     $precio_num = isset($detalle['prec_compra_detalle']) ? floatval($detalle['prec_compra_detalle']) : 0;
     
-    //  OBTENER IGV REAL DE LA BD
+    // Obtener IGV real de la BD
     $igv_porcentaje = isset($detalle['igv_compra_detalle']) ? floatval($detalle['igv_compra_detalle']) : 18;
     
     // Calcular subtotal del item
@@ -195,14 +230,16 @@ foreach ($compra_detalle as $detalle) {
     $total_formateado = number_format($total_item, 2);
     
     $subtotal += $subtotal_item;
-    $igv_total_acumulado += $igv_item; // ← Acumular IGV real
+    $igv_total_acumulado += $igv_item;
     
+    // 🔹 AGREGAR COLUMNA DE CENTRO DE COSTO
     $detalles_html .= '
     <tr>
         <td class="text-center">' . $item . '</td>
         <td class="text-center">' . $cantidad . '</td>
         <td class="text-center">' . $unidad . '</td>
         <td class="text-left">' . $descripcion . '</td>
+        <td class="text-left">' . $centros_texto . '</td>
         <td class="text-right">' . $precio_unitario . '</td>
         <td class="text-right">' . $total_formateado . '</td>
     </tr>';
@@ -217,16 +254,17 @@ if (empty($detalles_html)) {
         <td class="text-center">0.00</td>
         <td class="text-center">UND</td>
         <td class="text-left">No hay productos en esta compra</td>
+        <td class="text-left">-</td>
         <td class="text-right">0.00</td>
         <td class="text-right">0.00</td>
     </tr>';
 }
 
-//  CÁLCULOS FINALES CORREGIDOS
-$igv = $igv_total_acumulado; // Usar el IGV acumulado real
+// Cálculos finales
+$igv = $igv_total_acumulado;
 $total_con_igv = $subtotal + $igv;
 
-//  APLICAR DETRACCIÓN/RETENCIÓN/PERCEPCIÓN
+// Aplicar detracción/retención/percepción
 $monto_detraccion = 0;
 $monto_retencion = 0;
 $monto_percepcion = 0;

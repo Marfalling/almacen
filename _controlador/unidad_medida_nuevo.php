@@ -36,23 +36,32 @@ if (!verificarPermisoEspecifico('crear_unidad de medida')) {
 
             //-------------------------------------------
             if (isset($_REQUEST['registrar'])) {
-                $nom = strtoupper($_REQUEST['nom']);
+                $cod = strtoupper(trim($_REQUEST['cod']));
+                $nom = strtoupper(trim($_REQUEST['nom']));
                 $est = isset($_REQUEST['est']) ? 1 : 0;
 
-                $rpta = GrabarUnidadMedida($nom, $est);
+                $rpta = GrabarUnidadMedida($cod, $nom, $est);
 
                 if ($rpta == "SI") {
                     //  AUDITORÍA: REGISTRO EXITOSO
                     $estado_texto = ($est == 1) ? 'Activo' : 'Inactivo';
-                    $descripcion = "Nombre: '$nom' | Estado: $estado_texto";
+                    $descripcion = "Código: '$cod' | Nombre: '$nom' | Estado: $estado_texto";
                     GrabarAuditoria($id, $usuario_sesion, 'REGISTRAR', 'UNIDAD_MEDIDA', $descripcion);
             ?>
                     <script Language="JavaScript">
                         location.href = 'unidad_medida_mostrar.php?registrado=true';
                     </script>
                 <?php
+                } else if ($rpta == "CODIGO_EXISTE") {
+                    //  AUDITORÍA: ERROR - CÓDIGO YA EXISTE
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'UNIDAD_MEDIDA', "Código: '$cod' - Ya existe");
+                ?>
+                    <script Language="JavaScript">
+                        location.href = 'unidad_medida_mostrar.php?codigo_existe=true';
+                    </script>
+                <?php
                 } else if ($rpta == "NO") {
-                    //  AUDITORÍA: ERROR - YA EXISTE
+                    //  AUDITORÍA: ERROR - NOMBRE YA EXISTE
                     GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'UNIDAD_MEDIDA', "Nombre: '$nom' - Ya existe");
                 ?>
                     <script Language="JavaScript">
@@ -61,7 +70,7 @@ if (!verificarPermisoEspecifico('crear_unidad de medida')) {
             <?php
                 } else {
                     //  AUDITORÍA: ERROR GENERAL
-                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'UNIDAD_MEDIDA', "Nombre: '$nom' - Error del sistema");
+                    GrabarAuditoria($id, $usuario_sesion, 'ERROR AL REGISTRAR', 'UNIDAD_MEDIDA', "Código: '$cod' | Nombre: '$nom' - Error del sistema");
                 ?>
                     <script Language="JavaScript">
                         location.href = 'unidad_medida_mostrar.php?error=true';

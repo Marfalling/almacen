@@ -39,9 +39,10 @@ if (file_exists($imagenLogo)) {
     $imagenLogoBase64 = "data:image/png;base64," . base64_encode(file_get_contents($imagenLogo));
 }
 
-// Obtener datos del uso de material
+// 🔹 OBTENER DATOS DEL USO DE MATERIAL CON CENTRO DE COSTO
 $uso_data = ConsultarUsoMaterial($id_uso_material);
-$uso_detalle = ConsultarUsoMaterialDetalle($id_uso_material);
+// 🔹 OBTENER DETALLES CON CENTROS DE COSTO
+$uso_detalle = ConsultarUsoMaterialDetalleConCentros($id_uso_material);
 
 if (empty($uso_data)) {
     $titulo = 'Error en datos';
@@ -57,7 +58,7 @@ if (empty($uso_data)) {
 $uso = $uso_data[0];
 
 // Preparar datos para el PDF
-$numero_uso = $uso['id_uso_material']?? 'NO ESPECIFICADO';
+$numero_uso = $uso['id_uso_material'] ?? 'NO ESPECIFICADO';
 $nombre_almacen = $uso['nom_almacen'] ?? 'NO ESPECIFICADO';
 $nombre_obra = $uso['nom_obra'] ?? 'NO ESPECIFICADO';
 $nombre_cliente = $uso['nom_cliente'] ?? 'NO ESPECIFICADO';
@@ -65,6 +66,10 @@ $nombre_ubicacion = $uso['nom_ubicacion'] ?? 'NO ESPECIFICADO';
 $fecha_uso = date('d/m/Y H:i', strtotime($uso['fec_uso_material']));
 $nom_registrado = trim($uso['nom_registrado'] ?? '');
 $nom_solicitante = trim($uso['nom_solicitante'] ?? '');
+
+// 🔹 OBTENER CENTROS DE COSTO
+$centro_costo_registrador = $uso['nom_centro_costo_registrador'] ?? 'NO ESPECIFICADO';
+$centro_costo_solicitante = $uso['nom_centro_costo_solicitante'] ?? 'NO ESPECIFICADO';
 
 // Estado del uso de material
 $estado_texto = '';
@@ -94,11 +99,27 @@ $item = 1;
 foreach ($uso_detalle as $detalle) {
     $descripcion = htmlspecialchars($detalle['nom_producto'], ENT_QUOTES, 'UTF-8');
     $cantidad = number_format($detalle['cant_uso_material_detalle'], 2);
-    $unidad = isset($detalle['nom_unidad_medida']) ? htmlspecialchars($detalle['nom_unidad_medida'], ENT_QUOTES, 'UTF-8') : 'UND';
+    // Priorizar código, si no existe usar nombre, si tampoco existe usar 'UND'
+    $unidad = 'UND';
+    if (isset($detalle['cod_unidad_medida']) && !empty($detalle['cod_unidad_medida'])) {
+        $unidad = htmlspecialchars($detalle['cod_unidad_medida'], ENT_QUOTES, 'UTF-8');
+    } elseif (isset($detalle['nom_unidad_medida']) && !empty($detalle['nom_unidad_medida'])) {
+        $unidad = htmlspecialchars($detalle['nom_unidad_medida'], ENT_QUOTES, 'UTF-8');
+    }
     $observaciones = !empty($detalle['obs_uso_material_detalle']) 
         ? htmlspecialchars($detalle['obs_uso_material_detalle'], ENT_QUOTES, 'UTF-8') 
         : '-';
     
+    // 🔹 OBTENER CENTROS DE COSTO DEL MATERIAL
+    $centros_texto = '';
+    if (!empty($detalle['centros_costo']) && is_array($detalle['centros_costo'])) {
+        $nombres_centros = array_map(function($centro) {
+            return htmlspecialchars($centro['nom_centro_costo'], ENT_QUOTES, 'UTF-8');
+        }, $detalle['centros_costo']);
+        $centros_texto = implode(', ', $nombres_centros);
+    } else {
+        $centros_texto = 'No especificado';
+    }
     
     $detalles_html .= '
     <tr>
@@ -106,13 +127,14 @@ foreach ($uso_detalle as $detalle) {
         <td class="text-center">' . $cantidad . '</td>
         <td class="text-center">' . $unidad . '</td>
         <td class="text-left">' . $descripcion . '</td>
+        <td class="text-left">' . $centros_texto . '</td>
         <td class="text-left">' . $observaciones . '</td>
     </tr>';
     
     $item++;
 }
 
-// Si no hay detalles, agregar una fila vacía para evitar tabla vacía
+// Si no hay detalles, agregar una fila vacía
 if (empty($detalles_html)) {
     $detalles_html = '
     <tr>
@@ -120,6 +142,7 @@ if (empty($detalles_html)) {
         <td class="text-center">0.00</td>
         <td class="text-center">-</td>
         <td class="text-left">No hay materiales en este uso</td>
+        <td class="text-left">-</td>
         <td class="text-left">-</td>
     </tr>';
 }
