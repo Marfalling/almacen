@@ -6,6 +6,7 @@
 function GrabarComprobante($datos) 
 {
     include("../_conexion/conexion.php");
+    date_default_timezone_set('America/Lima');
 
     // Validar y sanitizar datos
     $id_compra = intval($datos['id_compra']);
@@ -32,6 +33,8 @@ function GrabarComprobante($datos)
         mysqli_close($con);
         return "Compra no encontrada.";
     }
+
+    $fecha_actual = date('Y-m-d H:i:s'); 
 
     $sql_prov = "SELECT id_proveedor FROM compra WHERE id_compra = $id_compra";
     $res_prov = mysqli_query($con, $sql_prov);
@@ -92,7 +95,7 @@ function GrabarComprobante($datos)
                 $archivo_pdf,
                 $archivo_xml,
                 $est_comprobante,
-                NOW(),
+                '$fecha_actual',
                 $fec_pago,
                 $id_personal,
                 $id_cuenta_proveedor

@@ -15,6 +15,7 @@ $proveedor = isset($_POST['proveedor_orden']) ? intval($_POST['proveedor_orden']
 $moneda = isset($_POST['moneda_orden']) ? intval($_POST['moneda_orden']) : 0;
 $observacion = isset($_POST['observaciones_orden']) ? $_POST['observaciones_orden'] : '';
 $direccion = isset($_POST['direccion_envio']) ? $_POST['direccion_envio'] : '';
+$plazo_pago = isset($_POST['plazo_pago']) ? $_POST['plazo_pago'] : '';
 $plazo_entrega = isset($_POST['plazo_entrega']) ? $_POST['plazo_entrega'] : '';
 $porte = isset($_POST['tipo_porte']) ? $_POST['tipo_porte'] : '';
 $fecha_orden = isset($_POST['fecha_orden']) ? $_POST['fecha_orden'] : date('Y-m-d');
@@ -232,9 +233,10 @@ try {
             $moneda,
             $observacion,
             $direccion,
-            $plazo_entrega,
-            $porte,
-            $fecha_orden,
+            $plazo_pago,        
+            $plazo_entrega,      
+            $porte,              
+            $fecha_orden,        
             $items_actualizar,
             $id_detraccion,
             $archivos_homologacion,
@@ -250,9 +252,10 @@ try {
             $moneda,
             $observacion,
             $direccion,
-            $plazo_entrega,
-            $porte,
-            $fecha_orden,
+            $plazo_pago,         
+            $plazo_entrega,     
+            $porte,              
+            $fecha_orden,        
             $items_actualizar,
             $id_detraccion,
             $archivos_homologacion,

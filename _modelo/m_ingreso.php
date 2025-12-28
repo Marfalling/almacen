@@ -368,6 +368,7 @@ function ObtenerProductosPendientesIngreso($id_compra)
 function ProcesarIngresoProducto($id_compra, $id_producto, $cantidad, $id_personal)
 {
     include("../_conexion/conexion.php");
+    date_default_timezone_set('America/Lima');
     
     if (!$con) {
         return array('success' => false, 'message' => 'Error de conexión a la base de datos');

@@ -140,6 +140,10 @@ function ConsultarUsoMaterialDetalle($id_uso_material)
 function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_personal, $materiales, $archivos_subidos) 
 {
     include("../_conexion/conexion.php");
+    date_default_timezone_set('America/Lima'); 
+    
+    $fecha_actual = date('Y-m-d H:i:s'); 
+    
     require_once("../_modelo/m_centro_costo.php"); 
     
     $id_personal = $_SESSION['id_personal'];
@@ -199,7 +203,7 @@ function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_pers
                 ) VALUES (
                     $id_uso_material, $id_almacen, $id_ubicacion, $id_personal, 
                     $id_solicitante, $id_registrador_centro_costo, $id_solicitante_centro_costo,
-                    NOW(), 2
+                    '$fecha_actual', 2
                 )";
 
         if (!mysqli_query($con, $sql)) {
@@ -249,7 +253,7 @@ function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_pers
                               ) VALUES (
                                 $id_personal, $id_uso_material, $id_producto, $id_almacen, 
                                 $id_ubicacion, 4, 2, 
-                                $cantidad, NOW(), 1
+                                $cantidad, '$fecha_actual', 1
                               )";
             
             if (!mysqli_query($con, $sql_movimiento)) {
@@ -297,7 +301,11 @@ function GrabarUsoMaterial($id_almacen, $id_ubicacion, $id_solicitante, $id_pers
 function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante, $materiales, $archivos_subidos, $id_personal_editor)
 {
     include("../_conexion/conexion.php");
-    require_once("../_modelo/m_centro_costo.php"); // 🔹 AGREGAR
+    date_default_timezone_set('America/Lima');
+    
+    $fecha_actual = date('Y-m-d H:i:s');
+    
+    require_once("../_modelo/m_centro_costo.php");
     
     // 🔹 OBTENER CENTRO DE COSTO DEL EDITOR
     $centro_costo_editor = ObtenerCentroCostoPersonal($id_personal_editor);
@@ -364,7 +372,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante,
             $cantidad = floatval($material['cantidad']);
             $observaciones = mysqli_real_escape_string($con, $material['observaciones']);
             $id_detalle = isset($material['id_detalle']) ? intval($material['id_detalle']) : 0;
-            $centros_costo = isset($material['centros_costo']) ? $material['centros_costo'] : array(); // 🔹 NUEVO
+            $centros_costo = isset($material['centros_costo']) ? $material['centros_costo'] : array();
             
             // Verificar stock disponible (ahora que los movimientos anteriores están desactivados)
             $sql_stock = "SELECT COALESCE(SUM(CASE
@@ -454,7 +462,7 @@ function ActualizarUsoMaterial($id_uso_material, $id_ubicacion, $id_solicitante,
                             ) VALUES (
                                 $id_personal, $id_uso_material, $id_producto, $id_almacen, 
                                 $id_ubicacion, 4, 2, 
-                                $cantidad, NOW(), 1
+                                $cantidad, '$fecha_actual', 1
                             )";
             
             if (!mysqli_query($con, $sql_movimiento)) {

@@ -1709,19 +1709,34 @@ $monedas = MostrarMoneda();
                                                         </select>
                                                     </div>
                                                     <div class="col-md-6">
-                                                        <label style="font-size: 11px; font-weight: bold;">Condición de Pago (días):</label>
-                                                        <input type="number" 
+                                                        <!-- Condición de Pago -->
+                                                            <label style="font-size: 11px; font-weight: bold;">Condición de Pago (días):</label>
+                                                            <input type="number" 
+                                                                class="form-control form-control-sm" 
+                                                                id="plazo_pago" 
+                                                                name="plazo_pago"
+                                                                value="<?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['plaz_compra']) : ''; ?>"
+                                                                placeholder="Dejar vacío o 0 para pago al contado"
+                                                                min="0"
+                                                                step="1"
+                                                                style="font-size: 12px;">
+                                                            <small class="form-text text-muted">
+                                                                Si no ingresa Condición de Pago, se considera pago al contado (sin alertas)
+                                                            </small>
+                                                    </div>
+                                                </div>
+                                                <div class="row mb-2">
+                                                    <!-- NUEVO: Plazo de Entrega -->
+                                                    <div class="col-md-12">
+                                                        <label style="font-size: 11px; font-weight: bold;">Plazo de Entrega:</label>
+                                                        <input type="text" 
                                                             class="form-control form-control-sm" 
                                                             id="plazo_entrega" 
                                                             name="plazo_entrega"
-                                                            value="<?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['plaz_compra']) : ''; ?>"
-                                                            placeholder="Dejar vacío o 0 para pago al contado"
-                                                            min="0"
-                                                            step="1"
+                                                            value="<?php echo $modo_editar && $orden_data ? htmlspecialchars($orden_data['plaz_entrega'] ?? '') : ''; ?>"
+                                                            placeholder="Plazo de Entrega..."
+                                                            maxlength="255"
                                                             style="font-size: 12px;">
-                                                        <small class="form-text text-muted">
-                                                            Si no ingresa Condición de Pago, se considera pago al contado (sin alertas)
-                                                        </small>
                                                     </div>
                                                 </div>
                                                 <div class="row mb-2">

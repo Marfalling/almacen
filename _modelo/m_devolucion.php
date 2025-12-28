@@ -92,6 +92,9 @@
 function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devolucion, $materiales, $id_cliente_destino) 
 {
     include("../_conexion/conexion.php");
+    date_default_timezone_set('America/Lima'); 
+    
+    $fecha_actual = date('Y-m-d H:i:s'); 
 
     //  OBTENER CENTRO DE COSTO DEL REGISTRADOR
     require_once("m_centro_costo.php");
@@ -118,7 +121,7 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devoluc
                 $id_registrador_centro_costo,
                 $id_cliente_destino,
                 '$obs_devolucion', 
-                NOW(), 
+                '$fecha_actual', 
                 1
             )";
 
@@ -175,8 +178,7 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devoluc
 
             // 🔹 GENERAR MOVIMIENTOS (lógica existente)
             if ($id_cliente_destino == 9) {
-
-                    // Destino SIEMPRE es almacen 1, BASE
+                // Destino SIEMPRE es almacen 1, BASE
                 $id_almacen_destino = 1;
                 $id_ubicacion_destino = 1;
 
@@ -191,7 +193,7 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devoluc
                                 ) VALUES (
                                     $id_personal, $id_devolucion, $id_producto, $id_almacen, 
                                     $id_ubicacion, 3, 2,
-                                    $cantidad, NOW(), 2
+                                    $cantidad, '$fecha_actual', 2
                                 )";
                 mysqli_query($con, $sql_mov_resta);
 
@@ -205,20 +207,19 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devoluc
                                 ) VALUES (
                                     $id_personal, $id_devolucion, $id_producto, $id_almacen_destino, 
                                     $id_ubicacion_destino, 3, 1,
-                                    $cantidad, NOW(), 2
+                                    $cantidad, '$fecha_actual', 2
                                 )";
                 mysqli_query($con, $sql_mov_suma);
 
                     continue; // este caso ya está resuelto
             }
             
-                // LÓGICA SIMPLIFICADA:
-                // Si la ubicación origen NO es BASE, genera traslado interno
+            // Si la ubicación origen NO es BASE, genera traslado interno
             if ($id_ubicacion == 1) {
                 continue;
             }
                 
-                // Movimiento 1: RESTA de la ubicación origen
+            // Movimiento 1: RESTA de la ubicación origen
             $sql_mov_resta = "INSERT INTO movimiento (
                                 id_personal, id_orden, id_producto, id_almacen, 
                                 id_ubicacion, tipo_orden, tipo_movimiento, 
@@ -226,14 +227,14 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devoluc
                             ) VALUES (
                                 $id_personal, $id_devolucion, $id_producto, $id_almacen, 
                                 $id_ubicacion, 3, 2, 
-                                $cantidad, NOW(), 2
+                                $cantidad, '$fecha_actual', 2
                             )";
             mysqli_query($con, $sql_mov_resta);
                 
-                // Determinar el almacén destino según el cliente
+            // Determinar el almacén destino según el cliente
             $id_almacen_destino = $id_almacen;
                 
-                // Movimiento 2: SUMA a BASE del almacén correspondiente
+            // Movimiento 2: SUMA a BASE del almacén correspondiente
             $sql_mov_suma = "INSERT INTO movimiento (
                                 id_personal, id_orden, id_producto, id_almacen, 
                                 id_ubicacion, tipo_orden, tipo_movimiento, 
@@ -241,7 +242,7 @@ function GrabarDevolucion($id_almacen, $id_ubicacion, $id_personal, $obs_devoluc
                             ) VALUES (
                                 $id_personal, $id_devolucion, $id_producto, $id_almacen_destino, 
                                 1, 3, 1, 
-                                $cantidad, NOW(), 2
+                                $cantidad, '$fecha_actual', 2
                             )";
             mysqli_query($con, $sql_mov_suma);
         }
@@ -409,6 +410,9 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cl
                                 $obs_devolucion, $materiales) 
 {
     include("../_conexion/conexion.php");
+    date_default_timezone_set('America/Lima'); 
+    
+    $fecha_actual = date('Y-m-d H:i:s'); 
 
     // Actualizar devolución principal
     $sql = "UPDATE devolucion SET 
@@ -505,7 +509,7 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cl
                                     ) VALUES (
                                         $id_personal, $id_devolucion, $id_producto, $id_almacen, 
                                         $id_ubicacion, 3, 2,
-                                        $cantidad, NOW(), 2
+                                        $cantidad, '$fecha_actual', 2
                                     )";
                     mysqli_query($con, $sql_mov_resta);
 
@@ -519,7 +523,7 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cl
                                     ) VALUES (
                                         $id_personal, $id_devolucion, $id_producto, $id_almacen_destino, 
                                         $id_ubicacion_destino, 3, 1,
-                                        $cantidad, NOW(), 2
+                                        $cantidad, '$fecha_actual', 2
                                     )";
                     mysqli_query($con, $sql_mov_suma);
 
@@ -540,7 +544,7 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cl
                                 ) VALUES (
                                     $id_personal, $id_devolucion, $id_producto, $id_almacen, 
                                     $id_ubicacion, 3, 2, 
-                                    $cantidad, NOW(), 2
+                                    $cantidad, '$fecha_actual', 2
                                 )";
                 mysqli_query($con, $sql_mov_resta);
                     
@@ -555,7 +559,7 @@ function ActualizarDevolucion($id_devolucion, $id_almacen, $id_ubicacion, $id_cl
                                 ) VALUES (
                                     $id_personal, $id_devolucion, $id_producto, $id_almacen_destino, 
                                     1, 3, 1, 
-                                    $cantidad, NOW(), 2
+                                    $cantidad, '$fecha_actual', 2
                                 )";
                 mysqli_query($con, $sql_mov_suma);
             }

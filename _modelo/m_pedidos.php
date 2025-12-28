@@ -2,7 +2,7 @@
 //-----------------------------------------------------------------------
 // MODELO: m_pedidos.php
 //-----------------------------------------------------------------------
-
+date_default_timezone_set('America/Lima');
 // FUNCIONES CORREGIDAS PARA m_pedidos.php
 // Estados: 0=Anulado, 1=Pendiente, 2=Completado, 3=Aprobado, 4=Ingresado, 5=Finalizado
 
@@ -18,6 +18,9 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
     require_once("../_modelo/m_stock.php");
     require_once("../_modelo/m_centro_costo.php");
 
+
+    $fecha_actual = date('Y-m-d H:i:s');
+    
     //  OBTENER CENTRO DE COSTO DEL PERSONAL QUE REGISTRA
     $centro_costo_registrador = ObtenerCentroCostoPersonal($id_personal);
     $id_registrador_centro_costo = $centro_costo_registrador ? intval($centro_costo_registrador['id_centro_costo']) : 'NULL';
@@ -39,7 +42,7 @@ function GrabarPedido($id_producto_tipo, $id_almacen, $id_ubicacion, $id_centro_
                 '" . mysqli_real_escape_string($con, $lugar_entrega) . "',
                 '" . mysqli_real_escape_string($con, $aclaraciones) . "', 
                 '" . mysqli_real_escape_string($con, $fecha_necesidad) . "', 
-                NOW(), 1
+                '$fecha_actual', 1  
             )";
 
     if (mysqli_query($con, $sql)) {
@@ -976,6 +979,8 @@ function RegistrarMovimientoPedido($id_pedido, $id_producto, $id_almacen, $id_ub
     include("../_conexion/conexion.php");
     $id_personal = $_SESSION['id_personal'] ?? 1; // usa 1 si no existe sesión
 
+    $fecha_actual = date('Y-m-d H:i:s');
+
     // Verificar si ya hay una reserva activa para ese producto y pedido
     $sql_check = "SELECT id_movimiento 
                   FROM movimiento 
@@ -994,17 +999,17 @@ function RegistrarMovimientoPedido($id_pedido, $id_producto, $id_almacen, $id_ub
                         ) VALUES (
                             '$id_personal', '$id_pedido', '$id_producto', '$id_almacen',
                             '$id_ubicacion', 5, 2,
-                            '$cantidad', NOW(), 1
+                            '$cantidad', '$fecha_actual', 1  
                         )";
         mysqli_query($con, $sql_insert);
     } else {
         // Ya existe → actualizar cantidad reservada
         $sql_update = "UPDATE movimiento 
-                       SET cant_movimiento = '$cantidad', fec_movimiento = NOW()
-                       WHERE id_orden = '$id_pedido' 
-                         AND id_producto = '$id_producto' 
-                         AND tipo_orden = 5 
-                         AND est_movimiento = 1";
+                    SET cant_movimiento = '$cantidad', fec_movimiento = '$fecha_actual'
+                    WHERE id_orden = '$id_pedido' 
+                        AND id_producto = '$id_producto' 
+                        AND tipo_orden = 5 
+                        AND est_movimiento = 1";
         mysqli_query($con, $sql_update);
     }
 }
@@ -1459,7 +1464,7 @@ function verificarPedidoListo($id_pedido, $con = null)
 // CORRECCIÓN: CrearOrdenCompra - Verificar cierre correcto por detalle
 // ============================================================================
 function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal, 
-                         $observacion, $direccion, $plazo_entrega, $porte, 
+                         $observacion, $direccion, $plazo_pago, $plazo_entrega, $porte, 
                          $fecha_orden, $items, 
                          $id_detraccion = null, $archivos_homologacion = [],
                          $id_retencion = null, $id_percepcion = null,
@@ -1467,7 +1472,9 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal,
 {
     include("../_conexion/conexion.php");
 
-    // 🔹 VALIDAR CANTIDADES ANTES DE CREAR (sin id_compra porque es nueva)
+    $fecha_actual = date('Y-m-d H:i:s');
+
+    // Validar cantidades
     $errores = ValidarCantidadesOrden($id_pedido, $items, NULL);
     if (!empty($errores)) {
         mysqli_close($con);
@@ -1476,7 +1483,8 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal,
 
     $observacion = mysqli_real_escape_string($con, $observacion);
     $direccion = mysqli_real_escape_string($con, $direccion);
-    $plazo_entrega = mysqli_real_escape_string($con, $plazo_entrega);
+    $plazo_pago = mysqli_real_escape_string($con, $plazo_pago);
+    $plazo_entrega = mysqli_real_escape_string($con, $plazo_entrega); 
     $porte = mysqli_real_escape_string($con, $porte);
     
     $id_detraccion_sql = ($id_detraccion && $id_detraccion > 0) ? $id_detraccion : 'NULL';
@@ -1485,14 +1493,15 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal,
 
     $sql = "INSERT INTO compra (
                 id_pedido, id_proveedor, id_moneda, id_personal, id_personal_aprueba, 
-                obs_compra, denv_compra, plaz_compra, port_compra, 
+                obs_compra, denv_compra, plaz_compra, plaz_entrega, port_compra, 
                 id_detraccion, id_retencion, id_percepcion,
                 fec_compra, est_compra, fecha_reg_compra
             ) VALUES (
                 $id_pedido, $proveedor, $moneda, $id_personal, NULL, 
-                '$observacion', '$direccion', '$plazo_entrega', '$porte', 
+                '$observacion', '$direccion', '$plazo_pago', " . 
+                ($plazo_entrega ? "'$plazo_entrega'" : "NULL") . ", '$porte', 
                 $id_detraccion_sql, $id_retencion_sql, $id_percepcion_sql,
-                '$fecha_orden', 1, NOW()
+                '$fecha_orden', 1, '$fecha_actual'  
             )";
             
     if (mysqli_query($con, $sql)) {
@@ -1586,7 +1595,7 @@ function CrearOrdenCompra($id_pedido, $proveedor, $moneda, $id_personal,
     }
 }
 function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $direccion, 
-                              $plazo_entrega, $porte, $fecha_orden, $items, 
+                              $plazo_pago, $plazo_entrega, $porte, $fecha_orden, $items, 
                               $id_detraccion = null, $archivos_homologacion = [],
                               $id_retencion = null, $id_percepcion = null, $requisitos_items = []) {
     include("../_conexion/conexion.php");
@@ -1615,7 +1624,8 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
     
     $observacion = mysqli_real_escape_string($con, $observacion);
     $direccion = mysqli_real_escape_string($con, $direccion);
-    $plazo_entrega = mysqli_real_escape_string($con, $plazo_entrega);
+    $plazo_pago = mysqli_real_escape_string($con, $plazo_pago);
+    $plazo_entrega = mysqli_real_escape_string($con, $plazo_entrega); 
     $porte = mysqli_real_escape_string($con, $porte);
     $id_detraccion_sql = ($id_detraccion && $id_detraccion > 0) ? $id_detraccion : 'NULL';
     $id_retencion_sql = ($id_retencion && $id_retencion > 0) ? $id_retencion : 'NULL';
@@ -1626,7 +1636,8 @@ function ActualizarOrdenCompra($id_compra, $proveedor, $moneda, $observacion, $d
             id_moneda = $moneda, 
             obs_compra = '$observacion', 
             denv_compra = '$direccion', 
-            plaz_compra = '$plazo_entrega', 
+            plaz_compra = '$plazo_pago',
+            plaz_entrega = " . ($plazo_entrega ? "'$plazo_entrega'" : "NULL") . ",
             port_compra = '$porte', 
             id_detraccion = $id_detraccion_sql,
             id_retencion = $id_retencion_sql,
@@ -2711,16 +2722,20 @@ function ObtenerStockProducto($id_producto, $id_almacen = null, $id_ubicacion = 
  * Crear Orden de Servicio (sin validación de stock)
  */
 function CrearOrdenServicio($id_pedido, $proveedor, $moneda, $id_personal, 
-                            $observacion, $direccion, $plazo_entrega, $porte, 
+                            $observacion, $direccion, $plazo_pago, $plazo_entrega, $porte, 
                             $fecha_orden, $items, 
                             $id_detraccion = null, $archivos_homologacion = [],
-                            $id_retencion = null, $id_percepcion = null, $requisitos_items = []) 
+                            $id_retencion = null, $id_percepcion = null, $requisitos_items = [])
 {
     include("../_conexion/conexion.php");
 
+    $fecha_actual = date('Y-m-d H:i:s');
+
+        
     $observacion = mysqli_real_escape_string($con, $observacion);
     $direccion = mysqli_real_escape_string($con, $direccion);
-    $plazo_entrega = mysqli_real_escape_string($con, $plazo_entrega);
+    $plazo_pago = mysqli_real_escape_string($con, $plazo_pago);
+    $plazo_entrega = mysqli_real_escape_string($con, $plazo_entrega); // NUEVO
     $porte = mysqli_real_escape_string($con, $porte);
     
     $id_detraccion_sql = ($id_detraccion && $id_detraccion > 0) ? $id_detraccion : 'NULL';
@@ -2729,14 +2744,15 @@ function CrearOrdenServicio($id_pedido, $proveedor, $moneda, $id_personal,
 
     $sql = "INSERT INTO compra (
                 id_pedido, id_proveedor, id_moneda, id_personal, id_personal_aprueba, 
-                obs_compra, denv_compra, plaz_compra, port_compra, 
+                obs_compra, denv_compra, plaz_compra, plaz_entrega, port_compra, 
                 id_detraccion, id_retencion, id_percepcion,
-                fec_compra, est_compra
+                fec_compra, est_compra, fecha_reg_compra
             ) VALUES (
                 $id_pedido, $proveedor, $moneda, $id_personal, NULL, 
-                '$observacion', '$direccion', '$plazo_entrega', '$porte', 
+                '$observacion', '$direccion', '$plazo_pago', " . 
+                ($plazo_entrega ? "'$plazo_entrega'" : "NULL") . ", '$porte', 
                 $id_detraccion_sql, $id_retencion_sql, $id_percepcion_sql,
-                '$fecha_orden', 1
+                '$fecha_orden', 1, '$fecha_actual'
             )";
 
     if (mysqli_query($con, $sql)) {
@@ -2874,9 +2890,9 @@ function ObtenerCantidadYaOrdenadaServicioPorDetalle($id_pedido_detalle) {
  * Actualizar Orden de Servicio (sin validación de stock)
  */
 function ActualizarOrdenServicio($id_compra, $proveedor, $moneda, $observacion, $direccion, 
-                                 $plazo_entrega, $porte, $fecha_orden, $items, 
+                                 $plazo_pago, $plazo_entrega, $porte, $fecha_orden, $items, 
                                  $id_detraccion = null, $archivos_homologacion = [],
-                                 $id_retencion = null, $id_percepcion = null, $requisitos_items = [])  
+                                 $id_retencion = null, $id_percepcion = null, $requisitos_items = []) 
 {
     include("../_conexion/conexion.php");
     
@@ -2903,6 +2919,7 @@ function ActualizarOrdenServicio($id_compra, $proveedor, $moneda, $observacion, 
     
     $observacion = mysqli_real_escape_string($con, $observacion);
     $direccion = mysqli_real_escape_string($con, $direccion);
+    $plazo_pago = mysqli_real_escape_string($con, $plazo_pago);
     $plazo_entrega = mysqli_real_escape_string($con, $plazo_entrega);
     $porte = mysqli_real_escape_string($con, $porte);
     $id_detraccion_sql = ($id_detraccion && $id_detraccion > 0) ? $id_detraccion : 'NULL';
@@ -2914,7 +2931,8 @@ function ActualizarOrdenServicio($id_compra, $proveedor, $moneda, $observacion, 
             id_moneda = $moneda, 
             obs_compra = '$observacion', 
             denv_compra = '$direccion', 
-            plaz_compra = '$plazo_entrega', 
+            plaz_compra = '$plazo_pago',
+            plaz_entrega = " . ($plazo_entrega ? "'$plazo_entrega'" : "NULL") . ",
             port_compra = '$porte', 
             id_detraccion = $id_detraccion_sql,
             id_retencion = $id_retencion_sql,
@@ -3232,6 +3250,9 @@ function AprobarPedidoTecnica($id_pedido, $id_personal)
 {
     include("../_conexion/conexion.php");
 
+    $fecha_actual = date('Y-m-d H:i:s');
+
+
     //  VALIDAR que el personal existe
     $sql_validar = "SELECT id_personal FROM {$bd_complemento}.personal WHERE id_personal = '$id_personal'";
     $res_validar = mysqli_query($con, $sql_validar);
@@ -3264,7 +3285,7 @@ function AprobarPedidoTecnica($id_pedido, $id_personal)
     // 🔹 REGISTRAR APROBACIÓN TÉCNICA CON FECHA Y HORA AUTOMÁTICA
     $sql_update = "UPDATE pedido 
                    SET id_personal_aprueba_tecnica = '$id_personal',
-                       fec_aprueba_tecnica = NOW()
+                       fec_aprueba_tecnica = '$fecha_actual'  
                    WHERE id_pedido = '$id_pedido'";
     $res_update = mysqli_query($con, $sql_update);
 

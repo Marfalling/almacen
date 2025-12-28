@@ -180,7 +180,8 @@ if (isset($_REQUEST['crear_orden'])) {
     $id_personal = $_SESSION['id_personal'];
     $observacion = $_REQUEST['observaciones_orden'];
     $direccion = $_REQUEST['direccion_envio'];
-    $plazo_entrega = $_REQUEST['plazo_entrega'];
+    $plazo_pago = isset($_REQUEST['plazo_pago']) ? trim($_REQUEST['plazo_pago']) : ''; 
+    $plazo_entrega = isset($_REQUEST['plazo_entrega']) ? trim($_REQUEST['plazo_entrega']) : null;
     $porte = $_REQUEST['tipo_porte'];
     $fecha_orden = $_REQUEST['fecha_orden'];
     $items = $_REQUEST['items_orden'];
@@ -223,16 +224,16 @@ if (isset($_REQUEST['crear_orden'])) {
     if ($es_orden_servicio) {
         $rpta = CrearOrdenServicio(
             $id_pedido, $proveedor, $moneda, $id_personal, 
-            $observacion, $direccion, $plazo_entrega, $porte, 
+            $observacion, $direccion, $plazo_pago, $plazo_entrega, $porte,
             $fecha_orden, $items, $id_detraccion, $archivos_homologacion,
             $id_retencion, $id_percepcion, $requisitos_items
         );
     } else {
         $rpta = CrearOrdenCompra(
             $id_pedido, $proveedor, $moneda, $id_personal, 
-            $observacion, $direccion, $plazo_entrega, $porte, 
+            $observacion, $direccion, $plazo_pago, $plazo_entrega, $porte, 
             $fecha_orden, $items, $id_detraccion, $archivos_homologacion,
-            $id_retencion, $id_percepcion, $requisitos_items 
+            $id_retencion, $id_percepcion, $requisitos_items   
         );
     }
     
@@ -268,7 +269,8 @@ if (isset($_REQUEST['actualizar_orden'])) {
     $moneda_sel = $_REQUEST['moneda_orden'];
     $observacion = $_REQUEST['observaciones_orden'];
     $direccion = $_REQUEST['direccion_envio'];
-    $plazo_entrega = $_REQUEST['plazo_entrega'];
+    $plazo_pago = isset($_REQUEST['plazo_pago']) ? trim($_REQUEST['plazo_pago']) : ''; 
+    $plazo_entrega = isset($_REQUEST['plazo_entrega']) ? trim($_REQUEST['plazo_entrega']) : null; 
     $porte = $_REQUEST['tipo_porte'];
     $fecha_orden = $_REQUEST['fecha_orden'];
     $items = $_REQUEST['items_orden'] ?? [];
@@ -446,14 +448,14 @@ if (isset($_REQUEST['actualizar_orden'])) {
     if ($es_orden_servicio) {
         $rpta = ActualizarOrdenServicio(
             $id_compra, $proveedor_sel, $moneda_sel,
-            $observacion, $direccion, $plazo_entrega, $porte,
+            $observacion, $direccion, $plazo_pago, $plazo_entrega, $porte, 
             $fecha_orden, $items_existentes, $id_detraccion,
             $archivos_homologacion, $id_retencion, $id_percepcion, $requisitos_items
         );
     } else {
         $rpta = ActualizarOrdenCompra(
             $id_compra, $proveedor_sel, $moneda_sel,
-            $observacion, $direccion, $plazo_entrega, $porte,
+            $observacion, $direccion, $plazo_pago, $plazo_entrega, $porte, 
             $fecha_orden, $items_existentes, $id_detraccion,
             $archivos_homologacion, $id_retencion, $id_percepcion, $requisitos_items 
         );

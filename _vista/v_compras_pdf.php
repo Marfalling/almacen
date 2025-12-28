@@ -412,7 +412,15 @@ $html = '
                 </div>
                 <div class="info-right">
                     <div><strong>MONEDA:</strong> ' . $moneda . '</div>
-                    <div><strong>CONDICIÓN PAGO:</strong> ' . $condicion_pago . '</div>
+                    <div><strong>CONDICIÓN PAGO:</strong> ' . $condicion_pago . '</div>';
+                    
+        //  AGREGAR PLAZO DE ENTREGA SI EXISTE
+        if (!empty($plazo_entrega_texto)) {
+            $html .= '
+                    <div><strong>PLAZO ENTREGA:</strong> ' . htmlspecialchars($plazo_entrega_texto, ENT_QUOTES, 'UTF-8') . '</div>';
+        }
+
+        $html .= '
                     <div><strong>TELÉFONO:</strong> ' . $telefono . '</div>
                 </div>
             </div>

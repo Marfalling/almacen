@@ -93,7 +93,11 @@ function GrabarSalida(
     }
     
     include("../_conexion/conexion.php");
-    
+
+    date_default_timezone_set('America/Lima');
+
+     $fecha_actual = date('Y-m-d H:i:s');
+
     //  Limpiar valores básicos
     $id_material_tipo = intval($id_material_tipo);
     $id_almacen_origen = intval($id_almacen_origen);
@@ -179,7 +183,7 @@ function GrabarSalida(
         $id_recibe_centro_costo,
         $ndoc_salida,
         $fec_req_salida,
-        '$fec_salida',
+        '$fecha_actual',
         $obs_salida,
         1
     )";
@@ -294,6 +298,9 @@ function GrabarSalida(
 function AprobarSalidaConMovimientos($id_salida, $id_personal_aprueba)
 {
     include("../_conexion/conexion.php");
+    date_default_timezone_set('America/Lima'); 
+    
+    $fecha_actual = date('Y-m-d H:i:s'); 
 
     mysqli_begin_transaction($con);
 
@@ -470,7 +477,7 @@ function AprobarSalidaConMovimientos($id_salida, $id_personal_aprueba)
                               ) VALUES (
                                 $id_personal_registro, $id_salida, $id_producto, $id_almacen_origen, 
                                 $id_ubicacion_origen, 2, 2, 
-                                $cantidad, NOW(), 1
+                                $cantidad, '$fecha_actual', 1
                               )";
             
             if (!mysqli_query($con, $sql_mov_salida)) {
@@ -487,7 +494,7 @@ function AprobarSalidaConMovimientos($id_salida, $id_personal_aprueba)
                                ) VALUES (
                                  $id_personal_registro, $id_salida, $id_producto, $id_almacen_destino, 
                                  $id_ubicacion_destino, 2, 1, 
-                                 $cantidad, NOW(), 1
+                                 $cantidad, '$fecha_actual', 1
                                )";
             
             if (!mysqli_query($con, $sql_mov_ingreso)) {
@@ -501,7 +508,7 @@ function AprobarSalidaConMovimientos($id_salida, $id_personal_aprueba)
         $sql_aprobar = "UPDATE salida 
                         SET est_salida = 3,
                             id_personal_aprueba_salida = $id_personal_aprueba,
-                            fec_aprueba_salida = NOW()
+                            fec_aprueba_salida = '$fecha_actual'
                         WHERE id_salida = $id_salida";
         
         if (!mysqli_query($con, $sql_aprobar)) {
@@ -559,6 +566,10 @@ function AprobarSalidaConMovimientos($id_salida, $id_personal_aprueba)
 function DenegarSalida($id_salida, $id_personal_deniega_salida)
 {
     include("../_conexion/conexion.php");
+
+    date_default_timezone_set('America/Lima');
+    
+    $fecha_actual = date('Y-m-d H:i:s');
 
     mysqli_begin_transaction($con);
 
@@ -630,7 +641,7 @@ function DenegarSalida($id_salida, $id_personal_deniega_salida)
         $sql_denegar = "UPDATE salida 
                        SET est_salida = 4,
                            id_personal_deniega_salida = $id_personal_deniega_salida,
-                           fec_deniega_salida = NOW()
+                           fec_deniega_salida = '$fecha_actual'
                        WHERE id_salida = $id_salida";
         
         if (!mysqli_query($con, $sql_denegar)) {
@@ -692,6 +703,10 @@ function DenegarSalida($id_salida, $id_personal_deniega_salida)
 function RecepcionarSalida($id_salida, $id_personal_recepciona)
 {
     include("../_conexion/conexion.php");
+
+    date_default_timezone_set('America/Lima'); 
+    
+    $fecha_actual = date('Y-m-d H:i:s'); 
 
     $id_salida = intval($id_salida);
     $id_personal_recepciona = intval($id_personal_recepciona);
@@ -756,7 +771,7 @@ function RecepcionarSalida($id_salida, $id_personal_recepciona)
     $sql_update = "UPDATE salida 
                    SET est_salida = 2,
                        id_personal_recepciona_salida = $id_personal_recepciona,
-                       fec_recepciona_salida = NOW()
+                       fec_recepciona_salida = '$fecha_actual'
                    WHERE id_salida = $id_salida";
 
     $res_update = mysqli_query($con, $sql_update);
@@ -1037,6 +1052,10 @@ function ActualizarSalida(
     $materiales
 ) {
     include("../_conexion/conexion.php");
+
+    date_default_timezone_set('America/Lima'); 
+    
+    $fecha_actual = date('Y-m-d H:i:s'); 
 
     error_log("🔧 ActualizarSalida - ID Salida: $id_salida");
     
@@ -1481,7 +1500,7 @@ function ActualizarSalida(
                             ) VALUES (
                                 $id_personal, $id_salida, $id_producto, $id_almacen_origen, 
                                 $id_ubicacion_origen, 2, 2, 
-                                $cantidad, NOW(), 1
+                                $cantidad, '$fecha_actual', 1
                             )";
             mysqli_query($con, $sql_mov_salida);
             
@@ -1493,8 +1512,8 @@ function ActualizarSalida(
                             ) VALUES (
                                 $id_personal, $id_salida, $id_producto, $id_almacen_destino,
                                 $id_ubicacion_destino, 2, 1, 
-                            $cantidad, NOW(), 1
-                        )";
+                                $cantidad, '$fecha_actual', 1
+                            )";
         mysqli_query($con, $sql_mov_ingreso);
     }
 } else {

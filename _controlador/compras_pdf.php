@@ -79,7 +79,8 @@ $telefono = $compra['cel_pedido'] ?? '';
 $almacen = $compra['nom_almacen'] ?? '';
 $observaciones = $compra['obs_compra'] ?? 'Sin observaciones especiales';
 $aclaraciones = $compra['acl_pedido'] ?? '';
-$plazo_entrega = $compra['plaz_compra'] ?? '';
+$plazo_pago_dias = $compra['plaz_compra'] ?? '';  
+$plazo_entrega_texto = $compra['plaz_entrega'] ?? '';  
 $portes = $compra['port_compra'] ?? '';
 
 // 🔹 OBTENER CENTRO DE COSTO DEL PERSONAL
@@ -88,10 +89,10 @@ $centro_costo_personal = $compra['nom_centro_costo'] ?? 'NO ESPECIFICADO';
 
 
 // Definir condición de pago de forma clara
-$es_contado = empty($plazo_entrega) || $plazo_entrega == '0' || $plazo_entrega == 0;
+$es_contado = empty($plazo_pago_dias) || $plazo_pago_dias == '0' || $plazo_pago_dias == 0;
 $condicion_pago = $es_contado 
     ? 'Contado' 
-    : 'Crédito (' . $plazo_entrega . ' días)';
+    : 'Crédito (' . $plazo_pago_dias . ' días)';
 
 // Datos del proveedor
 $nom_proveedor = $compra['nom_proveedor'] ?? '';

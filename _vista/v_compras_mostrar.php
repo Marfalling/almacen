@@ -983,11 +983,18 @@ function EliminarDocumento(id_doc) {
                                     </div>
                                     <div class="col-md-6">
                                         <label style="font-size: 11px; font-weight: bold;">Condición de Pago (días):</label>
-                                        <input type="number" class="form-control form-control-sm" name="plazo_entrega" id="edit_plazo_entrega" min="0" placeholder="0 = Contado">
+                                        <input type="number" class="form-control form-control-sm" name="plazo_pago" id="edit_plazo_pago" min="0" placeholder="0 = Contado">
                                         <small class="text-muted">Dejar vacío o 0 para contado</small>
                                     </div>
                                 </div>
                                 
+                                <div class="row mb-2">
+                                    <div class="col-md-12">
+                                        <label style="font-size: 11px; font-weight: bold;">Plazo de Entrega:</label>
+                                        <input type="text" class="form-control form-control-sm" name="plazo_entrega" id="edit_plazo_entrega" maxlength="255" placeholder="Plazo de Entrega...">
+                                    </div>
+                                </div>
+
                                 <div class="row mb-2">
                                     <div class="col-md-12">
                                         <label style="font-size: 11px; font-weight: bold;">Dirección de Envío:</label>
@@ -1837,6 +1844,7 @@ function mostrarContenidoDetalleCompra(compra, detalles) {
                             if (isNaN(plazo)) return compra.plaz_compra;
                             return plazo === 0 ? 'Contado' : `Crédito ${plazo} días`;
                         })()}</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Plazo de Entrega:</strong> ${compra.plaz_entrega || '-'}</p>
                     </div>
                     <div class="col-md-6">
                         <p style="margin: 5px 0; font-size: 13px;"><strong>Fecha Orden:</strong> ${fechaFormateada}</p>
@@ -2268,7 +2276,8 @@ function cargarDatosOrdenModal(orden, detalles, proveedores, detracciones, centr
     document.getElementById('orden-numero').innerHTML = `${cod_orden_edit} ${badgeTipo}`;    document.getElementById('edit_id_compra').value = orden.id_compra;
     document.getElementById('edit_fecha_orden').value = orden.fec_compra.split(' ')[0];
     document.getElementById('edit_moneda_orden').value = orden.id_moneda;
-    document.getElementById('edit_plazo_entrega').value = orden.plaz_compra || '';
+    document.getElementById('edit_plazo_pago').value = orden.plaz_compra || '';
+    document.getElementById('edit_plazo_entrega').value = orden.plaz_entrega || '';
     document.getElementById('edit_direccion_envio').value = orden.denv_compra || '';
     document.getElementById('edit_observaciones_orden').value = orden.obs_compra || '';
     //document.getElementById('edit_tipo_porte').value = orden.port_compra || '';
